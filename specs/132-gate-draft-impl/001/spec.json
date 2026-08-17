@@ -1,0 +1,72 @@
+{
+  "goal": "draft フェーズと impl フェーズに gate チェックを導入し、guardrail が実際に効いているかを PASS/FAIL で可視化する。\nあわせて、既存 spec gate のエラーハンドリングを throw から構造化結果に統一する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "静的チェックへの移行（将来の段階的移行は issue #75 の後続作業）",
+      "guardrail 記事の追加・変更（既存の `meta.phase` タグをそのまま使用）",
+      "gate のリトライロジック変更（リトライ制御は引き続き SKILL.md が担当）",
+      "テスト phase の gate"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge flow run gate --phase draft` で draft.md のテキスト構造チェック + guardrail AI チェックが実行される",
+    "[ ] `sdd-forge flow run gate --phase impl` で spec Requirements + git diff の AI チェックが実行される",
+    "[ ] gate FAIL 時に `{ ok: true, data: { result: \"fail\", ... } }` が返る（throw しない）",
+    "[ ] gate PASS 時の既存動作（`{ ok: true, data: { result: \"pass\", ... } }`）が維持される",
+    "[ ] `--phase` 省略時は既存の spec gate（`pre`）が動作する",
+    "[ ] flow.json の `steps` に `gate-draft`, `gate-impl` が含まれる",
+    "[ ] registry の pre/post hook が phase に応じた step ID を更新する",
+    "[ ] flow-plan SKILL.md に gate draft ステップ（リトライ上限 10 回）が記載されている",
+    "[ ] flow-impl SKILL.md に gate impl ステップ（リトライ上限 5 回）が記載されている",
+    "[ ] 既存の `npm test` が通る",
+    "[ ] 新規テスト（checkDraftText, gate impl ロジック）が通る"
+  ],
+  "clarifications": [
+    {
+      "q": "`pre`/`post` は廃止するか？",
+      "a": "廃止しない。ログ保存等で使用中。`--phase` に `draft`/`impl` を値として追加する"
+    },
+    {
+      "q": "gate draft のテキスト構造チェック対象は？",
+      "a": "Q&A の有無、ユーザー承認、開発種別、目的（ゴール）"
+    },
+    {
+      "q": "gate impl のチェック方式は？",
+      "a": "AI チェックのみ。spec.md Requirements + `git diff baseBranch...HEAD` を AI に渡す"
+    },
+    {
+      "q": "gate FAIL 時のエラーハンドリングは？",
+      "a": "throw をやめて `{ result: \"fail\", next: \"<phase>\" }` を return。復旧不能エラーは throw 維持"
+    },
+    {
+      "q": "step ID は共用か別々か？",
+      "a": "`gate-draft`, `gate`（spec 用、既存）, `gate-impl` の3つを別々に管理"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "全て解決済み"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "132-gate-draft-impl"
+}

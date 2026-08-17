@@ -1,0 +1,289 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-c9198649cf0f8a8f4d3e580527cb0f944ec9256f3b5161bff26aca0cd067159e",
+  "flowVersionId": "flow-version-cdbf9373d9632b299a84646a1225e0e3d500638986ad1f4f47ddcf20e53d947d",
+  "runId": "run-f04c59236764114754dd26a33aa3eeddca5157fa08d271f74d3d87dc2611af0f",
+  "specId": "138-symfony-guardrails",
+  "issue": 83,
+  "request": "Symfonyプリセットにフレームワーク固有のguardrailを追加する（Issue #83）。3つの外部ソース（awesome-copilot, symfony-ux-skills, EasyAdminBundle AGENTS.md）からインスピレーションを得て、spec/impl/reviewの3フェーズに48件のguardrailルールを独自の文章で作成する。NOTICEファイルも追加する。",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/138-symfony-guardrails"
+  },
+  "policy": {
+    "autoApprove": false,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "approach",
+      "key": "approach",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch",
+      "key": "branch",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "prepare-spec",
+      "key": "prepare-spec",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "draft",
+      "key": "draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-draft",
+      "key": "gate-draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "spec",
+      "key": "spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate",
+      "key": "gate",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "approval",
+      "key": "approval",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "test",
+      "key": "test",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "implement",
+      "key": "implement",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-impl",
+      "key": "gate-impl",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "review",
+      "key": "review",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "finalize",
+      "key": "finalize",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "commit",
+      "key": "commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "push",
+      "key": "push",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "merge",
+      "key": "merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-create",
+      "key": "pr-create",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch-cleanup",
+      "key": "branch-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-merge",
+      "key": "pr-merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "sync-cleanup",
+      "key": "sync-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-update",
+      "key": "docs-update",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-review",
+      "key": "docs-review",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-commit",
+      "key": "docs-commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "task",
+      "id": "T-legacy",
+      "key": "T-legacy",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "T-legacy-write-tests",
+          "key": "write-tests",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "T-legacy-implement",
+          "key": "implement",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "T-legacy-gate-impl",
+          "key": "gate-impl",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        }
+      ]
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

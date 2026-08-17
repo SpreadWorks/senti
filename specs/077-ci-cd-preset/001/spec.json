@@ -1,0 +1,72 @@
+{
+  "goal": "Create a new `ci` preset that scans GitHub Actions workflow files and generates structured CI/CD documentation as a `ci_cd.md` chapter.",
+  "background": "",
+  "scope": {
+    "in": [
+      "New preset `src/presets/ci/` with `base` as parent",
+      "DataSource `pipelines` with scan + resolve methods (`list`, `jobs`, `env`)",
+      "Simple YAML parser for GitHub Actions workflow files (regex + indent-based, no external deps)",
+      "Chapter template `ci_cd.md` (en + ja)",
+      "Platform-agnostic data structure for future CI platform expansion"
+    ],
+    "out": [
+      "GitLab CI, CircleCI, Jenkins support (future expansion)",
+      "Docker Compose / Makefile (not CI/CD scope)",
+      "Batch processing logic documentation (belongs in framework presets)",
+      "YAML anchors/aliases, full matrix expansion, reusable workflow recursion",
+      "Build/deploy tool integration (Makefile, Docker)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge scan` with `type: \"ci\"` produces `pipelines` category in analysis.json",
+    "`sdd-forge data` resolves `pipelines.list`, `pipelines.jobs`, `pipelines.env` directives",
+    "`sdd-forge init` generates `ci_cd.md` from template",
+    "Parser correctly handles: simple triggers, matrix triggers, multiple jobs, secret/env references",
+    "No external dependencies used in YAML parsing",
+    "Tests cover the YAML parser with representative GitHub Actions workflow files"
+  ],
+  "clarifications": [
+    {
+      "q": "Should Makefile and Docker Compose be in CI/CD scope?",
+      "a": "No. They are build/dev environment tools, not CI/CD."
+    },
+    {
+      "q": "Should we support all CI platforms initially?",
+      "a": "No. GitHub Actions only, expand later based on demand."
+    },
+    {
+      "q": "Should CI be a preset or a base chapter?",
+      "a": "Preset. The `type` array declaration signals CI/CD usage. Cross-cutting but opt-in."
+    },
+    {
+      "q": "Where does batch processing triggered by GitHub Actions belong?",
+      "a": "Framework presets (e.g. Symfony batch_and_shell). CI preset documents pipeline structure, not execution logic."
+    },
+    {
+      "q": "Should naming be platform-specific?",
+      "a": "No. Use generic terms: `pipelines`, `runner`, `dependencies` to support future platforms."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "077-ci-cd-preset"
+}

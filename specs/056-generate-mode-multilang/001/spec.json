@@ -1,0 +1,51 @@
+{
+  "goal": "`mode: generate` で多言語ドキュメントを正しく生成できるようにし、translate モードとの品質を比較する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/data.js` — `outputLang` をコンテキストから取得して利用する",
+      "`src/docs.js` — generate モードパイプラインの動作確認・必要な修正",
+      "品質比較 — generate と translate の両方で生成し、diff + review + AI 見解で比較"
+    ],
+    "out": [
+      "言語レベルの並列化（言語ループは逐次のまま）",
+      "forge コマンドの generate モード対応",
+      "CLI の `--lang` フラグ追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "並列化の粒度は？",
+      "a": "text ステップ内の既存並列化のみ。言語ループは逐次"
+    },
+    {
+      "q": "品質比較の方法は？",
+      "a": "diff（translate版 vs generate版）+ `sdd-forge review` + AI による見解コメント"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "056-generate-mode-multilang"
+}

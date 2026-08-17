@@ -1,0 +1,238 @@
+{
+  "goal": "spec.md を真実の出所から外し、spec.json を core wiring の読み込み元に切り替える。spec.md は sdd-forge spec render による派生物として位置づける。",
+  "background": "cac6 親計画のタスク 8/11。T1 (#181) で spec.json schema と spec render コマンドが整備済み。T2 (#183) で flow.json の tasks 拡張が入った。T1 成果物の specs/196-spec-json-schema-render/interface.md に、spec.md を読み書きする全箇所とその置換方針が整理されており、本タスクはその方針を実装に落とす。alpha ポリシーのため旧経路は削除する。",
+  "scope": {
+    "in": [
+      "core wiring (flow ランタイム / docs 生成 / metrics が spec 内容を読む経路) で spec.md の regex 解析を spec.json の構造化読み込みに置換する",
+      "consumer が spec から必要とする情報 (goal / scope / requirements / 承認状態 / 認可されたテスト変更リスト 等) を構造化データとして spec.json から取得する経路を整備する",
+      "spec.md は spec render による派生物に統一し、prepare / review 書き換え / finalize 直前の 3 タイミングで自動再生成される",
+      "flow.json が保持する spec ポインタの扱いを変更する (.md ではなく spec ディレクトリ / .json を指すよう統一)"
+    ],
+    "out": [
+      "既存 specs/*/spec.md から spec.json への一括マイグレーション (T11 のスクリプトが担当)",
+      "tests/<spec>/spec.md (test design ドキュメント。feature spec とは別物)",
+      "spec render コマンド仕様そのものの変更",
+      "spec.schema.json の version 機構導入",
+      "guardrail 3-tier 構造変更 (T3 の責務)"
+    ]
+  },
+  "constraints": [
+    "外部依存なし (Node.js 組み込みモジュールのみ)",
+    "alpha ポリシー: 後方互換コードを書かない。旧 spec.md 直読経路は削除する",
+    "内部インターフェースは信頼し、バリデーションはシステム境界 (CLI 入力 / schema 検証) でのみ行う",
+    "テストコードをテスト合格のために弄らない。テスト失敗時はまずシナリオの妥当性を確認する",
+    "changelog / forge / metrics 等のワンショット CLI コマンドでは同期 I/O (fs.readFileSync / fs.statSync) を許容する。これらは hot path ではなく、既存コードベース全体が同期 I/O パターンで構築されているため。async 化する場合は別 spec で一貫性のあるスコープで行う"
+  ],
+  "design_principles": [
+    "spec.md はビュー、spec.json はモデル: MVC のモデル層を spec.json に集約。spec.md は決定論的レンダラ出力",
+    "I/O 集約: spec.json の load + schema validate は 1 箇所に閉じる (DRY)",
+    "承認状態の所在: 承認は flow state (step 管理) で表現し、spec 本体に持たない。spec は仕様、flow は進行状態という関心の分離",
+    "構造化データ優先: spec の内容を consumer が必要とするなら、regex parse ではなく schema フィールドとして扱う"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/spec-json.js — loadSpecJson / tryLoadSpecJson / emptySpecStub / specJsonToPromptText"
+      },
+      {
+        "text": "src/flow/schemas/spec.schema.json — authorized_test_modifications optional field 追加"
+      },
+      {
+        "text": "src/flow/lib/run-prepare-spec.js — renderSpecMarkdown 直接呼出で spec.json と spec.md を同時生成、flow.json は spec.json を指す"
+      },
+      {
+        "text": "src/flow/lib/run-retro.js — requirements を spec.json から取得 (loadSpecJson, throw on missing)"
+      },
+      {
+        "text": "src/flow/lib/run-gate.js — authorized_test_modifications を spec.json から取得 (loadSpecJson)"
+      },
+      {
+        "text": "src/flow/commands/merge.js — goal / scope / requirements を spec.json から取得 (loadSpecJson)"
+      },
+      {
+        "text": "src/flow/commands/review.js — scope.in / requirements / goal+scope query を spec.json から取得 (loadSpecJson)"
+      },
+      {
+        "text": "src/docs/commands/changelog.js — メタ情報を spec.json / flow.json から取得 (spec.json 必須)"
+      },
+      {
+        "text": "src/docs/commands/forge.js — spec.json を loadSpecJson で読み specJsonToPromptText で prompt 化"
+      },
+      {
+        "text": "src/metrics/commands/token.js — spec volume を spec.json のみで測定"
+      },
+      {
+        "text": "src/flow/registry.js — --spec help 文言更新"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow prepare → spec.json stub + spec.md skeleton を作成 + flow.json.spec = specs/<dir>/spec.json"
+      },
+      {
+        "text": "gate / review / retro / merge / finalize / changelog / forge / metrics → loadSpecJson(specDir) で構造化データ取得"
+      },
+      {
+        "text": "docs forge → spec.json があれば specJsonToPromptText で prompt 化、無ければ .md 生テキスト"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "spec.json は source of truth、spec.md は spec render による派生物"
+      },
+      {
+        "text": "flow.json の spec ポインタは新規 prepare 時に spec.json を指す"
+      },
+      {
+        "text": "core wiring は全て loadSpecJson 経由に統一。spec.json が無ければ non-zero exit (R2)。pre-T11 spec は T11 マイグレーション後に運用再開する前提"
+      },
+      {
+        "text": "承認 checkbox は flow state の approval step を参照"
+      },
+      {
+        "text": "prepare-spec は renderSpecMarkdown を直接呼び、spec.json と spec.md を同一ステップで生成する"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "core wiring が spec の構造化フィールドを必要とする場合、単一の load path 経由で spec.json から schema 検証付きで取得する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "単一 active spec を対象とする core wiring (gate / retro / merge / review / forge / finalize) で spec.json が存在しない or schema validation に失敗した場合、non-zero exit + stderr メッセージで停止する (loadSpecJson が throw)。複数 spec を横断走査するコマンド (docs changelog / metrics token) のみ例外で、spec.json を持たない spec ディレクトリを skip してよい（マイグレーション前の過去 spec を許容するため）。skip 対象は spec.json 不在時のみで、schema validation エラー時は依然として throw する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "flow prepare で新しい spec を作る場合、最小構成の spec.json を生成し同じ prepare 内で spec render で spec.md を派生生成する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "gate / review / retro / merge / finalize / changelog / forge / metrics のいずれかで spec.md を直接 regex 解析せず spec.json から構造化データを取得する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "flow.json の spec ポインタは新しい規約 (spec ディレクトリ または spec.json) で正規化される",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "既存テストスイート (npm test) が spec.json ベースのフィクスチャ更新後に regression なく pass する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "sdd-forge spec render の決定論性 invariant が保持される (同一 spec.json から同一 spec.md がバイト一致)",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "spec.json の load / validate を複数箇所で行う場合、共通 load path に集約される (DRY)",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "core wiring が spec.json を読んだ結果を返す場合、consumer は plain object を受け取る",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "--spec <path> に .md / .json / directory のいずれを渡しても CLI が同一挙動で動作する",
+      "priority": "nice-to-have",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "spec.json が存在する active flow で、gate / review / retro / merge / finalize / changelog / forge / metrics の各コマンドが spec.md を直接 regex parse せずに動作する",
+    "spec.md の手動変更は spec render によって上書きされる (spec.json が真のソース)",
+    "既存テストスイートが回帰なく pass する",
+    "spec.json が無い active flow を実行した際、明示的な non-zero exit + stderr メッセージで停止する",
+    "spec.schema.json に authorized_test_modifications フィールドが追加され、schema 検証が通る",
+    "flow.json の spec ポインタが新規 prepare 時に spec.json を指す値で保存される"
+  ],
+  "clarifications": [
+    {
+      "q": "対象スコープは core wiring のみでよいか",
+      "a": "はい。templates / locale の文字列は単なるファイル名参照であり、移行対象外"
+    },
+    {
+      "q": "## Authorized Existing Test Modifications セクションの扱い",
+      "a": "spec.schema.json に optional 配列フィールドを追加し spec.json に持たせる。renderer は従来通りのセクションとして spec.md に出力。core wiring は spec.json から直接取得する"
+    },
+    {
+      "q": "## User Confirmation checkbox への依存",
+      "a": "spec.json には持たせず、flow state の approval step で判定する。renderer は固定出力して人間可読性を維持"
+    },
+    {
+      "q": "既存 specs/*/spec.md のみの古い spec は動作するか",
+      "a": "No。T11 マイグレーション前提で運用する。merge order は T11 → T8 または両者同時"
+    },
+    {
+      "q": "flow.json の spec ポインタ値の移行",
+      "a": "spec ディレクトリまたは spec.json を指すよう変更。移行期は .md 値の自動正規化を許容する"
+    }
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/flow/commands/merge.test.js",
+      "reason": "parseSpec が spec.md 文字列を受けていた旧契約を、本 spec の目的通り spec.json オブジェクトを受ける新契約に置換。fixture を spec.json 形式に書き換え、assertions を新出力形式に合わせる"
+    },
+    {
+      "path": "tests/unit/spec/schema.test.js",
+      "reason": "spec.schema.json の properties 一覧を検査しているテスト。本 spec で authorized_test_modifications フィールドを schema に追加するため、期待フィールド配列を更新する"
+    },
+    {
+      "path": "tests/e2e/docs/commands/changelog.test.js",
+      "reason": "changelog が spec.md の frontmatter を regex parse していた旧動作を spec.json + flow.json 読みに置換したため、fixture を spec.md から spec.json / flow.json 形式に更新する必要がある（本 spec の目的に直接対応）"
+    },
+    {
+      "path": "tests/e2e/metrics/token.test.js",
+      "reason": "metrics token の spec volume 計測元を spec.md から spec.json に切り替えたため、fixture の書き出しファイル名と内容を spec.json 形式に更新する必要がある"
+    },
+    {
+      "path": "tests/e2e/flow/gate-impl-integration.test.js",
+      "reason": "run-gate が loadSpecJson 経由で spec.json を必須ロードするよう変更したため、fixture で spec.json を追加生成するセットアップコードが必要となる"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "spec.md 直読を残し spec.json を追加入力として併用",
+      "reason": "alpha ポリシー違反。gate / review の二重化で複雑化。却下"
+    },
+    {
+      "option": "認可テスト変更を spec.json に持たせず、専用 JSON ファイルを分離",
+      "reason": "I/O が分散し consumer ごとに load 実装が増える。却下"
+    },
+    {
+      "option": "## User Confirmation を spec.json に user_confirmation フィールドとして追加",
+      "reason": "進行状態と仕様の関心を混在させる。却下"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "207-spec-json-primary"
+}

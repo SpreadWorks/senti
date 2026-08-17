@@ -9,7 +9,7 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = join(__dirname, "..", "..", "..");
-const FILL_SCRIPT = join(REPO_ROOT, "specs", "167-metrics-token-difficulty", "fill-flow-counts.js");
+const FILL_SCRIPT = join(REPO_ROOT, "specs", "167-metrics-token-difficulty", "001", "artifacts", "migration", "legacy-files", "fill-flow-counts.js");
 
 describe("fill-flow-counts script", () => {
   let tmp;

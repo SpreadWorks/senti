@@ -1,0 +1,354 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-bd4565858281043db24d7fac1caa5afbd3291a5cad5b5aad1d59042f72d8ef60",
+  "flowVersionId": "flow-version-3d84f70a64fe49a1f4fd83cf0a040a7dec9050cb904f25a78e6b6e49fd8ecfda",
+  "runId": "49c81bb4-8137-4420-ad00-30a0b0a9391b",
+  "specId": "273-spec-review-json-fields",
+  "issue": 352,
+  "request": "#352 e283: [BUG] spec-review provider cannot return JSON containing required fields\n\n## Problem\nThe spec-review provider returned JSON missing blockingFindings / nonBlockingImprovements, causing CLI schema validation to fail. The same failure occurred 3 consecutive times, making it impossible to create the spec-review artifact.\n\n## Why This Is a Problem\nThe CLI cannot mechanically determine whether blocking findings are genuinely zero or whether required fields are simply absent. As a result, it cannot create the review trace needed to proceed to subsequent steps.\n\n## Proposed Improvements\n- Explicitly state required fields in the spec-review prompt so that empty arrays are returned even when there are no findings.\n- On the CLI side, if only these 2 fields are missing, auto-fill them with empty arrays.\n- If auto-fill is not possible, re-prompt using a schema-repair-only prompt to get corrected output.",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/273-spec-review-json-fields"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "plan",
+      "key": "plan",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "branch",
+          "key": "branch",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "prepare-spec",
+          "key": "prepare-spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft",
+          "key": "draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-questions-review",
+          "key": "draft-questions-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-questions-triage",
+          "key": "draft-questions-triage",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-questions-repair",
+          "key": "draft-questions-repair",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-refine",
+          "key": "draft-refine",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-coverage-review",
+          "key": "draft-coverage-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-coverage-triage",
+          "key": "draft-coverage-triage",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-coverage-repair",
+          "key": "draft-coverage-repair",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft-gate",
+          "key": "draft-gate",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec",
+          "key": "spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec-review",
+          "key": "spec-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec-triage",
+          "key": "spec-triage",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec-repair",
+          "key": "spec-repair",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec-gate",
+          "key": "spec-gate",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "approval",
+          "key": "approval",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test",
+          "key": "test",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "scenario-validity",
+          "key": "scenario-validity",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test-review",
+          "key": "test-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        }
+      ]
+    },
+    {
+      "kind": "step",
+      "id": "impl",
+      "key": "impl",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "implement",
+          "key": "implement",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test-execute",
+          "key": "test-execute",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test-result-review",
+          "key": "test-result-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "impl-review",
+          "key": "impl-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "impl-gate",
+          "key": "impl-gate",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "retro",
+          "key": "retro",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "final-regression",
+          "key": "final-regression",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 1,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "finalize",
+          "key": "finalize",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": [
+            {
+              "kind": "step",
+              "id": "finalize-commit",
+              "key": "finalize-commit",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 1,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-merge",
+              "key": "finalize-merge",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-sync",
+              "key": "finalize-sync",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 1,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-cleanup",
+              "key": "finalize-cleanup",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 25,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

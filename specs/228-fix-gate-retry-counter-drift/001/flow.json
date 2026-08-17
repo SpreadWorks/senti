@@ -1,0 +1,288 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-8631b6254fee25fead653610c8a343cdb62cb5a174f37aca0afd9a64372ed1b7",
+  "flowVersionId": "flow-version-6d4789991462ed51dcd091fc39ba9f375bd2114f8ae6107557855fb3e58e2e7f",
+  "runId": "c6173054-8ade-406c-b5fb-a8df42fa523a",
+  "specId": "228-fix-gate-retry-counter-drift",
+  "issue": 250,
+  "request": "gate retry counter が直感と異なるタイミングで消費され auto モード中に黙って枯渇する問題を修正する。issue-log 記録がカウンタを増分しないことの保証、assertNoRepeatedFail 等の事前拒否によるカウンタ消費時の表示追加、各 gate 実行時のカウンタ内訳表示を実装する。",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/228-fix-gate-retry-counter-drift"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "branch",
+      "key": "branch",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "prepare-spec",
+      "key": "prepare-spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "draft",
+      "key": "draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-draft",
+      "key": "gate-draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "spec",
+      "key": "spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate",
+      "key": "gate",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "approval",
+      "key": "approval",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "test",
+      "key": "test",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "implement",
+      "key": "implement",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-impl",
+      "key": "gate-impl",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-write-tests",
+      "key": "integration-write-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-run-tests",
+      "key": "integration-run-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-run-all-tests",
+      "key": "integration-run-all-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-evaluate",
+      "key": "integration-evaluate",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "review",
+      "key": "review",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "finalize",
+      "key": "finalize",
+      "status": "in_progress",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "commit",
+      "key": "commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "push",
+      "key": "push",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "merge",
+      "key": "merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-create",
+      "key": "pr-create",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch-cleanup",
+      "key": "branch-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-merge",
+      "key": "pr-merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "sync-cleanup",
+      "key": "sync-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-update",
+      "key": "docs-update",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-review",
+      "key": "docs-review",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-commit",
+      "key": "docs-commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "task",
+      "id": "T-pending-spec",
+      "key": "T-pending-spec",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

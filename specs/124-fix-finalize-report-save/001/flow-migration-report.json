@@ -1,0 +1,763 @@
+{
+  "schemaRevision": 1,
+  "migration": {
+    "component": "specs",
+    "revision": 1,
+    "sourceFormat": {
+      "family": "flat-steps",
+      "hasRunIdentity": false
+    },
+    "sourceFlowHash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf",
+    "identityBasis": [
+      {
+        "field": "flowId",
+        "value": "flow-e17c6502b7f75943581b7abc79c1d3b87e85839d44c0afb850c24723cebf43b4",
+        "basis": "derived",
+        "source": {
+          "path": "flow.json",
+          "pointer": "/flowId",
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        },
+        "formula": "SENNEL\\0SPECS\\0REVISION-1\\0<identity-kind>\\0<specId>\\0<source-flow-sha256>"
+      },
+      {
+        "field": "flowVersionId",
+        "value": "flow-version-b0ef83d12a886d3a787d35a9e285c22ecf7b9dd2b55f3e1a21f2774d15b8eaa3",
+        "basis": "derived",
+        "source": {
+          "path": "flow.json",
+          "pointer": "/flowVersionId",
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        },
+        "formula": "SENNEL\\0SPECS\\0REVISION-1\\0<identity-kind>\\0<specId>\\0<source-flow-sha256>"
+      },
+      {
+        "field": "runId",
+        "value": "run-871e61216aa14f9865dbee052df3fef7deee49f7bf303f17acb7f4629355479d",
+        "basis": "derived",
+        "source": {
+          "path": "flow.json",
+          "pointer": "/runId",
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        },
+        "formula": "SENNEL\\0SPECS\\0REVISION-1\\0<identity-kind>\\0<specId>\\0<source-flow-sha256>"
+      }
+    ],
+    "creationAuthority": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    },
+    "fieldCoverage": {
+      "atomicPointers": 88,
+      "classifications": {
+        "converted": 62,
+        "preserved": 26,
+        "omitted": 0,
+        "relocatedTransient": 0,
+        "missingTransient": 0
+      },
+      "unclassified": 0
+    }
+  },
+  "sourceFiles": [
+    {
+      "path": "flow.json",
+      "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf",
+      "size": 3241,
+      "mode": 436
+    },
+    {
+      "path": "qa.md",
+      "hash": "04f0cb3d61f02659355e875394a91b7ffe62637f65ce39db4a909cd428668096",
+      "size": 227,
+      "mode": 436
+    },
+    {
+      "path": "review.md",
+      "hash": "1c668be2c7072f4cfe6a985eac745e222985a3a5b53de3c332b6cdb68a69497c",
+      "size": 3870,
+      "mode": 436
+    },
+    {
+      "path": "spec.json",
+      "hash": "baf44bc777e10fc20b6ad0eedf9136553da066d513233be02b92a3b8bd02ede6",
+      "size": 1658,
+      "mode": 436
+    },
+    {
+      "path": "spec.md",
+      "hash": "d71c1e11fb6c0f4b2b658c01afa1e18db6be5a9b8819b2c1dd3737d2ce95ab7b",
+      "size": 3670,
+      "mode": 436
+    },
+    {
+      "path": "tests/README.md",
+      "hash": "e08d12d340ce4a5fcd7ff36543041bd68f446b9c53c8bb7c3ba843f35cd61342",
+      "size": 931,
+      "mode": 436
+    }
+  ],
+  "target": {
+    "specId": "124-fix-finalize-report-save",
+    "version": 1,
+    "directory": "001",
+    "flowId": "flow-e17c6502b7f75943581b7abc79c1d3b87e85839d44c0afb850c24723cebf43b4",
+    "flowVersionId": "flow-version-b0ef83d12a886d3a787d35a9e285c22ecf7b9dd2b55f3e1a21f2774d15b8eaa3",
+    "runId": "run-871e61216aa14f9865dbee052df3fef7deee49f7bf303f17acb7f4629355479d"
+  },
+  "converted": [
+    {
+      "source": "spec.json",
+      "pointer": null,
+      "destination": "spec.json",
+      "reason": "CANONICAL_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/autoApprove",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/baseBranch",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/featureBranch",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/issue",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/request",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/state/finalizedAt",
+      "destination": "flow.json",
+      "reason": "DURABLE_FINALIZATION_AUTHORITY"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/0/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/0/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/1/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/1/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/2/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/2/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/3/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/3/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/4/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/4/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/5/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/5/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/6/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/6/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/7/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/7/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/8/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/8/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/9/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/9/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/10/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/10/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/11/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/11/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/12/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/12/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/13/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/13/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/14/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/14/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/15/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/15/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/16/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/16/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/17/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/17/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/18/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/18/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/19/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/19/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/20/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/steps/20/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/added_round",
+      "destination": "spec.json",
+      "reason": "CANONICAL_TASK_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/goal",
+      "destination": "spec.json",
+      "reason": "CANONICAL_TASK_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/origin",
+      "destination": "spec.json",
+      "reason": "CANONICAL_TASK_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/parent",
+      "destination": "spec.json",
+      "reason": "CANONICAL_TASK_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/0/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/0/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/1/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/1/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/2/id",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/steps/2/status",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/tasks/0/title",
+      "destination": "spec.json",
+      "reason": "CANONICAL_TASK_SPEC_RECORD"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/worktree",
+      "destination": "flow.json",
+      "reason": "CANONICAL_HISTORICAL_FLOW_STATE"
+    },
+    {
+      "source": "tests/README.md",
+      "pointer": null,
+      "destination": "artifacts/tests/README.md",
+      "reason": "CANONICAL_ARTIFACT_ADAPTER"
+    }
+  ],
+  "preserved": [
+    {
+      "source": "flow.json",
+      "pointer": "/currentTaskId",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "SUPERSEDED_BY_DURABLE_FINALIZATION"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/metrics/0/counter",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/metrics/0/phase",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/metrics/0/taskId",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/metrics/0/ts",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/metrics/0/value",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/0/taskId",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/0/text",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/0/ts",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/1/taskId",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/1/text",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/notes/1/ts",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/redoCount",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requestChars",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/0/desc",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/0/status",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/1/desc",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/1/status",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/2/desc",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/2/status",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/3/desc",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/requirements/3/status",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/reviewCount/impl",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/reviewCount/spec",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/reviewCount/test",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "flow.json",
+      "pointer": "/spec",
+      "destination": "artifacts/migration/flow.legacy.json",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "qa.md",
+      "pointer": null,
+      "destination": "artifacts/migration/legacy-files/qa.md",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "review.md",
+      "pointer": null,
+      "destination": "artifacts/migration/legacy-files/review.md",
+      "reason": "NO_CANONICAL_TARGET"
+    },
+    {
+      "source": "spec.md",
+      "pointer": null,
+      "destination": "artifacts/migration/legacy-files/spec.md",
+      "reason": "NO_CANONICAL_TARGET"
+    }
+  ],
+  "omitted": [],
+  "relocatedTransient": [],
+  "missingTransient": [],
+  "generated": [
+    {
+      "target": "activities.jsonl",
+      "reason": "NO_DIRECT_ACTIVITY",
+      "inputs": []
+    },
+    {
+      "target": "artifacts/migration/flow.legacy.json",
+      "reason": "RAW_LEGACY_FLOW_AUTHORITY",
+      "inputs": [
+        {
+          "source": "flow.json",
+          "pointer": "",
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        }
+      ]
+    },
+    {
+      "target": "flow-migration-report.json",
+      "reason": "MIGRATION_REPORT",
+      "inputs": [
+        {
+          "source": "flow.json",
+          "pointer": null,
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        },
+        {
+          "source": "qa.md",
+          "pointer": null,
+          "hash": "04f0cb3d61f02659355e875394a91b7ffe62637f65ce39db4a909cd428668096"
+        },
+        {
+          "source": "review.md",
+          "pointer": null,
+          "hash": "1c668be2c7072f4cfe6a985eac745e222985a3a5b53de3c332b6cdb68a69497c"
+        },
+        {
+          "source": "spec.json",
+          "pointer": null,
+          "hash": "baf44bc777e10fc20b6ad0eedf9136553da066d513233be02b92a3b8bd02ede6"
+        },
+        {
+          "source": "spec.md",
+          "pointer": null,
+          "hash": "d71c1e11fb6c0f4b2b658c01afa1e18db6be5a9b8819b2c1dd3737d2ce95ab7b"
+        },
+        {
+          "source": "tests/README.md",
+          "pointer": null,
+          "hash": "e08d12d340ce4a5fcd7ff36543041bd68f446b9c53c8bb7c3ba843f35cd61342"
+        }
+      ]
+    },
+    {
+      "target": "artifact-catalog.json",
+      "reason": "MIGRATION_ARTIFACT_CATALOG",
+      "inputs": [
+        {
+          "source": "flow.json",
+          "pointer": null,
+          "hash": "e6b39b0b51efc79a0f4d7dc15e0e1f21b2990c0c014defb37e59872b894539bf"
+        },
+        {
+          "source": "qa.md",
+          "pointer": null,
+          "hash": "04f0cb3d61f02659355e875394a91b7ffe62637f65ce39db4a909cd428668096"
+        },
+        {
+          "source": "review.md",
+          "pointer": null,
+          "hash": "1c668be2c7072f4cfe6a985eac745e222985a3a5b53de3c332b6cdb68a69497c"
+        },
+        {
+          "source": "spec.json",
+          "pointer": null,
+          "hash": "baf44bc777e10fc20b6ad0eedf9136553da066d513233be02b92a3b8bd02ede6"
+        },
+        {
+          "source": "spec.md",
+          "pointer": null,
+          "hash": "d71c1e11fb6c0f4b2b658c01afa1e18db6be5a9b8819b2c1dd3737d2ce95ab7b"
+        },
+        {
+          "source": "tests/README.md",
+          "pointer": null,
+          "hash": "e08d12d340ce4a5fcd7ff36543041bd68f446b9c53c8bb7c3ba843f35cd61342"
+        }
+      ]
+    }
+  ]
+}

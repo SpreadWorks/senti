@@ -1,0 +1,59 @@
+{
+  "goal": "scan 対象とドキュメント対象を分離する。config.json に `docs.exclude` パターンを導入し、analysis.json には含まれるが enrich のドキュメント生成対象からは除外するファイルパターンを設定可能にする。これによりプリセットの内部実装やテストフィクスチャがドキュメントに混入する問題を解消する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "config.json の `docs` オブジェクト内に `exclude` フィールドを追加",
+      "`enrich.js` でエントリ収集後に `docs.exclude` パターンでフィルタ",
+      "`types.js` のバリデーション更新",
+      "`globToRegex`（既存の `scanner.js` にある）を共有ユーティリティに移動し、enrich から利用可能にする"
+    ],
+    "out": [
+      "`scan.include/exclude` の変更",
+      "`getEnrichedContext()` の変更 — chapter がないエントリは既に無視される",
+      "`detectChangedChapters()` の変更 — chapter がないエントリは既に無視される",
+      "`text.js` の変更 — enrich でフィルタするだけで十分",
+      "AI が正しい情報を持っていても書かない問題 — 別 issue",
+      "日本語版が空の問題 — translate ステップの別原因"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "docs.exclude にマッチしたエントリは analysis.json から削除されるか？",
+      "a": "削除しない。analysis.json には残る。enrich に渡されないだけ。"
+    },
+    {
+      "q": "既に enrich 済みのエントリに後から docs.exclude を設定した場合は？",
+      "a": "既存の summary/detail/chapter は analysis.json に残る。次回 enrich 実行時に除外エントリはスキップされるが、既存データは消さない。"
+    },
+    {
+      "q": "glob マッチングに外部依存は必要か？",
+      "a": "不要。`scanner.js` に既存の `globToRegex()` がある。これを共有ユーティリティに移動して使用する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`globToRegex` の移動先 → scanner.js から export するのが最小変更。enrich.js が scanner.js を import する形。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "105-separate-scan-targets-from-documentation-targets"
+}

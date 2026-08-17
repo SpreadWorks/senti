@@ -1,0 +1,264 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-d44cc247ebf0a75d091a87df3eacfe83ae236cbd7319c09cb3d70dd80a5585c9",
+  "flowVersionId": "flow-version-d5e343b5637a3523133b0dff1f4798a48dd4d1476afaa83ab415472699794341",
+  "runId": "abc87216-d5f7-43fc-9d43-09a188fc187d",
+  "specId": "252-spec-json-reqids-gate",
+  "issue": 312,
+  "request": "Issue #312: impl gate should always read spec.json requirements ids regardless of file-map.json presence. Remove the hasFileMap guard around loadSpecJson for reqIds; fallback to spec.md only when spec.json is unavailable or empty; update the affected e2e test scenario.",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/252-spec-json-reqids-gate"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "plan",
+      "key": "plan",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "branch",
+          "key": "branch",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "prepare-spec",
+          "key": "prepare-spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft",
+          "key": "draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-draft",
+          "key": "review-draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate-draft",
+          "key": "gate-draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec",
+          "key": "spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-spec",
+          "key": "review-spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate",
+          "key": "gate",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "approval",
+          "key": "approval",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test",
+          "key": "test",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-test",
+          "key": "review-test",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        }
+      ]
+    },
+    {
+      "kind": "step",
+      "id": "impl",
+      "key": "impl",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "implement",
+          "key": "implement",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test-execute",
+          "key": "test-execute",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test-result-review",
+          "key": "test-result-review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review",
+          "key": "review",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate-impl",
+          "key": "gate-impl",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "retro",
+          "key": "retro",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "finalize",
+          "key": "finalize",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": [
+            {
+              "kind": "step",
+              "id": "finalize-commit",
+              "key": "finalize-commit",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-merge",
+              "key": "finalize-merge",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-sync",
+              "key": "finalize-sync",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-cleanup",
+              "key": "finalize-cleanup",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

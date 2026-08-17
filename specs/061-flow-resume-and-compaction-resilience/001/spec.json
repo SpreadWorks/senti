@@ -1,0 +1,65 @@
+{
+  "goal": "Claude Code の compaction 発動後でも、SDD フローの文脈を復元して作業を再開できるようにする。flow.json に文脈情報を追加し、それを読み出す `flow resume` コマンドと `/sdd-forge.flow-resume` スキルを提供する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "スキル側の自動再開検知（信頼性が低いため不採用）",
+      "`currentPhase` フィールドの保存（steps から導出可能）",
+      "flow.json のマイグレーション（既存 flow.json は notes/request が無くても動く）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow status --request \"text\"` で flow.json に request が保存される",
+    "`sdd-forge flow status --note \"text\"` で flow.json の notes 配列に追記される",
+    "`sdd-forge flow resume` が flow.json 存在時にサマリーを stdout 出力する",
+    "`sdd-forge flow resume` が flow.json 不在時にエラーメッセージを出して exit 1 する",
+    "resume 出力に request, 進捗, spec 要約, notes, next action が含まれる",
+    "`/sdd-forge.flow-resume` スキルが利用可能である",
+    "既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "`decisions` と `notes` どちらの名前にするか？",
+      "a": "`notes` を採用。`decisions` は分かりづらい。"
+    },
+    {
+      "q": "`currentPhase` を保存するか？",
+      "a": "保存しない。steps の in_progress 状態から導出する。"
+    },
+    {
+      "q": "ユーザーが直接 `--note` を叩く場面はあるか？",
+      "a": "ない。AI がスキル実行中に自動的に記録する。"
+    },
+    {
+      "q": "スキル側で自動再開検知するか？",
+      "a": "しない。compaction を AI が正確に検知できないため信頼性が低い。ユーザーが手動で `/sdd-forge.flow-resume` を呼ぶ。"
+    },
+    {
+      "q": "`flow resume` の出力先は？",
+      "a": "stdout にプレーンテキスト出力。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "061-flow-resume-and-compaction-resilience"
+}

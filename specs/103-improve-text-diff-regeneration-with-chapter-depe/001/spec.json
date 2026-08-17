@@ -1,0 +1,61 @@
+{
+  "goal": "text コマンドの再生成時に、変更されたソースファイルに関連する章だけを再生成する仕組みを導入する。現状は全章を毎回再生成しており、不要な AI コール・時間・コストが発生している。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "enrich の差分実行（変更 entry だけ enrich する）",
+      "data ディレクティブの差分実行",
+      "リネーム検知（ファイルリネームは「旧 entry 削除 + 新 entry 追加」扱い）",
+      "新しい CLI コマンドやオプションの追加（既存の `text` コマンドの内部動作を変更するのみ。ただし `--force` 等の全章強制再生成オプションは可）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "entry_id は人間可読にすべきか？",
+      "a": "不要。安定して再計算できればよい。"
+    },
+    {
+      "q": "entry_id は識別フィールドの hash にすべきか、永続 ID にすべきか？",
+      "a": "永続 ID 方式。hash 方式だとリネーム等で ID が変わり、ドキュメントとの差異が生じる。"
+    },
+    {
+      "q": "章依存データはどこに保存するか？",
+      "a": "保存しない。text 実行時に analysis.json の各 entry の `chapter` フィールドから都度算出する。"
+    },
+    {
+      "q": "変更検知はどう行うか？",
+      "a": "text 実行時に analysis.json 内の entry の `hash` と現在のソースファイルの `hash` を比較する。差分制御用 state ファイルは不要。"
+    },
+    {
+      "q": "entry_id の保存場所は？",
+      "a": "analysis.json の各 entry に `id` フィールドとして保存する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "Should `text --force` be the flag name, or reuse an existing flag like `--reset`? → `--force` を採用。text に `--reset` は存在せず、alpha 版なので後方互換の懸念なし。",
+    "For `config` category entries that don't have a clean unique subkey, should we use entry index or another approach? → `file` をベースとし、同一ファイルに複数 entry がある場合のみ index を付加する。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "103-improve-text-diff-regeneration-with-chapter-depe"
+}

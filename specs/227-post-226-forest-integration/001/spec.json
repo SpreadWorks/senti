@@ -1,0 +1,433 @@
+{
+  "goal": "spec 226 で scaffolding のみ実装した forest task decomposition を完全統合する。既存 flow state の migration、strict 化、overview/forest 自動配線、E2E test を通じて task decomposition がプロダクション品質で動作する状態にする。",
+  "scope": {
+    "in": [
+      "既存 flow state の migration（263 件 → tasks[] 非空）",
+      "flow state loader の strict 化（tasks[] 空で reject）",
+      "next-action resolver の互換 fallback 廃止",
+      "reopen-draft 関連の旧テスト削除",
+      "impl step 完了時の overview merge 自動実行",
+      "resolveTarget での forest 構造直接参照",
+      "spec 226 placeholder tests 64 件の実テスト展開",
+      "E2E integration test 新規追加",
+      "本 spec の forest dogfood"
+    ],
+    "out": [
+      "reopen-draft コマンド本体の削除",
+      "旧 spec の機能改修",
+      "guardrail / prompt テンプレートの変更"
+    ]
+  },
+  "constraints": [
+    "migration は dry-run + idempotent",
+    "migration → strict 化 → fallback 廃止の順序を守る",
+    "forest depth は上限 10 を超えない",
+    "テスト基盤（setupFlow）を tasks 非空に対応させる",
+    "migration script は失敗時に非 0 終了コードを返すこと（exit code 0 on failure は禁止）"
+  ],
+  "design_principles": [
+    "spec 208 パターン（one-time migration script）を踏襲",
+    "既存の promoteNextPending / completeTask 機構を活用",
+    "E2E test は CLI 経由一本で駆動"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/flow-store.js — tasks[] 空 reject 追加"
+      },
+      {
+        "text": "src/flow/lib/get-next-action.js — flat fallback 削除 + forest 参照"
+      },
+      {
+        "text": "src/flow/registry.js — impl step post-hook に overview merge 追加"
+      },
+      {
+        "text": "specs/227-*/migrate.js — migration script"
+      },
+      {
+        "text": "tests/helpers/flow-setup.js — setupFlow tasks 非空保証"
+      },
+      {
+        "text": "tests/unit/226-task-decomp-wiring/*.test.js — placeholder 展開"
+      },
+      {
+        "text": "tests/e2e/ — E2E integration test"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "migration → flow.json 書き戻し"
+      },
+      {
+        "text": "flow-store load → tasks[] 空 reject"
+      },
+      {
+        "text": "resolveTarget → forest 参照 → task 順序決定"
+      },
+      {
+        "text": "impl step 完了 → post-hook → update-overview CLI"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "migration は steps から合成 task を生成（spec.json に tasks 定義がない旧 spec が大半）"
+      },
+      {
+        "text": "reopen-draft コマンド本体は残す（テストのみ削除）"
+      }
+    ]
+  },
+  "background": "spec 226 は forest 配線の基盤を scaffolding として実装したが、既存資産の migration、strict 化、自動配線、E2E test が未完了。Impact on existing features: flow state loader が tasks 空を reject に変更（migration 先行必須）、next-action resolver の互換 fallback を削除（tasks 非空前提）、impl step 完了処理に overview merge 自動実行を追加、resolveTarget に forest 構造直接参照を追加、テスト基盤（setupFlow）を tasks 非空保証に修正。",
+  "requirements": [
+    {
+      "id": "REQ-A1",
+      "desc": "migration を実行したとき、全既存 flow state が tasks 非空状態に変換されること（dry-run + idempotent）",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-A2",
+      "desc": "flow state の読み込み時に tasks が空の場合、エラーとして拒否されること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-A3",
+      "desc": "next-action 解決が tasks 非空を前提とし、tasks 空時の互換経路が存在しないこと",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-A4",
+      "desc": "production path を経由しない旧テスト（reopen-draft 関連）が削除されること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-B1",
+      "desc": "impl step が完了したとき、overview merge が自動実行されること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-B2",
+      "desc": "next-action が target を解決するとき、forest 構造に基づいて task 順序を決定すること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-B3",
+      "desc": "spec 226 の placeholder tests を実テストに展開したとき、全件が PASS すること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-C1",
+      "desc": "tasks 2 件の flow を CLI 経由のみで開始したとき、flow state の直接編集なしで全 step が遷移し完了すること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-D1",
+      "desc": "本 spec のタスク構造が forest 形式（親 task = concern 境界、子 task = 作業単位）で分解されていること",
+      "priority": "nice-to-have",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-1: migrate.js を実行すると全 263 件の flow.json が tasks 非空になる。再実行しても結果が変わらない",
+    "AC-2: npm test が全件 PASS（strict 化後も既存テストが破損しない）",
+    "AC-3: spec 226 の placeholder (it.skip/pending) 64 件が全て実テストに展開され PASS",
+    "AC-4: E2E test が flow.json 直接編集なしで全 step 遷移を完了",
+    "AC-5: spec.json の tasks[] が forest 構造（parent/child 関係あり）で定義されている"
+  ],
+  "clarifications": [
+    {
+      "q": "Issue 記載の scenario-reopen-flow.test.js は存在しないが削除対象は？",
+      "a": "tests/unit/flow/run-reopen-draft.test.js が該当。Issue のファイル名は誤り。"
+    },
+    {
+      "q": "Migration で spec.json の tasks を使うか？",
+      "a": "使わない。旧 spec の大半は spec.json に tasks 定義がないため、flow state の steps から合成 task を生成する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "concern ごとに別 spec に分ける",
+      "reason": "A〜D は forest 完全統合という単一テーマに収まり、D（dogfood）は spec 自体の構造で実現するため分離不能。"
+    }
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/flow/run-reopen-draft.test.js",
+      "reason": "production path を経由しない機能不全テスト。ユーザーが draft Q2 で削除を承認（2026-04-24）。"
+    },
+    {
+      "path": "tests/helpers/flow-setup.js",
+      "reason": "REQ-A2 strict 化に伴い、デフォルト tasks を非空に変更。全テストの fixture 整合性維持。"
+    },
+    {
+      "path": "tests/unit/flow.test.js",
+      "reason": "ローカル setupFlow に tasks フィールドを追加。REQ-A2 strict 化に伴う fixture 修正。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t2-schema-structured.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t3-spec-render-tasks-md.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js",
+      "reason": "REQ-B3: spec 226 の placeholder tests (it.todo) を実テストに展開して全件 PASS を検証する。"
+    },
+    {
+      "path": "tests/e2e/flow/gate-impl-integration.test.js",
+      "reason": "REQ-A2 strict 化に伴い、flow fixture の tasks を非空に変更。"
+    },
+    {
+      "path": "tests/unit/flow/approval-task-sync.test.js",
+      "reason": "REQ-A2 strict 化に伴い、task count assertion を調整。"
+    },
+    {
+      "path": "tests/unit/flow/get-next-action.test.js",
+      "reason": "REQ-A2 strict 化に伴い、flow fixture に tasks を追加。"
+    },
+    {
+      "path": "tests/unit/lib/flow-manager-tasks.test.js",
+      "reason": "REQ-A2 strict 化に伴い、tasks 初期値とアクセスパターンを調整。"
+    },
+    {
+      "path": "tests/unit/lib/test-summary-aggregate.test.js",
+      "reason": "REQ-A2 strict 化に伴い、flow fixture に tasks を追加。"
+    },
+    {
+      "path": "tests/unit/specs/commands/gate.test.js",
+      "reason": "REQ-A2 strict 化に伴い、flow state fixture の task id をデフォルトタスクと整合するよう調整。"
+    },
+    {
+      "path": "tests/e2e/220-auto-check-phase-flow.test.js",
+      "reason": "REQ-A2 strict 化に伴い、flow fixture に tasks を追加。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/lib/flow-store.js",
+    "src/flow/lib/get-next-action.js",
+    "src/flow/registry.js",
+    "src/lib/flow-helpers.js",
+    "specs/227-post-226-forest-integration/migrate.js",
+    "tests/helpers/flow-setup.js",
+    "tests/unit/flow/run-reopen-draft.test.js",
+    "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js",
+    "tests/unit/226-task-decomp-wiring/t2-schema-structured.test.js",
+    "tests/unit/226-task-decomp-wiring/t3-spec-render-tasks-md.test.js",
+    "tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js",
+    "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+    "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js",
+    "tests/e2e/227-forest-e2e.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-A",
+      "title": "Migrate existing flow state and strictify",
+      "goal": "��存 263 件の flow state を tasks 非空に migration し、loader を strict 化し、互換 fallback を廃止する。",
+      "acceptance": [
+        "migrate.js で全 flow.json が tasks 非空に変換される",
+        "再実行で結果が変わらない（idempotent）",
+        "flow state loader が tasks 空で reject する",
+        "get-next-action の flat fallback が削除されている"
+      ],
+      "implementation_notes": "migration → strict 化 → fallback ��止の順序。setupFlow ヘルパーも修正して既存テストの破損を防ぐ。",
+      "test_strategy": "unit: migration script の dry-run/idempotent、flow-store load の reject、get-next-action の tasks 非空前提",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-A"
+    },
+    {
+      "id": "T-A1",
+      "title": "Create flow state migration script",
+      "goal": "263 件の既存 flow.json に対して steps から合成 task を生成し tasks[] を非空にする migration script を作成する。",
+      "acceptance": [
+        "specs/227-*/migrate.js が存在する",
+        "実行後に全 flow.json の tasks[] が非空",
+        "--dry-run オプションで変更をプレビューできる",
+        "再実行しても結果が変わらない"
+      ],
+      "implementation_notes": "spec 208 パターン（one-time script）。spec.json に tasks がない旧 spec はフロー全体を 1 つの合成 task として格納。",
+      "test_strategy": "unit: migration 前後の flow.json 差分検証、idempotent 検証",
+      "parent": "T-A",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-A1"
+    },
+    {
+      "id": "T-A2",
+      "title": "Strictify FlowStore.load for empty tasks",
+      "goal": "flow-store.js の load で tasks[] ��空の場合にエラーを throw するよう変更する。",
+      "acceptance": [
+        "tasks: [] の flow.json を load すると Error が throw される",
+        "tasks が非空の flow.json は正常に load される"
+      ],
+      "implementation_notes": "flow-store.js L44 付近の既存バリデーションに空配列チェックを追加。setupFlow ヘルパーも tasks 非空を保証するよう修正。",
+      "test_strategy": "unit: flow-store load の空/非空テスト、既存テスト全件 PASS",
+      "parent": "T-A",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-A2"
+    },
+    {
+      "id": "T-A3",
+      "title": "Remove flat fallback from get-next-action",
+      "goal": "get-next-action.js から tasks[] 空時の互換 fallback を削除し、tasks 非空を前提とするコードに簡素化する。",
+      "acceptance": [
+        "findCurrentTask の !Array.isArray(state.tasks) ガードが削除されている",
+        "allTasksDone の tasks.length === 0 チェックが削除されている",
+        "tasks 非空の flow state で正常動作する"
+      ],
+      "implementation_notes": "L49, L54 の defensive check を削除。strict 化（T-A2）により到達不能になるため安全。",
+      "test_strategy": "unit: get-next-action の既存テスト全件 PASS",
+      "parent": "T-A",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-A3"
+    },
+    {
+      "id": "T-A4",
+      "title": "Delete reopen-draft unit test",
+      "goal": "production path を経由しない tests/unit/flow/run-reopen-draft.test.js を削除する。",
+      "acceptance": [
+        "tests/unit/flow/run-reopen-draft.test.js が存在しない",
+        "npm test が PASS"
+      ],
+      "implementation_notes": "ファイル削除のみ。run-reopen-draft.js コマンド本体は残す。",
+      "test_strategy": "npm test 全件 PASS",
+      "parent": "T-A",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-A4"
+    },
+    {
+      "id": "T-B",
+      "title": "Complete scaffolding integration",
+      "goal": "spec 226 で scaffolding として配置した overview merge と forest traversal を production path に統合し、placeholder tests を実テスト化する。",
+      "acceptance": [
+        "impl step 完了時に overview merge が自動実行される",
+        "resolveTarget が forest 構造を参照して task 順序を決定する",
+        "placeholder (it.skip/pending) 64 件が全て実テストに展開され PASS"
+      ],
+      "implementation_notes": "registry.js の impl step post-hook、get-next-action.js の resolveTarget 拡張、テスト展開。",
+      "test_strategy": "unit: post-hook 動作検証、resolveTarget forest 順序検証。spec 226 テスト全件 PASS",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-B"
+    },
+    {
+      "id": "T-B1",
+      "title": "Wire overview merge into impl step post-hook",
+      "goal": "impl step 完了時に overview merge が自動実行されるよう registry.js の post-hook を拡張する。",
+      "acceptance": [
+        "impl step が done に遷移した後に update-overview が呼ばれる",
+        "update-overview 失敗時は警告のみ（impl step の完了は妨げな���）"
+      ],
+      "implementation_notes": "registry.js の gate-impl post-hook（L383 付近）に update-overview 呼び出しを追加。",
+      "test_strategy": "unit: post-hook 動作検証（成功時・失敗時）",
+      "parent": "T-B",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-B1"
+    },
+    {
+      "id": "T-B2",
+      "title": "Add forest traversal to resolveTarget",
+      "goal": "get-next-action の resolveTarget が forest 構造（parent/child 関係）を直接参照して task 順序を決定するよう拡張する。",
+      "acceptance": [
+        "resolveTarget が currentTaskId を forest 順（DFS pre-order）で解決する",
+        "flat tasks（parent=null のみ）でも正常動作する"
+      ],
+      "implementation_notes": "get-next-action.js の resolveTarget に promoteNextPending / forest 順序ロジックとの連携を追加。",
+      "test_strategy": "unit: forest 構造と flat 構造の両方で resolveTarget テスト",
+      "parent": "T-B",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-B2"
+    },
+    {
+      "id": "T-B3",
+      "title": "Expand spec 226 placeholder tests",
+      "goal": "tests/unit/226-task-decomp-wiring/ の placeholder (it.skip/pending) 64 件を全て実テストに展開する。",
+      "acceptance": [
+        "placeholder (it.skip/pending) が 0 件",
+        "展開した全テストが PASS"
+      ],
+      "implementation_notes": "6 ���ァイル: t1-entry-enforcement, t2-schema-structured, t3-spec-render-tasks-md, t4-forest-wiring, t5-auto-promote, t6-step-redesign-and-cli。",
+      "test_strategy": "npm test 内の 226 テスト全件 PASS",
+      "parent": "T-B",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-B3"
+    },
+    {
+      "id": "T-C",
+      "title": "Add E2E integration test",
+      "goal": "task decomposition の全ライフサイクルを CLI 経由で検証する E2E test を追加する。",
+      "acceptance": [
+        "tests/e2e/227-forest-e2e.test.js が存在する",
+        "tasks 2 件 → approval → sync → task-scope next-action → 各 task 完了 → promote → 全完了 → finalize step 遷移",
+        "flow.json 直接編集な��で全 step が CLI 経由で遷移完了"
+      ],
+      "implementation_notes": "tests/e2e/ に配置。sdd-forge flow CLI コマンドのみ使用。",
+      "test_strategy": "E2E: 完全な flow ライフサイクルの end-to-end 検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-C"
+    },
+    {
+      "id": "T-D",
+      "title": "Validate forest dogfood structure",
+      "goal": "本 spec 自体の tasks[] が forest 形式（親 task = concern 境界、子 task = 作業単位）で分解されていることを検証する。",
+      "acceptance": [
+        "spec.json の tasks[] に parent != null のタスクが存在する",
+        "タスク構造が A/B/C/D の concern 境界を反映している"
+      ],
+      "implementation_notes": "spec.json の tasks[] 定義自体が検証対象。実装は不要。",
+      "test_strategy": "spec gate が tasks[] の forest 構造を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-D"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-24T13:54:04.243Z"
+  },
+  "specId": "227-post-226-forest-integration"
+}

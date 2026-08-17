@@ -1,0 +1,237 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-8d3e01dd4143c057042c9844783fffe0f37ac3819a667a62cf9c74757d4701a9",
+  "flowVersionId": "flow-version-74b71926fe35aba75f78f9bd491e98f7e67c437318141f22439e0524c601a1e2",
+  "runId": "df3041c7-1441-4828-b8aa-e69776dd7c50",
+  "specId": "248-merge-checkout-and-rebase-error",
+  "issue": 302,
+  "request": "#302 finalize-merge: worktree squash の baseBranch checkout 欠落 + rebaseOnto 誤報",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/248-merge-checkout-and-rebase-error"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "plan",
+      "key": "plan",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "branch",
+          "key": "branch",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "prepare-spec",
+          "key": "prepare-spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "draft",
+          "key": "draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-draft",
+          "key": "review-draft",
+          "status": "skipped",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate-draft",
+          "key": "gate-draft",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "spec",
+          "key": "spec",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-spec",
+          "key": "review-spec",
+          "status": "skipped",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate",
+          "key": "gate",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "approval",
+          "key": "approval",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "test",
+          "key": "test",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review-test",
+          "key": "review-test",
+          "status": "skipped",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        }
+      ]
+    },
+    {
+      "kind": "step",
+      "id": "impl",
+      "key": "impl",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "implement",
+          "key": "implement",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "gate-impl",
+          "key": "gate-impl",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "review",
+          "key": "review",
+          "status": "skipped",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "finalize",
+          "key": "finalize",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": [
+            {
+              "kind": "step",
+              "id": "finalize-commit",
+              "key": "finalize-commit",
+              "status": "done",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-merge",
+              "key": "finalize-merge",
+              "status": "in_progress",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-sync",
+              "key": "finalize-sync",
+              "status": "skipped",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            },
+            {
+              "kind": "step",
+              "id": "finalize-cleanup",
+              "key": "finalize-cleanup",
+              "status": "skipped",
+              "result": null,
+              "attemptSequence": 0,
+              "steps": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

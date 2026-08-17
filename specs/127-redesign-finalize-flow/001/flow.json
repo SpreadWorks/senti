@@ -1,0 +1,271 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-e958cab3ca59c2be0dbb526bdb3c630086d2d87d7716fe525a41983e1261ba43",
+  "flowVersionId": "flow-version-8327c634668dccc5916bd345872be82f3b534a2f2580787389afaa3688bf7f81",
+  "runId": "run-e536e83c062122c5261844e1479b0c26fbd6b3743eae0bafa7864444efbe3341",
+  "specId": "127-redesign-finalize-flow",
+  "issue": 68,
+  "request": "finalize再設計: ステップ順序変更、子コマンド関数呼び出し化、cleanup統合、パス解決一元化",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "development",
+    "featureBranch": "feature/127-redesign-finalize-flow"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "approach",
+      "key": "approach",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch",
+      "key": "branch",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "prepare-spec",
+      "key": "prepare-spec",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "draft",
+      "key": "draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "spec",
+      "key": "spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate",
+      "key": "gate",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "approval",
+      "key": "approval",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "test",
+      "key": "test",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "implement",
+      "key": "implement",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "review",
+      "key": "review",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "finalize",
+      "key": "finalize",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "commit",
+      "key": "commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "push",
+      "key": "push",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "merge",
+      "key": "merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-create",
+      "key": "pr-create",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch-cleanup",
+      "key": "branch-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-merge",
+      "key": "pr-merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "sync-cleanup",
+      "key": "sync-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-update",
+      "key": "docs-update",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-review",
+      "key": "docs-review",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-commit",
+      "key": "docs-commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "task",
+      "id": "T-legacy",
+      "key": "T-legacy",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": [
+        {
+          "kind": "step",
+          "id": "T-legacy-write-tests",
+          "key": "write-tests",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "T-legacy-implement",
+          "key": "implement",
+          "status": "done",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        },
+        {
+          "kind": "step",
+          "id": "T-legacy-gate-impl",
+          "key": "gate-impl",
+          "status": "pending",
+          "result": null,
+          "attemptSequence": 0,
+          "steps": []
+        }
+      ]
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

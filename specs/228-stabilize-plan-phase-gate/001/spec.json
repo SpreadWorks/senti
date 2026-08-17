@@ -1,0 +1,189 @@
+{
+  "goal": "plan phase gate (gate-draft / gate-spec) の AI 評価が run 毎に不安定で不要なリトライを誘発するバグを修正する。retry 上限・no-progress ガード・repeated-fail 検出を plan phase にも適用し、加えて PASS→FAIL flip 検出で判断揺らぎを直接排除する。",
+  "background": "gate-impl / integration には c612 (#194) / 83b6 (#180) / spec 210 / spec 212 で retry 上限・no-progress ガード・repeated-fail 検出が導入済み。しかし plan phase gate (draft, spec) にはこれらの保護が一切なく、RETRY_TRACKED_PHASES = ['task-impl', 'integration'] で明示的に除外されている。spec 221 では gate-draft 8 retry + gate-spec 4 retry = 計 12 回の AI 呼び出し（467 秒, 254k input tokens）を要した。",
+  "scope": {
+    "in": [
+      "RETRY_TRACKED_PHASES に draft, spec を追加",
+      "executeDraft / executeSpec に retry 上限・no-progress・repeated-fail ガードを追加",
+      "appendIssueLogFromGateResult に passedGuardrails フィールドを追加",
+      "PASS→FAIL flip 検出ロジック: git state hash 同一時、前回 PASS が今回 FAIL に反転した guardrail を PASS に override"
+    ],
+    "out": [
+      "gate-impl / integration の挙動変更",
+      "AI プロンプト変更（temperature 制御等）",
+      "CLI コマンド引数変更",
+      "gate 評価を複数 AI 呼び出しに分割する構造変更"
+    ]
+  },
+  "constraints": [
+    "checkMissingHeadTestEvidence は plan phase には適用しない（テスト証拠は impl 固有）",
+    "既存の issue-log エントリに passedGuardrails フィールドが存在しない場合は「記録なし」として扱い、flip 検出をスキップする"
+  ],
+  "design_principles": [
+    "既存の guard 関数群を可能な限り再利用し、plan phase 固有の分岐は最小限に留める",
+    "runGateFlow にコンテキスト（flowState, issueLog, gitState）を渡す形で guard を統合し、executeDraft / executeSpec 個別のインライン追加を避ける"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "run-gate.js: RETRY_TRACKED_PHASES 拡張、runGateFlow への guard 統合、passedGuardrails 記録、flip 検出ロジック追加"
+      },
+      {
+        "text": "registry.js: gate post-hook は既に全 phase で動作するため変更不要"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "gate FAIL 時: issue-log エントリに failedEvaluations + passedGuardrails を記録"
+      },
+      {
+        "text": "gate re-run 時: issue-log から前回の passedGuardrails を読み出し、git state hash が同一なら flip した guardrail を PASS に override"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "guard の統合先は runGateFlow（shared orchestrator）。executeDraft / executeSpec 個別にインラインで追加するとコード重複が生じるため。"
+      },
+      {
+        "text": "flip override は AI 評価結果を受け取った後、PASS/FAIL 判定の前に適用する。override された guardrail は result を 'pass' に書き換え、reason に flip override の旨を追記する。"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When a plan phase gate (draft / spec) が FAIL したとき、retry カウンタを metrics に記録する。上限（config.flow.retry.max、デフォルト 3）に達したら ESCALATE_RETRY_EXHAUSTED envelope を返す。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When plan phase gate を再実行するとき、git state hash（HEAD sha + worktree hash）が前回 FAIL 時と同一なら NO_PROGRESS_SINCE_LAST_FAIL envelope を返し、AI 呼び出しを行わない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "When plan phase gate で同一の (guardrail_id, reason) ペアが前回 FAIL と今回 FAIL で一致したとき、ESCALATE_REPEATED_FAIL エラーを throw する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "When gate FAIL 結果を issue-log に記録するとき、failedEvaluations に加えて passedGuardrails（PASS した guardrail_id の配列）も記録する。フィールド不在の既存エントリは flip 検出をスキップする。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-5",
+      "desc": "When 同一内容（git state hash 同一）で plan phase gate を再実行し、前回の passedGuardrails に含まれる guardrail_id が今回 FAIL になったとき、その guardrail の result を 'pass' に override し、reason に flip override の旨を追記する。override 後に残りの FAIL がなければ gate 全体を PASS にする。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-6",
+      "desc": "checkMissingHeadTestEvidence は plan phase (draft / spec) では呼び出さない。既存のガード内の RETRY_TRACKED_PHASES チェックではなく、呼び出し元の executeDiffBasedGate 内にのみ存在するため、RETRY_TRACKED_PHASES 拡張後もこの制約は自動的に満たされる。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-7",
+      "desc": "gate-impl / integration の既存挙動は変更しない。RETRY_TRACKED_PHASES 拡張による副作用がないことを既存テストで確認する。",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "plan phase gate (draft / spec) で FAIL 時に retry カウンタが記録される",
+    "plan phase gate で retry 上限到達時に ESCALATE_RETRY_EXHAUSTED が返る",
+    "plan phase gate で git state 未変更の再実行が NO_PROGRESS_SINCE_LAST_FAIL で拒否される",
+    "plan phase gate で同一 (guardrail_id, reason) の繰り返し FAIL が ESCALATE_REPEATED_FAIL で検出される",
+    "gate FAIL の issue-log エントリに passedGuardrails フィールドが含まれる",
+    "git state hash 同一 + 前回 PASS guardrail が今回 FAIL → PASS に override される",
+    "flip override 後に残り FAIL がなければ gate 全体が PASS になる",
+    "gate-impl / integration の既存テストが全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "RETRY_TRACKED_PHASES の拡張で checkMissingHeadTestEvidence が plan phase に適用されないか？",
+      "a": "checkMissingHeadTestEvidence は executeDiffBasedGate 内でのみ呼ばれる。executeDraft / executeSpec は executeDiffBasedGate を経由しないため、RETRY_TRACKED_PHASES に draft/spec を追加しても checkMissingHeadTestEvidence は plan phase では呼ばれない。"
+    },
+    {
+      "q": "flip override は gate-impl / integration にも適用すべきか？",
+      "a": "本 spec では plan phase のみを対象とする。gate-impl には既に assertNoRepeatedFail + no-progress ガードが十分に機能しており、flip override の追加は別 spec で検討する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "全 guardrail 評価を単一 AI 呼び出しに統合（Issue アプローチ #1）",
+      "reason": "既に実現済み。buildGuardrailPromptFromFiltered が全 guardrail を1つのプロンプトにまとめている。"
+    },
+    {
+      "option": "AI プロンプトを stricter に固定（temperature=0 等）",
+      "reason": "agent.call 経由では temperature を制御できない。プロンプト改善の余地はあるが効果は限定的。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "skipped",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "Extend retry guards to plan phase gates",
+      "goal": "RETRY_TRACKED_PHASES に draft / spec を追加し、retry 上限・no-progress・repeated-fail ガードを plan phase gate の実行パス（runGateFlow）に組み込む。",
+      "acceptance": [
+        "RETRY_TRACKED_PHASES が ['draft', 'spec', 'task-impl', 'integration'] を含む",
+        "runGateFlow が ctx 引数を受け取り、RETRY_TRACKED_PHASES に含まれる phase では checkRetryBelowMax / checkNoProgressSinceLastFail / assertNoRepeatedFail を実行する",
+        "executeDraft / executeSpec が runGateFlow に ctx（flowState, issueLog, gitState）を渡す",
+        "plan phase gate FAIL 時に issue-log エントリと retry カウンタが記録される",
+        "plan phase gate で retry 上限到達時に ESCALATE_RETRY_EXHAUSTED が返る",
+        "plan phase gate で git state 未変更再実行が NO_PROGRESS_SINCE_LAST_FAIL で拒否される",
+        "plan phase gate で repeated-fail が ESCALATE_REPEATED_FAIL で検出される",
+        "gate-impl / integration の既存テストが全て PASS する"
+      ],
+      "implementation_notes": "runGateFlow の引数に optional な ctx オブジェクトを追加。RETRY_TRACKED_PHASES に含まれる phase の場合のみ guard を実行。executeDraft / executeSpec は computeGitState + loadIssueLog を呼んで ctx を構築し runGateFlow に渡す。checkMissingHeadTestEvidence は executeDiffBasedGate 内にのみ存在するため影響なし。",
+      "test_strategy": "unit test: RETRY_TRACKED_PHASES の値確認、runGateFlow に ctx を渡した場合の guard 動作、plan phase での retry カウンタ記録、no-progress 拒否、repeated-fail 検出",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Add PASS→FAIL flip detection and override",
+      "goal": "gate FAIL の issue-log エントリに passedGuardrails を記録し、git state hash 同一時に前回 PASS→今回 FAIL の guardrail を PASS に override する。",
+      "acceptance": [
+        "appendIssueLogFromGateResult が passedGuardrails（PASS guardrail_id 配列）を issue-log エントリに含める",
+        "passedGuardrails フィールド不在の既存エントリでは flip 検出がスキップされる",
+        "git state hash 同一 + 前回 PASS の guardrail が今回 FAIL → result が 'pass' に override される",
+        "override された guardrail の reason に flip override の旨が追記される",
+        "override 後に残り FAIL がなければ gate 全体が PASS になる",
+        "git state hash が異なる場合は flip override が適用されない"
+      ],
+      "implementation_notes": "appendIssueLogFromGateResult に passedGuardrails フィールド追加（buildPassedGuardrails ヘルパー）。runGateFlow の AI 評価後に applyFlipOverride 関数を挿入: issue-log から前回エントリの passedGuardrails を取得、git state hash 比較、flip した guardrail の result を 'pass' に書き換え。",
+      "test_strategy": "unit test: passedGuardrails の記録・読み出し、flip override の適用条件（hash 同一/異なる）、override 後の gate 判定、既存エントリ互換性",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T05:50:58.093Z"
+  },
+  "specId": "228-stabilize-plan-phase-gate"
+}

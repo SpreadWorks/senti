@@ -1,0 +1,154 @@
+{
+  "goal": "`sdd-forge flow run finalize` の `--mode` オプションに既定値 `all` を設定し、引数なし実行時に non-zero exit で停止する UX 問題を解消する。",
+  "background": "現状 `flow run finalize` は `--mode` 引数なしで起動すると `--mode must be 'all' or 'select'` エラーで exit 1 する。一方で配布用 skill テンプレートの構文表記は `[--mode all|select]` と optional 形式であり、既定値が存在するかのように読める。実装フェーズの通常完了パスはほぼ常に `--mode all` であり、`--mode select` は特定ステップのみ再実行する補助用途。したがって「最初の finalize 呼び出しで `--mode all` を忘れてエラー、再実行して通す」という無意味な摩擦が Issue #241 で報告された。\n\n## Test Strategy\n- Unit: `tests/unit/flow/run-finalize-default-mode.test.js` を新規作成し、`RunFinalizeCommand.execute` を `dryRun: true` で直接呼んで以下を検証する: (a) `ctx.mode = undefined` / `\"\"` で throw せず処理が進むこと、(b) `ctx.mode = \"foo\"` で `Error: --mode must be 'all' or 'select'` が throw されること、(c) `ctx.mode = \"select\"` かつ `ctx.steps = \"\"` で `Error: --steps required when mode is 'select'` が throw されること。\n- Regression: `npm test` がベースライン（unit 2144 / integration 261 PASS）のまま維持されること。\n- ヘルプ文字列検証: `src/flow/registry.js` の finalize help に `default: all` が含まれることを静的に確認する（AC4）。\n- プロンプト文言検証: `src/flow/prompts/impl/finalize.md` の通常完了パスから `--mode all` が削除されていることを静的に確認する（AC5）。\n\n## Migration Plan (後方互換)\n- 互換性分類: 純粋な追加変更（additive）。\n- 既存呼び出し互換性: `--mode all` / `--mode select --steps ...` / 無効値 / `--steps` 欠落時の `--mode select` は挙動不変。\n- 廃止予定: なし。`--mode all` 明示指定は冗長化するが deprecate しない（alpha 版ポリシーの「追加のみ、削除は行わない」に従う）。\n- ユーザー告知: リリースノート / CHANGELOG に `flow run finalize` の `--mode` が optional (default: `all`) になった旨を記載する。",
+  "scope": {
+    "in": [
+      "`flow run finalize` 実行時の `--mode` 引数省略への対応を「エラー停止」から「`all` を既定値として適用」へ変更する",
+      "既定値適用の挙動を検証する自動テストを追加する",
+      "CLI ヘルプ出力の `--mode` 説明行を既定値挙動と整合する表記に更新する",
+      "SDD フロー実装フェーズの finalize 実行例から冗長な `--mode all` を削除する"
+    ],
+    "out": [
+      "`--mode select` における `--steps` 必須性の変更",
+      "`--mode` 無効値（`all`/`select` 以外）に対するエラー終了挙動の変更",
+      "配布用 skill 構文テンプレート（既に optional 表記で整合済み）",
+      "finalize 以外のコマンドが持つ `--mode` オプションの仕様"
+    ]
+  },
+  "constraints": [
+    "alpha 版ポリシーに従い、`--mode all` の明示指定を deprecate してはならない（冗長表記として許容を維持する）",
+    "既存の `--mode all` / `--mode select --steps ...` 呼び出しは完全に後方互換（挙動不変）でなければならない",
+    "`flow run finalize --mode <invalid>` および `flow run finalize --mode select`（`--steps` 欠落）のエラー挙動は維持する（exit code non-zero かつ stderr に理由を出力）",
+    "Node.js 組み込みモジュールのみ使用（外部依存追加禁止）"
+  ],
+  "design_principles": [
+    "既定値の注入箇所はバリデーション直前の 1 点に閉じ込め、以降のロジック分岐（`mode === \"all\"` / `mode === \"select\"`）は変更しない",
+    "CLI ヘルプ文言は registry に定義された literal を更新し、実装コードは help 再生成を行わない",
+    "要件優先順位: REQ-1=REQ-2=REQ-3=REQ-4 (must, 機能要件とテスト) > REQ-5=REQ-6 (should, ドキュメント整合性)"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/run-finalize.js` — `RunFinalizeCommand.execute` 内で `ctx.mode` 未指定時に `\"all\"` を適用するロジックを追加"
+      },
+      {
+        "text": "`src/flow/registry.js` — finalize コマンドの help 文字列中 `--mode <all|select>` 説明行を `Mode (default: all)` に更新"
+      },
+      {
+        "text": "`src/flow/prompts/impl/finalize.md` — 通常完了パスの finalize 実行例から冗長な `--mode all` を削除（`--mode select --steps ...` 側は維持）"
+      },
+      {
+        "text": "`tests/unit/flow/run-finalize-default-mode.test.js` — 新規ユニットテスト。既定値適用とエラー挙動維持を検証"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "ユーザーが `sdd-forge flow run finalize` を引数なしで実行 → registry の args parser が `ctx.mode` を `undefined` で渡す → `RunFinalizeCommand.execute` が `ctx.mode` 未指定を検出し `\"all\"` を適用 → 既存の `mode === \"all\"` ブランチに合流"
+      },
+      {
+        "text": "`--mode select --steps ...` / `--mode <invalid>` の経路は変更なし（既存のバリデーションとエラー throw がそのまま動作）"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "既定値注入方式は `const mode = ctx.mode || \"all\";` 相当。`||` による falsy チェックで `undefined` / 空文字のいずれも `all` に合流させる"
+      },
+      {
+        "text": "バリデーション条件（`mode` が `all` / `select` のいずれでもないならエラー）は変更しない。既定適用後は `undefined` が `\"all\"` に変換されるため必ず有効値になる"
+      },
+      {
+        "text": "CLI ヘルプ: `Mode (required)` → `Mode (default: all)` に更新"
+      },
+      {
+        "text": "エラーメッセージ文字列 `--mode must be 'all' or 'select'` / `--steps required when mode is 'select'` は現状維持"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When ユーザーが `sdd-forge flow run finalize` を `--mode` 引数なしで起動したとき、本コマンドは `--mode all` を指定したときと同じ最終化パイプライン（commit, merge, sync, cleanup の順）を実行し、成功時に exit code 0 を返すこと。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When `ctx.mode` が未指定（`undefined` または空文字）で `flow run finalize` が呼ばれたとき、`RunFinalizeCommand.execute` は内部的に `mode = \"all\"` を適用してから既存の実行フローに進むこと。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "If `--mode` の値が `all` / `select` 以外、または `--mode select` が `--steps` なしで指定された場合、本コマンドは non-zero の exit code で終了し、従来と同じエラーメッセージ（`--mode must be 'all' or 'select'` または `--steps required when mode is 'select'`）を stderr に出力すること。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "When 上記 REQ-1〜REQ-3 の条件で本コマンドが実行されたとき、その結果を検証する自動テストが `tests/unit/flow/` 以下に存在し、`npm test` 実行時に CI パスとして通過すること。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-5",
+      "desc": "When `src/flow/registry.js` の finalize コマンド help 文字列が参照されたとき、`--mode` 説明行に既定値が `all` であることが明記されていること（文字列 `default: all` を含む）。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-6",
+      "desc": "When `src/flow/prompts/impl/finalize.md` の finalize 実行例が参照されたとき、通常完了パス（全ステップ実行）の実行例には冗長な `--mode all` 引数が含まれないこと。`--mode select --steps ...` の例示は現状維持。",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1 (REQ-1/REQ-2): ユニットテストで `RunFinalizeCommand` を `ctx = { mode: undefined, dryRun: true, flowState: <minimal>, root: <tmp> }` で `execute` を呼んだとき、throw せず `activeSteps` が全ステップ集合 `{1,2,3,4}` を含む。`ctx.mode = \"\"` でも同じ挙動。",
+    "AC2 (REQ-3): ユニットテストで `ctx.mode = \"foo\"` を与えて `execute` を呼んだとき `Error: --mode must be 'all' or 'select'` が throw される。`ctx.mode = \"select\"` かつ `ctx.steps = \"\"` のとき `Error: --steps required when mode is 'select'` が throw される。",
+    "AC3 (REQ-4): `npm test` が AC1/AC2 を含め PASS し、既存テスト（unit 2144 / integration 261）にリグレッションが出ない。",
+    "AC4 (REQ-5): `src/flow/registry.js` の finalize コマンド help 文字列を grep して `default: all` が含まれることが確認できる。",
+    "AC5 (REQ-6): `src/flow/prompts/impl/finalize.md` の通常完了パス（全ステップ実行を案内する箇所）から `--mode all` 引数記述が削除されている。`--mode select --steps ...` の例示は残る。"
+  ],
+  "clarifications": [
+    {
+      "q": "既存の `--mode all` 明示指定を deprecate するか？",
+      "a": "しない。alpha 版ポリシー（追加のみ、削除は行わない）に従い、冗長表記として許容し続ける。"
+    },
+    {
+      "q": "エラーメッセージ文字列を変更するか？",
+      "a": "変更しない。`--mode must be 'all' or 'select'` と `--steps required when mode is 'select'` は現状維持。"
+    },
+    {
+      "q": "ドキュメント・prompt の更新スコープは？",
+      "a": "CLI 本体 + CLI ヘルプ表示 + 実装フェーズ prompt の finalize 実行例まで。配布用 skill テンプレートは既に optional 表記で整合しているため更新不要。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "`--mode` を必須のまま維持し、skill テンプレートの構文表記を `<--mode all|select>` に統一する",
+      "reason": "UX 問題（通常パスで毎回手入力を強要）を解決できない。Issue #241 の根本動機は UX 改善のため不採用。"
+    },
+    {
+      "option": "新規オプション（例: `--full`）で `--mode all` を置き換える",
+      "reason": "既存呼び出しに互換性コストが発生する。現行の `--mode all|select` セマンティクスは十分に明快で、既定値追加だけで UX 問題は解消するため不採用。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-finalize.js",
+    "src/flow/registry.js",
+    "src/flow/prompts/impl/finalize.md"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "221-default-finalize-mode"
+}

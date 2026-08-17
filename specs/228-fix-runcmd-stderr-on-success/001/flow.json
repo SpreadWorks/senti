@@ -1,0 +1,288 @@
+{
+  "schemaRevision": 3,
+  "flowId": "flow-e5a9fe96fb24742852943c681907967d6c1384446c76898967beeaccdb40dc85",
+  "flowVersionId": "flow-version-3ca9173f47185f0701127455c09598d55b8ecfee59e477fd599bf6cabbff98d3",
+  "runId": "a08fcf5b-7071-4572-962e-579d1ecf00dc",
+  "specId": "228-fix-runcmd-stderr-on-success",
+  "issue": 249,
+  "request": "runCmd が成功時に stderr を破棄するバグを修正。execFileSync を spawnSync に置換し、成功時も stderr を返却可能にする。Issue #249",
+  "version": 1,
+  "lifecycle": {
+    "state": "finalized"
+  },
+  "execution": {
+    "mode": "worktree",
+    "baseBranch": "main",
+    "featureBranch": "feature/228-fix-runcmd-stderr-on-success"
+  },
+  "policy": {
+    "autoApprove": true,
+    "nonblocking": null
+  },
+  "kind": "flow",
+  "id": "flow",
+  "key": "flow",
+  "status": "done",
+  "result": null,
+  "attemptSequence": 0,
+  "steps": [
+    {
+      "kind": "step",
+      "id": "branch",
+      "key": "branch",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "prepare-spec",
+      "key": "prepare-spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "draft",
+      "key": "draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-draft",
+      "key": "gate-draft",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "spec",
+      "key": "spec",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate",
+      "key": "gate",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "approval",
+      "key": "approval",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "test",
+      "key": "test",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "implement",
+      "key": "implement",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "gate-impl",
+      "key": "gate-impl",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-write-tests",
+      "key": "integration-write-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-run-tests",
+      "key": "integration-run-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-run-all-tests",
+      "key": "integration-run-all-tests",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "integration-evaluate",
+      "key": "integration-evaluate",
+      "status": "skipped",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "review",
+      "key": "review",
+      "status": "done",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "finalize",
+      "key": "finalize",
+      "status": "in_progress",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "commit",
+      "key": "commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "push",
+      "key": "push",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "merge",
+      "key": "merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-create",
+      "key": "pr-create",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "branch-cleanup",
+      "key": "branch-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "pr-merge",
+      "key": "pr-merge",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "sync-cleanup",
+      "key": "sync-cleanup",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-update",
+      "key": "docs-update",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-review",
+      "key": "docs-review",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "step",
+      "id": "docs-commit",
+      "key": "docs-commit",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    },
+    {
+      "kind": "task",
+      "id": "T-pending-spec",
+      "key": "T-pending-spec",
+      "status": "pending",
+      "result": null,
+      "attemptSequence": 0,
+      "steps": []
+    }
+  ],
+  "current": null,
+  "attempt": null,
+  "confirmationOrder": 0,
+  "artifacts": [],
+  "outbox": [],
+  "context": null,
+  "history": {
+    "kind": "historical",
+    "execution": "dormant",
+    "ledger": "partial",
+    "creation": {
+      "status": "unavailable",
+      "reason": "NO_TRUSTED_CREATION_EVIDENCE"
+    }
+  }
+}

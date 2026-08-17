@@ -1,0 +1,418 @@
+{
+  "goal": "Make impl review converge on blocking findings: PASS is based on `blockingFindings.length === 0`, non-blocking improvements do not consume retry budget, and review state is persisted in `impl-review.json`.",
+  "scope": {
+    "in": [
+      "[must] Change impl review detection output to structured `blockingFindings[]` and `nonBlockingImprovements[]` buckets.",
+      "[must] Persist both `review.md` and `impl-review.json` for impl review; `impl-review.json` is the machine-readable source for PASS, retry, next-step, and prompt-memory decisions.",
+      "[must] Define impl review blocking failure modes as exactly: missing or incomplete spec acceptance requirement, behavior that contradicts the spec, and reproducible security or data integrity bug.",
+      "[must] Exclude regression failures, test false positives, scope creep, project-rule violations, naming-only proposals, refactor suggestions, DRY suggestions, comment suggestions, and docs suggestions from impl review blocking findings.",
+      "[must] Treat `blockingFindings.length === 0` as impl review PASS even when `nonBlockingImprovements.length > 0`.",
+      "[must] Ensure non-blocking improvements do not increment reviewRetry and do not route impl review to an apply/repair stop before `gate-impl`.",
+      "[must] Include previous impl review memory in later impl reviewer prompts: previous verdict, blocking count, non-blocking count, previous blocking findings, and acknowledged non-blocking improvements.",
+      "[must] Update implement, reviewer, and triage prompts so all three use the same blocking failure mode list.",
+      "[must] Update impl review parsing, scope filtering, markdown rendering, JSON artifact writing, and run-review post-processing to use the structured artifact contract.",
+      "[must] Add tests that verify structured parsing/filtering/rendering, PASS with non-blocking improvements, retry reset behavior, next step `gate-impl`, and phase transition behavior.",
+      "[should] Add e2e coverage that verifies an impl-review artifact with zero blocking findings can advance to `gate-impl`."
+    ],
+    "out": [
+      "Renaming test review `advisoryFindings` or unifying all review bucket names.",
+      "Adding a persistent suppression mechanism that forbids re-proposing acknowledged non-blocking improvements across rounds.",
+      "Treating existing regression failures, test assertion quality, scope creep, or guardrail violations as impl review blocking findings.",
+      "Changing AI provider selection or model configuration.",
+      "Changing GitHub issue publish workflow.",
+      "Adding external dependencies."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers.",
+    "Do not keep backward-compatible parsing for the old impl review proposal-only contract; this repository is in alpha and the new structured artifact replaces that contract.",
+    "Represent meaningful review values with classes where they carry invariants or behavior; avoid object-literal type tags for new review artifact concepts.",
+    "Keep `src/` generic. Prompt text must describe review contracts generically and must not mention project-specific issue history.",
+    "Reuse shared helpers when parsing, formatting, or artifact writing appears in more than one impl review path.",
+    "Prompt source under `src/flow/prompts/` changes require `sdd-forge upgrade` after implementation.",
+    "This spec modifies the existing `sdd-forge flow run review` impl-phase behavior but does not add, remove, or rename CLI commands or user-facing options.",
+    "Successful impl review execution returns exit code 0 when review detection completes and writes artifacts. Subprocess errors, invalid artifacts, or invalid JSON output remain failure conditions and must return the existing non-zero error path.",
+    "No new user-facing CLI argument is introduced. Existing `--phase` validation remains owned by the current review command entry point."
+  ],
+  "design_principles": [
+    "Use structured review artifacts for machine decisions and markdown only for human reading.",
+    "Make blocking criteria narrow enough that two reviewers can decide whether a finding blocks progress.",
+    "Let gate/test phases own regression, guardrail, and test-quality concerns instead of duplicating them in impl review.",
+    "Keep non-blocking improvements visible to the implementer without making them flow-stopping conditions.",
+    "Prefer the existing spec-review artifact pattern over inventing a separate review pipeline shape."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/commands/review.js` builds impl reviewer prompts, invokes the review agent, parses findings, filters them by touched files, writes `review.md`, and should write `impl-review.json`."
+      },
+      {
+        "text": "`src/flow/lib/run-review.js` wraps the review subprocess, parses stderr/stdout into flow artifacts, updates reviewRetry, clears review stop state on PASS/ADVISORY, and chooses the next impl step."
+      },
+      {
+        "text": "`src/flow/prompts/impl/review.md` guides implementer triage after review findings are generated."
+      },
+      {
+        "text": "`src/flow/prompts/impl/implement.md` guides initial implementation before tests and review."
+      },
+      {
+        "text": "`src/flow/registry.js` owns post-hook step status transitions after `flow run review` returns a structured command result."
+      },
+      {
+        "text": "`src/flow/prompts/task/review.md` guides task-scoped review when `RunReviewCommand` invokes review with `--task-spec`."
+      },
+      {
+        "text": "`src/flow/lib/review-failure.js` already consumes retry budget only for verdict FAIL and can be reused without changing the retry policy."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Impl review receives the requirement-file map and diff, asks the reviewer for JSON with `blockingFindings[]` and `nonBlockingImprovements[]`, repairs/parses that JSON through existing JSON helpers, and normalizes each entry into review finding objects."
+      },
+      {
+        "text": "Scope filtering uses a normalized `file` field for file-specific findings. Missing-acceptance blockers may instead use `requirementId`; those blockers remain in `blockingFindings` when the requirement id exists in `spec.json.requirements[]` even if `file` is empty."
+      },
+      {
+        "text": "`review.md` renders a human summary of blocking and non-blocking findings. `impl-review.json` stores version, verdict, counts, included findings, excluded counts, and generated timestamp."
+      },
+      {
+        "text": "`run-review` parses the structured review metadata, sets `next` to `gate-impl` when blocking count is zero, and lets reviewRetry reset because the artifact verdict is PASS or ADVISORY rather than FAIL."
+      },
+      {
+        "text": "`registry.js` post hooks consume the structured verdict so PASS/ADVISORY complete review while FAIL leaves the flow stopped on review and prevents `gate-impl` promotion."
+      },
+      {
+        "text": "The next reviewer prompt includes bounded previous memory from the latest `impl-review.json` so the reviewer sees prior verdict and acknowledged non-blocking context."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Impl review currently depends on proposal markdown and `proposalCount`.",
+        "evidence": "`src/flow/commands/review.js` builds a proposal-list system prompt, parses `###` proposal sections with `parseProposals`, writes only `review.md`, and prints `proposalCount=<n>` for impl review."
+      },
+      {
+        "text": "[VERIFY] `run-review` currently treats no proposals as impl PASS.",
+        "evidence": "`src/flow/lib/run-review.js` has `isImplPass` returning true for `no-changes`, `no-proposals`, or `artifacts.proposalCount === 0`; impl next step is `gate-impl` only when no proposals are found."
+      },
+      {
+        "text": "[VERIFY] Current triage prompt uses broad proposal criteria.",
+        "evidence": "`src/flow/prompts/impl/review.md` asks whether each proposal improves code quality, risks existing behavior, and is within scope; it does not classify blocking versus non-blocking."
+      },
+      {
+        "text": "[VERIFY] Spec/test review already use structured finding buckets.",
+        "evidence": "`src/flow/commands/review.js` includes structured draft/spec/test review artifact classes and parsing paths with verdict and finding arrays; Issue #340 cites spec review `blockingFindings[]` / `nonBlockingImprovements[]` as the target pattern."
+      },
+      {
+        "text": "[VERIFY] Review step completion also depends on registry post hooks.",
+        "evidence": "`src/flow/registry.js` defines `FLOW_COMMANDS.run.review.post` behavior; spec review found that impl review transition cannot be safely changed only in `src/flow/lib/run-review.js`."
+      },
+      {
+        "text": "[VERIFY] Task-scoped review currently mirrors old proposal semantics.",
+        "evidence": "`src/flow/prompts/task/review.md` says proposals in `review.md` are evaluated and applied, and `RunReviewCommand` passes `--task-spec` for current task review."
+      },
+      {
+        "text": "Use `nonBlockingImprovements` for impl review.",
+        "evidence": "Issue #340 recommends aligning impl review with spec review and leaving test review `advisoryFindings` naming unification to a follow-up.",
+        "consideredAlternatives": "Using `advisoryFindings` was rejected because the requested implementation pattern is spec review's blocking/nonBlocking naming."
+      },
+      {
+        "text": "Use `impl-review.json` as the source of truth and keep `review.md` for readers.",
+        "evidence": "Issue #340 requests both artifacts. Structured JSON avoids relying on markdown or stderr text for PASS, retry, next-step, and memory decisions.",
+        "consideredAlternatives": "Extending only `review.md` was rejected because it would keep machine behavior coupled to human-readable markdown."
+      },
+      {
+        "text": "Non-blocking improvements are advisory for the implementer and do not stop flow.",
+        "evidence": "Issue #340 completion criteria require non-blocking improvements to avoid retry consumption and allow the flow to advance while the implementer keeps context-based triage responsibility.",
+        "consideredAlternatives": "Routing non-blocking improvements to apply/repair was rejected because it preserves the feedback inflation stop condition."
+      }
+    ]
+  },
+  "background": "Impl review currently uses proposal absence as the completion condition. That makes review convergence depend on whether the reviewer can stop suggesting code-quality improvements, even after the implementation satisfies the spec. Issue #340 narrows the stopping condition to blocking failure modes and asks for a structured impl review artifact, prompt alignment, and previous review memory so non-blocking improvements remain visible without blocking the flow.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Impl reviewer prompt output shall be JSON with top-level arrays `blockingFindings` and `nonBlockingImprovements`; each included finding shall contain `title`, `failureMode`, `issue`, `suggestion`, and `rationale`. File-specific findings shall include `file`; missing-acceptance blockers may use `requirementId` instead of `file`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Impl review blocking findings shall be limited to these three failure modes: an acceptance requirement from the spec is missing or incomplete, implementation behavior contradicts the spec, or the diff introduces a reproducible security or data integrity bug.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Impl review shall classify regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals as non-blocking or out of scope rather than blocking findings.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Impl review shall write `specs/<spec>/impl-review.json` containing `version`, `phase`, `generatedAt`, `verdict`, `summary`, `blockingFindings`, `nonBlockingImprovements`, and excluded scope counts.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Impl review shall write `review.md` as a human-readable summary that separately lists blocking findings and non-blocking improvements and states when either bucket is empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Impl review PASS shall be determined by `impl-review.json.blockingFindings.length === 0`; `nonBlockingImprovements.length > 0` shall not make the result FAIL.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "`sdd-forge flow run review` for impl phase shall set `artifacts.verdict` to `PASS` when both buckets are empty, `ADVISORY` when blocking is empty and non-blocking is non-empty, and `FAIL` when blocking is non-empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "When impl review verdict is PASS or ADVISORY, reviewRetry shall be reset or left unconsumed and the next step shall be `gate-impl`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "When impl review verdict is FAIL, reviewRetry shall be consumed through the existing review failure path and the flow shall not advance to `gate-impl` until blocking findings are addressed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "Previous impl review memory shall include previous verdict, blocking count, non-blocking count, previous blocking findings, and acknowledged non-blocking improvements, with explicit array and character bounds in code.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "`src/flow/prompts/impl/review.md`, `src/flow/prompts/impl/implement.md`, and the impl reviewer system prompt shall contain the same three blocking failure modes from R2.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R12",
+      "desc": "Prompt text shall state that non-blocking improvements are optional and should not be generated unless they name a touched file, describe an observable issue in that file, and provide a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R13",
+      "desc": "Scope filtering shall apply to both `blockingFindings` and `nonBlockingImprovements`. File-specific findings whose `file` is empty or not in the touched-file set shall be dropped and counted; missing-acceptance blockers with a valid `requirementId` shall remain blocking even when `file` is empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R14",
+      "desc": "Spec-local and shared tests shall verify JSON parsing, scope filtering, `review.md` rendering, `impl-review.json` rendering, ADVISORY retry behavior, and impl review phase transitions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R15",
+      "desc": "`FLOW_COMMANDS.run.review.post` shall consume the impl review structured verdict: PASS and ADVISORY mark the impl `review` step done, while FAIL leaves the flow stopped on review and prevents `gate-impl` from becoming the next pending step.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R16",
+      "desc": "The structured impl review contract shall apply to task-scoped review invoked with `--task-spec`, including artifact verdict behavior and task review prompt text.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R17",
+      "desc": "`src/flow/prompts/task/review.md` shall replace proposal-only review wording with the same blocking/non-blocking policy used by flow-level impl review.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A review JSON payload with one blocking finding and zero non-blocking improvements produces `impl-review.json.verdict === \"FAIL\"`, `blockingFindings.length === 1`, and `nonBlockingImprovements.length === 0`.",
+    "A review JSON payload with zero blocking findings and one non-blocking improvement produces `impl-review.json.verdict === \"ADVISORY\"` and `sdd-forge flow run review` artifacts with `next === \"gate-impl\"`.",
+    "A review JSON payload with both arrays empty produces `impl-review.json.verdict === \"PASS\"` and `review.md` states that no blocking findings or non-blocking improvements were recorded.",
+    "A finding with a missing file path is excluded from the relevant bucket and increments the missing-file excluded count.",
+    "A blocking finding with `failureMode === \"missing_acceptance_requirement\"`, a valid `requirementId`, and an empty `file` remains in `blockingFindings` and makes the verdict FAIL.",
+    "A finding whose file path is not in the touched-file set is excluded from the relevant bucket and increments the out-of-scope excluded count.",
+    "`updateReviewRetryCounter` does not increment reviewRetry for impl review artifacts whose verdict is PASS or ADVISORY.",
+    "`updateReviewRetryCounter` increments reviewRetry for impl review artifacts whose verdict is FAIL.",
+    "`FLOW_COMMANDS.run.review.post` does not promote `gate-impl` after an impl review FAIL artifact.",
+    "Task-scoped review with `--task-spec` writes the same structured artifact shape and uses the same PASS/ADVISORY/FAIL verdict policy.",
+    "`src/flow/prompts/impl/review.md`, `src/flow/prompts/impl/implement.md`, and the impl reviewer system prompt each include the same three blocking failure mode labels.",
+    "`src/flow/prompts/task/review.md` includes the same blocking/non-blocking review policy as flow-level impl review.",
+    "Spec-local tests under `specs/265-impl-review-blocking-pass/tests/` include `// spec: R<N>` headers covering R1 through R17."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this change add or remove a CLI command or option?",
+      "a": "No. It changes the impl-phase behavior of the existing `sdd-forge flow run review` command. No new user-facing CLI argument is introduced."
+    },
+    {
+      "q": "What is a blocking impl review finding?",
+      "a": "Only one of the R2 failure modes: missing or incomplete spec acceptance requirement, behavior contradiction against the spec, or reproducible security/data integrity bug."
+    },
+    {
+      "q": "What happens when only non-blocking improvements exist?",
+      "a": "The verdict is ADVISORY, reviewRetry is not consumed, and the next step is `gate-impl`."
+    },
+    {
+      "q": "Are guardrail violations blocking impl review findings?",
+      "a": "No. Guardrail violations remain owned by gate-impl. The reviewer may record them as non-blocking context only when they name a touched file and an affected function, branch, assertion, prompt sentence, or artifact field, but they do not define the impl review stop condition."
+    },
+    {
+      "q": "What owns test regression failures?",
+      "a": "Test execution, test-result-review, and gate-impl own regression evidence. Impl review does not convert regression failures into blocking findings."
+    },
+    {
+      "q": "How does a missing acceptance requirement survive file scope filtering?",
+      "a": "The finding uses `failureMode: \"missing_acceptance_requirement\"` and a valid `requirementId`; that entry remains in `blockingFindings` even when `file` is empty because the blocker is tied to a required behavior, not a touched file."
+    },
+    {
+      "q": "Does task-scoped review keep the old proposal-only behavior?",
+      "a": "No. The same structured blocking/non-blocking contract applies to task-scoped review invoked with `--task-spec`."
+    },
+    {
+      "q": "no-overengineering: Was the non-trivial implementation direction confirmed before coding?",
+      "a": "Yes. The user approved the implementation approach after the spec, approval, test, scenario-validity, and review-test steps completed, before implementation started. The chosen pattern was to keep review as the existing impl-phase command, add structured `impl-review.json` plus human `review.md`, keep retry/gate ownership in existing flow hooks, and apply the same blocking/non-blocking policy to task-scoped review."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep proposalCount as the PASS condition and suppress repeated proposals.",
+      "reason": "Rejected because Issue #340 identifies feedback inflation as newly generated suggestions rather than repeated identical proposals; proposal absence remains the wrong stop condition."
+    },
+    {
+      "option": "Use `advisoryFindings` for impl review non-blocking output.",
+      "reason": "Rejected because the requested target pattern is spec review's `nonBlockingImprovements`; unifying test review naming is out of scope."
+    },
+    {
+      "option": "Use `review.md` as the only artifact.",
+      "reason": "Rejected because PASS, retry, next-step, and previous-memory decisions need structured fields and should not parse human markdown."
+    },
+    {
+      "option": "Route non-blocking improvements through the apply step before gate-impl.",
+      "reason": "Rejected because it keeps non-blocking suggestions as a flow-stopping condition and conflicts with the completion criterion that non-blocking improvements do not consume retry budget."
+    },
+    {
+      "option": "Include regression, test quality, scope creep, and guardrail violations as blocking impl review findings.",
+      "reason": "Rejected because those concerns already have dedicated downstream phases and gates."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "impl review",
+    "blockingFindings",
+    "nonBlockingImprovements",
+    "impl-review.json",
+    "review.md",
+    "reviewRetry",
+    "run-review",
+    "ReviewFailure",
+    "gate-impl",
+    "buildDraftSystemPrompt",
+    "parseProposals",
+    "filterProposalsByScope",
+    "previous review memory",
+    "implementation prompt",
+    "registry post hook",
+    "task review prompt"
+  ],
+  "implementationTargets": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/registry.js",
+    "src/flow/prompts/impl/review.md",
+    "src/flow/prompts/impl/implement.md",
+    "src/flow/prompts/task/review.md",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/phases-review.test.js",
+    "tests/e2e/flow/gate-impl-integration.test.js",
+    "specs/265-impl-review-blocking-pass/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add impl review artifact",
+      "goal": "Introduce the structured impl review finding and artifact contract used by review command output.",
+      "acceptance": [
+        "`impl-review.json` is written with verdict, summary, blocking findings, non-blocking improvements, and excluded scope counts.",
+        "`review.md` renders blocking and non-blocking sections from the same normalized artifact data.",
+        "Scope filtering applies to both finding buckets and records missing-file and out-of-scope counts.",
+        "Missing-acceptance blockers with a valid requirement id remain blocking even when `file` is empty."
+      ],
+      "implementation_notes": "Work mainly in `src/flow/commands/review.js`. Reuse existing JSON repair and artifact-writing helpers for JSON parsing, JSON artifact writes, and markdown review rendering. Use classes for new finding/artifact concepts if they carry invariant checks or rendering behavior.",
+      "test_strategy": "Unit tests in `tests/unit/flow/commands/review.test.js` plus spec-local tests for R1, R2, R3, R4, R5, and R13.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Route impl review verdict",
+      "goal": "Update `run-review` impl-phase post-processing so structured verdicts control PASS, retry, and next-step behavior.",
+      "acceptance": [
+        "PASS and ADVISORY verdicts do not increment reviewRetry.",
+        "PASS and ADVISORY verdicts set next step to `gate-impl`.",
+        "FAIL verdicts consume reviewRetry and prevent advancement to `gate-impl`.",
+        "Registry post-hook behavior uses the structured verdict so FAIL does not mark impl review complete."
+      ],
+      "implementation_notes": "Work mainly in `src/flow/lib/run-review.js` and `src/flow/registry.js`. Preserve existing subprocess error handling and review max-attempts behavior. Keep `ReviewFailure` retry-budget semantics unchanged unless a test proves a contract mismatch.",
+      "test_strategy": "Unit tests in `tests/unit/flow/run-review-advisory.test.js` and `tests/unit/flow/phases-review.test.js` plus spec-local tests for R6, R7, R8, R9, and R15.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Align review prompts",
+      "goal": "Make implementation, reviewer, and triage prompts share the same blocking failure modes and non-blocking policy.",
+      "acceptance": [
+        "The impl reviewer system prompt includes the R2 blocking modes and JSON output schema.",
+        "`src/flow/prompts/impl/review.md` tells the implementer to apply blocking findings and treat non-blocking improvements as context-based triage.",
+        "`src/flow/prompts/impl/implement.md` tells implementers to satisfy the R2 blocking modes before review.",
+        "`src/flow/prompts/task/review.md` uses the same structured blocking/non-blocking policy for task-scoped review.",
+        "Previous impl review memory is included in later reviewer prompts with explicit array and character bounds."
+      ],
+      "implementation_notes": "Touch `src/flow/commands/review.js`, `src/flow/prompts/impl/review.md`, `src/flow/prompts/impl/implement.md`, and `src/flow/prompts/task/review.md`. After prompt source changes, run `sdd-forge upgrade` to refresh generated skill assets.",
+      "test_strategy": "Unit or spec-local tests that inspect prompt source for the shared blocking labels and previous memory bounds; covered by R10, R11, R12, R16, and R17.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Add review coverage",
+      "goal": "Add traceable spec-local and shared tests for the new impl review artifact and verdict contracts.",
+      "acceptance": [
+        "Spec-local tests under `specs/265-impl-review-blocking-pass/tests/` include `// spec: R<N>` headers covering R1 through R17.",
+        "Shared unit tests cover parsing/filtering/rendering and run-review ADVISORY behavior.",
+        "E2E coverage is added or an evidence-backed reason is recorded if the existing e2e harness cannot cover the should requirement."
+      ],
+      "implementation_notes": "Prefer small Node.js tests using existing test harness patterns. Do not modify tests merely to force pass; production code should satisfy the new assertions.",
+      "test_strategy": "Run spec-local tests, targeted shared unit tests, and the flow's required test-execute/test-result-review/final-regression steps.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-21T02:37:04.291Z",
+    "notes": "User approved spec #265 for Issue #340."
+  },
+  "specId": "265-impl-review-blocking-pass"
+}

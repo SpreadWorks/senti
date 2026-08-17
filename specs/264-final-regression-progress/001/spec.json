@@ -1,0 +1,245 @@
+{
+  "goal": "final-regression 実行中に、stderr へ実行コマンド、raw log path、30 秒ごとの elapsed time、失敗時の artifact 確認先を表示する。",
+  "scope": {
+    "in": [
+      "final-regression 実行開始時に regression command を stderr へ 1 回表示する。",
+      "final-regression 実行開始時に raw log path を stderr へ 1 回表示する。",
+      "final-regression の子プロセスが完了するまで 30 秒ごとに elapsed time を stderr へ表示する。",
+      "final-regression が final-regression-result.json と raw log を書いた failure では、final-regression-result.json と raw log path の両方を stderr へ表示する。",
+      "spec-local tests で開始時表示、30 秒 heartbeat、失敗時 artifact 導線を検証する。"
+    ],
+    "out": [
+      "test-execute と他の flow run コマンドの進捗表示変更。",
+      "regression command の探索順、選択ルール、exit code 契約の変更。",
+      "GitHub Issue と Projects board の表示変更。",
+      "外部ログサービス、外部依存、ユーザー向け CLI option の追加。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみを使い、外部依存を追加しない。",
+    "src/ 配下に sdd-forge プロジェクト固有の絶対パスや環境値を埋め込まない。",
+    "既存の final-regression-result.json と final-regression-attempt-NNN.log の artifact 契約を維持する。",
+    "final-regression の人間向け progress と artifact 導線は stderr に出す。stdout は JSON envelope 専用として維持する。",
+    "final-regression の成功条件と失敗条件、プロセス exit code の扱い、failureKind 分類、nextAction 分岐を変更しない。",
+    "新しいユーザー向け CLI 引数は追加しない。テスト用の内部オプションが必要な場合は user-facing argument として公開しない。",
+    "bounded-resource-usage: heartbeat timer は子プロセス終了時に必ず停止し、raw output の保持上限は既存の maxBuffer と raw log 書き込み単位の範囲内に収める。"
+  ],
+  "design_principles": [
+    "final-regression に閉じた深い実装を優先し、他の flow command の表示契約を変更しない。",
+    "実行中表示は人間が監視する stderr 側に出し、stdout の machine-readable envelope と artifact JSON の既存形を壊さない。",
+    "意味のある実行状態や表示イベントは、必要に応じて専用クラスで表現し、object literal の type 分岐を増やさない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-final-regression.js owns final-regression orchestration, artifact paths, classification, and envelope output."
+      },
+      {
+        "text": "src/flow/lib/test-regression.js owns regression command discovery and process execution helpers used by final-regression."
+      },
+      {
+        "text": "src/lib/process.js owns low-level child_process wrappers and currently returns complete process output after execFile finishes."
+      },
+      {
+        "text": "src/flow/lib/base-command.js and src/lib/dispatcher.js define the envelope stdout contract for flow commands."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "final-regression resolves the next raw log path before starting the child process, prints command/path to stderr, runs the regression command, records output to raw log, validates result JSON, then returns the same stdout envelope artifacts as before."
+      },
+      {
+        "text": "During child process execution, elapsed time output is emitted every 30 seconds until the process resolves or fails; timer cleanup happens before result artifact validation and envelope return."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] run-final-regression already computes attemptPath before process execution and writes rawOutputPath/resultPath into artifacts.",
+        "evidence": "src/flow/lib/run-final-regression.js: nextFinalRegressionAttempt(specDir) runs before discoverRegressionCommand/runProcessDetailed; FinalRegressionArtifact.toEnvelopeArtifacts returns result_path and raw_output_path."
+      },
+      {
+        "text": "[VERIFY] current process helper buffers output until completion, so progress visibility requires a live execution path or final-regression-local timer.",
+        "evidence": "src/flow/lib/test-regression.js runProcessDetailed calls runCmdAsync; src/lib/process.js runCmdAsync wraps child_process.execFile callback and resolves only after completion."
+      },
+      {
+        "text": "Use elapsed time every 30 seconds as the heartbeat requirement.",
+        "evidence": "Issue #337 allows heartbeat or elapsed time. Draft q2 resolved that 30-second elapsed time makes silent periods bounded and testable.",
+        "consideredAlternatives": "Forwarding only child stdout/stderr was rejected because commands can remain silent for more than 30 seconds."
+      },
+      {
+        "text": "Keep the change scoped to final-regression and preserve existing artifact and transition behavior.",
+        "evidence": "Issue #337 title and body mention final-regression only. Draft q4 resolved that test-execute and other flow run commands are out of scope."
+      },
+      {
+        "text": "Failure output must point to both result artifact and raw log path.",
+        "evidence": "Draft q3 resolved that result artifact supplies failureKind/nextAction and raw log supplies process output; both are needed for failure investigation."
+      },
+      {
+        "text": "[CORRECTION] Human progress output is constrained to stderr so stdout remains the JSON envelope.",
+        "evidence": "Spec review identified base-command outputMode=envelope and dispatcher stdout envelope behavior. Requirements R1-R4, constraints, and acceptance criteria now require stderr for progress and artifact guidance."
+      },
+      {
+        "text": "[CORRECTION] Failure artifact guidance covers every final-regression failure path that writes result and raw log artifacts, including root mismatch.",
+        "evidence": "src/flow/lib/run-final-regression.js creates attemptPath/resultPath before the rootOk branch and writes FinalRegressionArtifact for both process failures and rootMismatch failures."
+      }
+    ]
+  },
+  "background": "final-regression runs the full project regression after retro and before finalize. The existing implementation creates raw log and result artifacts, but users do not see the raw log path before execution and do not receive progress output while the child process is running. Flow commands emit the final JSON envelope on stdout, so new human-readable progress must use stderr to avoid corrupting machine callers.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When final-regression starts a discovered regression command, stderr shows the command string before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "When final-regression starts, stderr shows the repo-relative raw log path before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "While the final-regression child process is running, elapsed time output is emitted to stderr every 30 seconds until the process exits or reports a spawn error.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When final-regression fails after artifact paths have been created, including process attempts, discovery errors, and worktree root mismatch, stderr includes both final-regression-result.json and the raw log path.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "The existing final-regression result artifact schema, raw log artifact path, failureKind classification, nextAction, retryable flag, and success/failure envelope semantics remain unchanged.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A spec-local test for R1 and R2 observes final-regression stderr containing the command string and repo-relative raw log path before the simulated command completes, and stdout remains valid JSON envelope output.",
+    "A spec-local test for R3 observes at least two elapsed-time heartbeat messages on stderr when a simulated final-regression process exceeds two heartbeat intervals; production cadence remains 30000 ms.",
+    "A spec-local test for R4 observes failed final-regression stderr containing final-regression-result.json and the raw log path for a process/discovery failure and for a worktree root mismatch failure.",
+    "A regression test or spec-local assertion for R5 verifies final-regression-result.json still validates with the existing schema fields and envelope artifacts still include result_path and raw_output_path.",
+    "Running the project test command completes without failures before finalize."
+  ],
+  "clarifications": [
+    {
+      "q": "Does heartbeat require forwarding child process output?",
+      "a": "No. Elapsed time output every 30 seconds satisfies the heartbeat requirement even when the child process itself is silent."
+    },
+    {
+      "q": "Should this add a user-facing interval option?",
+      "a": "No. The production interval is fixed at 30000 ms for this spec; any shorter interval used by tests must remain internal."
+    },
+    {
+      "q": "Does this change final-regression exit behavior?",
+      "a": "No. Success and failure classification stay identical to the existing final-regression behavior."
+    },
+    {
+      "q": "Can final-regression progress be printed to stdout?",
+      "a": "No. stdout remains reserved for the JSON envelope; human progress and artifact links must use stderr."
+    },
+    {
+      "q": "Was the non-trivial implementation direction confirmed before proceeding?",
+      "a": "Yes. The implementation direction was reviewed in flow, remaining review proposals were explicitly approved by the user as non-blocking, and the flow proceeds with final-regression-scoped stderr progress plus unchanged stdout envelope and artifact semantics."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Forward only child process stdout/stderr",
+      "reason": "Rejected because a silent test command can still produce no output for more than 30 seconds, leaving the user unable to distinguish running from stalled."
+    },
+    {
+      "option": "Add progress display to all flow run commands",
+      "reason": "Rejected because Issue #337 targets final-regression only and broader command output changes would expand the spec beyond one concern."
+    },
+    {
+      "option": "Show only the raw log path on failure",
+      "reason": "Rejected because final-regression-result.json records failureKind, retryable, and nextAction while raw log records process output; failure triage requires both."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "final-regression",
+    "run-final-regression",
+    "rawOutputPath",
+    "final-regression-result",
+    "heartbeat",
+    "elapsed time",
+    "runProcessDetailed",
+    "child_process",
+    "regression command",
+    "artifact path"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-final-regression.js",
+    "src/flow/lib/test-regression.js",
+    "src/lib/process.js",
+    "src/flow/lib/base-command.js",
+    "src/lib/dispatcher.js",
+    "specs/264-final-regression-progress/tests/"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-20T07:57:02.106Z",
+    "notes": "Auto-approved via autoApprove after spec gate PASS."
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Stream final-regression execution",
+      "goal": "Provide a live final-regression execution path that can emit elapsed-time heartbeat output while preserving the existing process result shape.",
+      "acceptance": [
+        "The production heartbeat cadence is 30000 ms.",
+        "The timer stops when the child process exits, times out, or reports a spawn error.",
+        "The process result fields consumed by run-final-regression remain started, exitCode, signal, timedOut, spawnError, stdout, and stderr."
+      ],
+      "implementation_notes": "Prefer a final-regression-specific helper or a compatible extension of runProcessDetailed. Do not change regression command discovery or user-facing CLI arguments.",
+      "test_strategy": "Spec-local tests use an internal short interval to observe two heartbeat events without waiting 60 seconds; production constant remains asserted as 30000 ms.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Report final-regression artifacts",
+      "goal": "Print the regression command, raw log path, elapsed-time heartbeat, and failure artifact paths from final-regression to stderr without changing artifact JSON or stdout envelope semantics.",
+      "acceptance": [
+        "Start stderr includes command text before process execution.",
+        "Start stderr includes repo-relative raw log path before process execution.",
+        "Failure stderr includes final-regression-result.json and raw log path for every artifact-producing final-regression failure.",
+        "Stdout remains valid JSON envelope output.",
+        "Existing pass/fail classification and nextAction values remain unchanged."
+      ],
+      "implementation_notes": "Keep output generic and project-agnostic. Use repo-relative paths for user-visible artifact references.",
+      "test_strategy": "Spec-local tests capture stderr, stdout, and artifact JSON for pass and fail paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover final-regression progress",
+      "goal": "Add spec-local tests that prove the new final-regression progress and artifact-link behavior without relying on wall-clock 30-second waits.",
+      "acceptance": [
+        "Tests include // spec: R1 through // spec: R5 headers covering every testable requirement.",
+        "Tests fail against the pre-change behavior for missing start output, heartbeat, or failure artifact links.",
+        "Tests do not require external dependencies or network access."
+      ],
+      "implementation_notes": "Use local fixtures, internal interval injection, or controlled child commands. Do not edit tests only to match broken product behavior.",
+      "test_strategy": "Run the spec-local test through the SDD test step and run the configured project test command before finalize.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "specId": "264-final-regression-progress"
+}

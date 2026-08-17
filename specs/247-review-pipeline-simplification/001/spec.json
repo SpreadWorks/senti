@@ -1,0 +1,251 @@
+{
+  "goal": "レビューパイプラインを2軸で簡素化する: (1) review-spec, review-test, impl review の選択肢UIを廃止し常に自動実行、(2) impl review と spec review から外部検証エージェント (flow.impl.review.final) を廃止し propose agent → セッション AI の2段構成にする。",
+  "scope": {
+    "in": [
+      "`src/flow/prompts/plan/review-spec.md` — 選択肢 UI 削除、常時実行指示に変更",
+      "`src/flow/prompts/plan/review-test.md` — 選択肢 UI 削除、常時実行指示に変更",
+      "`src/flow/prompts/impl/review.md` — 選択肢 UI 削除、propose-only 出力をセッション AI が評価する手順に変更",
+      "`src/flow/prompts/task/review.md` — propose-only 出力をセッション AI が評価する手順に変更",
+      "`src/flow/commands/review.js` — impl review と spec review から final agent 呼び出しを削除。関連する dead code (buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts) を削除",
+      "`src/flow/definition.js` — review ノードの skippable: true を削除",
+      "`src/flow/lib/run-review.js` — impl review の出力パースから approved/rejected カウントを削除し proposalCount のみにする",
+      "`src/templates/skills/sdd-forge.flow/SKILL.md` — review ステップに関する変更がある場合のみ更新"
+    ],
+    "out": [
+      "`src/flow/prompts/plan/review-draft.md` — spec 246 で設問補完機構に変更済み、対象外",
+      "`runDraftReview` (review.js) — draft review パスは変更しない",
+      "`runTestReview` (review.js) — test review パスは final agent を使っていないため変更しない",
+      "`flow.impl.review.propose` agent 設定 — propose agent は維持",
+      "`flow.test.review` / `flow.draft.review.propose` agent 設定 — 変更なし"
+    ]
+  },
+  "constraints": [
+    "alpha 版ポリシー: 後方互換コードは書かない。旧フォーマットの保持・非推奨パスの維持は行わない",
+    "review.js の CLI インターフェース (--phase, --dry-run, --skip-confirm) は変更しない",
+    "flow.impl.review.final の config.json エントリは削除しない (ユーザー設定は壊さない)"
+  ],
+  "design_principles": [
+    "セッション AI が全コンテキスト (spec, 設計経緯, tradeoff) を持っているため、diff のみで判断する外部 agent より適切な判断ができる",
+    "レビューは常に有益であり、スキップの選択肢は不要な分岐を生むだけ"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/commands/review.js` — レビュー実行エンジン。impl review, spec review, test review, draft review の4パイプラインを持つ。本 spec では impl review と spec review から final agent ステップを削除する"
+      },
+      {
+        "text": "`src/flow/prompts/` — 各レビューステップのセッション AI 向け指示。選択肢 UI を削除し常時実行に変更する"
+      },
+      {
+        "text": "`src/flow/definition.js` — flow ノード定義。review ノードの skippable 属性を削除する"
+      },
+      {
+        "text": "`src/flow/lib/run-review.js` — review.js subprocess のラッパー。出力パースを簡素化する"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "変更前: propose agent → review.js (proposals) → final agent → review.js (verdicts) → review.md → session AI"
+      },
+      {
+        "text": "変更後: propose agent → review.js (proposals) → review.md → session AI (評価 + 適用)"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "final agent 廃止: セッション AI は spec・設計・tradeoff の全コンテキストを持ち、diff のみで判断する external agent より適切。AI 呼び出しコスト・時間も削減される",
+        "evidence": "review.js L1476-1489 (impl final), L1205-1232 (spec validation)"
+      },
+      {
+        "text": "選択肢 UI 廃止: autoApprove 時は常に [1] 選択のため分岐が無意味。レビューをスキップする合理的理由はほぼない",
+        "evidence": "review-spec.md, review-test.md, impl/review.md の選択肢 UI"
+      },
+      {
+        "text": "review.md フォーマット変更: verdict フィールドを削除し proposals のみ出力。セッション AI が評価を担う",
+        "evidence": "formatReviewMd (review.js L384-401)"
+      }
+    ]
+  },
+  "background": "レビューステップに2つの不要な複雑性がある。(1) review-spec/review-test/impl review で毎回ユーザーに実行可否を選択させる UI があるが、レビューをスキップする合理的理由はほぼなく、autoApprove 時は常に [1] を自動選択するため分岐が無意味。(2) impl review と spec review で propose agent → final agent → セッション AI の3段パイプラインを使っているが、final agent は diff のみで判断するのに対し、セッション AI は全コンテキストを持ちより適切な判断ができる。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "plan/review-spec.md から選択肢 UI を削除し、`sdd-forge flow run review --phase spec` を常に実行する指示に変更する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "plan/review-test.md から選択肢 UI を削除し、`sdd-forge flow run review --phase test` を常に実行する指示に変更する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "impl/review.md から選択肢 UI (Option 1/2/3) を削除し、常に review を実行し、セッション AI が proposals を評価・適用する手順に変更する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "task/review.md をセッション AI が proposals を評価・適用する手順に更新する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "review.js の impl review パス (runReview 関数のデフォルトパス) から final agent (flow.impl.review.final) の呼び出しを削除し、scope-filtered proposals をそのまま review.md に出力する",
+      "priority": "must"
+    },
+    {
+      "id": "R6",
+      "desc": "review.js の spec review パス (runSpecReview) から final agent の呼び出し (validation step) を削除し、proposals をそのまま spec-review.md に出力する",
+      "priority": "must"
+    },
+    {
+      "id": "R7",
+      "desc": "review.js から参照されなくなる関数 (buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts) とそれらの export を削除する",
+      "priority": "must"
+    },
+    {
+      "id": "R8",
+      "desc": "definition.js の createPlanReviewNode から skippable: true を削除する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "run-review.js の impl review パースから approved/rejected カウントを削除し、proposalCount のみ返すように変更する",
+      "priority": "should"
+    },
+    {
+      "id": "R10",
+      "desc": "review.js の ensureAgent('flow.impl.review.final') 呼び出しを削除する (impl review の L1477, spec review の L1165)",
+      "priority": "must"
+    }
+  ],
+  "acceptance_criteria": [
+    "review-spec, review-test, impl review の prompt に選択肢 UI が存在しない",
+    "review.js で flow.impl.review.final の agent 呼び出しが存在しない",
+    "review.md に verdict (APPROVED/REJECTED) フィールドが含まれない (proposals のみ)",
+    "spec-review.md に verdict フィールドが含まれない",
+    "definition.js の review ノードに skippable: true が設定されていない",
+    "既存テストが全て PASS する",
+    "buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts が review.js の export リストに存在しない"
+  ],
+  "clarifications": [
+    {
+      "q": "既存機能への影響は何か？",
+      "a": "(1) ユーザーはレビューステップをスキップできなくなる (review-spec, review-test, impl review)。ただし alpha 版ポリシーにより後方互換は保持しない。(2) review.md と spec-review.md の出力フォーマットが変わる (verdict フィールド削除)。これらのファイルを読むのはセッション AI の prompt のみであり、外部ツールが依存している可能性はない。(3) flow.impl.review.final の agent commandId は config.json に残っても無害だが、コード側から参照されなくなる。(4) run-review.js の返却値から approved/rejected フィールドが削除され proposalCount のみになる"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "選択肢を残してデフォルトを[1]にする",
+      "reason": "不要な分岐が残り autoApprove の special case が解消されないため却下"
+    },
+    {
+      "option": "final agent を残して propose agent を省く",
+      "reason": "propose agent こそが改善提案を行う本質的な部分であり、省くべきではない"
+    },
+    {
+      "option": "全 review パス (draft, test 含む) から外部 agent を廃止",
+      "reason": "draft review と test review は元々 final agent を使っていないため対象外"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Remove choice UI from review prompts",
+      "goal": "plan/review-spec.md, plan/review-test.md, impl/review.md から選択肢 UI を削除し、常にレビューを自動実行する指示に書き換える。",
+      "acceptance": [
+        "review-spec.md に [1]/[2] 選択肢が存在しない",
+        "review-test.md に [1]/[2] 選択肢が存在しない",
+        "impl/review.md に [1]/[2]/[3] 選択肢が存在しない"
+      ],
+      "implementation_notes": "review-spec.md と review-test.md は選択肢を削除し、直接 `sdd-forge flow run review --phase <phase>` を実行する指示に変更。impl/review.md は Option 1 の auto-fix 手順を維持しつつ、選択肢フレームと Option 2/3 を削除。ただし impl/review.md は T-2 で propose-only 対応に書き換えるため、本タスクでは選択肢削除のみ行う。",
+      "test_strategy": "instructions-coverage.test.js が prompt ファイルの存在を検証するため、ファイル自体は削除しない。内容の変更はテスト対象外。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Remove final agent from impl and spec review",
+      "goal": "review.js の impl review パスと spec review パスから final agent (flow.impl.review.final) の呼び出しを削除し、propose agent の出力を直接返す2段構成にする。",
+      "acceptance": [
+        "review.js に ensureAgent('flow.impl.review.final') の呼び出しが存在しない",
+        "impl review パスが final agent を呼ばず proposals を直接出力する",
+        "spec review パスが validation step を呼ばず proposals を直接出力する",
+        "buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts が削除されている",
+        "review.md に verdict フィールドが含まれない",
+        "spec-review.md に verdict フィールドが含まれない"
+      ],
+      "implementation_notes": "impl review: L1476-1489 の final phase を削除。scope-filtered proposals を直接 writeReviewMd に渡す。formatReviewMd を verdict なしフォーマットに変更。spec review: L1205-1232 の validation step を削除。proposals を直接 formatSpecReviewMd に渡す。formatSpecReviewMd を verdict なしフォーマットに変更。export リストから buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts を削除。",
+      "test_strategy": "specs/247-review-pipeline-simplification/tests/ 配下に formatReviewMd の新フォーマット (verdict なし) と formatSpecReviewMd の新フォーマットの unit テストを作成。既存の mergeVerdicts テストは削除。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Update review prompts for propose-only output",
+      "goal": "impl/review.md と task/review.md を更新し、セッション AI が propose agent の出力 (verdict なし proposals) を自身で評価・適用する手順を記述する。",
+      "acceptance": [
+        "impl/review.md がセッション AI に proposals の評価手順を指示している",
+        "task/review.md がセッション AI に proposals の評価手順を指示している",
+        "APPROVED items への参照が proposals への参照に変更されている"
+      ],
+      "implementation_notes": "impl/review.md: review.md を読み、各 proposal を spec と設計意図に照らして評価する手順を記述。task/review.md: 同様の更新。評価基準: (1) 品質改善に寄与するか、(2) 既存動作を壊さないか、(3) spec のスコープ内か。",
+      "test_strategy": "prompt ファイルの内容変更はテスト対象外。instructions-coverage.test.js でファイル存在のみ検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Remove skippable from review nodes in definition.js",
+      "goal": "definition.js の createPlanReviewNode から skippable: true を削除し、review ステップを常に実行するノードにする。",
+      "acceptance": [
+        "createPlanReviewNode に skippable: true が設定されていない",
+        "review-draft, review-spec, review-test ノードの skippable が false (デフォルト値)"
+      ],
+      "implementation_notes": "createPlanReviewNode 関数から skippable: true の行を削除するのみ。FlowNode のデフォルト値は false。",
+      "test_strategy": "specs/247-review-pipeline-simplification/tests/ 配下に createPlanReviewNode で生成されるノードの skippable が false であることを検証する unit テストを作成。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Update run-review.js output parsing",
+      "goal": "run-review.js の impl review パースから approved/rejected カウントを削除し proposalCount のみ返すように変更する。",
+      "acceptance": [
+        "RunReviewCommand の impl review 結果に approved/rejected フィールドがない",
+        "proposalCount フィールドが proposals の数を正しく返す"
+      ],
+      "implementation_notes": "RunReviewCommand.execute() の impl review パス (phase なしのデフォルト) で approvedMatch/rejectedMatch の正規表現を削除。artifacts に proposalCount のみ残す。next の判定ロジックも簡素化: noChanges/noProposals なら finalize、proposals ありなら apply。",
+      "test_strategy": "specs/247-review-pipeline-simplification/tests/ 配下に RunReviewCommand の impl review パース結果 (proposalCount のみ、approved/rejected なし) を検証する unit テストを作成。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-30T02:37:36.619Z",
+    "notes": "autoApprove"
+  },
+  "specId": "247-review-pipeline-simplification"
+}

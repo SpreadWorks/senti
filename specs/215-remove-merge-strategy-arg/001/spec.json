@@ -1,0 +1,170 @@
+{
+  "goal": "sdd-forge flow run finalize の --merge-strategy 引数を廃止し、merge 戦略の決定権を config (commands.gh) のみに一本化する。CLI 引数で config の意図をバイパスできる経路を完全に閉じ、Issue #220 で発生した意図しない PR 作成事故の再発を防ぐ。",
+  "background": "Issue #223: finalize の --merge-strategy pr|squash|auto 引数は、config ベースの判定ルール (commands.gh === \"enable\" AND gh 利用可能のみ PR ルート) を引数で上書きできるエスケープハッチになっていた。Issue #220 の実装 (PR #221) で AI エージェントが --merge-strategy pr を明示指定したことにより、commands.gh が未設定のプロジェクトで意図しない PR が作成された。設計原則: ルールであるならコードで強制する、エスケープハッチはルールを無効化する。",
+  "scope": {
+    "in": [
+      "sdd-forge flow run finalize の CLI 引数仕様から旧 merge 戦略指定引数を削除する",
+      "merge 戦略決定ロジックを config (commands.gh) 単独ベースに変更する",
+      "スキル (配布テンプレート) と内部プロンプトの呼び出し例から旧引数への言及を削除する",
+      "関連ユニットテストを新仕様に合わせて更新する"
+    ],
+    "out": [
+      "フロー状態ファイル上の戦略記録フィールド自体の削除 (後続 sync ステップが参照するため保持)",
+      "config.commands.gh のスキーマ変更、新しい config キー追加",
+      "自動生成される docs 配下のドキュメント更新 (sdd-forge build で反映される)",
+      "過去 spec (specs/081, 100, 104, 170 等) の遡及修正"
+    ]
+  },
+  "constraints": [
+    "CLAUDE.md alpha 版ポリシー: 後方互換コードを書かない。旧フォーマット・非推奨パスは保持せず削除する。",
+    "CLAUDE.md コーディングルール: 外部依存なし。内部インターフェースは信頼し、過剰な防御コードを書かない。",
+    "src/ 以下にプロジェクト固有の情報を含めない。"
+  ],
+  "design_principles": [
+    "Config is the single source of truth for merge strategy. CLI 引数やユーザー対話はこれを上書きしない。",
+    "Silent no-op より即エラー。旧引数はそもそも受け付けずに unknown option で落とす。",
+    "死にコードを残さない。旧引数専用の enum 定数と唯一のバリデーション参照を同時に削除する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "finalize コマンド実行層 (引数定義、入力バリデーション、戦略ディスパッチ)"
+      },
+      {
+        "text": "merge 実行層 (戦略決定、squash / PR ルート分岐)"
+      },
+      {
+        "text": "フロー状態書き込み層 (解決後戦略の記録)"
+      },
+      {
+        "text": "スキル・プロンプト層 (ユーザー向け呼び出し例とステップ案内)"
+      },
+      {
+        "text": "定数層 (CLI 入力バリデーション専用の enum)"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "ユーザー: sdd-forge flow run finalize --mode all を実行 (旧引数なし)"
+      },
+      {
+        "text": "finalize: merge ステップが有効なら merge 実行層を呼び出す。戦略選択の入力は受け取らない"
+      },
+      {
+        "text": "merge 実行層: config.commands.gh と gh 可用性のみを見て PR か squash かを判定"
+      },
+      {
+        "text": "merge 実行層: 実行戦略をフロー状態ファイルに記録"
+      },
+      {
+        "text": "後続 sync ステップ: 記録された戦略値を読み、PR ルート時はスキップする"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "旧引数は削除する。deprecation 警告を経由しない (alpha 版ポリシー)。"
+      },
+      {
+        "text": "戦略選択ユーザー対話は完全に廃止する。"
+      },
+      {
+        "text": "戦略記録フィールドは保持する (sync が参照するため)。"
+      },
+      {
+        "text": "旧引数 enum 用定数は削除する (死にコード化するため)。"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "finalize コマンドはユーザーから merge 戦略を指定する CLI 引数を受け付けないこと。ユーザーが finalize コマンドに従来の merge 戦略指定引数を付けて実行すると、未知オプションとしてエラー終了し非ゼロ exit code を返す。"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "merge 戦略は config と gh コマンド可用性のみで決定されること。finalize の merge 処理が開始された時、config が PR 運用を有効化していて かつ gh コマンドが実行可能な場合のみ PR ルートを選ぶ。それ以外は squash merge ルートを選ぶ。"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "finalize 実行フロー内に merge 戦略をユーザーに選ばせる対話が存在しないこと。ユーザーが finalize の merge ステップを含む実行を開始した時、戦略選択の対話プロンプトは表示されず R2 の決定ロジックのみで進行する。"
+    },
+    {
+      "id": "R4",
+      "priority": "should",
+      "desc": "finalize 完了時に解決された戦略値を後続ステップから参照可能な状態で永続化すること。merge ステップが成功で終了した時、解決結果 (\"squash\" または \"pr\") をフロー状態に記録し、後続の sync ステップがその値を参照できるようにする。"
+    },
+    {
+      "id": "R5",
+      "priority": "should",
+      "desc": "ユーザー配布物であるスキル・プロンプトの呼び出し例から、旧 merge 戦略指定引数への言及が消えていること。ユーザーが sdd-forge upgrade でスキルを更新した時、更新後のスキル・プロンプト文書に旧引数の記述がひとつも残らない。"
+    },
+    {
+      "id": "R6",
+      "priority": "nice-to-have",
+      "desc": "旧 CLI 引数 enum 専用に存在していた内部定数と、その唯一の参照 import を同時に削除すること。本 spec の実装完了時に、定数定義と import 参照がコードベースから見つからない状態になる。"
+    }
+  ],
+  "acceptance_criteria": [
+    "sdd-forge flow run finalize --merge-strategy pr を実行すると unknown option エラーで非ゼロ exit code を返す。",
+    "config.commands.gh !== \"enable\" のプロジェクトで sdd-forge flow run finalize を実行しても PR が作成されず、常に squash merge ルートが選ばれる。",
+    "config.commands.gh === \"enable\" かつ gh 利用可能のプロジェクトで sdd-forge flow run finalize を実行すると PR ルートが選ばれる。",
+    "finalize の select モードで merge ステップを選んでも、戦略選択の対話プロンプト (旧 finalize.merge-strategy prompt 等) は出現しない。",
+    "sdd-forge upgrade 後のスキル・プロンプト文書から旧引数の文字列が grep で 0 件になる。",
+    "grep -rn VALID_MERGE_STRATEGIES src/ が 0 件になる (R6)。",
+    "npm test の既存テストが全 PASS する。--merge-strategy 関連のユニットテストは新仕様に追従している。"
+  ],
+  "clarifications": [
+    {
+      "q": "旧引数で CI を運用していたユーザーへの影響は？",
+      "a": "即エラーで CI が落ちる。alpha 版ポリシーの通り後方互換は保持しない。リリースノートで告知。"
+    },
+    {
+      "q": "フロー状態の戦略記録フィールドは削除しないのか？",
+      "a": "後続 sync ステップが参照している。戦略決定ロジックと戦略記録は別責務のため、本 spec のスコープは決定ロジックのみに限定。"
+    },
+    {
+      "q": "戦略選択ユーザー対話を残す選択肢は？",
+      "a": "対話自体が config バイパス経路を正当化していた。「ルールであるならコードで強制する」原則に矛盾するため廃止。"
+    },
+    {
+      "q": "enum 定数を残す価値は？",
+      "a": "CLI 入力バリデーション以外の参照がない。残すと死にコードになるため削除する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Deprecation 警告で段階移行",
+      "reason": "alpha 版ポリシーに反する。即エラーの方が運用事故の告知として機能する。"
+    },
+    {
+      "option": "引数を受け付けつつ config を優先させる",
+      "reason": "config 以外の入力源が残ると「なぜ無視されるのか」の混乱を招く。未知オプションとして即エラーにする方がルールが明瞭。"
+    },
+    {
+      "option": "戦略選択の対話プロンプトを残す",
+      "reason": "config バイパス経路を正当化するため、設計原則と矛盾する。廃止が一貫。"
+    }
+  ],
+  "open_questions": [],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/flow/get-prompt.test.js",
+      "reason": "The existing test `includes description field for static kinds` probed the now-removed `finalize.merge-strategy` prompt kind. It is replaced with an equivalent check against `finalize.mode`, and a new test asserts that `finalize.merge-strategy` is no longer recognized (R3). Removing the old query is required — keeping it would test a prompt definition this spec deletes."
+    }
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "215-remove-merge-strategy-arg"
+}

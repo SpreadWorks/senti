@@ -1,0 +1,326 @@
+{
+  "goal": "Fix `senti setup` so the preset selection includes official and installed plugin presets instead of only the core `base` preset.",
+  "scope": {
+    "in": [
+      "Interactive `senti setup` preset candidates use a plugin-aware preset list.",
+      "Fresh setup can discover official preset candidates before rendering the prompt without writing project config state before confirmation.",
+      "Existing projects with enabled installed plugin presets keep those presets available as defaults and selectable candidates.",
+      "Selecting a non-base official preset records enough plugin source/package state for later preset resolution.",
+      "Selecting only `base` avoids writing unnecessary official preset plugin state.",
+      "Retained setup behavior is verified for candidate rendering, default loading, `config.type` saving, summary leaf display, `validatePresetChain`, agent template preset lookup, and non-interactive `--type` handling.",
+      "Regression tests cover the base-only candidate failure mode and the related migration-parity surfaces."
+    ],
+    "out": [
+      "Changing official preset repository contents.",
+      "Changing the plugin manifest schema or preset contribution format.",
+      "Fetching or updating arbitrary non-official plugin sources during setup.",
+      "Redesigning the setup wizard interaction model or multi-select UI.",
+      "Publishing npm packages or changing dist-tags."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing internal APIs.",
+    "`src/` changes must remain project-generic and must not embed project-specific values.",
+    "Official preset bootstrap failure is fatal; setup must not silently continue with a base-only candidate list.",
+    "Non-official plugin presets are setup candidates only when their installed manifest exists locally.",
+    "Setup does not own arbitrary non-official plugin sync/update behavior; that remains owned by plugin sync/upgrade flows.",
+    "If an existing configured preset type cannot be resolved from core or installed plugins, setup must surface a repair-needed error instead of dropping the type.",
+    "Official plugin state is persisted only when needed for a selected non-base official preset.",
+    "Pre-prompt official preset discovery must be read-only with respect to the target project config and installed package state.",
+    "Official plugin state mutation must preserve public/local config separation and must not copy `.senti/config.local.json` plugin sources or packages into `.senti/config.json`.",
+    "migration-parity: retained public surfaces are interactive preset selection, existing setup defaults, `config.type` saving, summary leaf display, `validatePresetChain`, agent template preset lookup, non-interactive `--type`, plugin update ownership, and config.local privacy.",
+    "bounded-resource-usage: candidate discovery must stay within existing plugin registry limits (`MAX_ENABLED_PLUGIN_PACKAGES`, `MAX_PLUGIN_SOURCES`, manifest JSON/path/file limits) and preset chain depth limit (`MAX_CHAIN_DEPTH`)."
+  ],
+  "design_principles": [
+    "Prefer one preset discovery path for setup UI and downstream validation to avoid candidate/validation drift.",
+    "Keep setup bootstrap narrowly scoped to official presets because they are bundled infrastructure, not arbitrary user plugins.",
+    "Preserve existing wizard-managed config behavior while adding the minimum plugin state needed for later commands."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/setup.js`: wizard candidate rendering, settings persistence, summary display, non-interactive setup, and final preset validation."
+      },
+      {
+        "text": "`src/lib/presets.js`: core and plugin-aware preset chain resolution."
+      },
+      {
+        "text": "`src/lib/plugin-registry.js`: installed plugin manifest loading and official package installation helper."
+      },
+      {
+        "text": "`src/upgrade.js`: existing official preset package bootstrap path used as implementation precedent."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Before preset selection, setup builds a preset candidate list from core presets plus available plugin presets for the target project root."
+      },
+      {
+        "text": "For a fresh project, setup reads official preset metadata transiently before the prompt without creating target `.senti` config or package state."
+      },
+      {
+        "text": "The wizard stores the selected leaf type in `config.type`; if it comes from official presets, setup also preserves official plugin state."
+      },
+      {
+        "text": "After confirmation, non-base official selections persist official plugin state before project-root validation while base-only selections write no official state."
+      },
+      {
+        "text": "`resolveMultiChains()` and `validatePresetChain()` continue to run against the target project root after config generation."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked setup preset candidate source / `src/setup.js` / result=match: interactive setup currently renders `buildTreeItems(PRESETS)`, so it can only show core presets.",
+        "evidence": "`src/setup.js` imports `PRESETS` from `src/lib/presets.js`; `runWizard()` calls `buildTreeItems(PRESETS)` before the preset select prompt."
+      },
+      {
+        "text": "[VERIFY] Checked preset registry model / `src/lib/presets.js` and `src/lib/plugin-registry.js` / result=match: core-only `PRESETS` differs from project-root-aware resolution.",
+        "evidence": "`PRESETS` is assigned to `CORE_PRESETS`; plugin presets are only added by the internal project-root-aware `allPresets(projectRoot)` path. `loadPluginRegistry(root)` returns an empty registry when config is missing and skips configured packages without installed `plugin.json`."
+      },
+      {
+        "text": "[VERIFY] Checked official package precedent / `src/upgrade.js` and `src/lib/plugin-registry.js` / result=match: official package installation already has a bounded helper.",
+        "evidence": "`upgrade.js` calls `ensureOfficialPackage(root, { id: \"official-presets\", sourceRoot: officialPresetPluginRoot() })`. `ensureOfficialPackage()` resolves the official source, validates the package name, writes plugin config, and installs from source when needed."
+      },
+      {
+        "text": "Official bootstrap failure is treated as an infrastructure error, not as an acceptable base-only fallback.",
+        "evidence": "User confirmed the policy during draft refinement after discussing official and non-official plugin failure modes."
+      },
+      {
+        "text": "Non-official plugin update remains outside setup.",
+        "evidence": "The draft policy follows the current ownership split: installed manifests are readable through `loadPluginRegistry()`, while source resolution and update are owned by plugin install/sync/upgrade code."
+      },
+      {
+        "text": "Migration parity inventory is explicit: setup UI/defaults/type save/summary/validation/template lookup/noninteractive type all remain retained surfaces.",
+        "evidence": "Owner mapping: candidate rendering moves to a plugin-aware preset provider; type minimization, summary, validation, and template lookup stay on project-root-aware resolver paths."
+      },
+      {
+        "text": "No intentional public behavior removals are part of this spec.",
+        "evidence": "Plugin source update remains owned by plugin sync/upgrade, so setup not fetching non-official sources is an ownership boundary rather than a removed setup behavior."
+      }
+    ]
+  },
+  "background": "`senti setup` currently builds its preset tree from `PRESETS`, and `PRESETS` contains only core presets. In this repository the only core preset is `base`; official presets such as application or language presets are plugin contributions from `official-presets`. Existing project-root-aware resolvers can load plugin presets after plugin state exists, but fresh setup reaches the preset prompt before official plugin state has been materialized. The result is a user-visible setup prompt where only `base` appears.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Interactive setup preset candidates must be generated from core presets plus available project plugin preset contributions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Fresh setup must discover bundled official presets through a read-only pre-prompt path that does not require `.senti/config.json`, and must fail loudly if that official source cannot be resolved.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When setup saves a non-base official preset selection, the generated config and local plugin state must allow later project-root-aware preset resolution to find that preset.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When setup saves only `base`, it must not persist unnecessary official preset plugin package state.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Setup must use installed non-official plugin manifests as candidates without attempting to fetch or update missing non-official plugin sources.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Existing behavior for defaults, non-interactive `--type`, summary leaf display, config type minimization, `validatePresetChain`, and agent template preset lookup must continue through the project-root-aware resolver.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Related PRESETS-fixed display paths must be reviewed and either moved to the shared candidate helper or explicitly kept out of scope with tests protecting setup.",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Setup's official plugin state writes must preserve `.senti/config.json` and `.senti/config.local.json` separation and must not publish local-only plugin sources or packages.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "Preset candidate discovery and official metadata reads must enforce bounded resource usage through existing plugin registry count/size/path limits and preset chain depth limits.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "Spec-local tests under `specs/294-setup-preset-options/tests/` must include `// spec: R<N>` headers and collectively cover every testable requirement.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A1: A fresh interactive setup run shows official preset candidates in the same tree UI as `base` before the user selects a preset, without creating target project config/package state before confirmation. Covers R1 and R2.",
+    "A2: If the bundled official preset source cannot be resolved during fresh setup, setup exits with a clear error instead of rendering a base-only preset list. Covers R2.",
+    "A3: Selecting a non-base official preset writes a config whose `type` can be resolved by `resolveMultiChains()` and accepted by `validatePresetChain()` in the generated project root. Covers R3 and R6.",
+    "A4: Selecting only `base` writes no unnecessary official preset plugin package entry. Covers R4.",
+    "A5: An existing project with an installed enabled plugin preset shows that preset as a candidate and preserves it as the setup default when configured. Covers R1, R5, and R6.",
+    "A6: An existing non-official plugin package with no installed manifest is not fetched or updated by setup; a configured `type` that depends on that missing preset fails with a repair-needed error. Covers R5 and R6.",
+    "A7: Non-interactive `senti setup --type <official-preset>` saves the requested type and passes the same downstream preset validation as the interactive path. Covers R3 and R6.",
+    "A8: Adding official plugin state for a selected official preset does not copy plugin sources or packages that exist only in `.senti/config.local.json` into `.senti/config.json`. Covers R8.",
+    "A9: Candidate discovery rejects or stops at the existing plugin registry bounds for package count, source count, manifest JSON/path/file limits, and preset parent chain depth. Covers R9.",
+    "A10: Spec-local tests include `specs/294-setup-preset-options/tests/preset-candidates.test.js` with `// spec: R1 R2 R5 R9`, `official-state.test.js` with `// spec: R3 R4 R8`, and `setup-parity.test.js` with `// spec: R6 R7 R10`. Covers R1 through R10.",
+    "A11: `setup-parity.test.js` verifies setup summary output displays leaf preset keys resolved from the generated project root for an official or installed plugin preset selection. Covers R6.",
+    "A12: `setup-parity.test.js` verifies agent config/template generation still performs preset lookup through the generated project root for the selected official or installed plugin preset. Covers R6."
+  ],
+  "clarifications": [
+    {
+      "q": "Should setup continue with only `base` if official preset bootstrap fails?",
+      "a": "No. That hides the reported bug. Official preset bootstrap failure is fatal because it indicates broken bundled infrastructure or an unusable runtime environment."
+    },
+    {
+      "q": "Should setup update arbitrary non-official plugin sources to discover candidates?",
+      "a": "No. Setup may use installed manifests, but plugin source resolution and updates stay in plugin sync/upgrade ownership."
+    },
+    {
+      "q": "Should official plugin state always be written during setup?",
+      "a": "No. It is required for selected non-base official presets, but base-only projects should not gain unnecessary plugin state."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Replace `PRESETS` with the existing project-root-aware resolver only.",
+      "reason": "Rejected because a fresh setup has no plugin config or installed official package yet, so the resolver would still return only core presets."
+    },
+    {
+      "option": "Warn and continue with `base` when official bootstrap fails.",
+      "reason": "Rejected because it preserves the user-visible failure mode and masks broken official preset infrastructure."
+    },
+    {
+      "option": "Run full plugin sync/update for all configured plugins during setup.",
+      "reason": "Rejected because it expands setup into arbitrary plugin update ownership and changes non-official plugin side effects."
+    },
+    {
+      "option": "Always persist official preset plugin state for every setup run.",
+      "reason": "Rejected because base-only projects do not need official plugin state."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "setup",
+    "preset selection",
+    "official-presets",
+    "PRESETS",
+    "CORE_PRESETS",
+    "plugin registry",
+    "loadPluginRegistry",
+    "ensureOfficialPackage",
+    "resolveMultiChains",
+    "validatePresetChain",
+    "buildTreeItems",
+    "config.type",
+    "installed plugin manifest"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add preset candidate provider",
+      "goal": "Create or expose a setup-facing preset list that combines core presets with available plugin preset contributions for a target project root.",
+      "acceptance": [
+        "The provider returns core presets when no plugin presets are available.",
+        "The provider includes installed enabled plugin preset contributions for an existing project.",
+        "The provider returns candidates in this order: core preset discovery order first, then enabled plugin packages in config order, then each package's preset contribution order; later duplicate keys replace earlier entries without changing the final key set.",
+        "The provider respects existing registry count, size, path, and manifest bounds."
+      ],
+      "implementation_notes": "Prefer extending `src/lib/presets.js` instead of duplicating registry merge logic in setup. Keep resolver behavior project-root-aware so downstream validation and UI candidates agree.",
+      "test_strategy": "Unit-test candidate generation with core-only and installed-plugin fixtures.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Bootstrap official presets",
+      "goal": "Make bundled official presets available before setup renders preset candidates for a fresh project.",
+      "acceptance": [
+        "Fresh setup candidates include official preset contributions.",
+        "Official source resolution failure produces a fatal setup error.",
+        "The pre-prompt bootstrap path reads official preset metadata without writing target config or installed package state.",
+        "The pre-prompt bootstrap path reads at most the official plugin manifest and bounded preset contribution metadata."
+      ],
+      "implementation_notes": "Use `officialPresetPluginRoot()` and official source resolution as the source of truth, but keep pre-prompt discovery manifest-only/read-only instead of calling config-writing installation helpers. Do not bootstrap arbitrary non-official plugin sources.",
+      "test_strategy": "Integration-test fresh setup candidate display against a temp project. Unit- or integration-test official source failure by overriding the official source root.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Persist selected official preset state",
+      "goal": "Save enough plugin state for selected non-base official presets while keeping base-only setup minimal.",
+      "acceptance": [
+        "Selecting a non-base official preset writes plugin source/package state needed for later resolution.",
+        "Selecting only `base` avoids unnecessary official plugin package state.",
+        "Generated config type can be resolved and validated in the generated project root.",
+        "Public config writes do not copy local-only plugin sources or packages from `config.local.json`."
+      ],
+      "implementation_notes": "Perform persistence before `validatePresetChain()` runs against the generated config. Preserve existing wizard-managed config merge behavior. Avoid writing a merged raw config object that includes `config.local.json` overlay entries; either use a public-config-only mutation helper or adjust the official package helper accordingly.",
+      "test_strategy": "Test generated config and plugin state for official non-base and base-only selections. Test `resolveMultiChains()` and `validatePresetChain()` against the generated project root.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Preserve setup resolver behavior",
+      "goal": "Keep existing setup behavior intact for defaults, summaries, non-interactive type selection, validation, and installed non-official plugins.",
+      "acceptance": [
+        "Existing installed plugin preset defaults remain visible and selectable.",
+        "Missing non-official plugin manifests are not fetched or updated by setup.",
+        "Configured missing preset types fail clearly instead of being dropped.",
+        "Non-interactive `--type` follows the same resolver and validation path as the interactive flow.",
+        "Summary output displays project-root-resolved leaf preset keys for official or installed plugin preset selections.",
+        "Agent config/template generation performs preset lookup through the generated project root for official or installed plugin preset selections."
+      ],
+      "implementation_notes": "Avoid changing plugin sync or upgrade ownership. Review other `PRESETS` fixed display paths and keep setup test coverage focused on this bug.",
+      "test_strategy": "Add regression tests for existing installed plugin presets and missing manifest behavior. Add non-interactive setup coverage for an official preset type.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Add spec-local coverage",
+      "goal": "Add spec-local tests that document the requirement coverage headers and exercise setup candidate, official state, and retained behavior contracts.",
+      "acceptance": [
+        "`specs/294-setup-preset-options/tests/preset-candidates.test.js` starts with `// spec: R1 R2 R5 R9`.",
+        "`specs/294-setup-preset-options/tests/official-state.test.js` starts with `// spec: R3 R4 R8`.",
+        "`specs/294-setup-preset-options/tests/setup-parity.test.js` starts with `// spec: R6 R7 R10`."
+      ],
+      "implementation_notes": "Keep spec-local tests focused on public setup behavior and helper contracts; shared root tests may also be updated when the implementation touches existing command tests.",
+      "test_strategy": "Run the spec-local tests directly and ensure their headers collectively cover R1 through R10.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-13T23:26:20.694Z",
+    "notes": "User selected approval option 1 after reviewing the gate-passed spec."
+  },
+  "specId": "294-setup-preset-options"
+}

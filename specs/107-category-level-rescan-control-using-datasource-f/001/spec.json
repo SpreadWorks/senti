@@ -1,0 +1,55 @@
+{
+  "goal": "DataSource の parse ロジックが修正された場合に、該当カテゴリのエントリを自動的に再パースする。DataSource の .js ファイル自体の hash を analysis.json に記録し、次回 scan 時に不一致を検出して再パースをトリガーする。これにより手動の `--reset` 実行が不要になる。",
+  "background": "",
+  "scope": {
+    "in": [
+      "scan 時に DataSource .js ファイルの hash を計算し analysis.json に保存",
+      "次回 scan 時に hash 比較で不一致を検出し、該当カテゴリのエントリ hash をクリア",
+      "`data-source-loader.js` でロード時にファイルパスを保持"
+    ],
+    "out": [
+      "手動リセット（`--reset`）— 既に実装済み。変更なし",
+      "enrich の再実行ロジック — summary 有無による判定は既存のまま",
+      "analysis.json のスキーマバージョニング"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "dataSourceHash の保存場所は？",
+      "a": "analysis.json のカテゴリレベル。例: `analysis.controllers.dataSourceHash = \"a1b2c3d4\"`"
+    },
+    {
+      "q": "DataSource が複数ファイルから構成される場合は？",
+      "a": "`loadDataSources` の仕組み上、同じ名前の DataSource は子プリセットが親を上書きする。最終的に 1 カテゴリ = 1 DataSource ファイルなので、1 ファイル = 1 hash で十分。"
+    },
+    {
+      "q": "hash 不一致時に enrich 結果も消すか？",
+      "a": "エントリの hash のみクリア。enrich 結果（summary/detail/chapter）は保持する。再パース後に構造が変わったエントリは enrich が summary 有無で再実行を判定する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`_sourceFilePath` を DataSource インスタンスに直接設定するか、別の Map で管理するか → インスタンスのプロパティとして設定するのが最もシンプル"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "107-category-level-rescan-control-using-datasource-f"
+}

@@ -1,0 +1,50 @@
+{
+  "goal": "`enrich` コマンドが AI に渡す言語指示を明示化し、`config.docs.defaultLanguage` に従った言語で summary/detail を生成させる。これにより英語ドキュメントへの日本語混入を防ぐ。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/enrich.js` の `buildEnrichPrompt()` を修正"
+    ],
+    "out": [
+      "DataSource 側の多言語対応（analysis.json は defaultLanguage の 1 言語のみ）",
+      "`{{text}}` ディレクティブの言語制御（既に正しく動作）",
+      "テンプレートの修正（既に正しく en/ja 分離済み）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`node tests/acceptance/run.js cakephp2` を実行し、`culturalFit` が PASS になる",
+    "英語設定のプロジェクトで `enrich` 実行後、analysis.json の summary/detail が英語で記述されている",
+    "既存テストが通る"
+  ],
+  "clarifications": [
+    {
+      "q": "多言語ドキュメントの場合、enrich は 1 回のみで analysis.json は 1 つだが、非デフォルト言語の `{{data}}` 出力が defaultLanguage になる問題は？",
+      "a": "既存の動作として許容。`{{data}}` は analysis ベースで defaultLanguage に従う。非デフォルト言語のコンテンツは `{{text}}` が AI 生成する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "テンプレートに問題はないか？ → 問題なし（調査済み）",
+    "`{{text}}` に問題はないか？ → 問題なし（`defaultLanguage` を正しく使用）"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "102-fix-japanese-text-mixed-into-english-docs-in-cak"
+}

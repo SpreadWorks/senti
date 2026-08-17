@@ -1,0 +1,52 @@
+{
+  "goal": "言語ごとの処理（parse, minify, imports/exports 抽出）を Factory パターンで統合し、scan 時に構造情報（imports, exports, usedBy, extends）を機械的に抽出して analysis.json に追加する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "enrich の廃止（enrich はそのまま残す）",
+      "Python/YAML の imports/exports 抽出（minify のみ移行）",
+      "`flow get context` の出力フォーマット変更（#34 で対応済み）",
+      "他のプリセット固有の Entry クラスへの構造情報追加（各プリセットの parse で言語ハンドラを呼べば自然に対応可能）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "usedBy はいつ算出するか？",
+      "a": "scan.js のファイルループ完了後に、全 entry の imports を走査して逆引き。hook 機構は不要。"
+    },
+    {
+      "q": "Factory 化で既存の scanner.js/minify.js の呼び出し元に影響はあるか？",
+      "a": "scanner.js の `parseFile()` と minify.js の `minify()` のインターフェースは維持する。内部で lang-factory を使うようにリファクタするだけ。"
+    },
+    {
+      "q": "enrich を廃止するか？",
+      "a": "しない。構造情報は enrich の入力品質を上げる効果がある。enrich は AI でしか判断できない情報（summary, chapter, role）を担当する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "Should `extractImports` resolve relative paths to absolute paths? → No, store relative paths as written in the source. Resolution is the consumer's responsibility."
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "108-mechanical-extraction-of-structural-info-and-fac"
+}

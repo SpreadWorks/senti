@@ -1,0 +1,64 @@
+{
+  "goal": "flow-plan テストフェーズ完了時にテスト数を flow.json に記録し、レポートの Tests 欄が正しく表示されるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "flow-plan SKILL.md テンプレート（`src/templates/skills/sdd-forge.flow-plan/SKILL.md`）の test フェーズ「On complete」に `flow set test-summary` 記録指示を追加する",
+      "`sdd-forge upgrade` を実行してインストール済みスキルへ変更を反映する"
+    ],
+    "out": [
+      "flow-impl SKILL.md への変更（テスト実行後の test-summary 更新）",
+      "テストランナー出力の自動パース",
+      "`set-test-summary.js` や `report.js` の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "flow-plan テストフェーズ後に `flow run report` または `flow run finalize` を実行したとき、Tests 欄に `-` 以外の値（例: `unit 2  integration 0  acceptance 1  total 3`）が表示される",
+    "記録手順はテストランナーの種類に依存せず、任意の言語・プロジェクトで使用できる"
+  ],
+  "clarifications": [
+    {
+      "q": "test-summary に記録する数値は「書いたテスト数」か「実行結果（pass/fail）」か？",
+      "a": "書いたテスト数。テストランナー出力のパースはプロジェクト固有の実装に依存するため採用しない。"
+    },
+    {
+      "q": "自動カウントは可能か？",
+      "a": "テスト仕様書（README）を書く時点で AI はテスト数を把握しているため、その時点での記録で十分。言語・フレームワーク非依存。"
+    },
+    {
+      "q": "flow-impl にも test-summary 更新指示を追加するか？",
+      "a": "しない。plan フェーズの記録で十分。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "TAP 出力の自動パース",
+      "reason": "プロジェクト・言語固有のため採用せず"
+    },
+    {
+      "option": "flow-impl への記録追加",
+      "reason": "plan フェーズで十分であり、スコープを広げる理由がないため採用せず"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "174-record-test-summary"
+}

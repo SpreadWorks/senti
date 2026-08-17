@@ -1,0 +1,429 @@
+{
+  "goal": "experimental/workflow.js とその依存一式を src/workflow/ へ移設し、`sdd-forge workflow <subcommand>` として公式 CLI surface（docs/spec/flow と peer）に組み込む。サブコマンド（add/update/show/search/list/publish）の振る舞いは保持し、enable ゲートを撤廃して常時利用可能にする。config キーを experimental.workflow.* から workflow.* へ移行し、方法論未確定を [EXPERIMENTAL] ラベルと docs で明示する。",
+  "scope": {
+    "in": [
+      "[must] experimental/workflow.js とその依存一式（registry.js, lib/*, lib/commands/*, skills/）の src/workflow/ への移設と import パス調整",
+      "[must] src/sdd-forge.js の NAMESPACE_SCRIPTS への workflow ルート追加",
+      "[must] enable ゲート撤廃（workflow.js の NOT_ENABLED チェックと src/upgrade.js の条件分岐の削除）",
+      "[must] config キー experimental.workflow.* → workflow.* 移行（config スキーマと languages.source/publish 読み取り箇所）",
+      "[must] skill を src/skills/sdd-forge.exp.workflow/ へ移し MAIN_SKILLS_DIR から無条件配置、EXPERIMENTAL_WORKFLOW_SKILLS_DIR の削除",
+      "[must] skill 本文の `node experimental/workflow.js` → `sdd-forge workflow` 書き換え",
+      "[must] experimental/workflow.js と移設済みファイルの削除、experimental/AGENTS.md の改訂",
+      "[must] experimental/tests/*.test.js の tests/unit/ への移動と import パス調整",
+      "[should] `sdd-forge workflow --help` 冒頭への [EXPERIMENTAL] ラベル表示",
+      "[should] README.md / CLAUDE.md(AGENTS.md) への experimental 旨の記載",
+      "[should] 昇格条件の src/workflow/AGENTS.md への明記"
+    ],
+    "out": [
+      "skill 名 sdd-forge.exp.workflow → sdd-forge.workflow へのリネーム（Issue が別途検討と明記）",
+      "サブコマンドの振る舞い変更・新規サブコマンド追加",
+      "運用方法論（ボード章立て、Ideas ステータスからの繰り上げ昇格ルール）の確定",
+      "experimental.workflow.* 旧 config キーの後方互換維持（alpha 版ポリシーにより非互換）"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない（Node.js 組み込みのみ）。",
+    "alpha 版ポリシーに従い後方互換コードを書かない。experimental.workflow.* 旧キーのフォールバックは設けない。",
+    "src/ 配下にプロジェクト固有情報を埋め込まない。",
+    "backward-compatible-cli-interface: `node experimental/workflow.js` という呼び出し経路を `sdd-forge workflow` へ置き換える破壊的変更だが、experimental かつ alpha 期間であり旧経路はボード運用 skill 経由の内部利用に限られるため alias を残さず移行する。skill 本文と experimental/AGENTS.md を同時更新して移行を案内する。",
+    "コマンド実装は既存のコマンドクラス構造（base-command の run/execute）と src/ の OOP 型表現・カプセル化ルールを維持する。"
+  ],
+  "design_principles": [
+    "CLI surface の一貫性（全コマンドが sdd-forge <ns> 形式）を回復する。",
+    "experimental の性質（方法論未確定）は [EXPERIMENTAL] ラベルと docs で表現し、有効化ゲートとは分離する。",
+    "skill 配置経路を MAIN_SKILLS_DIR の 1 本に統一する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/workflow/ — 新設。dispatcher（workflow.js 相当）, registry.js, lib/（config, graphql, board-helpers, hash, validation, category, base-command）, lib/commands/（add/update/show/search/list/publish）。"
+      },
+      {
+        "text": "src/sdd-forge.js — NAMESPACE_SCRIPTS に workflow を追加。"
+      },
+      {
+        "text": "src/lib/config.js — config スキーマの experimental.workflow を workflow（languages のみ、enable 廃止）へ移行。"
+      },
+      {
+        "text": "src/lib/skills.js — EXPERIMENTAL_WORKFLOW_SKILLS_DIR を削除。"
+      },
+      {
+        "text": "src/upgrade.js — experimental.workflow.enable 条件分岐を削除し MAIN_SKILLS_DIR 一本化。"
+      },
+      {
+        "text": "src/skills/sdd-forge.exp.workflow/ — skill 移設先。"
+      },
+      {
+        "text": "tests/unit/ — workflow 関連テスト移設先。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "sdd-forge workflow <sub> → src/sdd-forge.js が NAMESPACE_SCRIPTS で src/workflow.js（または src/workflow/index）へルーティング → registry でサブコマンド解決 → コマンドクラス run(ctx) → JSON envelope 出力。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] enable ゲートは workflow.js:114 の NOT_ENABLED チェックと src/upgrade.js:101 の条件分岐の 2 箇所に存在。q2=B で両方を撤廃する。",
+        "evidence": "experimental/workflow.js:114 `if (!config.experimental?.workflow?.enable)`; src/upgrade.js:101 `if (config.experimental?.workflow?.enable === true)`"
+      },
+      {
+        "text": "[VERIFY] config キー experimental.workflow.languages.{source,publish} は config スキーマ src/lib/config.js:270-287 と publish コマンド experimental/workflow/lib/commands/publish.js:33-34 で参照。workflow.languages.* へ移行する。enable はスキーマから削除。",
+        "evidence": "src/lib/config.js:273-285 experimental.workflow スキーマ; publish.js:33 `config.experimental?.workflow?.languages?.source ?? config.lang`"
+      },
+      {
+        "text": "[VERIFY] skill 配置は src/lib/skills.js:16 EXPERIMENTAL_WORKFLOW_SKILLS_DIR を src/upgrade.js:101-106 が enable=true 時のみ deployProjectSkills。q3=A で src/skills/ へ移し deploySkills(MAIN_SKILLS_DIR) で無条件配置に統一し、当該 dir 定数と条件分岐を削除する。",
+        "evidence": "src/lib/skills.js:13 MAIN_SKILLS_DIR, :16 EXPERIMENTAL_WORKFLOW_SKILLS_DIR; src/upgrade.js:98-106 activeSkillSources"
+      },
+      {
+        "text": "config 検証テスト experimental/tests/workflow-config-validation.test.js は experimental.workflow を検証している。移行後は workflow.* を検証するよう tests/unit/ で更新する。テストはシナリオ妥当（新キー検証）なので期待値を新キーへ修正する（テストを通すための修正ではなく仕様変更の反映）。",
+        "evidence": "experimental/tests/workflow-config-validation.test.js:14-81"
+      },
+      {
+        "text": "[CORRECTION] root の AGENTS.md と CLAUDE.md は別個の通常ファイル（symlink ではない）。experimental 旨は README.md・AGENTS.md・CLAUDE.md それぞれの非生成領域（{{data}}/{{text}} ディレクティブ外）へ記載する。具体箇所は実装時に確定する。",
+        "evidence": "ls -la: AGENTS.md(8758B) と CLAUDE.md(11106B) はともに `-rw-rw-r--` 通常ファイル。docs/ 編集ルール: ディレクティブ外は自動生成で上書きされない。"
+      },
+      {
+        "text": "[VERIFY] top-level help は src/help.js の静的 LAYOUT + locale ui:help.commands.* で構成され workflow 未登録。registry.js の各 help 文字列は `Usage: workflow.js ...` をハードコード。昇格に伴い help.js LAYOUT・locale・registry usage 文字列を更新し、ユーザー向け `workflow.js` 呼称を除去する。",
+        "evidence": "src/help.js:12 LAYOUT/:48 t(`ui:help.commands.${entry.name}`); experimental/workflow/registry.js:13-60 `Usage: workflow.js`; grep で locale に workflow キーなし。"
+      }
+    ]
+  },
+  "background": "workflow（GitHub Projects ボードのドラフト管理 + issue 化）は実運用され実装は安定しているが、skill `sdd-forge.exp.workflow` 経由で `node experimental/workflow.js` を直接呼ぶ現状は他コマンド（sdd-forge docs/spec/flow）と異なり CLI surface として一貫性がない。一方で運用方法論（ボードに何を載せるか、Ideas ステータスからの繰り上げ昇格判断、published issue との突き合わせ）は未確定である。本 spec は CLI 一貫性問題を解決しつつ、方法論未確定性を [EXPERIMENTAL] ラベルと docs で明示する。experimental/ は npm パッケージに含まれない（files: [\"src/\"]）ため、src/ へ移すと配布対象になる。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "experimental/workflow.js とその依存一式（registry.js, lib/config.js, lib/graphql.js, lib/board-helpers.js, lib/hash.js, lib/validation.js, lib/category.js, lib/base-command.js, lib/commands/*）を src/workflow/ へ移設し、import パスを src/ 構造に合わせて調整する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "src/sdd-forge.js の NAMESPACE_SCRIPTS に workflow を追加し、`sdd-forge workflow <subcommand>` が src/workflow ディスパッチャへルーティングされる。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "enable ゲートを撤廃する。`sdd-forge workflow` は config に enable フラグがなくても実行でき、NOT_ENABLED エラーパスは削除される。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "config キーを experimental.workflow.* から workflow.* へ移行する。config スキーマは workflow.languages.{source,publish} を定義し enable を持たない。languages.source/publish の読み取り箇所を workflow.languages.* に更新する。旧キーの後方互換は持たない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "skill ソース（SKILL.md）を src/skills/sdd-forge.exp.workflow/ へ移し、flow 系 skill と同じく MAIN_SKILLS_DIR から無条件配置する。EXPERIMENTAL_WORKFLOW_SKILLS_DIR と src/upgrade.js の enable 条件付き配置分岐を削除する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "skill 本文の `node experimental/workflow.js` 呼び出しを `sdd-forge workflow` に書き換える。languages.source 参照も workflow.languages.source に更新する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "`sdd-forge workflow --help` の冒頭（タイトル行・サブコマンド一覧の頭）に [EXPERIMENTAL] ラベルを表示する。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "README.md・AGENTS.md・CLAUDE.md それぞれの非生成領域（{{data}}/{{text}} ディレクティブ外）に workflow が experimental（usage patterns may change）である旨を記載する。3 ファイルとも対象（AGENTS.md と CLAUDE.md は別個の通常ファイル）。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "昇格条件（運用方法論が docs/skill に再現可能な手順として明文化済み、サブコマンド名・フィールド名・status enum の契約が固定済み、ideas からの publish フローが skill に手順化され契約変更なしに実行可能、既存ユーザー向け breaking change を伴わない API）を src/workflow/AGENTS.md に明記する。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "experimental/workflow.js と src/workflow/ へ移設したファイルを experimental/ から削除し、experimental/AGENTS.md を「workflow.js を唯一の入口とする」記述から「src/ 昇格前の試験コード置き場」へ改訂する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "experimental/tests/*.test.js を tests/unit/ へ移動し、import パスを src/workflow/ に合わせて調整する。npm test で実行・パスする。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R12",
+      "desc": "top-level `sdd-forge help` が workflow を [EXPERIMENTAL] 公式コマンドとして列挙する（src/help.js の LAYOUT と src/locale/{en,ja} の該当キー追加）。workflow ディスパッチャ／registry の全 usage 文字列が `sdd-forge workflow <subcommand>` を使い、ユーザー向け `workflow.js` 呼称が残らない。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`sdd-forge workflow --help` が [EXPERIMENTAL] ラベル付きでサブコマンド一覧を表示する。",
+    "`sdd-forge workflow list` 等が config に enable フラグなしで動作する（ボード設定がある前提）。",
+    "config に workflow.languages.source を設定すると publish の翻訳元言語に反映される。experimental.workflow.* キーは検証スキーマに存在しない。",
+    "`sdd-forge upgrade` が sdd-forge.exp.workflow skill を enable フラグに関係なく配置する。",
+    "experimental/workflow.js が存在しない。",
+    "experimental/AGENTS.md が workflow.js を入口とする記述を含まず、experimental/ の新しい位置づけを記載している。",
+    "src/workflow/AGENTS.md に昇格条件が記載されている。",
+    "tests/unit/ に移設した workflow テストが npm test でパスする。",
+    "skill 本文が sdd-forge workflow を呼び、node experimental/workflow.js を含まない。",
+    "README.md・AGENTS.md・CLAUDE.md の 3 ファイルとも非生成領域に experimental 旨が記載されている。",
+    "`sdd-forge help` の出力に workflow が [EXPERIMENTAL] 公式コマンドとして表示される。",
+    "workflow ディスパッチャ／registry の usage 文字列に `workflow.js` が残らず `sdd-forge workflow` を使う。"
+  ],
+  "clarifications": [
+    {
+      "q": "昇格後の有効化ゲートと config キー名前空間をどうするか。",
+      "a": "enable ゲートを撤廃し常時利用可能にする。config キーを experimental.workflow.* から workflow.* へ移行する（draft q2=[2]）。"
+    },
+    {
+      "q": "skill ソースの配置先と配置モデル。",
+      "a": "src/skills/sdd-forge.exp.workflow/ へ移し MAIN_SKILLS_DIR から無条件配置。EXPERIMENTAL_WORKFLOW_SKILLS_DIR と条件分岐を削除（draft q3=[1]）。"
+    },
+    {
+      "q": "昇格条件の記載先。",
+      "a": "src/workflow/AGENTS.md（draft q4=[1]）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "enable ゲートと experimental.workflow.* キーを維持（最小変更）",
+      "reason": "公式 CLI surface への first-class 昇格というゴールに対し opt-in ゲートが残るのは中途半端。ユーザーが常時利用可能化を選択したため不採用。"
+    },
+    {
+      "option": "skill を src/workflow/skills/ に置き条件付き配置を維持",
+      "reason": "enable ゲートを撤廃した方針と矛盾し、skill 配置だけがゲートに依存し続けるため不採用。"
+    },
+    {
+      "option": "昇格条件を CHANGELOG.md に記載",
+      "reason": "リリース履歴に埋もれ継続参照に不向き。コードと co-locate する AGENTS.md を採用。"
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "workflow",
+    "dispatcher",
+    "NAMESPACE_SCRIPTS",
+    "experimental",
+    "sdd-forge",
+    "skill",
+    "MAIN_SKILLS_DIR",
+    "EXPERIMENTAL_WORKFLOW_SKILLS_DIR",
+    "config",
+    "languages",
+    "publish",
+    "upgrade",
+    "board",
+    "registry",
+    "graduation"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Relocate workflow source to src/workflow/",
+      "goal": "experimental/workflow.js とその依存一式を src/workflow/ へ移設し、import パスを src/ 構造に合わせて調整する。",
+      "acceptance": [
+        "src/workflow/ にディスパッチャ・registry・lib・lib/commands が存在する",
+        "移設ファイルの相対 import が src/lib/ 等を正しく解決する"
+      ],
+      "implementation_notes": "現状 dispatcher は ../src/lib/cli.js 等を import。src/workflow/ 配下では ../lib/cli.js 等に調整。ディスパッチャの配置（src/workflow.js か src/workflow/index.js）は NAMESPACE_SCRIPTS の解決規約（PKG_DIR/<name>.js）に合わせる。",
+      "test_strategy": "unit: 移設後の dispatcher が registry を解決しコマンドを実行できる（既存 workflow-dispatcher.test.js を移設）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Add workflow route to dispatcher",
+      "goal": "src/sdd-forge.js の NAMESPACE_SCRIPTS に workflow を追加し peer コマンド化する。",
+      "acceptance": [
+        "`sdd-forge workflow <sub>` が src/workflow ディスパッチャへルーティングされる"
+      ],
+      "implementation_notes": "NAMESPACE_SCRIPTS に `workflow: \"workflow\"` を追加。T-1 のディスパッチャ配置と整合させる。",
+      "test_strategy": "unit/integration: workflow サブコマンドがルーティングされ JSON envelope を返す。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Remove enable gate from workflow command",
+      "goal": "workflow コマンド実行時の enable ゲート（NOT_ENABLED）を撤廃する。",
+      "acceptance": [
+        "config に enable がなくても workflow コマンドが実行できる",
+        "NOT_ENABLED エラーパスが存在しない"
+      ],
+      "implementation_notes": "移設後ディスパッチャの enable チェック（旧 workflow.js:114-122）を削除。",
+      "test_strategy": "unit: enable 未設定 config でコマンドが NOT_ENABLED を返さない。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Migrate config key to workflow.*",
+      "goal": "config キーを experimental.workflow.* から workflow.* へ移行する。",
+      "acceptance": [
+        "config スキーマが workflow.languages.{source,publish} を定義し enable を持たない",
+        "publish の languages.source/publish 読み取りが workflow.languages.* を参照する",
+        "experimental.workflow.* キーは検証スキーマに存在しない"
+      ],
+      "implementation_notes": "src/lib/config.js:270-287 の experimental.workflow を top-level workflow へ移し enable を削除。publish.js:33-34 の参照を config.workflow?.languages?.* へ更新。後方互換フォールバックは設けない。",
+      "test_strategy": "unit: config 検証が workflow.languages を受理し旧キーを受理しない（移設した config-validation テストを新キーへ更新）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Move skill source and deploy unconditionally",
+      "goal": "skill ソースを src/skills/ へ移し無条件配置に統一する。",
+      "acceptance": [
+        "src/skills/sdd-forge.exp.workflow/SKILL.md が存在する",
+        "sdd-forge upgrade が enable に関係なく当該 skill を配置する",
+        "EXPERIMENTAL_WORKFLOW_SKILLS_DIR と upgrade の条件分岐が削除されている"
+      ],
+      "implementation_notes": "src/lib/skills.js:16 の定数削除。src/upgrade.js:98-106 の activeSkillSources を MAIN_SKILLS_DIR 一本に。cleanupObsoleteSkills の対象引数も整合させる。",
+      "test_strategy": "unit: deploySkills が sdd-forge.exp.workflow を列挙する。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-6",
+      "title": "Rewrite skill body to call sdd-forge workflow",
+      "goal": "skill 本文の呼び出しを新 CLI に書き換える。",
+      "acceptance": [
+        "skill 本文が sdd-forge workflow を呼ぶ",
+        "node experimental/workflow.js を含まない",
+        "languages.source 参照が workflow.languages.source",
+        "registry の各 usage 文字列が `sdd-forge workflow <sub>` を使う"
+      ],
+      "implementation_notes": "SKILL.md の CLI Reference・MUST Rules・Procedure 内の `node experimental/workflow.js` を `sdd-forge workflow` に置換。config キー言及も更新。移設後 registry.js の `Usage: workflow.js ...` を `Usage: sdd-forge workflow ...` に更新（R6/R12 共通の usage 文字列対応）。",
+      "test_strategy": "unit/grep: skill 本文と registry usage に workflow.js が残らないことを確認。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    },
+    {
+      "id": "T-7",
+      "title": "Add [EXPERIMENTAL] label to workflow help",
+      "goal": "`sdd-forge workflow --help` 冒頭に [EXPERIMENTAL] ラベルを表示する。",
+      "acceptance": [
+        "--help 出力の冒頭に [EXPERIMENTAL] ラベルがサブコマンド一覧より前に出る"
+      ],
+      "implementation_notes": "移設後ディスパッチャの printHelp 冒頭にラベル行を追加。help.js 連携の要否は実装時に確認。",
+      "test_strategy": "unit: --help 出力に [EXPERIMENTAL] が含まれる。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    },
+    {
+      "id": "T-8",
+      "title": "Document experimental note in README, AGENTS.md, CLAUDE.md",
+      "goal": "workflow が experimental である旨を README.md・AGENTS.md・CLAUDE.md の 3 ファイルに記載する。",
+      "acceptance": [
+        "README.md・AGENTS.md・CLAUDE.md の 3 ファイルとも experimental（usage patterns may change）の記載がある",
+        "記載が自動生成で上書きされない（ディレクティブ外）箇所にある"
+      ],
+      "implementation_notes": "root の AGENTS.md と CLAUDE.md は別個の通常ファイル（symlink ではない）。両方と README の {{data}}/{{text}} ディレクティブ外へ記載する。",
+      "test_strategy": "doc-only（testable:false 相当）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-8"
+    },
+    {
+      "id": "T-9",
+      "title": "Document graduation criteria in src/workflow/AGENTS.md",
+      "goal": "昇格条件を src/workflow/AGENTS.md に明記する。",
+      "acceptance": [
+        "src/workflow/AGENTS.md に昇格条件 4 項目が記載されている"
+      ],
+      "implementation_notes": "新設 src/workflow/AGENTS.md に「Graduation Criteria」節を設ける。",
+      "test_strategy": "doc-only（testable:false 相当）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-9"
+    },
+    {
+      "id": "T-10",
+      "title": "Delete experimental workflow files and revise experimental/AGENTS.md",
+      "goal": "移設元ファイルを削除し experimental/AGENTS.md を改訂する。",
+      "acceptance": [
+        "experimental/workflow.js と移設済みファイルが存在しない",
+        "experimental/AGENTS.md が workflow.js 入口記述を含まず experimental/ の新位置づけを記載"
+      ],
+      "implementation_notes": "experimental/workflow.js, experimental/workflow/ の移設済みサブツリーを削除。experimental/AGENTS.md を「src/ 昇格前の試験コード置き場」へ書き換え。",
+      "test_strategy": "file 存在検証（unit 可）。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-10"
+    },
+    {
+      "id": "T-11",
+      "title": "Move workflow tests to tests/unit/",
+      "goal": "experimental/tests/*.test.js を tests/unit/ へ移動し import を調整する。",
+      "acceptance": [
+        "workflow 関連テストが tests/unit/ に存在する",
+        "npm test で実行・パスする"
+      ],
+      "implementation_notes": "experimental/tests/workflow-*.test.js を tests/unit/ へ移し、import を src/workflow/ 相対に調整。config-validation テストは T-4 の新キーに合わせる。",
+      "test_strategy": "npm test 実行で回帰確認。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-11"
+    },
+    {
+      "id": "T-12",
+      "title": "Register workflow in top-level help and locales",
+      "goal": "top-level `sdd-forge help` に workflow を [EXPERIMENTAL] 公式コマンドとして登録する。",
+      "acceptance": [
+        "src/help.js の LAYOUT に workflow が追加されている",
+        "src/locale/{en,ja} に workflow の help.commands 説明キーがあり [EXPERIMENTAL] を示す",
+        "`sdd-forge help` 出力に workflow が表示される"
+      ],
+      "implementation_notes": "src/help.js:12 LAYOUT に workflow エントリを追加し、:48 が参照する locale キー ui:help.commands.workflow を en/ja に追加。説明に [EXPERIMENTAL] を含める。",
+      "test_strategy": "unit: help 出力に workflow と [EXPERIMENTAL] が含まれる。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-12"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-29T08:05:05.475Z",
+    "notes": "ユーザー承認。q2=2/q3=1/q4=1 確定、spec review blocking 2 件修正済み。R1-R12, T-1〜T-12。"
+  },
+  "specId": "269-promote-workflow-cli"
+}

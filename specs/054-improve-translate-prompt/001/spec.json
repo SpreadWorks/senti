@@ -1,0 +1,58 @@
+{
+  "goal": "`translateDocument()` の system prompt を改善し、対象言語で自然に読める翻訳を生成する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/translate.js` の `translateDocument()` 内の system prompt を改善する",
+      "`documentStyle.tone` を翻訳プロンプトに反映する（tone を引数で受け取る）"
+    ],
+    "out": [
+      "`output.mode: \"generate\"` の実装（言語毎に text を実行するモード）",
+      "翻訳以外のコマンドの変更",
+      "documentStyle.tone の選択肢追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "改善後のプロンプトで翻訳した日本語が、改善前より自然な表現になっている（品質チェックで確認）",
+    "`documentStyle.tone` が翻訳結果の文体に反映される",
+    "既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "カタカナ語の扱いは？",
+      "a": "細かいルールは指定せず、「直訳的なカタカナ語を避け自然な日本語表現を優先する」旨をプロンプトに含める"
+    },
+    {
+      "q": "文体はどう制御するか？",
+      "a": "config.json の `documentStyle.tone` を翻訳プロンプトに渡し、polite=です/ます調、formal=である調、casual=口語的にマッピングする"
+    },
+    {
+      "q": "改善の効果をどう検証するか？",
+      "a": "改善前後で同じファイルを翻訳し、品質を比較する"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "054-improve-translate-prompt"
+}

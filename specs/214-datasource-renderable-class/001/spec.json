@@ -1,0 +1,265 @@
+{
+  "goal": "DataSource の resolver メソッドの戻り値型を、Markdown 出力構造を表現する Renderable 値型階層に置き換え、OOP で型安全性と表現構造を同時に獲得する。",
+  "background": "現状の DataSource メソッド（`src/docs/lib/data-source.js` 基底の `toMarkdownTable` ヘルパー経由、および各 preset の data 配下 21+ ファイル）は `string | null` を返しており、戻り値には「表／箇条書き／段落」等の構造情報が残らない。展開層（`src/docs/lib/directive-parser.js` の `resolveDataDirectives`）は結果を単なる文字列として埋め込むのみで型情報を活用できない。外部レビューで「resolve メソッドの戻り値に型と呼べるものがない」との指摘があった（Issue #220）。TypeScript を採用しない方針のため、構造的制約は OOP クラス設計で表現する。",
+  "scope": {
+    "in": [
+      "`src/docs/lib/renderable.js` を新規作成し、基底 `Renderable` と 8 具象クラス（`Table`, `BulletList`, `OrderedList`, `Paragraph`, `CodeBlock`, `Blockquote`, `Heading`, `Fragment`）を定義する。",
+      "基底 `DataSource` の `toMarkdownTable(rows, labels)` ヘルパーを、`new Table(labels, rows).toMarkdown()` への薄い委譲に置換する（DataSource 利用側の呼び出し形式は維持）。",
+      "`src/docs/lib/directive-parser.js` の `resolveDataDirectives` で、resolver 戻り値が Renderable インスタンスの場合は `.toMarkdown()` を呼び、文字列の場合はそのまま使う暫定対応を挟む。",
+      "既存の全 DataSource メソッド（`src/docs/data/*.js`, `src/presets/*/data/*.js`）の戻り値を Renderable インスタンスに書き換える。",
+      "全 DataSource 移行完了後、展開層から文字列サポートを削除し、戻り値は Renderable または null のみ許容する。",
+      "`src/lib/container.js` に Renderable 関連クラスを登録し、外部 preset から `container` 経由で取得可能にする。",
+      "`tests/unit/renderable.test.js` を新規作成し、9 クラスの正常系と invariant 違反時の throw を検証する。",
+      "`tests/unit/directive-parser.test.js` を拡張し、Renderable ハンドリングを検証する。"
+    ],
+    "out": [
+      "Markdown 以外の出力フォーマット（HTML 等）の実装。`toHtml()` 等の拡張メソッドは本 spec では追加しない。",
+      "`analysis.json` / `overrides.json` のスキーマ変更。",
+      "CLI サブコマンド体系の変更。",
+      "CLAUDE.md / AGENTS.md / src/AGENTS.md への設計方針文書追加（別作業）。"
+    ]
+  },
+  "constraints": [
+    "外部依存禁止（CLAUDE.md）: Node.js 組み込みモジュールのみ。Renderable クラス群は純粋な JS で実装する。",
+    "alpha 版ポリシー（CLAUDE.md）: 後方互換コードは書かない。移行完了後は文字列返却サポートを削除する。",
+    "OOP による型表現（CLAUDE.md）: discriminated union（`{ type: \"table\", ... }`）は採用しない。専用クラスで invariant を強制する。",
+    "過剰な防御コード禁止（CLAUDE.md）: 内部インターフェースを信頼し、公開 API 境界でのみ invariant を検証する。",
+    "docs の最終 Markdown 出力は移行前後で byte-identical でなければならない（REQ-07 で担保）。"
+  ],
+  "design_principles": [
+    "invariant はコンストラクタで強制: `Table` は `labels.length > 0` と全行の列数一致を構築時に検査し throw する。",
+    "振る舞いは型に属す: `toMarkdown()` を各 Renderable が実装。展開層は `instanceof Renderable` で判別し `.toMarkdown()` を呼ぶだけでよい。",
+    "Open/Closed: 将来 `toHtml()` 等を追加する場合、各 Renderable に新メソッドを追加すれば既存の `toMarkdown()` / DataSource / 展開層は変更不要。",
+    "合成可能性: `Fragment(parts)` は `Renderable[]` または `string` を受け取り、`toMarkdown()` で改行連結する。`BulletList` / `OrderedList` は各項目が `string | Renderable` を許容する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "新規 `src/docs/lib/renderable.js` — 基底 `Renderable` と 8 具象クラスを定義・export する。"
+      },
+      {
+        "text": "変更 `src/docs/lib/data-source.js` — `toMarkdownTable` を `Table` への委譲に置換する。"
+      },
+      {
+        "text": "変更 `src/docs/lib/directive-parser.js` — `resolveDataDirectives` 内で resolver 戻り値が Renderable の場合は `.toMarkdown()` を呼ぶ。移行完了後は文字列サポート削除。"
+      },
+      {
+        "text": "変更 `src/lib/container.js` — Renderable クラス群を container の export に追加。"
+      },
+      {
+        "text": "変更 各 DataSource（`src/docs/data/*.js`, `src/presets/*/data/*.js`）— 文字列返却を Renderable インスタンス返却に置換。"
+      },
+      {
+        "text": "新規 `tests/unit/renderable.test.js` — 9 クラスの正常系と invariant を検証。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "テンプレート内の `{{data: preset.source.method(\"L1|L2|...\")}}` は `directive-parser.js` でパースされ、`resolveFn(preset, source, method, labels)` 経由で `resolver-factory.js` が当該 DataSource のメソッドを呼ぶ。"
+      },
+      {
+        "text": "DataSource メソッドは `Renderable | null` を返す。`null` は既存の `ignoreError` / unresolved ハンドリングで処理される。"
+      },
+      {
+        "text": "展開層は Renderable に対し `.toMarkdown()` を呼んで文字列を取得し、`header` / `footer` と連結してテンプレート本文に埋め込む。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "基底 `Renderable` は `toMarkdown()` メソッドを持ち、未オーバーライド時は throw する（abstract）。具象クラスは必ずこれをオーバーライドする。展開層は `instanceof Renderable` で判別する。"
+      },
+      {
+        "text": "`null` 返却は既存通り維持。「該当データなし」の意味論を保つ。Renderable 側で「空テーブル」等を返す設計にはしない。"
+      },
+      {
+        "text": "`Table` の空データ扱い: `labels.length === 0` は throw、`rows.length === 0` は許容（ラベル行のみの空テーブルを出力）。現行 `toMarkdownTable` と互換。"
+      },
+      {
+        "text": "`BulletList` / `OrderedList` は string と Renderable 両対応。ネスト表現を可能にする。項目が Renderable の場合は `.toMarkdown()` を呼び 2 スペースでインデントを施す。"
+      },
+      {
+        "text": "`toMarkdownTable(rows, labels)` の引数順は維持（呼び出し箇所 21+ の機械的書き換えを避ける）。内部で `new Table(labels, rows)` に変換する。"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "priority": "must",
+      "desc": "When テスト実行時、`src/docs/lib/renderable.js` から `Renderable`, `Table`, `BulletList`, `OrderedList`, `Paragraph`, `CodeBlock`, `Blockquote`, `Heading`, `Fragment` の 9 クラスが export されており、各具象クラスは `toMarkdown()` メソッドを実装していなければならない。"
+    },
+    {
+      "id": "REQ-02",
+      "priority": "must",
+      "desc": "When `Table` が `labels.length === 0` または `rows` 内に `labels.length` と異なる列数を持つ行を含む状態で構築されたとき、コンストラクタは `Error` を throw しなければならない。`Heading` が level 1-6 以外の値で構築されたとき、同様に throw しなければならない。"
+    },
+    {
+      "id": "REQ-03",
+      "priority": "must",
+      "desc": "When `DataSource.prototype.toMarkdownTable(rows, labels)` が呼び出されたとき、内部で `new Table(labels, rows)` を返さなければならない。独自の Markdown 組み立てロジックを保持してはならない。Renderable 自身が `.toMarkdown()` を提供するため、ヘルパーも Renderable を返すことで REQ-05 (全 DataSource メソッドが Renderable を返す) との整合を保つ。40+ の `return this.toMarkdownTable(...)` 呼び出しはこの変更のみで自動的に Renderable 返却に切り替わる。"
+    },
+    {
+      "id": "REQ-04",
+      "priority": "must",
+      "desc": "When `resolveDataDirectives` が resolver から `Renderable` インスタンスを受け取ったとき、`.toMarkdown()` を呼び出してその戻り値を展開テキストとして用いなければならない。"
+    },
+    {
+      "id": "REQ-05",
+      "priority": "must",
+      "desc": "When 全移行完了時点で、`src/docs/data/*.js` および `src/presets/*/data/*.js` 内のすべての DataSource メソッドの戻り値は `Renderable インスタンス` または `null` でなければならない。文字列を直接返すメソッドが残存してはならない。"
+    },
+    {
+      "id": "REQ-06",
+      "priority": "must",
+      "desc": "When 全 DataSource 移行完了後、`resolveDataDirectives` は resolver 戻り値が `null` でも `Renderable` でもない場合に unresolved と同等に扱うか例外を throw しなければならない。文字列を受け入れてはならない。"
+    },
+    {
+      "id": "REQ-07",
+      "priority": "must",
+      "desc": "When 本移行 PR の前後で同一の `analysis.json` に対して docs を生成したとき、生成される全 `.md` ファイルの内容は byte-identical でなければならない。"
+    },
+    {
+      "id": "REQ-08",
+      "priority": "should",
+      "desc": "When 外部 preset コードが `container` から Renderable 関連クラス（`Renderable`, `Table` 等）を参照したとき、対応するクラスを解決できなければならない。"
+    },
+    {
+      "id": "REQ-09",
+      "priority": "should",
+      "desc": "When `BulletList` または `OrderedList` が項目として `Renderable` を含むとき、`.toMarkdown()` はその項目の出力を 2 スペースでインデントし、箇条書きマーカー（`- ` / `1. `）の下にネスト表示しなければならない。"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-01 (REQ-01, REQ-02): `tests/unit/renderable.test.js` が (a) 9 クラスの import 成否、(b) 各具象クラスの `toMarkdown()` 出力、(c) `Table` / `Heading` の invariant 違反時の throw を検証する。",
+    "AC-02 (REQ-03): `DataSource.toMarkdownTable(rows, labels)` の出力が `new Table(labels, rows).toMarkdown()` と等しいことを unit test で検証する。",
+    "AC-03 (REQ-04, REQ-06): `tests/unit/directive-parser.test.js` に、resolver が Renderable を返す場合に `.toMarkdown()` 結果が展開されることを検証するテストを追加する。全移行完了後、resolver が string を返す場合は unresolved 扱いになることも検証する。",
+    "AC-04 (REQ-05): grep による検索で、`src/docs/data/` および `src/presets/*/data/` 配下に文字列を直接 return する DataSource メソッドが存在しないことを確認する（手動または CI スクリプトで検証）。",
+    "AC-05 (REQ-07): 既存の acceptance fixtures を用いた docs 出力回帰テストを全 preset で実行し、生成 Markdown が移行前と同一であることを確認する。差分が出た場合は修正する。",
+    "AC-06 (REQ-08): `container` から Renderable 関連クラスを取得する unit test を追加し、クラスが解決可能であることを検証する。",
+    "AC-07 (REQ-09): `tests/unit/renderable.test.js` でネストリストの Markdown 出力を検証する（例: `new BulletList([\"a\", new Table([\"H\"], [[\"v\"]])]).toMarkdown()` が期待通りインデントされる）。"
+  ],
+  "clarifications": [
+    {
+      "q": "移行中、展開層は文字列と Renderable の両方をサポートするか？",
+      "a": "暫定サポートする。同一 PR 内で全 DataSource を Renderable に移行完了後、文字列サポートを削除する。"
+    },
+    {
+      "q": "`BulletList` の項目が Renderable の場合、どのようにインデントするか？",
+      "a": "`toMarkdown()` の出力を 2 スペースでインデントし、項目マーカー `- ` の後に配置する。改行を含む場合は各行をインデントする。"
+    },
+    {
+      "q": "`Fragment` の用途は？",
+      "a": "1 つの DataSource メソッドが「説明段落 + テーブル」のように複数ブロックを返したいケース用。`parts` を `\\n\\n`（ブロック区切り）で連結する。"
+    },
+    {
+      "q": "既存の `toMarkdownTable(rows, labels)` ヘルパーの引数順は変更するか？",
+      "a": "維持する。`Table` クラスは `new Table(labels, rows)` だが、`toMarkdownTable` は引数順 `(rows, labels)` のまま内部で `new Table(labels, rows)` に変換する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Object literal + discriminated union（`{ type: \"table\", labels, rows }`）",
+      "reason": "TS を使わない以上、`type` 文字列での型判別は実行時エラーに弱く IDE 補完も効きにくい。`instanceof` より劣るため採用しない。"
+    },
+    {
+      "option": "基底 `Renderable` なし、ダックタイピングのみ",
+      "reason": "`.toMarkdown()` を持つ任意オブジェクトを許容すると展開層で Renderable か否かを区別できず、文字列判別が曖昧になる。`instanceof Renderable` の確実性を優先し採用しない。"
+    },
+    {
+      "option": "部分移行（基盤のみ、全移行は別 spec）",
+      "reason": "alpha 版ポリシーに反し、移行期間中の string/Renderable 両対応ロジックが恒久化するリスクがある。"
+    }
+  ],
+  "open_questions": [
+    "外部 preset（npm 配布利用側）への破壊的変更の告知方法（CHANGELOG.md または README migration section への記載）。alpha 期間のため必須ではないが、implement フェーズ終了時に決定する。"
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/docs/lib/data-source.test.js",
+      "reason": "toMarkdownTable now returns a Table Renderable instead of a Markdown string (REQ-03 resolved inconsistency: REQ-05 forbids string returns); tests updated to assert on result.toMarkdown() and instanceof Table."
+    },
+    {
+      "path": "tests/unit/docs/lib/directive-parser.test.js",
+      "reason": "REQ-04/REQ-06 require resolver values to be Renderable; existing tests used plain-string resolvers, now wrapped in Paragraph."
+    },
+    {
+      "path": "tests/unit/docs/lib/directive-parser-ignore-error.test.js",
+      "reason": "Same as directive-parser.test.js — string resolvers replaced with Paragraph to match the new Renderable contract."
+    },
+    {
+      "path": "tests/unit/docs/lib/resolver-factory.test.js",
+      "reason": "resolver.resolve() now returns a Renderable (pass-through from DataSource per REQ-05); assertions updated to call .toMarkdown() on non-null results."
+    },
+    {
+      "path": "tests/unit/docs/lib/layout-and-nav.test.js",
+      "reason": "DocsSource.nav() returns a Paragraph Renderable (REQ-05); .includes() replaced with .toMarkdown().includes()."
+    },
+    {
+      "path": "tests/unit/docs/data/docs-lang-switcher.test.js",
+      "reason": "DocsSource.langSwitcher() returns a Paragraph Renderable (REQ-05); .includes() replaced with .toMarkdown().includes()."
+    },
+    {
+      "path": "tests/unit/docs/data/monorepo.test.js",
+      "reason": "MonorepoSource.apps() returns a Blockquote Renderable (REQ-05); .includes() replaced with .toMarkdown().includes()."
+    },
+    {
+      "path": "tests/unit/presets/base/structure-directories.test.js",
+      "reason": "StructureSource.directories() uses toMarkdownTable which now returns a Table Renderable; .includes() replaced with .toMarkdown().includes()."
+    },
+    {
+      "path": "tests/unit/presets/github-actions-pipelines.test.js",
+      "reason": "Pipeline source methods use toMarkdownTable which now returns a Table Renderable; .includes() replaced with .toMarkdown().includes()."
+    },
+    {
+      "path": "tests/e2e/065-preset-hierarchy.test.js",
+      "reason": "resolver.resolve() returns Renderable for project.name (REQ-05); assertion updated to call .toMarkdown()."
+    },
+    {
+      "path": "tests/e2e/071-multi-preset-selection.test.js",
+      "reason": "resolver.resolve() returns Renderable for project.name (REQ-05); assertion updated to call .toMarkdown()."
+    },
+    {
+      "path": "tests/unit/lib/container-init.test.js",
+      "reason": "Added new test case verifying base.Renderable/base.Table/... registrations (REQ-08)."
+    }
+  ],
+  "implementationTargets": [
+    "src/docs/lib/renderable.js",
+    "src/docs/lib/data-source.js",
+    "src/docs/lib/directive-parser.js",
+    "src/lib/container.js",
+    "src/docs/data/docs.js",
+    "src/docs/data/project.js",
+    "src/docs/data/lang.js",
+    "src/docs/data/agents.js",
+    "src/presets/base/data/structure.js",
+    "src/presets/base/data/package.js",
+    "src/presets/postgres/data/database.js",
+    "src/presets/workers/data/bindings.js",
+    "src/presets/nextjs/data/components.js",
+    "src/presets/nextjs/data/routes.js",
+    "src/presets/symfony/data/routes.js",
+    "src/presets/symfony/data/config.js",
+    "src/presets/symfony/data/tables.js",
+    "src/presets/github-actions/data/pipelines.js",
+    "src/presets/laravel/data/routes.js",
+    "src/presets/laravel/data/config.js",
+    "src/presets/laravel/data/tables.js",
+    "src/presets/edge/data/runtime.js",
+    "src/presets/monorepo/data/monorepo.js",
+    "tests/unit/renderable.test.js",
+    "tests/unit/directive-parser.test.js"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "214-datasource-renderable-class"
+}

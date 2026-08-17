@@ -1,0 +1,266 @@
+{
+  "goal": "Make `senti flow get runtime-log` return runtime-log content only after an explicitly supplied flow identity resolves to one target and every supplied run ID, Issue, and spec expectation matches that target.",
+  "scope": {
+    "in": [
+      "Add `--expect-run-id`, `--expect-issue`, and `--expect-spec` to the runtime-log command contract.",
+      "Require at least one expectation while accepting any non-empty subset and validating every supplied identity.",
+      "Resolve active and preparing flow targets without falling back to an unrelated current, active, or preparing flow.",
+      "Return structured mismatch and not-found errors before runtime-log content can be emitted.",
+      "Preserve successful raw and JSON output, block selection options, and read-only behavior.",
+      "Add automated contract and regression coverage for identity binding, isolation, missing resources, output parity, and no mutation."
+    ],
+    "out": [
+      "Changing runtime-log writer, truncation, retention, or storage formats.",
+      "Changing target semantics or option acceptance for any other `flow get` subcommand.",
+      "Changing GitHub Issue or workflow-board integrations.",
+      "Adding compatibility paths for a bare runtime-log read."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project libraries.",
+    "Keep all `src/` behavior generic and free of project-specific paths, identities, or assumptions.",
+    "Reuse the existing `FlowTargetExpectation` value type and structured `Envelope` contract.",
+    "Model any additional constrained target-resolution value as a class whose constructor enforces its invariants.",
+    "A runtime-log read must not mutate flow state, spec metadata, runtime-log content, Issue state, or board state; existing dispatcher command logging remains the only established lifecycle append.",
+    "Do not add legacy fallback behavior when an explicit target is missing or mismatched."
+  ],
+  "design_principles": [
+    "Resolve one target authority before resolving its runtime-log file or block.",
+    "Treat expectations as validation of a local flow context and as exact selection criteria only when no local flow context exists.",
+    "Use the resolved target run ID to prevent shared or historical log files from returning another flow's block.",
+    "Keep target resolution and log block selection distinct: `--expect-run-id` identifies the flow, while `--run-id` retains its runtime-log block-selection syntax.",
+    "Keep the command read path independent of mutable lifecycle hooks."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/registry.js` declares runtime-log expectation options, help text, read-only target behavior, and structured argument parsing."
+      },
+      {
+        "text": "`src/flow/lib/get-runtime-log.js` resolves the validated target and emits either unchanged raw/JSON log content or a structured failure envelope."
+      },
+      {
+        "text": "`src/flow/lib/flow-context.js` provides opt-in exact preparing-target resolution for runtime-log without changing other command resolution."
+      },
+      {
+        "text": "`src/lib/flow-target-guard.js` remains the owner of expectation normalization and `ACTIVE_FLOW_MISMATCH` data."
+      },
+      {
+        "text": "`src/lib/runtime-log.js` remains the owner of runtime-log files, blocks, metadata, and selection behavior."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "The registry parses at least one expectation plus existing block options, then the flow context resolver binds the local flow or selects one exact active/preparing target."
+      },
+      {
+        "text": "The shared target expectation validates every supplied identity against the resolved target before the command derives a log file."
+      },
+      {
+        "text": "The command selects only a block whose metadata belongs to the resolved target, then emits the existing raw text or JSON envelope unchanged."
+      },
+      {
+        "text": "Argument, mismatch, missing-target, and missing-log failures emit structured JSON with no runtime-log content and no alternate target lookup."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Existing target expectations are independently optional and compare all supplied values; runtime-log requires a non-empty subset but reuses those comparison semantics.",
+        "evidence": "`src/lib/flow-target-guard.js`: `FlowTargetExpectation` normalizes Issue, spec, and run ID independently and `mismatchAgainst` reports every supplied identity."
+      },
+      {
+        "text": "[VERIFY] Existing flow context selection uses expectations only when cwd has no flow state, so a local target can produce mismatch instead of redirecting to another flow.",
+        "evidence": "`src/flow/lib/flow-context.js` and `src/lib/flow-manager.js`: cwd state is authoritative; otherwise `resolveActiveFlow` selects by run ID, spec, then Issue."
+      },
+      {
+        "text": "[VERIFY] Runtime-log storage is spec-scoped for active flows and `no-flow` scoped before a spec exists, so block metadata must bind preparing-flow reads.",
+        "evidence": "`src/lib/runtime-log.js`: `runtimeLogFileForContext` uses `specId || \"no-flow\"`; each `RuntimeLogBlock` carries runId and sequence metadata."
+      },
+      {
+        "text": "Accept any non-empty expectation subset so spec-less preparing flows remain diagnosable without creating a runtime-log-only three-flag requirement.",
+        "evidence": "Draft Q&A selected partial expectations and retained an operational policy of always passing run ID plus Issue/spec once known.",
+        "consideredAlternatives": "Requiring all three expectations was rejected because a preparing flow has no spec and because existing target-aware commands do not impose that combination rule."
+      },
+      {
+        "text": "Remove successful bare runtime-log reads; an explicit identity is required even inside a worktree.",
+        "evidence": "Issue #438 states that target-sensitive commands cannot be safely inspected without identity binding and that cwd alone must not be an implicit target."
+      }
+    ]
+  },
+  "background": "The runtime-log command currently parses only format, sequence, and log-block run ID options, loads flow state from the working context, and selects a spec-scoped or no-flow log file without proving the caller's intended flow identity. Other target-aware flow commands already normalize run ID, Issue, and spec expectations and return structured mismatch data. The missing integration blocks safe failure inspection when multiple active or preparing flows exist and is especially risky because preparing commands share the no-flow runtime-log file.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The runtime-log command must accept `--expect-run-id`, `--expect-issue`, and `--expect-spec` using the existing target-aware types and validation, require at least one of them, and accept every non-empty subset.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The command must resolve exactly one local, active, or preparing target from the supplied identity; every supplied expectation must match, and missing, ambiguous, or mismatched input must not fall back to another flow.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Run ID, Issue, and spec mismatches against a resolved target must return `ACTIVE_FLOW_MISMATCH` with the existing expected/active identity data and no runtime-log content.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "A missing or ambiguous explicit target must return a structured `FLOW_TARGET_NOT_FOUND` failure, and a target with no matching log block must return the existing `RUNTIME_LOG_NOT_FOUND` failure; neither failure may disclose another target's log.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "After a target match, raw text, `--format json`, `--sequence`, `--run-id`, `runId#sequence`, conflict validation, latest non-runtime-log selection, and existing invalid-argument envelopes must retain their public behavior while selecting only blocks owned by the resolved target run ID.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Successful and failed runtime-log reads must not modify flow files, spec files, runtime-log content, metadata, Issue state, board state, or generated product artifacts beyond the dispatcher's established command-log append.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "All other `flow get` subcommands must retain their existing options, target resolution, output envelopes, and mutation behavior.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1 (R1): Each single expectation and representative two- and three-expectation combinations are accepted; no expectation returns a structured argument error.",
+    "AC2 (R2, R3): A local target with an incorrect run ID, Issue, or spec expectation returns the corresponding `ACTIVE_FLOW_MISMATCH` identity fields and never emits log text.",
+    "AC3 (R2, R4): From a context without a local flow, an exact active or preparing identity selects only that target; missing and ambiguous identities return `FLOW_TARGET_NOT_FOUND` with no fallback.",
+    "AC4 (R4): An existing target without a runtime-log file or matching block returns `RUNTIME_LOG_NOT_FOUND` and no content.",
+    "AC5 (R2, R5): With multiple active/preparing flows and shared no-flow logs, only a block whose metadata run ID belongs to the resolved target can be returned.",
+    "AC6 (R5): A full identity match returns byte-equivalent raw log content and the same JSON envelope fields as the pre-change command for the same selected block.",
+    "AC7 (R5): Existing block-selection and invalid-argument tests for format, sequence, run ID, `runId#sequence`, and conflicts continue to pass.",
+    "AC8 (R6): Before/after snapshots on success, mismatch, missing-target, and missing-log paths show no product-state or runtime-log mutation by the read command.",
+    "AC9 (R7): The existing automated suites for every other `flow get` subcommand pass unchanged."
+  ],
+  "clarifications": [
+    {
+      "q": "Are all three target expectations mandatory together?",
+      "a": "No. At least one is mandatory, every non-empty subset is accepted, and every supplied identity must match."
+    },
+    {
+      "q": "Does `--expect-run-id` replace the existing `--run-id` option?",
+      "a": "No. The expectation binds the flow target; `--run-id` retains log-block selection and optional `#sequence` parsing."
+    },
+    {
+      "q": "Can cwd or another active flow be used after explicit resolution fails?",
+      "a": "No. Cwd is only a candidate local target that must pass expectations, and failed explicit selection never redirects to an unrelated flow."
+    },
+    {
+      "q": "no-overengineering: Was the runtime-log-only cross-module resolver and owner-aware selection direction confirmed before implementation?",
+      "a": "Yes. Before production edits, the user approved an opt-in FlowManager/flow-context resolver for active and preparing targets plus owner-run filtering in RuntimeLogFile. The user selected it because it reuses existing ownership boundaries while leaving other get commands unchanged, and rejected command-local filesystem scans and global resolver behavior changes as duplicative or regression-prone."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Require all three expectations on every call",
+      "reason": "Rejected because preparing flows have no spec and because it creates a runtime-log-only constraint inconsistent with existing target-aware comparison semantics."
+    },
+    {
+      "option": "Validate the current worktree only",
+      "reason": "Rejected because the command must diagnose explicit active and preparing targets and cwd alone does not establish caller intent."
+    },
+    {
+      "option": "Search another active flow after mismatch or not-found",
+      "reason": "Rejected because fallback can disclose the wrong runtime log and directly violates the target-binding goal."
+    },
+    {
+      "option": "Treat `--expect-run-id` as an alias for `--run-id`",
+      "reason": "Rejected because flow identity resolution and log-block selection are separate public contracts and existing `--run-id` supports sequence syntax."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "get-runtime-log",
+    "FlowTargetExpectation",
+    "flow-context",
+    "preparing-flow",
+    "runtime-log",
+    "ACTIVE_FLOW_MISMATCH",
+    "FLOW_TARGET_NOT_FOUND",
+    "RUNTIME_LOG_NOT_FOUND",
+    "runId",
+    "target isolation"
+  ],
+  "implementationTargets": [
+    "src/flow/registry.js",
+    "src/flow.js",
+    "src/flow/lib/get-runtime-log.js",
+    "src/flow/lib/flow-context.js",
+    "src/lib/flow-target-guard.js",
+    "src/lib/runtime-log.js",
+    "tests/",
+    "specs/320-add-target-identity-binding-to-flow-get-runtime-/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Declare runtime-log target options",
+      "goal": "Expose the three expectation options and the explicit-target requirement through the runtime-log registry contract without changing adjacent get commands.",
+      "acceptance": [
+        "Registry parsing accepts each expectation and existing block options.",
+        "Help documents target expectations and the at-least-one rule.",
+        "Other get registry entries are unchanged."
+      ],
+      "implementation_notes": "Use the shared target-option constants in `src/flow/registry.js`. Preserve raw success output and structured failure output.",
+      "test_strategy": "Add spec-local registry/CLI parsing tests for single, combined, missing, invalid, and legacy options. Every spec-local test file must begin with a `// spec: R<N> ...` header covering its requirements.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Resolve explicit runtime-log targets",
+      "goal": "Bind each read to one matching active or preparing flow authority and block access to unrelated target logs.",
+      "acceptance": [
+        "Local target mismatches use the shared mismatch envelope.",
+        "Exact active/preparing selection never falls back.",
+        "Missing and ambiguous targets return structured not-found.",
+        "Selected blocks belong to the resolved target run ID."
+      ],
+      "implementation_notes": "Add an opt-in preparing-target resolution path rather than changing default behavior for all commands. Reuse `FlowTargetExpectation`; introduce a class only if a new constrained target value is needed.",
+      "test_strategy": "Use spec-local tests with isolated temporary repositories containing multiple active/preparing states and shared no-flow log blocks; cover every identity mismatch and missing-target branch. Every file must begin with a `// spec: R<N> ...` header covering its requirements.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Preserve runtime-log read contracts",
+      "goal": "Retain successful content, block-selection, error, and read-only semantics after target binding.",
+      "acceptance": [
+        "Raw and JSON content match the same pre-change block.",
+        "Sequence and run-ID selectors retain parsing and conflict behavior.",
+        "Missing logs remain structured failures.",
+        "Success and error paths do not mutate product state or log content."
+      ],
+      "implementation_notes": "Keep `RuntimeLogFile` and `RuntimeLogBlock` as the storage and metadata owners. Snapshot relevant files and metadata around reads.",
+      "test_strategy": "Add spec-local focused runtime-log unit/integration tests with output parity, missing-log, no-mutation, and adjacent get regression assertions. Every file must begin with a `// spec: R<N> ...` header covering its requirements.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-12T23:21:13.634Z",
+    "notes": "Approved: R1-R7 and AC1-AC9 define explicit identity matching, local/active/preparing isolation, structured mismatch/not-found behavior, shared-log block ownership, raw/JSON parity, no mutation, and regression protection for other get commands while keeping FlowTargetExpectation separate from runtime-log block selection."
+  },
+  "specId": "320-add-target-identity-binding-to-flow-get-runtime-"
+}

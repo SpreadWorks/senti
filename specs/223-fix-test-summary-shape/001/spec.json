@@ -1,0 +1,160 @@
+{
+  "goal": "`flow set test-summary` の partial 入力が baseline と shape 不一致を起こし、gate-impl の AI 評価が「regression evidence incomplete」と誤判定する問題を解消する。",
+  "background": "`flow run tests --baseline` は `{unit, integration, acceptance, exitCode}` の full shape を test.baseline に記録する。一方で `flow set test-summary` の legacy flag モードと `--json` モードはユーザが指定したフィールドのみ保存するため、`--unit 10` のような partial 入力で head 側の shape が baseline と食い違う。gate-impl の評価プロンプトは baseline と head を両方 AI に渡し、AI は shape 差分を「evidence incomplete」と判定して FAIL を返す。この結果 auto モードで retry budget が浪費され、全テスト PASS にもかかわらず gate-impl が誤判定する事象が発生する（spec 221 の attempt 1 で観測）。",
+  "scope": {
+    "in": [
+      "`flow set test-summary` が baseline shape を参照し、未指定の count フィールドを baseline 値で補完して保存するロジックの追加",
+      "対象は legacy flag モード (`--unit/--integration/--acceptance`) と `--json` モードの `counts` の両経路",
+      "baseline が存在しない場合の現行動作維持（指定フィールドのみ保存）",
+      "exitCode / failed[] は継承対象外",
+      "継承挙動を検証する unit test の追加"
+    ],
+    "out": [
+      "gate-impl の評価プロンプト (`buildImplCheckPrompt`) の変更",
+      "skill / `src/flow/prompts/*.md` の文言変更",
+      "`flow run tests` 経由の書き込み（すでに full shape）",
+      "`--mode fallback` のパス（counts を書かない）",
+      "`--baseline` ターゲット書き込みでの継承（継承元が存在しない）",
+      "tool monopoly (`TEST_SUMMARY_LOCKED`) ロジックの変更"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止（Node.js 組み込みのみ）",
+    "alpha 期間のため後方互換シム追加禁止",
+    "`src/` 配下にプロジェクト固有情報を書かない",
+    "テストを通すためにテストコードを修正しない"
+  ],
+  "design_principles": [
+    "シンプルなインターフェースに十分な実装を隠す — 入力経路ごとに差をつけず保存直前の共通パスで shape 補完する",
+    "DRY — legacy/json 経路で継承ロジックを共通化する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/set-test-summary.js` — baseline shape 参照と未指定 count フィールドの自動補完ロジックを追加する"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "ユーザが partial 入力で `flow set test-summary` を実行"
+      },
+      {
+        "text": "CLI は flowState.test.baseline の count フィールドを参照"
+      },
+      {
+        "text": "baseline が存在する場合、head 側で未指定の count フィールド (unit/integration/acceptance) を baseline の同名フィールド値で補完"
+      },
+      {
+        "text": "補完済みの summary を flow.json の test.summary に保存"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "D1: 継承対象は count フィールド (unit/integration/acceptance) のみ。exitCode / failed[] は継承しない"
+      },
+      {
+        "text": "D2: baseline 側に count フィールドが未定義の場合、head でも未定義のままとする"
+      },
+      {
+        "text": "D3: `--mode fallback` / `--baseline` ターゲットへの書き込みでは継承を適用しない"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When `flow set test-summary` が `--mode fallback` / `--baseline` 以外で実行され、かつ `flowState.test.baseline` が存在して unit/integration/acceptance のいずれかを含む場合、CLI は head 側で未指定の count フィールドを baseline の同名フィールド値で補完して保存しなければならない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When legacy flag モード (`--unit/--integration/--acceptance`) または `--json` モードの `counts` 経由で入力された場合、REQ-1 の継承ロジックは両経路で等しく適用されなければならない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "If baseline が未記録の場合、または `test.baseline.<field>` が未定義の場合、CLI は当該フィールドを head でも未定義のまま保存しなければならない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "When shape 継承処理が実行される場合、CLI は `exitCode` を継承対象に含めてはならない。baseline に exitCode があっても head に伝播させない。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-5",
+      "desc": "When `--mode fallback` または `--baseline` フラグが指定されている場合、CLI は shape 継承を適用してはならない。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-6",
+      "desc": "REQ-1〜REQ-5 の挙動を検証する unit test が追加され、`npm test` で PASS すること。",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-1 (REQ-1, REQ-2): baseline に `{unit: 100, integration: 20, acceptance: 0, exitCode: 0}` が保存された状態で `flow set test-summary --unit 10` を実行すると、`test.summary` が `{unit: 10, integration: 20, acceptance: 0}` を含む shape になる",
+    "AC-2 (REQ-2): 同条件下で `flow set test-summary --json '{\"counts\":{\"unit\":10}}'` を実行しても、`test.summary` が `{unit: 10, integration: 20, acceptance: 0}` を含む shape になる",
+    "AC-3 (REQ-3): baseline が未記録の状態で `flow set test-summary --unit 10` を実行すると、`test.summary` が `{unit: 10}` のみで integration/acceptance が未定義",
+    "AC-4 (REQ-4): baseline が `{unit: 100, exitCode: 0}` の状態で `flow set test-summary --unit 10` を実行しても、`test.summary.exitCode` が未定義のまま",
+    "AC-5 (REQ-5): baseline ありの状態で `flow set test-summary --json '{\"failed\":[{\"id\":\"t\",\"reason\":\"r\"}]}' --mode fallback` を実行すると、継承が適用されず `test.summary.failed` のみ書き込まれる",
+    "AC-6 (REQ-6): AC-1〜AC-5 に対応する unit test が `tests/unit/flow/` 配下に追加され、`npm test` で PASS する",
+    "AC-7: 既存の `flow run tests` / `TEST_SUMMARY_LOCKED` / `--baseline` 経由のパスの挙動が本修正前と同一であること（既存 test 全 PASS）"
+  ],
+  "clarifications": [
+    {
+      "q": "対応案 A/B/C のどれを採用するか",
+      "a": "A (baseline shape 継承)。CLI 内部で解決しユーザ負担を増やさないため、および既存の `flow run tests` が full shape を書くコードパターンと整合するため。"
+    },
+    {
+      "q": "baseline が無い場合の挙動",
+      "a": "現行通り partial 保存。gate-impl は baseline 無しで head-only 評価に分岐するため shape mismatch 問題はそのパスでは発生しない。"
+    },
+    {
+      "q": "`--json` モードの counts にも同じ継承を適用するか",
+      "a": "適用する。経路で挙動を分けると継承が抜けた経路で同じバグが再発するため、DRY 原則に沿って共通化する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "B: CLI shape mismatch warn",
+      "reason": "警告のみで手動対応が必要。ユーザが同じミスを繰り返すリスクが残る。"
+    },
+    {
+      "option": "C: skill instructions で全フィールド指定を強制",
+      "reason": "ドキュメント依存で構造的解決にならない。auto モード下でも回避不能な指示遵守を強いる。"
+    },
+    {
+      "option": "D: gate-impl プロンプトで shape 差分を無視させる",
+      "reason": "AI の挙動を制御しきれず、プロンプト修正箇所が増える。根本原因は head shape 側にあるため手当てが遠回り。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/set-test-summary.js",
+    "tests/unit/flow/"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-23",
+    "notes": "User approved spec.json via /sdd-forge.flow-auto path."
+  },
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "223-fix-test-summary-shape"
+}

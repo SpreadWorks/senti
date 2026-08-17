@@ -1,0 +1,85 @@
+{
+  "goal": "metrics token コマンドの日付軸を flow.json ファイルの mtime 依存から、spec ごとの finalize 完了時刻（`state.finalizedAt`）ベースに切り替え、時系列分析をファイル更新ノイズから切り離して実運用に耐える粒度に引き上げる。",
+  "background": "",
+  "scope": {
+    "in": [
+      "flow.json スキーマに `state.finalizedAt`（ISO 8601 UTC full timestamp）を追加する",
+      "`flow finalize` 成功時に route を問わず `state.finalizedAt` を書き込む",
+      "metrics token の日付軸ソースを mtime から `state.finalizedAt` へ変更する",
+      "欠損時スキップ＋警告、および metrics キャッシュの `maxFinalizedAt` ベース無効化判定を実装する",
+      "既存 spec 向け backfill 処理を本 spec の finalize 時に一度だけ実行する",
+      "既存 metrics テスト fixture を本スコープ内で更新する"
+    ],
+    "out": [
+      "フェーズ実行時間メトリクスの記録（別 Issue）",
+      "スキーマバージョニング機構の導入",
+      "`spec.md` の `**Created**:` 行を日時ソースとして利用する選択肢"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow run finalize` 成功後、対象 spec の flow.json に ISO 8601 UTC 形式の `state.finalizedAt` が存在すること",
+    "`sdd-forge metrics token` の出力日付列が mtime ではなく `state.finalizedAt` 由来の日付になっていること",
+    "`state.finalizedAt` が無い flow.json は `metrics token` 出力に含まれず、警告メッセージが stderr/ログに出ること",
+    "キャッシュに `maxFinalizedAt` が無い場合、次回 `metrics token` 実行で再計算されキャッシュが更新されること",
+    "本 spec の finalize 実行後、既存全 spec の flow.json に `state.finalizedAt` が書き込まれており、metrics token が以前と同等以上の spec カバレッジで動作すること",
+    "既存の metrics 関連テストが全て成功すること",
+    "新規 unit テストが 4 本（R1〜R5 をカバー）追加されパスすること"
+  ],
+  "clarifications": [
+    {
+      "q": "Issue #156 の解釈は妥当か",
+      "a": "妥当（User: [1] はい）"
+    },
+    {
+      "q": "`state.finalizedAt` の書き込みタイミング",
+      "a": "route を問わず finalize 成功時点で一律書き込み（User 決定）"
+    },
+    {
+      "q": "既存 metrics テスト fixture の更新範囲",
+      "a": "本 spec スコープ内で fixture に `state.finalizedAt` を追加（User 決定）"
+    },
+    {
+      "q": "backfill と cache 更新の自動化範囲",
+      "a": "cache は自動無効化、backfill は本 spec の finalize 時に自動実行（User 決定）"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**案A",
+      "reason": "route 別の書き込み（squash=即時、PR=sync 時）** - 却下理由: route 分岐の実装複雑度に見合う厳密性が得られない。日付軸は日単位粒度のため差異が実質的影響を持たない"
+    },
+    {
+      "option": "**案C",
+      "reason": "flow.json に書かず metrics 実行時に git log で毎回解決** - 却下理由: metrics 実行ごとに全 spec 数ぶんの git log 呼び出しが発生し、コストが線形に増加する"
+    },
+    {
+      "option": "**schemaVersion フィールドの導入**",
+      "reason": "却下理由: `maxFinalizedAt` フィールド有無で cache の自動無効化が可能。バージョン管理機構は本件の範囲で過剰"
+    },
+    {
+      "option": "**`**Created**",
+      "reason": "` 行を backfill ソースに利用** - 却下理由: 手書きで信頼性が劣る。git 履歴の方が欠損率・改変耐性で優れる"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "182-metrics-finalized-at"
+}

@@ -1,0 +1,59 @@
+{
+  "goal": "preset 階層の lang 層（`preset.json` の `lang` フィールド）が scan, init, data の各ステップで正しく合成されることを e2e テストで検証する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "scan e2e テスト: lang 層の DataSource がロードされ、analysis.json に結果が含まれること",
+      "init e2e テスト: lang 層のテンプレートが合成され、章ファイルが正しく生成されること",
+      "data e2e テスト: lang 層の DataSource でディレクティブが解決されること",
+      "対象 lang 層: node（node-cli で検証）、php（laravel で検証）"
+    ],
+    "out": [
+      "enrich, text, readme の lang 層テスト（AI 呼び出しが必要で e2e テストに不向き）",
+      "新規 fixture の作成（既存 acceptance fixture を再利用）",
+      "本体コードの変更（テスト追加のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "全テストが `npm test` で PASS すること",
+    "既存テストが壊れないこと",
+    "テストファイルは `tests/e2e/docs/commands/` 配下に配置",
+    "fixture は既存の `tests/acceptance/fixtures/` を再利用（新規作成しない）"
+  ],
+  "clarifications": [
+    {
+      "q": "テスト粒度は？",
+      "a": "scan, init, data を個別に実行して各ステップで lang 層が効いていることを検証"
+    },
+    {
+      "q": "どの preset で検証する？",
+      "a": "node-cli（node 層）と laravel（php 層）の両方"
+    },
+    {
+      "q": "fixture はどうする？",
+      "a": "`tests/acceptance/fixtures/node-cli/` と `tests/acceptance/fixtures/laravel/` を再利用"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "070-lang-layer-e2e-tests"
+}

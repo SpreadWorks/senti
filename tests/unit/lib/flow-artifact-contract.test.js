@@ -21,7 +21,6 @@ import {
   FlowArtifactPlacement,
   FlowArtifactLegacyPattern,
   FlowArtifactKnownFile,
-  FlowArtifactInventoryExclusion,
   FlowArtifactRegistry,
   FlowArtifactStepOwner,
   FlowArtifactSwitchTarget,
@@ -95,14 +94,19 @@ describe("Flow artifact contract registry", () => {
     for (const target of FLOW_ARTIFACT_LEGACY_SWITCH_TARGETS) assert.equal(FLOW_ARTIFACT_CONTRACTS.isLegacyTarget(target.toString()), true);
   });
 
-  it("keeps transient step raw logs out of the repository index", () => {
+  it("keeps Version-scoped transient step raw logs out of the repository index", () => {
     const gitignore = fs.readFileSync(new URL("../../../.gitignore", import.meta.url), "utf8");
     const patterns = new Set(gitignore.split("\n"));
     for (const pattern of [
+      "**/[0-9][0-9][0-9]/steps/scenario-validity/output.log",
+      "**/[0-9][0-9][0-9]/steps/test-execute/output.log",
+      "**/[0-9][0-9][0-9]/steps/final-regression/attempt-*.log",
+    ]) assert.equal(patterns.has(pattern), true, pattern);
+    for (const broadPattern of [
       "**/steps/scenario-validity/output.log",
       "**/steps/test-execute/output.log",
       "**/steps/final-regression/attempt-*.log",
-    ]) assert.equal(patterns.has(pattern), true, pattern);
+    ]) assert.equal(patterns.has(broadPattern), false, broadPattern);
   });
 
   it("keeps raw logs diagnostic-only while test source serves every dependent step", () => {
@@ -288,78 +292,33 @@ describe("Flow artifact contract registry", () => {
     }
   });
 
-  it("classifies every Git-tracked generated Task view as a removal target", () => {
-    const tracked = execFileSync("git", ["ls-files", "specs/**/tasks/*.md"], {
+  it("preserves migrated Task views outside the legacy source inventory while typed source views remain removal targets", () => {
+    const migrated = execFileSync("git", ["ls-files", "specs/**/artifacts/migration/legacy-files/tasks/*.md"], {
       cwd: new URL("../../..", import.meta.url), encoding: "utf8",
     }).trim().split("\n").filter(Boolean);
-    assert.notEqual(tracked.length, 0);
-    for (const file of tracked) {
-      const relative = file.split("/").slice(2).join("/");
-      const classification = FLOW_ARTIFACT_CONTRACTS.classifyKnownFile(relative);
-      assert.equal(classification.logicalKey, "legacy.task.views", file);
-      assert.equal(classification.action, "remove", file);
-    }
+    assert.notEqual(migrated.length, 0);
+    for (const file of migrated) assert.match(file, /^specs\/[^/]+\/001\/artifacts\/migration\/legacy-files\/tasks\/[^/]+\.md$/, file);
+    const classification = FLOW_ARTIFACT_CONTRACTS.classifyKnownFile("tasks/T-1.md");
+    assert.equal(classification.logicalKey, "legacy.task.views");
+    assert.equal(classification.action, "remove");
   });
 
-  it("accounts explicitly for every Git-tracked artifact-shaped path outside the switch inventory", () => {
-    const tracked = execFileSync("git", ["ls-files", "specs"], {
-      cwd: new URL("../../..", import.meta.url), encoding: "utf8",
-    }).trim().split("\n").filter(Boolean)
+  it("accounts for every Git-tracked live legacy Flow path outside canonical Versions", () => {
+    const options = { cwd: new URL("../../..", import.meta.url), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 };
+    const legacyRoots = new Set(execFileSync("git", ["ls-files", "--", ":(glob)specs/*/flow.json"], options)
+      .trim().split("\n").filter(Boolean).map((file) => path.posix.dirname(file)));
+    assert.notEqual(legacyRoots.size, 0);
+    const tracked = execFileSync("git", ["ls-files", "specs"], options)
+      .trim().split("\n").filter(Boolean)
+      .filter((file) => [...legacyRoots].some((root) => file.startsWith(`${root}/`)))
       .map((file) => file.split("/").slice(2).join("/"));
-    const exclusions = [
-      ...[
-        "bug.md", "docs-sync-evidence.json", "eval-fail-complete-context.md", "eval-fail-single-responsibility.md",
-        "eval-fail-unambiguous.md", "eval-pass.md", "interface.md", "plugin-workspace.json", "quality-report.md",
-        "reference.md", "research/docs-staticization-policy.json", "research/fallback-policy.json",
-        "research/measurement-results.json", "research/migration-parity-map.json",
-        "research/normalization-aggregation-policy.json", "research/phase-candidates.json",
-        "research/review-manifest-prototype.json", "research/skill-responsibility-split.json",
-        "research/test-coverage-matrix-prototype.json", "sibling-repository-evidence.json", "test-results.md",
-        "upgrade-evidence.md", "upgrade-not-required.json", "upgrade-verification.json",
-        "fill-flow-counts.js", "scripts/finalize-migration.js", "migrate-flow-to-tasks.js", "migrate.js",
-      ].map((relativePath) => new FlowArtifactInventoryExclusion({
-        relativePath, category: "user-deliverable", reason: "repository-specific implementation evidence, not a normal Flow-owned artifact",
-      })),
-      ...[
-        "impl-review-flow-level-stale-owner.json", "repair-ledger-reconciliation.js", "repair-ledger-reconciliation.json",
-        "scripts/.backfill-done",
-        "scenario-validity-history/attempt-001/scenario-validity-result.json",
-        "scenario-validity-history/attempt-001/scenario-validity.log",
-        "scenario-validity-history/attempt-002/baseline-red-result.json",
-        "scenario-validity-history/attempt-002/baseline-red.tap",
-        "scenario-validity-history/attempt-002/detached-src-purity.post-run.txt",
-        "scenario-validity-history/attempt-002/detached-src-purity.pre-run.txt",
-        "scenario-validity-history/attempt-002/module-provenance.pre-run.json",
-        "scenario-validity-history/attempt-002/overlay-manifest.json",
-        "scenario-validity-history/attempt-002/overlay-verification.post-run.json",
-        "scenario-validity-history/manifest.json", "scenario-validity-preflight-blocked.json",
-        "test-execute-result.pre-r8.json", "test-result-review.pre-r8.json", "test-result-review.pre-r8.md",
-        "tests/.raw/fixed-commit-diff-check.log", "tests/.raw/fixed-commit-focused.log",
-        "tests/.raw/manual-verification.txt",
-        "tests/.raw/impl-gate-r7-omitted-save-boundary-prompt.json",
-        "tests/.raw/impl-gate-r7-shared-guard-and-path-length-prompt.json",
-        "tests/.raw/post-report-full-regression.log", "tests/.raw/related-tests.log",
-        "tests/.raw/run-review-advisory-regression.log", "tests/.raw/scenario-validity-preflight-blocked.log",
-        "tests/.raw/spec-tests-only.log", "tests/.raw/spec253-tests.log", "tests/.raw/test-execution.pre-r8.log",
-        "upgrade-recovery-audit.json",
-      ].map((relativePath) => new FlowArtifactInventoryExclusion({
-        relativePath, category: "historical-temporary", reason: "pre-contract diagnostic retained in Git under the board's index-cleanup exclusion",
-      })),
-      ...[...new Set(tracked.filter((relativePath) => (
-        relativePath.startsWith("tests/.raw/")
-        && relativePath.endsWith(["upgrade", "log"].join("."))
-      )))].map((relativePath) => new FlowArtifactInventoryExclusion({
-        relativePath, category: "historical-temporary", reason: "pre-contract diagnostic retained in Git under the board's index-cleanup exclusion",
-      })),
-    ];
-    assert.equal(new Set(exclusions.map(String)).size, exclusions.length);
     const unclassified = [];
     for (const file of tracked) {
       try { FLOW_ARTIFACT_CONTRACTS.classifyKnownFile(file); } catch {
         unclassified.push(file);
       }
     }
-    assert.deepEqual([...new Set(unclassified)].sort(), exclusions.map(String).sort());
+    assert.deepEqual([...new Set(unclassified)].sort(), []);
   });
 
   it("resolves structured task and owner-hierarchy paths while rejecting unsafe input", () => {

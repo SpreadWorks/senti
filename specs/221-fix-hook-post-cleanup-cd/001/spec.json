@@ -1,0 +1,143 @@
+{
+  "goal": "finalize cleanup 完了直後に AI が main repo への cd を拒否する問題を、worktree 境界ルールの文言を書き直すことで解消する。「active の AND 定義」と「境界解除の OR 条件」を別 bullet に構造分離し、post-cleanup の cd が mandatory であることを明示する。",
+  "background": "Issue #240 の denial メッセージは settings.json の hook ではなく、AI 自身が CLAUDE.md / sdd-forge.flow skill の MUST ルールを読んで自己規制した結果出力している reason 文である。現行の rule text は 'MUST: Never cd out of the worktree path during an active flow' が強く、例外条項（after finalize cleanup）が同一 bullet の副次句として埋もれているため、AI が cleanup 完了判定を誤った場合に MUST 側を優先してしまう。rule text は src/templates/partials/worktree-mode.md に一元化されており、sdd-forge.flow/SKILL.md が include で展開している。sdd-forge upgrade により生成済み skill に反映される。",
+  "scope": {
+    "in": [
+      "src/templates/partials/worktree-mode.md の worktree boundary セクションの文言書き換え",
+      "active を status active:true AND worktree ディレクトリ存在の AND 条件として定義",
+      "境界解除トリガーを status active:false OR worktree ディレクトリ不在の OR 条件として独立 bullet で記述",
+      "cleanup 完了時の cd mainRepoPath が mandatory である旨を独立 bullet で明記"
+    ],
+    "out": [
+      "実 PreToolUse hook の追加（settings.json 配線）",
+      "flow run finalize の CLI 出力変更（BOUNDARY RELEASED シグナル等）",
+      "プロジェクト固有 CLAUDE.md の Worktree の境界を越えない セクション更新",
+      "生成済み skill ファイル (.claude/skills/sdd-forge.flow/SKILL.md) の直接編集（source template 更新を sdd-forge upgrade で反映する）",
+      "他 worktree 境界関連ルール（git stash 禁止、detached worktree 案内）の改訂",
+      "テストの追加・既存テストの変更"
+    ]
+  },
+  "constraints": [
+    "sdd-forge の alpha 版ポリシー: 後方互換シムは書かず、旧文言は削除して新文言に置き換える",
+    "src/ 配下のため、特定プロジェクト固有の情報（プロジェクト名・パス・ホスト名等）を埋め込まない",
+    "本 spec 実装中に旧文言を参照しないこと（AI が古いルールに引きずられるリスク回避）",
+    "本変更はドキュメント文言の書き換えのみで、再帰処理・リトライ・バルクデータ処理を含まない。新規ループや recursive call は発生しない"
+  ],
+  "design_principles": [
+    "禁止条項と解除条件を構造的に別 bullet に分ける（読み順で干渉しないよう可視的に独立）",
+    "解除条件は AI が決定論的に観測できるもののみ（CLI 出力 + ファイルシステム存在確認）。曖昧な推論条件は使わない",
+    "解除条件は OR で冗長化し、片方が満たされれば境界が解除される（cleanup 完了時は両方同時に成立するが独立した観測指標として冗長性を残す）"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/templates/partials/worktree-mode.md — worktree 境界ルールの source of truth"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "src/templates/partials/worktree-mode.md を include 展開 → .claude/skills/sdd-forge.flow/SKILL.md への反映（sdd-forge upgrade 実行時）"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "アプローチは docs-only (A) を選択。hook 追加 (B) や CLI 変更 (C) は見送り"
+      },
+      {
+        "text": "境界解除条件は active:false OR worktree 不在 の OR 条件"
+      },
+      {
+        "text": "変更対象は source partial 1 ファイルのみ。生成済み skill は upgrade で反映"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "When src/templates/partials/worktree-mode.md defines worktree boundary behavior, the rule text shall place the MUST-forbid clause and the boundary-release condition clause on different top-level bullets (they shall not appear within the same bullet or sentence).",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "When the rule text defines 'flow is active', it shall state that 'active' means both of the following hold simultaneously — sdd-forge flow get status returns active:true AND the worktree directory still exists (AND semantics).",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "should",
+      "desc": "When either of the two active conditions flips (status returns active:false, OR the worktree directory no longer exists), the rule text shall explicitly state that the boundary is lifted and cd out of the (former) worktree is allowed.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "nice-to-have",
+      "desc": "When flow run finalize cleanup has completed (the worktree directory has been deleted OR flow get status returns active:false), the rule text shall state that the AI must execute cd back to the main repo path as the very next Bash tool invocation, and shall state that this cd is mandatory (not optional).",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: src/templates/partials/worktree-mode.md の差分に、従来の 'MUST: Never cd out of the worktree path during an active flow.' を単一 bullet で記述していた箇所が無く、代わりに MUST-forbid 項と boundary-release 条件項が独立した top-level bullet として存在する。",
+    "AC2: 同ファイルに、'active' を sdd-forge flow get status の active:true AND worktree ディレクトリ存在の AND 条件として定義する記述が存在する。",
+    "AC3: 同ファイルに、境界解除トリガーを active:false OR worktree ディレクトリ不在の OR 条件として列挙した独立 bullet が存在する。",
+    "AC4: 同ファイルに、flow run finalize cleanup 完了後に main repo へ cd することが mandatory であることを示す独立 bullet が存在する。",
+    "AC5: 既存テストが全て PASS する（baseline と同じ test 結果）。"
+  ],
+  "clarifications": [
+    {
+      "q": "修正アプローチはどれにするか？",
+      "a": "A（skill/partial の文言クリア化のみ）。hook 追加 (B) は alpha 期間のコスト超過、CLI 出力変更 (C) は副作用大。"
+    },
+    {
+      "q": "境界解除の判定条件は？",
+      "a": "sdd-forge flow get status が active:false OR worktree ディレクトリ不在、の OR 条件。"
+    },
+    {
+      "q": "変更対象ファイル範囲は？",
+      "a": "src/templates/partials/worktree-mode.md のみ。生成済み skill は sdd-forge upgrade で反映する。"
+    },
+    {
+      "q": "Why this approach (A)?",
+      "a": "根本原因が rule text の構造（禁止条項と解除条件が同一 bullet）にあり、構造改善のみで解消可能。変更範囲が 1 ファイルに閉じ、影響面が小さい。alpha 期間の「過剰防御を避ける」「シンプルに保つ」方針と一致。"
+    },
+    {
+      "q": "Test strategy — 新規テストは？",
+      "a": "無し。ドキュメント文言変更のため機械的な回帰検知は不要（draft Q&A で合意済み）。既存テストは変更しない。手動検証として変更後 sdd-forge upgrade を実行し .claude/skills/sdd-forge.flow/SKILL.md の該当セクションが新文言で再生成されることを確認する。"
+    },
+    {
+      "q": "Impact on existing features は？",
+      "a": "影響あり: 共有 partial を include している flow 系 skill (sdd-forge upgrade 経由で再生成されると該当セクションが新文言になる、step 遷移や CLI ロジックには影響しない)。影響なし: flow state 管理 / finalize cleanup 実装 / git helpers などのロジック層、該当 partial を include していない他 skill、プロジェクト固有 CLAUDE.md、既存テスト一式。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "B: 実 PreToolUse hook を追加",
+      "reason": "決定論的強度は高いが、hook インフラを sdd-forge に配線する実装コストが大きく、全ユーザーの settings.json 更新という副作用を伴う。alpha 版のシンプル維持方針と相性が悪いため不採用。"
+    },
+    {
+      "option": "C: flow run finalize cleanup 完了時の CLI 出力シグナル",
+      "reason": "AI の解釈負担は下がるが、finalize コマンドの出力変更は UX に副作用が広がる。テスト・docs への波及も大きいため不採用。"
+    },
+    {
+      "option": "D: A + C 併用",
+      "reason": "二段構え安全装置として優位だが、本 bug は単一の文言解釈ミスが原因と判定でき A のみで十分。オーバーエンジニアリング回避のため不採用。"
+    }
+  ],
+  "implementationTargets": [
+    "src/templates/partials/worktree-mode.md"
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "221-fix-hook-post-cleanup-cd"
+}

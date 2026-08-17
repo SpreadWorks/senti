@@ -1,0 +1,64 @@
+{
+  "goal": "enrich の chapter 割り当て精度を改善する。AI が章名だけで推測していた割り当てを、(1) テンプレートの `{{data}}` 参照から静的に確定する第1段階と、(2) 章の説明（desc）付きプロンプトで AI が割り当てる第2段階の2段階方式に変更する。併せて chapters の設定形式をオブジェクト配列に変更し、章の説明と除外を設定可能にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`preset.json` と `config.json` の `chapters` 形式をオブジェクト配列に変更",
+      "`enrich.js` に静的 chapter 割り当て（`{{data}}` カテゴリベース）を追加",
+      "`enrich.js` の AI プロンプトに章の説明（desc）を追加",
+      "テンプレートから `{{data}}` 参照カテゴリを抽出する共通ユーティリティ作成",
+      "全プリセットの `preset.json` を新形式に移行し、各章に desc を設定",
+      "`types.js` のバリデーション更新"
+    ],
+    "out": [
+      "`getEnrichedContext()` の廃止 — chapter フィルタは維持",
+      "`detectChangedChapters()` の変更 — chapter フィールドは残る",
+      "deep/light モードの変更",
+      "enrich の summary/detail 生成ロジックの変更",
+      "構造情報の機械的抽出（ボード 5513）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "chapter フィルタを廃止して全エントリを渡す方式ではだめか？",
+      "a": "ボード dffe の検証で enriched context が text 品質に必須と判明。chapter フィルタなしで全エントリを渡すとコンテキストが巨大になる。フィルタは維持し、割り当て精度を改善する方が費用対効果が高い。"
+    },
+    {
+      "q": "`{{data}}` がない章（node-cli の overview 等）はどうなるか？",
+      "a": "静的割り当てでカバーできない。第2段階の AI 割り当て（desc 付き）で対応する。"
+    },
+    {
+      "q": "1エントリが複数章に割り当てられるケースは？",
+      "a": "1エントリ1章を維持。静的で決まればそれ、決まらなければ AI が1つ選ぶ。"
+    },
+    {
+      "q": "chapters の順序はどう決まるか？",
+      "a": "preset.json の配列順。config.json は desc/exclude の上書きのみ。config にあって preset にない章は末尾追加。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "preset.json の chapters 形式変更で既存テストへの影響範囲 → alpha 版ポリシーで後方互換不要。テストは新形式に合わせて更新"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "104-remove-chapter-classification-from-enrich-and-re"
+}

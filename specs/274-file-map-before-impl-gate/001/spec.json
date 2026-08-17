@@ -1,0 +1,220 @@
+{
+  "goal": "impl-gate 前に file-map.json 作成手順を AI 向け flow instruction へ明示し、要件と変更ファイルの対応記録が不足したまま integration gate に進んで artifact validation で停止する再発を防ぐ。",
+  "scope": {
+    "in": [
+      "must: flow-level implementation path の instruction は、impl-gate 前に file-map.json を作成する手順を表示する。",
+      "must: instruction は `sdd-forge flow set files <reqId> <path...>` の CLI 例を含め、reqId と path の意味を説明する。",
+      "must: instruction は testable requirement ごとに repo-relative changed path を記録することを説明する。",
+      "must: spec-local test は next-action instruction に file-map 作成タイミング、対象、CLI 例が出ることを検証する。",
+      "should: acceptance criteria は既存 gate validation、file-map.json schema、`flow set files` CLI 仕様を変更しない前提を明記する。"
+    ],
+    "out": [
+      "file-map.json の schema 変更。",
+      "diff から file-map.json を自動生成する新機能。",
+      "既存 artifact validation の緩和。",
+      "`flow set files` のコマンド名、引数、出力 envelope の変更。",
+      "task-impl gate の仕様変更。",
+      "GitHub Issue、workflow board、npm publish、dist-tag 操作。"
+    ]
+  },
+  "constraints": [
+    "外部依存は追加しない。Node.js 組み込みモジュールと既存 test helper のみを使う。",
+    "src/ 配下へ特定プロジェクト固有の値を書かない。prompt 文言は任意の spec / requirement に適用できる汎用表現にする。",
+    "file-map.json schema、artifact validation、`flow set files` CLI interface は変更しない。",
+    "対象は flow-level impl-gate / integration gate に進む通常実装フローに限定する。task-impl gate の挙動変更は含めない。",
+    "backward-compatible-cli-interface: 既存 CLI の command、option、argument、exit code contract は変更しない。instruction text と test coverage だけを変更する。",
+    "exit-code-contract: 新しい user-facing command と failure condition は追加しないため、CLI exit code contract は変えない。",
+    "validate-user-input-at-entry-point: 新しい user-facing input は追加しない。既存 `flow set files <reqId> <path...>` の validation をそのまま使う。",
+    "spec-test-coverage: 新しい spec behavior coverage は specs/274-file-map-before-impl-gate/tests/ に置き、`// spec: R<N>` header で testable requirements を明示する。"
+  ],
+  "design_principles": [
+    "gate validation を弱めず、gate 到達前の手順表示を補強する。",
+    "`flow set files` を file-map 作成の単一 CLI 境界として維持する。",
+    "prompt 変更は next-action instruction の contract として test で固定する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/prompts/impl/implement.md - implementation step の AI 向け instruction。file-map 記録手順の候補表示箇所。"
+      },
+      {
+        "text": "src/flow/prompts/impl/impl-gate.md - impl-gate 実行前の AI 向け instruction。gate 前 checklist の候補表示箇所。"
+      },
+      {
+        "text": "src/flow/lib/get-step-instructions.js - next-action instruction content を prompt file から読み、include を解決する loader。"
+      },
+      {
+        "text": "src/flow/lib/set-files.js - `flow set files <reqId> <path...>` で requirement と file path を file-map.json に追記する command。"
+      },
+      {
+        "text": "src/flow/lib/req-map.js - file-map.json の load/save/append と diff reconciliation helper。"
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js - integration artifact validation で file-map.json の requirement entries を検証する。"
+      },
+      {
+        "text": "specs/274-file-map-before-impl-gate/tests/ - R1-R4 の spec-local regression coverage。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow get next-action -> getStepInstructions() -> implement / impl-gate prompt content -> AI sees file-map preparation instruction before integration gate."
+      },
+      {
+        "text": "AI follows instruction -> `sdd-forge flow set files <reqId> <path...>` -> appendFiles() -> specs/<specId>/file-map.json."
+      },
+      {
+        "text": "test-execute / test-result-review artifacts -> flow-level impl-gate -> validateIntegrationArtifactTrust() checks file-map.json before AI guardrail evaluation."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `flow set files` is the existing boundary for file-map writes; result=match.",
+        "evidence": "src/flow/lib/set-files.js validates reqId/paths, resolves the active spec dir, and calls appendFiles(). src/flow/lib/req-map.js persists file-map.json with deduplication."
+      },
+      {
+        "text": "[VERIFY] integration artifact validation already requires file-map entries; result=match.",
+        "evidence": "src/flow/lib/test-artifacts.js validateFileMap() rejects unknown ids, empty entries, invalid paths, and missing entries for testable requirements."
+      },
+      {
+        "text": "[VERIFY] gate uses file-map for requirement-to-diff evaluation and warnings; result=match.",
+        "evidence": "src/flow/lib/run-gate.js loads file-map.json for integration gate, builds per-requirement diffs when entries exist, and emits reconciliation warnings for unrecorded diff files."
+      },
+      {
+        "text": "[VERIFY] current implementation prompts do not explicitly show the file-map preparation command; result=match.",
+        "evidence": "src/flow/prompts/impl/implement.md and src/flow/prompts/impl/impl-gate.md list implementation, test, review, and gate steps but do not mention file-map.json or `sdd-forge flow set files`."
+      },
+      {
+        "text": "Keep the fix at the instruction layer instead of changing validation or CLI behavior.",
+        "evidence": "Issue #353 identifies missing creation steps before impl-gate and records the workaround as manually running flow set files for R1-R6.",
+        "consideredAlternatives": "Auto-generating file-map.json was rejected because it changes behavior beyond the Issue. Relaxing validation was rejected because it removes the trust boundary that surfaced the missing artifact."
+      },
+      {
+        "text": "Limit scope to flow-level impl-gate / integration gate.",
+        "evidence": "Issue #353 target is impl-gate and its improvement direction says file-map entries should be recorded before integration gate.",
+        "consideredAlternatives": "Extending task-impl gate instructions was rejected because task-impl is a separate gate context and is outside the linked Issue target."
+      }
+    ]
+  },
+  "background": "Issue #353 records a recurrence-prevention bug in the implementation flow. After impl-review passed, impl-gate stopped before AI evaluation because file-map.json was missing. The existing system already has a command for writing file-map.json and validation that checks it at integration gate. The missing piece is the AI-facing procedure: before impl-gate, the instructions do not explicitly tell the agent to record requirement-to-file mappings with `sdd-forge flow set files <reqId> <path...>`.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The flow-level implementation instructions shown before impl-gate shall state that file-map.json must be prepared before running the flow-level impl-gate / integration gate.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The instructions shall include the exact CLI example `sdd-forge flow set files <reqId> <path...>` and explain that reqId is a spec requirement id and each path is a repo-relative changed file path.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The instructions shall tell the agent to record at least one file-map entry for every testable requirement before proceeding to flow-level impl-gate.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Spec-local tests shall verify that next-action instruction content for the flow-level implementation path includes file-map preparation timing, target requirement/path semantics, and the `flow set files` CLI example.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "The implementation shall not change file-map.json schema, `flow set files` CLI interface, or existing integration artifact validation behavior.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "The implementation path instruction displayed before flow-level impl-gate contains `sdd-forge flow set files <reqId> <path...>`.",
+    "The same instruction explains that file-map.json must be ready before the flow-level impl-gate / integration gate runs.",
+    "The instruction explains that every testable requirement needs at least one file-map entry before flow-level impl-gate.",
+    "The instruction explains that paths passed to `flow set files` are repo-relative changed file paths.",
+    "Spec-local tests under specs/274-file-map-before-impl-gate/tests/ include `// spec: R1 R2 R3 R4` coverage or equivalent per-file headers.",
+    "No production diff changes src/flow/lib/set-files.js argument handling, src/flow/lib/req-map.js schema behavior, or src/flow/lib/test-artifacts.js file-map validation."
+  ],
+  "clarifications": [
+    {
+      "q": "What does \"before impl-gate\" mean in this spec?",
+      "a": "It means before the overall flow's impl-gate runs with phase integration. The spec does not change task-impl gate behavior."
+    },
+    {
+      "q": "What is a file-map entry?",
+      "a": "A mapping from a spec requirement id to one or more repo-relative changed file paths, written through `sdd-forge flow set files <reqId> <path...>` into specs/<specId>/file-map.json."
+    },
+    {
+      "q": "Does this spec require automatic file-map generation?",
+      "a": "No. The agent is instructed to record the mapping through the existing command; no diff-to-file-map generation feature is added."
+    },
+    {
+      "q": "Does this spec change CLI behavior?",
+      "a": "No. Command names, options, argument validation, output envelopes, and exit codes remain unchanged."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Auto-generate file-map.json from git diff before gate",
+      "reason": "Rejected because the Issue targets missing procedure guidance, and automatic inference would add behavior that may map files to the wrong requirement without user-visible judgment."
+    },
+    {
+      "option": "Relax integration artifact validation when file-map.json is missing",
+      "reason": "Rejected because validation is the trust boundary that detects missing requirement-to-diff coverage. Weakening it would hide the recurrence instead of preventing it."
+    },
+    {
+      "option": "Extend this change to task-impl gate instructions",
+      "reason": "Rejected because Issue #353 targets flow-level impl-gate / integration gate. task-impl gate is a separate context and should be handled by a separate Issue if needed."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "file-map.json",
+    "flow set files",
+    "impl-gate",
+    "integration gate",
+    "getStepInstructions",
+    "implement prompt",
+    "impl-gate prompt",
+    "requirement mapping",
+    "testable requirement",
+    "repo-relative path",
+    "artifact validation",
+    "next-action instruction"
+  ],
+  "implementationTargets": [
+    "src/flow/prompts/impl/implement.md",
+    "src/flow/prompts/impl/impl-gate.md",
+    "src/flow/lib/get-step-instructions.js",
+    "specs/274-file-map-before-impl-gate/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Clarify file-map preparation",
+      "goal": "Add explicit file-map preparation guidance to the flow-level implementation instructions and lock that guidance with spec-local regression tests.",
+      "acceptance": [
+        "Instruction content says file-map.json must be ready before flow-level impl-gate / integration gate.",
+        "Instruction content includes `sdd-forge flow set files <reqId> <path...>`.",
+        "Instruction content explains reqId and repo-relative changed path semantics.",
+        "Instruction content says every testable requirement needs at least one file-map entry before flow-level impl-gate.",
+        "Spec-local tests include headers covering R1 through R4."
+      ],
+      "implementation_notes": "Prefer updating existing prompt files over adding new loader behavior. Keep `flow set files`, req-map, and artifact validation code unchanged unless a test exposes a direct inconsistency with the existing contract.",
+      "test_strategy": "Add spec-local tests that load next-action instruction content through the existing instruction loader or CLI path and assert the required file-map guidance fragments.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-04T05:08:42.095Z",
+    "notes": "User approved spec and requested to proceed"
+  },
+  "specId": "274-file-map-before-impl-gate"
+}

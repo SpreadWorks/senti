@@ -1,0 +1,238 @@
+{
+  "goal": "metrics token の出力を改修し、サマリー行を AVG 行としてテーブルカラムに揃えて表示する。specs 列・cache hit 列を全フォーマットに追加し、cost 精度を toFixed(1) に変更する。",
+  "background": "現在のサマリー行はフリーテキスト形式（avg cost: $X | avg duration: Xs | ...）で、どのカラムの集計値かが視覚的に不明確。またスペック数や行レベルの cache hit rate が表示されていない。カラムヘッダーがフェーズごとに繰り返されるのも冗長。",
+  "scope": {
+    "in": [
+      "[must] text 形式: サマリー行を AVG 行としてデータ行と同じカラム配置で出力",
+      "[must] text 形式: カラムヘッダーを出力先頭に一度だけ表示",
+      "[must] text 形式: フェーズ区切りを -- phase --- 形式に変更",
+      "[must] 全フォーマット: 行データに specCount (日付+フェーズを構成する flow.json 数) を追加",
+      "[must] 全フォーマット: 行データに cacheHitRate (cacheRead / (tokenInput + cacheRead)) を追加",
+      "[must] text/CSV: cost 表示精度を toFixed(1) に変更",
+      "[should] キャッシュ: 旧フォーマット検出時に自動再構築"
+    ],
+    "out": [
+      "集計ロジック（分母の混在）の変更",
+      "flow.json スキーマの変更"
+    ]
+  },
+  "constraints": [
+    "cost/duration の平均は non-null 行のみで算出、token/callCount は null=0 で全行平均。この混在を維持する",
+    "JSON の cost は数値のまま（toFixed しない）",
+    "外部依存の追加は不可（Node.js 組み込みのみ）"
+  ],
+  "design_principles": [
+    "既存の集計セマンティクス（分母ロジック）は不変。行データモデルとキャッシュスキーマは specCount/cacheHitRate/version のために変更する",
+    "全フォーマット (text/json/csv) でデータモデルを一貫させる",
+    "既存機能への影響: text 出力のカラムヘッダー・フェーズ区切り・サマリー行のフォーマットが変更される。CSV ヘッダーに specCount/cacheHitRate カラムが追加される。text 形式をパースする外部ツールは新フォーマットへの対応が必要。JSON の既存フィールドは変更なし（新フィールド追加のみ）。既存 e2e テスト (token.test.js) のアサーションは新フォーマットに合わせて更新する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/metrics/commands/token.js — 対象ファイル。formatText, formatCsv, formatJson, computePhaseSummary, buildRows, buildRowsFromMetrics, createEmptyRow, applyPhaseMetrics, finalizeRow, writeCache, isCacheFresh を変更"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow.json → buildRows (specCount カウント追加) → finalizeRow (cacheHitRate 算出追加) → formatText/formatCsv/formatJson → stdout"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "全フォーマットに specCount/cacheHitRate を追加。データモデルの一貫性を優先。",
+        "evidence": "text のみ変更すると JSON/CSV との不整合が生じる"
+      },
+      {
+        "text": "キャッシュに version フィールドを追加し旧フォーマット検出時にリビルド。",
+        "evidence": "isCacheFresh (token.js:284-307) は maxFinalizedAt のみで判定しスキーマ変更を検知できない"
+      },
+      {
+        "text": "AVG 行の specs は全行平均、cache hit は全行合算からの比率（computePhaseSummary と同じ加重比率）。",
+        "evidence": "分母ロジック混在維持の制約に従い、既存の computePhaseSummary の計算方法を踏襲"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "formatText は出力先頭にカラムヘッダーを一度だけ出力し、フェーズごとにヘッダーを繰り返さない",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "formatText のフェーズ区切りは '-- {phaseLabel} ' + '-' パディング（現行の罫線幅に合わせる）形式とする",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "formatText のサマリー行を AVG 行に変更。データ行と同じカラムに揃え、先頭列に 'AVG.' を表示する",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "行データに specCount フィールドを追加。値は buildRows で同一 (date, phase) キーに集約された flow.json の数。全フォーマット (text/json/csv) に反映する",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "行データに cacheHitRate フィールドを追加。値は cacheRead / (tokenInput + cacheRead)。(tokenInput + cacheRead) が 0 の場合は null。全フォーマットに反映する",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "text/CSV の cost 表示精度を toFixed(1) に変更する。JSON は数値のまま",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "should",
+      "desc": "キャッシュ JSON に version フィールドを追加し、コード側の期待バージョンと不一致の場合はリビルドする",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "desc": "computePhaseSummary に avgSpecCount と avgDifficulty を追加し、AVG 行に反映する",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "text 出力でカラムヘッダーが出力先頭に一度だけ表示される",
+    "text 出力でフェーズ区切りが '-- draft ---...' 形式で表示される",
+    "text 出力で各フェーズの末尾に AVG 行がデータ行と同じカラム配置で表示される",
+    "text/json/csv 出力で各行に specCount が含まれる",
+    "text/json/csv 出力で各行に cacheHitRate が含まれる",
+    "text/CSV の cost が小数点1位 ($X.X) で表示される",
+    "JSON の cost は数値のまま",
+    "旧バージョンのキャッシュが存在する場合、自動的にリビルドされる",
+    "既存テスト (token.test.js) が新フォーマットに合わせて更新され、全テストが PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "AVG 行の specs 値は合計か平均か",
+      "a": "平均。データ行と同じ意味単位で比較可能にするため"
+    },
+    {
+      "q": "AVG 行の cache hit はどう算出するか",
+      "a": "全行の cacheRead 合計 / (全行の tokenInput 合計 + 全行の cacheRead 合計)。行ごとの平均ではなく加重比率"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "text のみ変更し JSON/CSV は変更しない",
+      "reason": "データモデルの不整合が生じるため却下"
+    },
+    {
+      "option": "キャッシュの暗黙リビルド（新フィールド不在チェック）",
+      "reason": "version フィールドの方が明示的で将来の変更にも対応しやすいため却下"
+    },
+    {
+      "option": "AVG 行の specs を合計表示",
+      "reason": "平均の方がデータ行と同じ意味単位で比較可能なため却下"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add specCount and cacheHitRate to row data model",
+      "goal": "buildRows で specCount をカウントし、finalizeRow で cacheHitRate を算出してフィールドに追加する。",
+      "acceptance": [
+        "createEmptyRow に specCount (初期値 0) を追加",
+        "applyPhaseMetrics で specCount をインクリメント",
+        "finalizeRow で cacheHitRate を算出 (cacheRead / (tokenInput + cacheRead), 0 除算時は null)",
+        "buildRowsFromMetrics ���同様に specCount=1 を設定"
+      ],
+      "implementation_notes": "buildRows 内の for ループで各 flow entry が applyPhaseMetrics を呼ぶたびに specCount をインクリメント。finalizeRow で cacheHitRate を計算して出力に含める。",
+      "test_strategy": "unit: buildRowsFromMetrics の戻り値に specCount, cacheHitRate が含まれることを検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Update computePhaseSummary for AVG row",
+      "goal": "computePhaseSummary に avgSpecCount と avgDifficulty を追加し、AVG 行の全カラムに対応する値を返す。",
+      "acceptance": [
+        "avgSpecCount: 全行の specCount 合計 / 行数",
+        "avgDifficulty: non-null difficulty の平均 (全て null なら null)",
+        "avgCallCount: totalCalls / 行数 (既存 totalCalls は sum なので行数で割る)"
+      ],
+      "implementation_notes": "既存の totalCalls は sum。AVG 行用に avgCallCount (= totalCalls / n) を追加。avgDifficulty は cost と同様に non-null のみで平均。",
+      "test_strategy": "unit: 複数行入力で avgSpecCount, avgDifficulty, avgCallCount の計算を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Rewrite formatText with new layout",
+      "goal": "カラムヘッダーを先頭に一度だけ出力、フェーズ区切りを -- phase --- 形式に、サマリーを AVG 行に変更する。",
+      "acceptance": [
+        "ヘッダー行は出力先頭に一度だけ",
+        "フェーズ区切りは '-- {phaseLabel} ' + '-' パディング (テーブル幅に合わせる)",
+        "AVG 行はデータ行と同じカラム配置。先頭列に 'AVG.'",
+        "specs 列: date の次",
+        "cache hit 列: cache create の次",
+        "cost 表示: toFixed(1)"
+      ],
+      "implementation_notes": "formatText 関数の全面書き換え。groupRowsByPhase の結果をイテレートする構造は維持。",
+      "test_strategy": "e2e: text 出力でヘッダーが一度、フェーズ区切り形式、AVG 行の存在を正規表現で検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Update formatCsv and formatJson for new fields",
+      "goal": "CSV ヘッダーに specCount, cacheHitRate を追加。JSON の phaseSummary にも新フィールドを反映。",
+      "acceptance": [
+        "CSV ヘッダーに specCount, cacheHitRate カラムが追加される",
+        "CSV の cost は toFixed(1)",
+        "JSON rows[] に specCount, cacheHitRate が含まれる",
+        "JSON phaseSummary に avgSpecCount, avgDifficulty, avgCallCount が含まれる",
+        "JSON の cost は数値のまま"
+      ],
+      "implementation_notes": "formatCsv のヘッダー行とデータ行に新カラム追加。formatJson は rows をそのまま出力するので行データの変更で自動反映。phaseSummary は computePhaseSummary の戻り値変更で反映。",
+      "test_strategy": "e2e: CSV ヘッダー検証、JSON phaseSummary 検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Add cache version for schema change detection",
+      "goal": "キャッシュ JSON に version フィールドを追加し、旧バージョン検出時にリビルドする。",
+      "acceptance": [
+        "writeCache が出力する JSON に version フィールドを含む",
+        "isCacheFresh が version の不一致を検出した場合 false を返す"
+      ],
+      "implementation_notes": "CACHE_VERSION 定数を定義。writeCache で書き込み、isCacheFresh で比較。",
+      "test_strategy": "unit: version 不一致時のリビルド判定を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-30T05:27:16.578Z"
+  },
+  "specId": "247-metrics-token-avg-row"
+}

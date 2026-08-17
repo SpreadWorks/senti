@@ -1,0 +1,97 @@
+{
+  "goal": "src/flow/lib/run-update-overview.js に export default RunUpdateOverviewCommand を追加し、dynamic import 経由の呼び出しを正常化する",
+  "scope": {
+    "in": [
+      "src/flow/lib/run-update-overview.js に export default 行を追加",
+      "export default の存在を検証するテストを追加"
+    ],
+    "out": [
+      "run-gate.js の try-catch によるエラー握りつぶしパターンの修正",
+      "他ファイルの export パターン変更"
+    ]
+  },
+  "constraints": [
+    "既存の named export (persistOverviewUpdate, validateOverviewAdditions, RunUpdateOverviewCommand) を維持する",
+    "他の run-*.js と同一の export default パターン（ファイル末尾に別行で記述）に従う"
+  ],
+  "design_principles": [],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-update-overview.js — FlowCommand サブクラスの定義ファイル。spec.json への overview 追加を永続化する。export default が欠落しており、dynamic import で undefined になる。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "registry.js:552 の dynamic import → run.js ディスパッチャが .default を取得 → コマンドインスタンス化。run-gate.js:73 も同様に { default: RunUpdateOverviewCommand } で destructure。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "export class を export default class に書き換えるのではなく、ファイル末尾に export default RunUpdateOverviewCommand; を別行で追加する。named export を壊さず、他の全 run-*.js と同一パターンに合わせるため。",
+        "evidence": "grep -rn 'export default' src/flow/lib/run-*.js で確認した16ファイル全てがファイル末尾の別行で export default を記述。"
+      }
+    ]
+  },
+  "background": "commit c928179a で RunUpdateOverviewCommand クラスを追加した際、export default の記述が漏れた。run-gate.js:73 の dynamic import が { default: RunUpdateOverviewCommand } で destructure するため undefined を受け取り、new RunUpdateOverviewCommand() が TypeError を投げる。try-catch で握りつぶされるため gate-impl は PASS するが、overview 更新が黙��て失敗する。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "src/flow/lib/run-update-overview.js のファイル末尾に export default RunUpdateOverviewCommand; を追加する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "dynamic import で .default が RunUpdateOverviewCommand クラス（FlowCommand のサブクラス）であることを検証するテストを追加する",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "import('./src/flow/lib/run-update-overview.js') の .default が RunUpdateOverviewCommand クラスである",
+    "既存の named export (persistOverviewUpdate, validateOverviewAdditions, RunUpdateOverviewCommand) が引き続き利用可能",
+    "npm test が全件 PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "run-gate.js の try-catch によるサイレント失敗は本 spec で修正しないのか",
+      "a": "try-catch は gate side effect が失敗しても gate 全体を止めない意図的な設計。本 spec は export default 欠落という根本原因を修正するため、修正後はこの try-catch に到達する TypeError は発生しない。try-catch パターン自体の改善は別 concern として別途対応する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "export class を export default class に書き換える",
+      "reason": "named export の RunUpdateOverviewCommand が消えるため、import { RunUpdateOverviewCommand } を使う既存コードが壊れるリスクがある。不採用。"
+    },
+    {
+      "option": "呼び出し元を named import に変更する",
+      "reason": "他の全 FlowCommand が export default + { default: ... } パターンを使っているため、一貫性を崩す。���採用。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add export default to run-update-overview.js",
+      "goal": "ファイル末尾に export default RunUpdateOverviewCommand; を追加し、dynamic import 経由の呼び出しを正常化する",
+      "acceptance": [
+        "import('./src/flow/lib/run-update-overview.js').then(m => m.default) が RunUpdateOverviewCommand クラスを返す",
+        "既存の named export が維持される"
+      ],
+      "implementation_notes": "他の run-*.js（run-gate.js, run-review.js 等）と同一パターンで、ファイル最終行の後に export default RunUpdateOverviewCommand; を追加",
+      "test_strategy": "dynamic import で .default が FlowCommand サブクラスであることを検証するユニットテスト",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T14:11:03.181Z",
+    "notes": "autoApprove"
+  },
+  "specId": "244-fix-update-overview-export"
+}

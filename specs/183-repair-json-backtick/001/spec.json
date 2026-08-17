@@ -1,0 +1,59 @@
+{
+  "goal": "AI 応答 JSON 修復ユーティリティを拡張し、value の開始引用符がバッククォートになっているケース（および同 value 終端のバッククォート）を救う。これにより、retro 等の AI 応答パース失敗によるフェーズ skip を防ぐ。",
+  "background": "",
+  "scope": {
+    "in": [
+      "既存 JSON 修復ユーティリティに「value 開始位置がバッククォートのとき、開き引用符として受理し出力に二重引用符を書き込む」修復ルートを追加",
+      "同 value の終端も二重引用符にバッククォートを置換できるよう終端検出を拡張",
+      "既存ユニットテストに上記ケースの検証を追加"
+    ],
+    "out": [
+      "AI プロンプト側の JSON 形式指示強化",
+      "retro / review の再実行可能化（finalize cleanup の挙動変更）",
+      "配列要素・キー側のバッククォート開始（現実発生事例なし）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "開き backtick / 閉じ double-quote のハイブリッド value を含む JSON が修復され `JSON.parse` で受理されること",
+    "開き backtick / 閉じ backtick の value を含む JSON が修復され `JSON.parse` で受理されること",
+    "値本文中の backtick がそのまま保持されること",
+    "既存ユニットテスト群が修正なしで全て pass すること",
+    "新規 unit テスト 3 本以上（R1/R2、R3、R5）が追加され pass すること"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**正規表現で `",
+      "reason": "` 直後のバッククォート → `\"` に単純置換** - 却下理由: 値本文中のバッククォート（コード識別子表示）も誤って置換するリスク"
+    },
+    {
+      "option": "**AI プロンプトで形式指示を強化**",
+      "reason": "却下理由: AI 出力は完全には防げず、parser 側の防衛が依然必要。並行実施は妨げない"
+    },
+    {
+      "option": "**JSON5 等の代替パーサー導入**",
+      "reason": "却下理由: 外部依存禁止に反する"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "183-repair-json-backtick"
+}

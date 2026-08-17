@@ -1,0 +1,55 @@
+{
+  "goal": "projects.json によるマルチプロジェクト管理機能を廃止する。各プロジェクトで `npm link` + 直接実行する運用に移行するため、不要になった仕組みを削除する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/projects.js` の削除",
+      "`src/docs/commands/default-project.js` の削除",
+      "`src/sdd-forge.js` から `--project` フラグ処理と `resolveProject` / `workRootFor` 依存を除去",
+      "`src/docs/commands/setup.js` からマルチプロジェクト分岐（`addProject`, `workRootFor`, `loadProjects`）を除去",
+      "`src/docs.js` のディスパッチテーブルから `default` を除去",
+      "`src/help.js` から `default` コマンドの記述を除去",
+      "locale ファイル（`ja/`, `en/`）から `default` コマンド関連メッセージを除去",
+      "`PROJECT_MGMT` セットから `default` を除去"
+    ],
+    "out": [
+      "`SDD_SOURCE_ROOT` / `SDD_WORK_ROOT` 環境変数による動作は維持する（外部からの設定手段として残す）",
+      "`setup` コマンド自体の廃止（setup はプロジェクト初期設定として引き続き必要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge` の全コマンドが `projects.js` なしで正常動作する",
+    "`sdd-forge default` コマンドが存在しない（unknown command エラーになる）",
+    "`--project` フラグが解析されない",
+    "`npm test` が全て通る",
+    "`setup` コマンドが projects.json を作成しない"
+  ],
+  "clarifications": [
+    {
+      "q": "setup コマンドの projects.json 書き込みロジックはどうするか？",
+      "a": "projects.json への書き込みを完全に削除。setup は config.json / テンプレート / AGENTS.md の生成のみに集中する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "049-deprecate-projects-json"
+}

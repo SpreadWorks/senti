@@ -1,0 +1,195 @@
+{
+  "goal": "Ensure flow status instructions use only `sdd-forge flow get status`, while `sdd-forge flow status` remains unsupported and fails with a clear correction to the canonical command.",
+  "scope": {
+    "in": [
+      "Audit skill, prompt, docs, help, and test references for the incorrect `sdd-forge flow status` command shape.",
+      "Keep `sdd-forge flow get status` as the only supported status command.",
+      "Make `sdd-forge flow status` fail with non-zero exit and explicit guidance to `sdd-forge flow get status`.",
+      "Add regression coverage for the mistyped command behavior."
+    ],
+    "out": [
+      "Adding a `flow status` alias.",
+      "Changing the behavior or output schema of `sdd-forge flow get status`.",
+      "Introducing backward-compatibility support for other old or mistyped command forms.",
+      "Changing unrelated flow command groups or dispatcher semantics."
+    ]
+  },
+  "constraints": [
+    "`sdd-forge flow status` must remain an unsupported command and must exit non-zero.",
+    "`sdd-forge flow get status` must remain the only supported status command.",
+    "The CLI entry point must validate the user-facing `flow` command group token before dispatching to grouped commands.",
+    "Do not add backward-compatibility code or aliases for old or mistyped command forms.",
+    "If `src/skills/` or preset templates change, run `sdd-forge upgrade` so generated project skills and settings stay synchronized."
+  ],
+  "design_principles": [
+    "Correct the instruction source and error guidance rather than expanding the public CLI surface.",
+    "Keep the mistyped command failure explicit and machine-testable.",
+    "Prefer a narrowly scoped dispatcher hint over broad command-suggestion machinery unless more mistyped forms are in scope."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow.js` dispatches `sdd-forge flow <group>` into supported groups such as `get`, `set`, and `run`; this is the entry point that rejects `flow status`."
+      },
+      {
+        "text": "`src/flow/registry.js` defines `get.status` as the registered canonical status command."
+      },
+      {
+        "text": "Skills, prompts, docs, and help text are instruction sources that can influence agent or user command selection."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "User or agent input `sdd-forge flow status` reaches the flow dispatcher as group token `status`; the dispatcher rejects it before command registry execution."
+      },
+      {
+        "text": "User or agent input `sdd-forge flow get status` reaches group `get` and key `status`, then dispatches to the existing status command unchanged."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] The canonical status command is registered as `flow get status`; the unsupported mistyped form is rejected as an unknown flow command group.",
+        "evidence": "`src/flow/registry.js` contains the `get.status` entry. `src/flow.js` reads the first token after `flow` as `group` and rejects unknown groups before key dispatch."
+      },
+      {
+        "text": "Do not add a `flow status` alias.",
+        "evidence": "Issue #338 states not to add a `flow status` alias; prior discussion reframed the task as preventing and correcting the mistake, not supporting an old form.",
+        "consideredAlternatives": "Alias support was rejected because it expands the public CLI surface and conflicts with the project alpha policy against backward-compatibility shims."
+      },
+      {
+        "text": "Regression coverage must assert both failure and correction text for the mistyped command.",
+        "evidence": "Issue #338 acceptance criteria require that `flow status` does not succeed, but guidance to `sdd-forge flow get status` is shown."
+      },
+      {
+        "text": "Impact on existing features: canonical `sdd-forge flow get status` callers see no behavior change; invalid `sdd-forge flow status` remains invalid and only gains correction text.",
+        "evidence": "Issue #338 requires preserving the canonical command and not adding a `flow status` alias."
+      }
+    ]
+  },
+  "background": "The canonical command for reading flow status is `sdd-forge flow get status`. During operation, the incorrect form `sdd-forge flow status` can be selected from memory or unclear guidance. The desired improvement is not compatibility for the incorrect form; it is to keep instruction sources canonical and make the unsupported input fail with a clear correction.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Any instruction-source line changed by this spec that gives the full flow status command must use `sdd-forge flow get status`, not `sdd-forge flow status`.",
+      "priority": "must",
+      "status": "done",
+      "testable": false
+    },
+    {
+      "id": "R2",
+      "desc": "The CLI must not add or register a `flow status` alias; `sdd-forge flow get status` must continue to dispatch through the existing status command.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`sdd-forge flow status` must exit non-zero and write a correction that includes `sdd-forge flow get status`.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`sdd-forge flow get status` behavior and JSON envelope remain unchanged for existing callers.",
+    "`sdd-forge flow status` exits non-zero.",
+    "`sdd-forge flow status` stderr includes the canonical command `sdd-forge flow get status`.",
+    "A spec-local test under `specs/264-flow-status-canonical-command/tests/` covers R2 and R3 with `// spec: R<N>` headers.",
+    "Shared dispatcher coverage, if updated, asserts the same failure-and-guidance behavior."
+  ],
+  "clarifications": [
+    {
+      "q": "Should `sdd-forge flow status` be supported as an alias?",
+      "a": "No. It remains unsupported; only the error guidance changes."
+    },
+    {
+      "q": "Which user-facing argument is being validated?",
+      "a": "The `flow` group token immediately after `sdd-forge flow`. Type: string argv token. Format: one non-empty CLI token without whitespace. Range: supported groups are `get`, `set`, and `run`, plus supported top-level flow commands such as `prepare` and `resume`; for this spec, `status` is invalid and receives targeted correction guidance."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add `sdd-forge flow status` as an alias for `sdd-forge flow get status`.",
+      "reason": "Rejected because it creates backward-compatibility support for an unsupported command shape during the alpha period."
+    },
+    {
+      "option": "Leave the generic unknown-command error unchanged.",
+      "reason": "Rejected because the known mistyped input has a single canonical correction and the Issue requires explicit guidance."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "flow dispatcher",
+    "flow get status",
+    "flow status",
+    "unknown command",
+    "canonical command",
+    "CLI error guidance",
+    "command registry",
+    "sdd-forge flow"
+  ],
+  "implementationTargets": [
+    "src/flow.js",
+    "src/flow/registry.js",
+    "src/skills",
+    ".agents/skills",
+    "docs",
+    "tests/e2e/dispatchers.test.js",
+    "specs/264-flow-status-canonical-command/tests"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-20T08:01:45.228Z",
+    "notes": "autoApprove=true; spec gate passed for Issue #338"
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Audit status guidance",
+      "goal": "Find instruction-source references to the unsupported `sdd-forge flow status` form and ensure full command guidance uses `sdd-forge flow get status`.",
+      "acceptance": [
+        "Changed instruction-source lines do not present `sdd-forge flow status` as a runnable command.",
+        "Any changed skill source is propagated with `sdd-forge upgrade`."
+      ],
+      "implementation_notes": "Inspect skills, prompts, docs, help text, and tests. Do not treat historical spec names or non-command prose as runnable command guidance unless they could steer command execution.",
+      "test_strategy": "Use targeted text search and spec-local assertions where practical.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Guide mistyped command",
+      "goal": "Keep `flow status` unsupported while making its error output point to `sdd-forge flow get status`.",
+      "acceptance": [
+        "`sdd-forge flow status` exits non-zero.",
+        "The error output includes `sdd-forge flow get status`.",
+        "No `flow status` command entry or alias is registered."
+      ],
+      "implementation_notes": "The likely change is in the flow dispatcher unknown-group path. Keep behavior narrow to the known mistyped status form.",
+      "test_strategy": "Exercise the CLI with `flow status` and `flow get status` in a controlled test.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover command behavior",
+      "goal": "Add regression tests that pin the unsupported mistyped command and the unchanged canonical command path.",
+      "acceptance": [
+        "Spec-local tests include headers for R2 and R3.",
+        "Shared dispatcher tests cover the user-facing error guidance if production dispatcher behavior changes."
+      ],
+      "implementation_notes": "Prefer focused CLI spawn tests using the existing test helpers or local patterns.",
+      "test_strategy": "Run the relevant spec-local tests and root test scope needed by the touched files.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "specId": "264-flow-status-canonical-command"
+}

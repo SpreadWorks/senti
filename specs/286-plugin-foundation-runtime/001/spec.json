@@ -1,0 +1,431 @@
+{
+  "goal": "workflow plugin と preset plugin を core 実装から外部化する前提として、shared plugin foundation を実装する。",
+  "scope": {
+    "in": [
+      "installed and enabled plugin roots から hooks/*.js を discovery/validate し、flow prepare 成功時に flow.json へ snapshot する runtime foundation。",
+      "snapshot 済み plugin hook を flow command registry の pre/post lifecycle point で実行する runner と public context。",
+      "plugin command を register(api) factory と Envelope-compatible return に寄せる runtime foundation。",
+      "plugin command help metadata を enabled plugin registry から取得し、top-level help と command help に反映する基盤。",
+      "plugin.config.<pluginId> namespace と plugin config defaults/schema の runtime merge。",
+      "plugin.json.files 必須を廃止し、known paths だけを copy する installer convention。",
+      "plugin.sources[] と plugin.packages[] の separation、および git/local source の validation/reproducibility policy。",
+      "workflow-specific flow instructions を AI skill text から CLI side hook へ移すための foundation と検証。"
+    ],
+    "out": [
+      "workflow implementation 自体を外部 repository へ完全移行しない。",
+      "preset implementation 自体を外部 repository へ完全移行しない。",
+      "既存 registry hook の class 化は行わない。",
+      "npm source の本格対応は行わず、初期実装では unsupported validation までに留める。",
+      "plugin install/update で package scripts を実行しない。",
+      "import-time side effect の機械的検査は初期実装に含めず、規約と review 対象にする。"
+    ]
+  },
+  "constraints": [
+    "外部依存は追加しない。Node.js built-in module だけで実装する。",
+    "alpha policy に従い、plugin.repos / packages[].repo を runtime で読み続ける compatibility shim は作らない。",
+    "backward-compatible-cli-interface: plugin config rename の migration plan は upgrade/config validation/help guidance に明記する。旧 field が残る場合は actionable error で plugin.sources / packages[].source への置換を促す。",
+    "plugin hook / command modules は core internal path を import しない。core 側 API は register(api) または public context 経由で渡す。",
+    "既存 top-level workflow.* config は silent ignore しない。senti upgrade で plugin.config.workflow へ移行し、移行後も top-level workflow.* が残る場合は actionable error で新 namespace への移動を促す。",
+    "plugin hook discovery, snapshot, command metadata, known-path copy は具体的な上限を持つ。1 project あたり enabled plugin packages は最大 100、1 plugin あたり hook files は最大 200、known-path copy 対象 files は最大 2000、directory depth は最大 20、manifest/config/help metadata JSON は各 1 MiB 以下、relative path は 300 bytes 以下に制限する。",
+    "CLI command の失敗条件は non-zero exit にする。hook run failure は command envelope warning と issue-log candidate に変換し、main flow の exit code は hook run failure だけでは変えない。",
+    "user-facing inputs は entry point で検証する。source id、package id、source type、local path、git remote、commit SHA、command metadata path、hook metadata は invalid value を拒否する。",
+    "src/ 以下に project 固有情報を書かない。fixture や example は sample-preset / child-preset のような汎用名を使う。",
+    "src/skills または src/presets を変更した場合は、生成済み skill/preset artifacts が source と整合する diff になっていることを検証対象にする。"
+  ],
+  "design_principles": [
+    "既存 flow command registry の lifecycle point を拡張し、新しい event bus は作らない。",
+    "plugin hook plan は flow prepare 成功時の snapshot を source of truth にし、active flow 中に live discovery しない。",
+    "plugin command/help/hook/config は workflow/preset 固有名を core が解釈しない形に寄せる。",
+    "public plugin context は core internal object を渡さず、必要な値と helper だけを渡す。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/plugin-registry.js: plugin manifest validation, installed plugin registry, source/package config, command metadata, hook plan discovery の中心。"
+      },
+      {
+        "text": "src/flow/registry.js and src/lib/command-registry.js: existing flow lifecycle hooks and command metadata に plugin hook runner を接続する入口。"
+      },
+      {
+        "text": "src/senti.js and src/plugin.js: top-level plugin command dispatch と plugin management CLI の user-facing surface。"
+      },
+      {
+        "text": "src/help.js: static workflow display を plugin command metadata aware rendering に置き換える対象。"
+      },
+      {
+        "text": "src/lib/config.js: plugin config namespace, defaults/schema runtime merge, source/package validation の対象。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "plugin install/update resolves plugin.sources[], copies known paths into .senti/plugins/<pluginId>, and records enabled packages in plugin.packages[]."
+      },
+      {
+        "text": "flow prepare runs existing prepare behavior, discovers enabled plugin hooks, snapshots pluginId/module/class/command/hook/priority into flow.json, then runs snapshot prepare.post hooks."
+      },
+      {
+        "text": "later flow commands read flow.json plugins.flowCommandHooks, resolve installed plugin modules, build public context, execute hooks, and fold hook warnings into the command envelope."
+      },
+      {
+        "text": "top-level command dispatch resolves enabled plugin command metadata, loads command modules through register(api), and treats returned Envelope-compatible objects as command results."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] src/lib/plugin-registry.js currently requires plugin.json.files and copies manifest.files; result=match with draft policy.",
+        "evidence": "PluginManifest.validate() rejects missing files; installFromSource() calls copyAllowlistedFiles(packageRoot, dest, manifest.files)."
+      },
+      {
+        "text": "[VERIFY] src/lib/config.js currently validates plugin.repos and packages[].repo; result=match with config rename requirement.",
+        "evidence": "CONFIG_SCHEMA.plugin defines repos[] and packages[].repo/commit; validatePluginConfig checks repoIds and pkg.repo references."
+      },
+      {
+        "text": "[VERIFY] src/help.js currently includes static Workflow section and workflow command; result=match with plugin-aware help requirement.",
+        "evidence": "LAYOUT includes { section: \"Workflow\" } and { name: \"workflow\" }."
+      },
+      {
+        "text": "[VERIFY] src/senti.js currently dispatches plugin command modules by calling dispatchPluginCommand; result=match with command runtime replacement requirement.",
+        "evidence": "Unknown subcommands import dispatchPluginCommand(repoRoot(), subCmd, rest); existing dispatchPluginCommand imports command.absolutePath and calls mod.main(args, ctx)."
+      },
+      {
+        "text": "Hook failures are split by phase: discovery/import/register/metadata validation failures are hard failures, while hook run failures become warnings and issue-log candidates.",
+        "evidence": "Issue #373 Hook return / failure policy distinguishes validation hard failures from non-blocking hook run failures."
+      },
+      {
+        "text": "Existing active flows without hook snapshots continue without hooks; no live discovery fallback or re-prepare requirement is introduced.",
+        "evidence": "Issue #373 Existing active flows policy states flows without snapshots continue silently without hooks."
+      }
+    ]
+  },
+  "background": "Issue #373 prepares the plugin foundation needed before workflow and preset implementations can move to external plugin repositories. The current core still depends on plugin.json.files allowlists, plugin.repos config, static workflow help, direct plugin command main() loading, and workflow/preset-specific assumptions. This spec creates the shared runtime contract without migrating workflow or preset implementations themselves.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Replace plugin.repos / packages[].repo with plugin.sources[] / packages[].source in config schema, validation, plugin CLI output, and plugin registry source resolution, including a documented migration path and actionable validation error for old fields.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Remove plugin.json.files as a required manifest field and copy only known plugin package paths: plugin.json, commands/, skills/, presets/, hooks/, config.schema.json, and config.defaults.json, while preserving safety checks for .git, node_modules, symlinks, scripts, path traversal, unsafe package.json, max depth 20, max 2000 copied files per plugin, max 300-byte relative paths, and max 1 MiB JSON metadata files.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Discover one hook per hooks/*.js file under installed and enabled plugin roots, capped at 200 hook files per plugin and 100 enabled plugin packages per project, then validate default export register(api), named returned class, FlowCommandHook inheritance, command/hook metadata, integer priority, and prepare.pre rejection.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "On successful flow prepare, snapshot validated hook plans into flow.json plugins.flowCommandHooks using apiVersion, pluginId, module relative path, className, command, hook, and priority, without storing absolute paths or re-discovering hooks during active flows.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Execute snapshot plugin hooks at supported flow command pre/post lifecycle points with a public context containing project, plugin, config, flow, result, artifacts, and envelope helpers, and convert hook run failures into non-blocking warnings plus issue-log candidates.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Load plugin commands through default export register(api), execute returned command.main(argv, context), require Envelope-compatible returns, normalize thrown command errors to failure envelopes with non-zero exit, and stop passing raw core ctx to plugin commands.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Read plugin command help metadata from plugin.json contributions.commands[] and render top-level help, command help, subcommand help, locale wording, and experimental display through the same help rendering path as core commands without importing plugin command modules.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Apply plugin config schemas/defaults under plugin.config.<pluginId>, merge defaults at loadConfig() runtime without writing them to .senti/config.json, migrate existing top-level workflow.* config to plugin.config.workflow through upgrade/config guidance, and expose a generic agent execution API that lets plugins pass provider/profile overrides from their own plugin config.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "Remove workflow-specific flow instructions from generated AI skill text and preserve existing workflow.flowIntegration issue-start behavior through an official workflow plugin prepare.post hook that reads plugin.config.workflow.flowIntegration after migration.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "Remove core runtime/source/test expectations that depend on actual official preset names; use generic plugin/preset fixtures for foundation contract tests while keeping user config examples, generated docs, and historical specs untouched.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: Config validation accepts plugin.sources[] and plugin.packages[].source, rejects duplicate ids, unknown package source references, invalid ids, invalid commit pins for git packages, unsafe local source paths, and unsupported npm sources with a non-zero CLI failure where applicable.",
+    "AC2: Existing plugin CLI commands operate on sources/packages terminology in JSON and human output; old plugin.repos/packages[].repo config produces an actionable migration error rather than silent fallback.",
+    "AC3: Installing a plugin package copies only known paths that exist and never copies .git, node_modules, symlinks, package scripts, path traversal targets, arbitrary unlisted repository files, more than 2000 files, paths deeper than 20 segments, paths over 300 bytes, or JSON metadata files over 1 MiB.",
+    "AC4: Hook discovery validates accepted factory hook modules and rejects anonymous register, anonymous class, multiple hook exports, unknown command, unknown hook, prepare.pre, non-integer priority, core internal path imports, more than 200 hook files per plugin, and more than 100 enabled plugin packages per project.",
+    "AC5: flow prepare writes plugins.flowCommandHooks snapshot entries with only relative module paths and metadata, then execute prepare.post plugin hooks from that snapshot.",
+    "AC6: Active flows without plugins.flowCommandHooks execute no plugin hooks and do not perform live discovery; active flows with missing/disabled snapshot plugins fail with a clear restore/enable guidance.",
+    "AC7: Hook run failure, ok:false return, or hook warning is reflected in command envelope warnings using a common PLUGIN_HOOK_FAILED-style schema and does not stop the main flow command by itself.",
+    "AC8: Plugin command modules use register(api) and return Envelope-compatible objects; thrown errors produce failure envelopes and non-zero exit for plugin commands.",
+    "AC9: Help output includes enabled plugin command metadata and no longer relies on static workflow entries in the top-level layout; help rendering does not import plugin command modules.",
+    "AC10: loadConfig() exposes plugin config defaults under plugin.config.<pluginId> without mutating .senti/config.json, and plugin config schemas validate inside that namespace.",
+    "AC11: Existing top-level workflow.flowIntegration config is migrated to plugin.config.workflow.flowIntegration by senti upgrade or rejected with actionable guidance; it is never silently ignored after namespace migration.",
+    "AC12: When plugin.config.workflow.flowIntegration is enable and a flow has a linked issue, the official workflow plugin prepare.post hook invokes issue-start-equivalent behavior from the CLI side and preserves the existing non-fatal skipped behavior when board/gh support is unavailable.",
+    "AC13: Spec-local tests under specs/286-plugin-foundation-runtime/tests/ include // spec: R<N> headers covering R1 through R10, and shared regression tests are updated only where production contract changes require it.",
+    "AC14: If src/skills or src/presets content changes, generated skill/preset artifacts in the repository diff reflect the source changes, and tests or snapshot assertions verify the generated text no longer contains removed workflow-specific flow instructions."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this spec migrate workflow or preset implementations to external repositories?",
+      "a": "No. It only prepares the shared plugin foundation needed by those later migrations."
+    },
+    {
+      "q": "Are old plugin.repos and packages[].repo fields supported at runtime?",
+      "a": "No. Alpha policy rejects long-term compatibility shims. The migration plan is documented upgrade/config validation/help guidance with actionable errors."
+    },
+    {
+      "q": "What happens to existing top-level workflow.flowIntegration config?",
+      "a": "It is migrated to plugin.config.workflow.flowIntegration by senti upgrade or rejected with actionable guidance if it remains. The migrated value drives the official workflow plugin prepare.post hook."
+    },
+    {
+      "q": "Which hook failures stop the main flow?",
+      "a": "Discovery, import, register execution, class validation, and static metadata validation are hard failures. Hook run failures are non-blocking warnings and issue-log candidates."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Create a new event bus for plugin hooks.",
+      "reason": "Rejected because Issue #373 explicitly chooses the existing flow command registry pre/post lifecycle points, which avoids a second lifecycle system."
+    },
+    {
+      "option": "Keep plugin.json.files as a manifest allowlist.",
+      "reason": "Rejected because the installer convention must make known paths the core-side contract and not require plugin authors to enumerate copy targets."
+    },
+    {
+      "option": "Keep plugin command modules as export async function main(argv, ctx).",
+      "reason": "Rejected because raw core ctx exposure couples plugins to internal APIs and conflicts with the register(api) factory boundary."
+    },
+    {
+      "option": "Use live hook discovery for existing active flows without snapshots.",
+      "reason": "Rejected because active flow reproducibility depends on the snapshot captured at prepare time."
+    },
+    {
+      "option": "Add runtime aliases for plugin.repos and packages[].repo.",
+      "reason": "Rejected because alpha policy avoids compatibility shims; backward-compatible-cli-interface is addressed by migration documentation and actionable validation errors."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "plugin-registry",
+    "plugin.sources",
+    "plugin.packages",
+    "FlowCommandHook",
+    "flowCommandHooks",
+    "register(api)",
+    "plugin command help",
+    "plugin config namespace",
+    "known path installer",
+    "hook snapshot",
+    "Envelope",
+    "agent API",
+    "workflow plugin",
+    "preset plugin"
+  ],
+  "implementationTargets": [
+    "src/lib/plugin-registry.js",
+    "src/lib/config.js",
+    "src/plugin.js",
+    "src/senti.js",
+    "src/help.js",
+    "src/flow/registry.js",
+    "src/lib/command-registry.js",
+    "src/skills/senti.flow/SKILL.md",
+    "src/presets/base/templates/en/AGENTS.senti.md",
+    "src/presets/base/templates/ja/AGENTS.senti.md",
+    "tests/",
+    "specs/286-plugin-foundation-runtime/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Replace plugin source config",
+      "goal": "Move plugin package discovery and enabled package config from plugin.repos/packages[].repo to plugin.sources/packages[].source with validation and migration guidance.",
+      "acceptance": [
+        "R1 acceptance is covered by config validation and plugin CLI output tests.",
+        "Old field usage returns an actionable migration error.",
+        "Git and local source validation are covered, including unsafe local paths and unsupported npm type."
+      ],
+      "implementation_notes": "Focus on config schema, plugin registry source resolution, plugin CLI output, and config validation messaging. Do not add runtime aliases for old fields.",
+      "test_strategy": "Spec-local unit tests for config validation and plugin CLI JSON output; shared tests adjusted for source/source terminology.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Install known plugin paths",
+      "goal": "Replace manifest files allowlist copying with core-side known path copying while preserving package safety checks.",
+      "acceptance": [
+        "R2 acceptance is covered by installer tests.",
+        "Missing optional known paths are skipped.",
+        "Unsafe package contents are rejected before copy."
+      ],
+      "implementation_notes": "Known paths are plugin.json, commands/, skills/, presets/, hooks/, config.schema.json, config.defaults.json. Keep .git, node_modules, symlink, scripts, and traversal protection.",
+      "test_strategy": "Spec-local install fixture tests plus existing plugin install regression updates.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Discover flow hooks",
+      "goal": "Add plugin hook discovery and validation for hooks/*.js modules under installed and enabled plugin roots.",
+      "acceptance": [
+        "R3 acceptance is covered for valid factory hook modules.",
+        "Invalid factory shape, class shape, command metadata, hook metadata, and priority values are rejected.",
+        "prepare.pre is rejected with a hard validation failure."
+      ],
+      "implementation_notes": "Expose FLOW_COMMANDS, FLOW_COMMAND_HOOKS, and FlowCommandHook through the public api object passed to register(api). Do not require manifest hook contributions.",
+      "test_strategy": "Spec-local contract tests with valid and invalid hook fixtures.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Snapshot flow hooks",
+      "goal": "Persist hook plans into flow.json during prepare and execute snapshot hooks through the flow command lifecycle.",
+      "acceptance": [
+        "R4 and R5 acceptance are covered for prepare.post order and later command hook execution.",
+        "Snapshot entries contain no absolute paths.",
+        "Missing or disabled snapshot plugins fail with restore/enable guidance."
+      ],
+      "implementation_notes": "prepare.post order is command body, existing prepare.post, discovery/validation, snapshot write, snapshot prepare.post plugin run. Later lifecycle points read only the snapshot.",
+      "test_strategy": "Spec-local flow prepare and lifecycle tests using temporary plugin fixtures and flow.json assertions.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Run plugin hooks",
+      "goal": "Build the public hook context and normalize hook return values, warnings, thrown errors, artifact writes, and issue-log candidates.",
+      "acceptance": [
+        "R5 warning behavior is covered for throw, ok:false, and warnings.",
+        "Artifact helpers write under specs/<specId>/plugin-artifacts/<pluginId>/.",
+        "Public context excludes raw flowManager and other core internal objects."
+      ],
+      "implementation_notes": "Hook run failures do not stop the main flow command. Discovery/import/register/metadata failures remain hard failures.",
+      "test_strategy": "Spec-local tests for context shape, artifact helper paths, warning schema, and non-blocking run failures.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-6",
+      "title": "Load plugin commands",
+      "goal": "Move plugin command execution to register(api) factory modules with Envelope-compatible returns and normalized command failures.",
+      "acceptance": [
+        "R6 acceptance is covered for successful command envelopes.",
+        "Thrown plugin command errors produce failure envelopes and non-zero exit.",
+        "Plugin command context does not expose raw core ctx."
+      ],
+      "implementation_notes": "Preserve top-level unknown command resolution while changing plugin command module contract. Validate user-facing command contribution metadata before execution.",
+      "test_strategy": "Spec-local command fixture tests for success, failure, throw, and invalid contribution metadata.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    },
+    {
+      "id": "T-7",
+      "title": "Render plugin command help",
+      "goal": "Integrate plugin command help metadata into the same help rendering path as core commands without importing plugin command modules for display.",
+      "acceptance": [
+        "R7 acceptance is covered for top-level help and command help.",
+        "Static workflow entries are removed from the top-level help layout.",
+        "Help metadata validation rejects incomplete plugin command contributions."
+      ],
+      "implementation_notes": "Align plugin command metadata shape with core command registry help data. Locale wording and experimental display must be metadata-driven.",
+      "test_strategy": "Spec-local help rendering tests and existing help snapshot updates.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    },
+    {
+      "id": "T-8",
+      "title": "Namespace plugin config",
+      "goal": "Apply plugin schema/defaults under plugin.config.<pluginId> and expose generic plugin-side agent execution support.",
+      "acceptance": [
+        "R8 acceptance is covered for schema merge, default merge, and no config file mutation.",
+        "Top-level workflow config migration to plugin.config.workflow is covered by upgrade/config validation tests.",
+        "Plugin-specific agent overrides are read by plugin code from plugin.config.<pluginId>.agent.<name> and passed to the generic API.",
+        "Core does not interpret workflow-specific agent purpose names."
+      ],
+      "implementation_notes": "Keep workflow.publish as a future removal target unless this task can remove it without migrating workflow implementation. The core API remains workflow-independent.",
+      "test_strategy": "Spec-local config load tests and plugin command/hook API tests for generic agent override plumbing.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-8"
+    },
+    {
+      "id": "T-9",
+      "title": "Decouple workflow guidance",
+      "goal": "Remove workflow-specific flow instructions from generated AI skill text and preserve issue-start behavior through the official workflow plugin prepare.post hook.",
+      "acceptance": [
+        "R9 acceptance is covered by skill source and generated skill assertions.",
+        "Workflow-specific post-flow board integration text no longer appears in senti.flow skill text.",
+        "plugin.config.workflow.flowIntegration=enable with a linked issue triggers the official workflow plugin prepare.post issue-start-equivalent behavior.",
+        "Unavailable board or gh support remains informational and non-blocking.",
+        "Generated skill artifacts in the diff reflect source changes if skill or preset sources are changed."
+      ],
+      "implementation_notes": "Do not migrate the workflow implementation itself. Implement only the hook-ready deterministic entry needed to preserve the existing opt-in issue-start behavior.",
+      "test_strategy": "Spec-local text assertions plus existing skill generation tests; run senti upgrade when required.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-9"
+    },
+    {
+      "id": "T-10",
+      "title": "Generalize preset contracts",
+      "goal": "Remove core foundation tests and runtime expectations that rely on actual official preset names while preserving user-facing historical docs and configs.",
+      "acceptance": [
+        "R10 acceptance is covered by generic fixture names in core tests.",
+        "Core foundation tests do not assert laravel/symfony or other actual official preset names.",
+        "Historical specs, generated docs, and user config examples are not rewritten solely for this task."
+      ],
+      "implementation_notes": "This is contract cleanup, not preset migration. Use sample-preset / child-preset style fixtures.",
+      "test_strategy": "Spec-local grep-style assertions and updated shared tests where current fixtures depend on official preset names.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-10"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-11T00:36:45.981Z",
+    "notes": "User approved the gate-passed spec."
+  },
+  "specId": "286-plugin-foundation-runtime"
+}

@@ -1,0 +1,69 @@
+{
+  "goal": "コンテキスト検索（`sdd-forge flow get context --search`）のデフォルト検索方式を AI キーワード選定から N-gram (bigram) マッチに変更し、`config.json` で AI モードと切り替え可能にする。AI 呼び出し不要で瞬時・無料・決定的な検索をデフォルトとする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/get/context.js` に N-gram 検索関数を追加し、検索モード分岐ロジックを実装する",
+      "`src/lib/types.js` に `flow.commands.context.search.mode` のバリデーションを追加する",
+      "3段フォールバック（ngram → fallbackSearch → AI）を実装する",
+      "テスト（P1〜P3）を実施する"
+    ],
+    "out": [
+      "日本語プロジェクトでの閾値チューニング（別 spec で検証後に対応）",
+      "大規模プロジェクト（1000+ エントリ）のパフォーマンス最適化",
+      "enrich 未完了エントリへの keywords 自動付与",
+      "`collectAllKeywords` の変更（既に頻出順ソート + 上限 2000 実装済み）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: デフォルト設定（config 未指定）で `--search` を実行すると、N-gram 検索が使用される（AI エージェントが呼ばれない）。",
+    "AC2: `flow.commands.context.search.mode: \"ai\"` を設定すると、従来の AI 検索が使用される。",
+    "AC3: N-gram 検索で 0 件 → fallbackSearch で 0 件 → AI にフォールバックする（エージェント利用可能時）。",
+    "AC4: N-gram 検索で 0 件 → fallbackSearch で結果あり → fallbackSearch の結果が返る（AI は呼ばれない）。",
+    "AC5: `toBigrams(\"hello\")` が `[\"he\", \"el\", \"ll\", \"lo\"]` を返す。",
+    "AC6: 日本語2文字キーワード（例: \"認証\"）の bigram が1つ（`[\"認証\"]`）となり、閾値次第でマッチ/不マッチすることを確認する。",
+    "AC7: 不正な mode 値（例: `\"fuzzy\"`）が `validateConfig()` でエラーになる。"
+  ],
+  "clarifications": [
+    {
+      "q": "設定フィールドの配置場所は？",
+      "a": "`flow.commands.context.search.mode` に配置する。flow コマンド固有の設定として `flow` セクション配下が自然。"
+    },
+    {
+      "q": "N-gram マッチ失敗時のフォールバックは？",
+      "a": "3段フォールバック: ngram → fallbackSearch（スペース分割 OR マッチ）→ AI（エージェント利用可能時のみ）。各段で 0 件の場合のみ次段に進む。"
+    },
+    {
+      "q": "AI モード選択時の動作は？",
+      "a": "従来通り AI → fallbackSearch の2段。既存動作を維持する。"
+    },
+    {
+      "q": "`collectAllKeywords` の変更は必要か？",
+      "a": "不要。頻出順ソート + 上限 2000 は既に実装済み。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "日本語短語の閾値を別途調整する必要があるか → 本 spec では 0.15 固定。日本語プロジェクトでの検証後、必要なら別 spec で閾値チューニングを行う"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "119-context-search-ngram-mode"
+}

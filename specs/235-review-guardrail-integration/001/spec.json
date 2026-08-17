@@ -1,0 +1,142 @@
+{
+  "goal": "review コマンド（code review phase）が guardrail.json の phase:review guardrail を読み込み、review プロンプトに追加のレビュー観点として注入する",
+  "scope": {
+    "in": [
+      "`src/flow/commands/review.js` — guardrail 読み込みとプロンプト注入"
+    ],
+    "out": [
+      "gate 評価ロジック（run-gate.js）の変更",
+      "guardrail.json のフォーマット変更",
+      "test review / spec review パイプラインへの guardrail 注入",
+      "review の出力フォーマット（review.md）の変更"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない（Node.js 組み込みモジュールのみ）",
+    "review の出力形式（proposals）は変更しない",
+    "guardrail が 0 件の場合は既存動作を維持する"
+  ],
+  "design_principles": [
+    "既存の guardrail 読み込み基盤（loadMergedGuardrails + filterByPhase）を再利用する",
+    "プロンプト構築関数は I/O を含まない純粋関数として維持する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "review.js — code review コマンドの実装。guardrail の読み込みとプロンプト注入を追加する"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "guardrail.json → loadMergedGuardrails → filterByPhase('review') → buildDraftSystemPrompt → AI review prompt"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "guardrail は gate のような構造化 pass/fail 評価ではなく、review の既存 proposals 形式に追加の観点として注入する。review の目的は改善提案であり、blocker ではない",
+        "evidence": "review.js:174-197 は proposals 形式出力、gate は evaluations JSON を要求（run-gate.js:512-513）"
+      },
+      {
+        "text": "guardrail の読み込みは runReview 関数内で行い、フィルタ済み配列を buildDraftSystemPrompt に渡す。プロンプト構築関数に I/O を持ち込まない",
+        "evidence": "run-gate.js:692 で同じパターン — loadMergedGuardrails(root) を呼んでから buildGuardrailPrompt に渡す"
+      }
+    ]
+  },
+  "background": "review.js の buildDraftSystemPrompt() は 5 つのレビュー観点（duplicate code, naming, dead code, design patterns, simplification）をハードコードしている。guardrail.json に phase:review を指定した guardrail が存在しても（nextjs 3件, symfony 8件）読み込まれない。bounded-resource-usage を task-impl から review に移管したが、review が guardrail を読めないため評価されない。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "review コマンド（phase 未指定、code review モード）が loadMergedGuardrails で guardrail.json を読み込み、filterByPhase('review') でフィルタした guardrail 配列を取得する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "buildDraftSystemPrompt が guardrail 配列を受け取り、0 件でなければ追加のレビュー観点セクションとしてプロンプトに注入する。各 guardrail の id, title, body を含める",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "guardrail が 0 件の場合、buildDraftSystemPrompt の出力は変更前と同一である",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "buildDraftSystemPrompt を引数なしで呼んだ場合、guardrail 0 件と同じ出力を返す（既存テスト互換）",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "テストコードは specs/235-review-guardrail-integration/tests/ 配下に配置し、buildDraftSystemPrompt の guardrail 注入を検証する（guardrail あり/なしの両ケース）",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "review コマンドの exit code 契約は変更しない。本変更は内部プロンプト構築の拡張のみであり、成功時は exit 0、失敗時は既存の EXIT_ERROR を維持する。ユーザー向け引数（--phase: string enum test|spec, --dry-run: boolean flag, --skip-confirm: boolean flag）の追加・変更・削除は行わない。これらの既存引数のバリデーションは既に parseArgs で実装済みであり、本 spec では変更しない",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "review コマンドの code review 実行時に、phase:review の guardrail がプロンプトに含まれる",
+    "guardrail が 0 件の場合、プロンプトは既存の 5 項目のみを含む",
+    "buildDraftSystemPrompt() を引数なしで呼んだ場合のテストがパスする",
+    "specs/235-review-guardrail-integration/tests/ 配下のテストがパスする",
+    "npm test がパスする"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "gate と同じ構造化評価（JSON pass/fail）を review にも導入",
+      "reason": "review の出力形式を大幅に変更する必要があり、スコープ過大。review の目的は改善提案であり blocker ではない"
+    },
+    {
+      "option": "buildDraftSystemPrompt 内で直接 loadMergedGuardrails を呼ぶ",
+      "reason": "テスタビリティが下がり、gate のパターンと一貫しない。プロンプト構築は I/O を含まない純粋関数であるべき"
+    },
+    {
+      "option": "全 review phase（test, spec, code）に一律 guardrail を注入",
+      "reason": "各フェーズの目的が異なるため一律注入は不適切。issue #276 は code review のみを対象"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "Inject phase:review guardrails into code review prompt",
+      "goal": "review コマンドの code review モードで loadMergedGuardrails + filterByPhase('review') を呼び、結果を buildDraftSystemPrompt に渡してプロンプトに追加のレビュー観点として注入する",
+      "acceptance": [
+        "buildDraftSystemPrompt(guardrails) が guardrail 記事をプロンプトに含める",
+        "buildDraftSystemPrompt() 引数なし呼び出しは既存出力と同一",
+        "runReview が loadMergedGuardrails + filterByPhase を呼び結果を渡す"
+      ],
+      "implementation_notes": "buildDraftSystemPrompt に guardrails パラメータを追加（デフォルト空配列）。guardrails が非空の場合、既存 5 項目の後に guardrail セクションを追加。runReview の code review パスで loadMergedGuardrails(root) + filterByPhase(guardrails, 'review') を呼ぶ。フォーマットは run-gate.js と同様に id, title, body を列挙。",
+      "test_strategy": "unit test で buildDraftSystemPrompt の guardrail 注入を検証。guardrail あり/なしの両ケース",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-27T10:26:41.734Z",
+    "notes": "autoApprove"
+  },
+  "specId": "235-review-guardrail-integration"
+}

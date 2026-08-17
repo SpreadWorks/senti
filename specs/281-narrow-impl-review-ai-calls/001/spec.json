@@ -1,0 +1,215 @@
+{
+  "goal": "impl review の loop review で AI call の fan-out を抑え、proposal が単一 chunk からだけ出た場合の cross-check 追加 call をなくす。",
+  "scope": {
+    "in": [
+      "impl review の loop review call 数上限を 16 に下げる。",
+      "groups.length が 16 を超える場合、per-chunk AI call 数を 16 以下にする。",
+      "cross-check は proposal が複数 chunk から出た場合だけ実行する。",
+      "単一 chunk だけに proposal がある場合、cross-check call を実行しない。",
+      "同じ review 実行内で同一 chunk hash が再出現した場合、AI call 前に skip する。",
+      "review.md と impl-review.json の proposal / finding 出力形式を維持する。",
+      "`shouldUseLoopReview(touchedFiles.size)` が true の active impl review path から loop review を呼び出し、loop review の結果を既存の impl-review artifact writer へ渡す。"
+    ],
+    "out": [
+      "impl review 以外の review phase の挙動変更は対象外。",
+      "agent provider、CLI option、flow step 構造の変更は対象外。",
+      "prompt log 集計や metrics 表示の新機能追加は対象外。"
+    ]
+  },
+  "constraints": [
+    "外部依存は追加しない。hash 生成が必要な場合は Node.js 組み込みモジュールだけを使う。",
+    "src/ 以下に特定プロジェクトや環境に固有の情報を書かない。",
+    "既存の `sdd-forge flow review` CLI interface と exit code contract は変更しない。review 処理の成功・失敗条件も既存のままにする。",
+    "`bounded-resource-usage`: loop review の per-chunk AI call 数は固定上限 16 で bounded にする。",
+    "review.md と impl-review.json の on-disk schema / markdown section contract は変更しない。"
+  ],
+  "design_principles": [
+    "既存の group chunking と proposal expansion の流れを保ち、call 数を決める境界だけを狭める。",
+    "cross-check は cross-file 問題を見つけるための追加 pass として扱い、複数 chunk 由来の proposal がある場合に限定する。",
+    "重複 chunk guard は同一 review 実行内だけに閉じ、実行間の cache や永続化は導入しない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/commands/review.js` owns impl review execution. The active `runReview` path currently builds one impl review prompt and writes artifacts through `runImplReview`; this change wires loop review into that active path."
+      },
+      {
+        "text": "Spec-local tests under `specs/281-narrow-impl-review-ai-calls/tests/` verify the new loop review call contract without changing shared CLI behavior."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Touched files are collected by active impl review. When loop review applies, per-file diffs are compacted into groups, batched into chunks capped by `MAX_LOOP_CALLS`, reviewed or skipped by chunk hash, normalized, and passed to existing artifact writing."
+      },
+      {
+        "text": "The duplicate chunk guard computes a hash from the chunk review input during a single run. A repeated hash reuses the first chunk's review result path and avoids another agent call."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Source check: current loop review limit and cross-check condition match the draft premise.",
+        "evidence": "`src/flow/commands/review.js` defines `MAX_LOOP_CALLS = 50`; `runLoopReview` maps groups one-to-one when groups.length <= MAX_LOOP_CALLS and runs cross-check when `summaries.length > 0`."
+      },
+      {
+        "text": "[CORRECTION] Source check: `runLoopReview` is not currently used by active impl review; implementation must wire it into `runReview` for applicable impl review scenarios.",
+        "evidence": "`runReview` currently builds `buildImplReviewPrompt`, calls `flow.impl.review.propose`, and passes the result to `runImplReview`. `rg` finds `runLoopReview` only at definition/export, not as an active call site."
+      },
+      {
+        "text": "Set `MAX_LOOP_CALLS` to 16.",
+        "evidence": "Draft QA q1: user selected option 1. Issue #367 proposed lowering the limit to around 12-16.",
+        "consideredAlternatives": "12 would reduce calls further but increase chunk input size. Other values below 50 were available, but 16 stays in the proposed range while minimizing chunk growth."
+      },
+      {
+        "text": "Skip duplicate chunk hashes before AI calls within the same review execution.",
+        "evidence": "Draft QA q2: user selected option 1. Issue #367 asked for chunk hashes and a guard to avoid re-reviewing the same chunk hash in the same review execution.",
+        "consideredAlternatives": "Recording only would not prevent duplicate calls. Excluding the guard would leave part of the Issue improvement direction unimplemented."
+      },
+      {
+        "text": "Preserve existing review artifact contracts.",
+        "evidence": "Issue #367 acceptance requires preserving the review.md proposal output format. Existing code writes review artifacts through formatReviewMd / formatImplReviewMd and impl-review.json helpers."
+      },
+      {
+        "text": "Existing feature impact: impl review call scheduling changes for applicable multi-file reviews; CLI options, exit codes, review.md layout, and impl-review.json schema remain unchanged.",
+        "evidence": "Scope includes active impl review path wiring and artifact preservation; constraints explicitly keep CLI interface, exit code contract, and artifact schemas unchanged."
+      }
+    ]
+  },
+  "background": "The loop review helper currently allows one AI call per diff group up to 50 groups, then adds a cross-check whenever any chunk produced proposals. Source verification also showed that active impl review currently uses a single prompt path and does not call that helper. The requested change both narrows loop review fan-out and wires it into applicable active impl review executions while keeping review artifact formats stable.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Set the impl loop review `MAX_LOOP_CALLS` fixed limit to 16.",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "R2",
+      "desc": "When grouped diff count exceeds 16, batch groups so the number of per-chunk AI review calls is at most 16.",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "R3",
+      "desc": "Run the cross-check AI pass only when proposals are produced from more than one reviewed chunk.",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "R4",
+      "desc": "Do not run the cross-check AI pass when proposals are produced from exactly one reviewed chunk.",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "R5",
+      "desc": "Within one loop review execution, skip the AI call for a chunk whose hash matches an already reviewed chunk input.",
+      "priority": "should",
+      "status": "pending"
+    },
+    {
+      "id": "R6",
+      "desc": "Preserve the existing review.md and impl-review.json output formats for recorded impl review findings.",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "R7",
+      "desc": "Wire loop review into the active impl review path so `sdd-forge flow review` executions where `shouldUseLoopReview(touchedFiles.size)` is true use the bounded loop review result before writing review.md and impl-review.json.",
+      "priority": "must",
+      "status": "pending"
+    }
+  ],
+  "acceptance_criteria": [
+    "R1: `MAX_LOOP_CALLS` for impl loop review is 16.",
+    "R2: A loop review scenario with more than 16 groups performs no more than 16 per-chunk AI review calls.",
+    "R3: A loop review scenario with proposals from multiple reviewed chunks performs exactly one cross-check AI call.",
+    "R4: A loop review scenario with proposals from only one reviewed chunk performs no cross-check AI call.",
+    "R5: A loop review scenario with duplicate chunk input hashes performs one AI call for the first instance and skips subsequent duplicates in the same execution.",
+    "R6: Existing review.md / impl-review.json formatting tests continue to pass, and no artifact schema field is removed or renamed.",
+    "R7: A test exercising the active impl review entry point observes loop review behavior when `shouldUseLoopReview(touchedFiles.size)` is true rather than the old single prompt path."
+  ],
+  "clarifications": [
+    {
+      "q": "What is the new MAX_LOOP_CALLS value?",
+      "a": "Use 16."
+    },
+    {
+      "q": "Should duplicate chunk hashes be skipped before AI calls?",
+      "a": "Yes. Skip duplicate chunk input hashes within the same review execution."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Set MAX_LOOP_CALLS to 12.",
+      "reason": "Rejected because it would reduce calls more aggressively but increase per-call chunk size more than 16."
+    },
+    {
+      "option": "Record chunk hashes without skipping duplicate AI calls.",
+      "reason": "Rejected because it would preserve behavior but would not directly reduce duplicate call volume."
+    },
+    {
+      "option": "Leave chunk hash guard out of this change.",
+      "reason": "Rejected because Issue #367 includes avoiding re-review of the same chunk hash within one review execution."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "runLoopReview",
+    "MAX_LOOP_CALLS",
+    "loop review",
+    "impl review",
+    "cross-check",
+    "chunk hash",
+    "AI call limit",
+    "review.md",
+    "impl-review.json",
+    "groupByDiffContent",
+    "buildChunkReviewInput",
+    "buildCrossCheckInput"
+  ],
+  "implementationTargets": [
+    "src/flow/commands/review.js",
+    "specs/281-narrow-impl-review-ai-calls/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Bound loop review calls",
+      "goal": "Update impl loop review so per-chunk AI calls are capped at 16, duplicate chunk inputs are skipped within one execution, and cross-check runs only for multi-chunk proposal output.",
+      "acceptance": [
+        "R1 and R2 are satisfied by the batching limit.",
+        "R3 and R4 are satisfied by the cross-check condition.",
+        "R5 is satisfied by same-execution duplicate chunk hash handling.",
+        "R7 is satisfied by calling loop review from active impl review before artifact writing."
+      ],
+      "implementation_notes": "Keep existing chunking and proposal expansion behavior. Use Node.js built-in APIs only. Do not introduce persistent cache state. The active `runReview` impl path must call the bounded loop review for applicable scenarios and normalize its result into the existing impl-review artifact flow.",
+      "test_strategy": "Add spec-local tests under specs/281-narrow-impl-review-ai-calls/tests/ with `// spec: R<N> ...` headers. Cover R1, R2, R3, R4, R5, and R7 by stubbing review agent calls and verifying active-path call counts for limit, cross-check, and duplicate chunk scenarios.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Protect artifact format",
+      "goal": "Ensure existing impl review artifact formatting remains unchanged after the loop review call reduction.",
+      "acceptance": [
+        "R6 is satisfied by existing and/or spec-local assertions that review.md and impl-review.json formatting remains compatible."
+      ],
+      "implementation_notes": "Avoid changing formatReviewMd, formatImplReviewMd, formatImplReviewJson, or the persisted artifact field names unless tests prove no contract change.",
+      "test_strategy": "Add or reuse spec-local tests under specs/281-narrow-impl-review-ai-calls/tests/ with `// spec: R6 ...` headers for artifact format preservation, then run the focused review command tests and the spec-local tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-06T02:10:09.861Z",
+    "notes": "User approved spec after spec-gate PASS."
+  },
+  "specId": "281-narrow-impl-review-ai-calls"
+}

@@ -1,0 +1,230 @@
+{
+  "goal": "Make `senti check freshness` evaluate only the source surface relevant to documentation builds, so generated and runtime artifacts cannot exhaust traversal budgets or change freshness verdicts.",
+  "scope": {
+    "in": [
+      "A generic freshness source-surface exclusion policy for bounded file traversal.",
+      "Structured diagnostics for source and documentation freshness scans.",
+      "Regression coverage for generated artifacts, relevant traversal limits, and timestamp verdicts."
+    ],
+    "out": [
+      "Increasing traversal limits to mask repository growth.",
+      "Changing documentation build output or generated artifact storage.",
+      "Changing the public fresh, stale, never-built, or indeterminate result names."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules only.",
+    "Keep the existing ScanPolicy bounds of maxDepth 32, maxDirectoryEntries 10,000, and maxFiles 10,000; return indeterminate when a non-excluded source path or any documentation path reaches a bound or is unreadable.",
+    "Do not encode Issue-specific identifiers or artifact filenames in product code.",
+    "Use a dedicated class for any new meaningful scan-policy or scan-detail value.",
+    "no-overengineering: FreshnessScan is required to own the scan-detail invariant and serialization contract under the project's OOP value-model rule."
+  ],
+  "design_principles": [
+    "Exclude generic generated, dependency, metadata, and runtime directory boundaries before they consume traversal budgets.",
+    "Preserve limit evidence for every included path."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/file-tree-walker.js supplies bounded traversal policies and directory-entry filtering."
+      },
+      {
+        "text": "src/check/commands/freshness.js selects the source policy, compares mtimes, and serializes diagnostics."
+      },
+      {
+        "text": "tests/unit/check/scan-freshness.test.js covers bounded scan and freshness behavior."
+      },
+      {
+        "text": "FreshnessSourcePolicy owns the named source traversal boundary and maps generated/runtime directories to pre-recursion exclusion.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "FreshnessScan owns serializable source and documentation traversal diagnostics.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "The bounded freshness unit suite verifies excluded source boundaries and structured scan diagnostics.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Source root -> freshness source policy -> bounded source scan -> mtime comparison with bounded docs scan -> FreshnessResult JSON or text."
+      },
+      {
+        "text": "Source root -> FreshnessSourcePolicy.shouldEnterDirectory -> FileTreeWalker traversal without excluded-directory file-budget consumption.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Source and docs traversals -> FreshnessScan details -> FreshnessResult JSON and preserved text verdict.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Synthetic generated directories -> freshness source policy -> unchanged relevant-file freshness verdict.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] FileTreeWalker already invokes shouldEnterDirectory before recursive descent, so excluded directories can avoid file-budget consumption without weakening limit reporting.",
+        "evidence": "src/lib/file-tree-walker.js: FileTreeWalker.walk checks shouldEnterDirectory before walkDirectory and records limits for entered paths.",
+        "consideredAlternatives": "Post-traversal filtering was rejected because excluded files would already consume maxFiles."
+      },
+      {
+        "text": "[VERIFY] check scan already uses generic directory-boundary filtering with FileTreeWalker; freshness should reuse that class of policy instead of matching evidence filenames.",
+        "evidence": "src/check/commands/scan.js: walkIncludedFiles filters .git, node_modules, vendor, and .senti through shouldEnterDirectory.",
+        "consideredAlternatives": "Issue-specific specs or evidence paths were rejected because generated layouts evolve independently of freshness."
+      },
+      {
+        "text": "Freshness diagnostics will preserve the scan target, policy identity, and limit paths for source and documentation surfaces.",
+        "evidence": "src/check/commands/freshness.js currently flattens traversal limits and returns indeterminate when either scan is incomplete.",
+        "consideredAlternatives": "Text-only limits were rejected because structured consumers cannot identify the affected surface."
+      },
+      {
+        "text": "Migration parity: FreshnessResult retains fresh, stale, never-built, and indeterminate; toText retains each result label and its current fresh/stale/never-built guidance; toJSON retains ok, result, srcNewest, docsNewest, and limits. The new scan-detail owner is FreshnessResult, and unit tests verify every retained public value through the policy path.",
+        "evidence": "src/check/commands/freshness.js: FreshnessResult currently owns result names, text messages, JSON fields, and fail-closed mtime comparison.",
+        "consideredAlternatives": "No public result, output field, exit behavior, or command route is removed."
+      },
+      {
+        "text": "T-1 keeps exclusion classification in the traversal domain so freshness consumers do not duplicate directory-boundary logic.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "T-2 reports policy identity and structured limits separately from the existing human-readable limit text.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "T-3 uses small traversal budgets in repository-neutral temporary trees to prove exclusions without weakening production bounds.",
+        "added_by_task": "T-3"
+      }
+    ]
+  },
+  "background": "Freshness walks the repository root with the default bounded policy. Generated flow evidence and runtime output can therefore consume the shared file limit before relevant source and documentation are evaluated, producing indeterminate despite complete relevant inputs.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Define the named freshness source policy `freshness-source`. It skips a directory before recursion when its basename is .git, .senti, node_modules, or vendor; it also skips a path matching specs/*/review-history, specs/*/review-evidence, or specs/*/tests/.raw. Every other source-root directory remains traversed and counted.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Use that policy only for sourceRoot traversal. Traverse docs/ without source exclusions; return indeterminate if either scan reaches maxDepth 32, maxDirectoryEntries 10,000, maxFiles 10,000, or an unreadable non-excluded path.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Add sourceScan and docsScan JSON details, each containing target, policy name, complete, and limits with kind, relativePath, and maximum. Keep result names and retain toText labels: fresh, stale with docs-build guidance, never-built with docs-build guidance, and indeterminate with limits.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Add unit tests in which .senti, node_modules, vendor, .git, and generated specs evidence contain more than maxFiles files but source and docs still return fresh or stale; separately prove that a limit in non-excluded source or docs returns indeterminate.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A tree with excluded generated files beyond maxFiles and complete relevant files returns fresh or stale according to relevant source and docs mtimes.",
+    "Changing only an excluded generated or runtime artifact does not change a freshness verdict.",
+    "A limit or unreadable path on an included source or documentation surface returns indeterminate with the affected target and limit path in structured details.",
+    "Existing never-built, fresh, stale, JSON, and text result contracts remain available.",
+    "No production source contains an Issue-specific spec identifier or generated evidence filename."
+  ],
+  "clarifications": [
+    {
+      "q": "Which paths are excluded?",
+      "a": "Only generic boundaries representing generated metadata, runtime output, dependencies, or version-control internals; never a particular Issue or artifact filename."
+    },
+    {
+      "q": "Can included scan failures be ignored?",
+      "a": "No. Any included source or documentation traversal failure remains indeterminate."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Raise maxFiles for freshness.",
+      "reason": "Rejected because repository growth would recreate the failure and unrelated generated files would still influence the budget."
+    },
+    {
+      "option": "Filter generated files after traversal.",
+      "reason": "Rejected because filtering after traversal cannot recover budget already consumed by generated files."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "freshness",
+    "FileTreeWalker",
+    "ScanPolicy",
+    "source-surface",
+    "generated-artifacts",
+    "runtime-artifacts",
+    "traversal-limit",
+    "indeterminate",
+    "mtime",
+    "scan-diagnostics"
+  ],
+  "implementationTargets": [
+    "src/lib/file-tree-walker.js",
+    "src/check/commands/freshness.js",
+    "tests/unit/check/scan-freshness.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Define freshness scan policy",
+      "goal": "Add a reusable generic directory-boundary policy for freshness source traversal so excluded directories do not consume bounded traversal budgets.",
+      "acceptance": [
+        "Excluded boundaries are skipped before recursion and file counting.",
+        "Included-directory traversal retains limit and unreadable-path reporting."
+      ],
+      "implementation_notes": "Keep the policy in the file-tree traversal domain and use a dedicated class for meaningful policy data.",
+      "test_strategy": "Unit tests exercise the policy through FileTreeWalker or freshness traversal with a small maxFiles budget.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Report freshness scan details",
+      "goal": "Use the freshness source policy for source mtimes and retain structured diagnostics for source and documentation scans while preserving verdict behavior.",
+      "acceptance": [
+        "Freshness JSON identifies scan targets, policy, and limits.",
+        "Relevant source or documentation limits still produce indeterminate."
+      ],
+      "implementation_notes": "Do not apply source exclusions to documentation traversal unless its independent contract requires them.",
+      "test_strategy": "Unit tests assert fresh, stale, and indeterminate results with structured scan details.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover generated scan boundaries",
+      "goal": "Add regression tests for generated artifacts exceeding the scan budget and limits in included source or documentation paths.",
+      "acceptance": [
+        "Generated-only timestamp changes do not change a complete verdict.",
+        "Included-source and documentation limit cases remain fail closed."
+      ],
+      "implementation_notes": "Extend the existing scan-freshness unit suite with synthetic, repository-neutral fixtures.",
+      "test_strategy": "Node unit tests with temporary directories, explicit mtimes, and a small ScanPolicy maxFiles value.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-28T10:48:00.282Z",
+    "notes": "Auto-approved from accepted preflight summary and passed spec gate."
+  },
+  "specId": "480-freshness-scan-policy"
+}

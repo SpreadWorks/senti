@@ -1,0 +1,49 @@
+{
+  "goal": "ci プリセットに含まれる GitHub Actions 固有のコード（DataSource, scan 設定, テンプレート）を github-actions プリセットに移動し、ci を抽象プリセット（章定義 + 汎用 guardrail のみ）として整理する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "GitHub Actions 固有の新機能追加（reusable workflows, composite actions, matrix strategy 等の解析）",
+      "他の CI プラットフォーム（GitLab CI, CircleCI 等）のプリセット作成",
+      "ci プリセット自体の削除"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "ci プリセットのどのコードが GitHub Actions 固有か？",
+      "a": "`data/pipelines.js`（`.github/workflows/*.yml` の match パターン、`${{ secrets.* }}` 抽出）、`scan.include`（`.github/workflows/**/*.yml`）、`templates/ci_cd.md`（`ci.pipelines.*` ディレクティブ）がすべて GitHub Actions 固有。guardrail（シークレット禁止、バージョン固定）は CI 汎用のため ci に残す。"
+    },
+    {
+      "q": "テンプレートの継承構造はどうするか？",
+      "a": "ci の `ci_cd.md` は `{{text}}` + `{%block%}` の抽象テンプレートに変更。github-actions が `{%extends%}` でブロックを `{{data(\"github-actions.pipelines.*\")}}` にオーバーライドする。ルール「親テンプレートは `{{text}}`、子が `{{data}}` で override」に合致。"
+    },
+    {
+      "q": "ci の aliases から github-actions を削除する影響は？",
+      "a": "`github-actions` プリセットが独立して存在するため、`type: \"github-actions\"` の設定は引き続き動作する。alpha 版ポリシーにより後方互換コードは不要。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "136-github-actions-preset"
+}

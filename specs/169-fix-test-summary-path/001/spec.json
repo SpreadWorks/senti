@@ -1,0 +1,51 @@
+{
+  "goal": "`flow set test-summary` で保存したテスト件数が、finalize 後の report に正しく反映されるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/report.js` の test summary 参照パスを修正する"
+    ],
+    "out": [
+      "docs の手動修正（自動再生成で対応）",
+      "`metrics` データ構造のリファクタリング",
+      "`setTestSummary` の保存先変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`flow set test-summary --unit N --integration N --acceptance N` で保存した値が report の Tests セクションに正しく表示される",
+    "既存の `flow set metric` による metrics データに影響しない"
+  ],
+  "clarifications": [
+    {
+      "q": "保存パスと参照パスのどちらに統一するか？",
+      "a": "`state.test.summary`（保存側）に統一する。`metrics` は `flow set metric` 用の自動カウンタ系データであり、ユーザーが明示的に設定する test-summary とは性質が異なるため。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**参照パス (`state.metrics.test.summary`) に統一する案**",
+      "reason": "保存側を変更する必要があり、既存の flow.json との互換性に影響する。`metrics` は自動カウンタであり test-summary を格納する場所として不適切。却下。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "169-fix-test-summary-path"
+}

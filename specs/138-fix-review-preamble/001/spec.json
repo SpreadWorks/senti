@@ -1,0 +1,60 @@
+{
+  "goal": "spec review の fix フェーズで AI が出力するプリアンブルテキスト（例: \"It seems I don't have write permission...\"、\"Here is the updated spec...\"）を除去し、spec.md の破損を防止する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/review.js` — `buildSpecFixPrompt` のプロンプト改善、`stripPreamble` 関数の追加、fix フェーズでのサニタイズ適用"
+    ],
+    "out": [
+      "`isValidSpecOutput` の変更（既存テストへの影響を避ける）",
+      "test review / code review パイプライン（`runReviewLoop` 共通部分は変更しない）",
+      "AI モデル自体のチューニング",
+      "`src/flow/lib/run-review.js` の `parseSpecReviewOutput` は変更不要（exit code + stderr 形式は変わらないため）",
+      "既存のプリアンブル除去関数（`stripResponsePreamble` 等）との共通ユーティリティ抽出（将来課題）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`stripPreamble` がプリアンブル + spec ヘッダの組み合わせからプリアンブルを除去できることをテストで確認",
+    "`stripPreamble` がプリアンブルなしの正常な spec をそのまま返すことをテストで確認",
+    "`stripPreamble` が spec ヘッダを含まないテキストをそのまま返すことをテストで確認",
+    "`stripPreamble` がマークダウンフェンスで囲まれた spec 出力からフェンスとプリアンブルを除去できることをテストで確認",
+    "`buildSpecFixPrompt` の出力にプリアンブル抑制の指示が含まれることをテストで確認",
+    "既存の `isValidSpecOutput` テスト（spec-136）が全て PASS すること"
+  ],
+  "clarifications": [
+    {
+      "q": "`stripPreamble` はどこに配置するか？",
+      "a": "`review.js` 内にローカル関数として定義。export して spec-138 のテストから参照可能にする。"
+    },
+    {
+      "q": "サニタイズのロジックは？",
+      "a": "`# Feature Specification` または `## Goal` の最初の出現位置を探し、それより前のテキストを除去する。該当パターンがない場合はテキストをそのまま返す（`isValidSpecOutput` が後で reject する）。"
+    },
+    {
+      "q": "既存の `stripResponsePreamble` を再利用しないのはなぜか？",
+      "a": "既存関数はドキュメント生成用の汎用プリアンブル除去で検出パターンが異なる。本 spec では spec 固有のヘッダパターンを検出起点とするため専用関数を定義する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "138-fix-review-preamble"
+}

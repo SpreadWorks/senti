@@ -1,0 +1,53 @@
+{
+  "goal": "SDD フロー管理の不備を修正する。`flow status` コマンドの出力形式・アーカイブ機能・スキルファイルの整合性はすべて flow.json を中心としたフロー管理の構成要素であり、これらの不備が連鎖して「current-spec がない」「ステータスが更新されない」「close 時に spec フォルダへ移動しない」という一連のユーザー体験上の問題を引き起こしている。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/status.js` — `displayStatus()` の出力形式変更、`--archive` オプション追加",
+      "`.claude/skills/` のスキルファイル — `src/templates/skills/` の最新版への同期（フロー管理の指示整合性確保）"
+    ],
+    "out": [
+      "旧 spec ファイル内の `current-spec` 参照の修正（歴史的記録）",
+      "flow status の表示内容の追加・変更（形式のみ変更）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "コンソール出力の形式は？",
+      "a": "罫線（────）+ インデント付き箇条書き。マークダウンテーブルは使わない"
+    },
+    {
+      "q": "`--archive` の挙動は？",
+      "a": "flow.json の `spec` フィールドから spec ディレクトリを特定し、そこに flow.json をコピー後、`.sdd-forge/flow.json` を削除"
+    },
+    {
+      "q": "ローカルスキルの更新方法は？",
+      "a": "`src/templates/skills/` の内容をそのまま `.claude/skills/` にコピー"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "048-fix-flow-status-output"
+}

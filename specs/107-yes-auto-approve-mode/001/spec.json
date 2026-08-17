@@ -1,0 +1,83 @@
+{
+  "goal": "SDD フローに autoApprove モードを導入し、AI が選択肢を自動選択して人間の介入なしにフロー全体を走り切れるようにする。Phase 1 として SKILL.md の指示ベースで実現する（コンソールに流れが見える形）。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/flow-state.js` — FlowState typedef に `autoApprove: boolean` を追加",
+      "`src/flow/set/auto.js` — `flow set auto on/off` コマンド新規作成",
+      "`src/flow/get/status.js` — 応答に `autoApprove` フィールドを追加",
+      "`src/templates/partials/core-principle.md` — autoApprove 時の動作指示を追加",
+      "`src/templates/skills/sdd-forge.flow-plan/SKILL.md` — autoApprove 対応（draft 自問自答、Hard Stops 緩和、リトライ上限）",
+      "`src/templates/skills/sdd-forge.flow-impl/SKILL.md` — autoApprove 対応（Hard Stops 緩和、リトライ上限）",
+      "`src/templates/skills/sdd-forge.flow-finalize/SKILL.md` — autoApprove 対応（Hard Stops 緩和）",
+      "`src/templates/skills/sdd-forge.flow-auto-on/` — 新規 skill テンプレート",
+      "`src/templates/skills/sdd-forge.flow-auto-off/` — 新規 skill テンプレート"
+    ],
+    "out": [
+      "Phase 2: コマンド内完結（`flow run plan --auto` 等で AI を介さず実行）",
+      "draft 自問自答の品質ブラッシュアップ",
+      "承認選択肢への「以降は自動で」オプション追加",
+      "`prepare-spec --yes` フラグ",
+      "`prompt.js` の `recommended` フィールド変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`flow set auto on` を実行すると flow.json の `autoApprove` が `true` になる",
+    "`flow set auto off` を実行すると flow.json の `autoApprove` が `false` になる",
+    "`flow set auto on` を flow.json 未存在の状態で実行するとエラーが返る",
+    "`flow get status` の応答に `autoApprove` フィールドが含まれる",
+    "`core-principle.md` に autoApprove 時の動作指示が記述されている",
+    "各 SKILL.md（plan/impl/finalize）に autoApprove 時の Hard Stops 緩和が記述されている",
+    "`flow-plan/SKILL.md` に draft 自問自答モードの指示が記述されている",
+    "`flow-plan/SKILL.md` と `flow-impl/SKILL.md` にリトライ上限（gate 20, impl test 5, review 3）が記述されている",
+    "`/sdd-forge.flow-auto-on` skill が存在し、auto ON + 適切な flow skill への誘導を行う",
+    "`/sdd-forge.flow-auto-off` skill が存在し、auto OFF を行う",
+    "既存テストがパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "auto mode での選択肢処理はどこで行うか？",
+      "a": "AI 経由。SKILL.md が `flow get status` で `autoApprove` を確認し、true なら選択肢を提示せず id=1 が選ばれたものとして進む。"
+    },
+    {
+      "q": "draft フェーズはスキップするか？",
+      "a": "スキップしない。auto mode でも必ず自問自答で draft を作成する。AI の判断でブレさせない。"
+    },
+    {
+      "q": "auto OFF のタイミングは？",
+      "a": "自動 OFF しない。flow.json に残り続ける。明示的に `/sdd-forge.flow-auto-off` で OFF する。"
+    },
+    {
+      "q": "prepare-spec --yes は必要か？",
+      "a": "不要。SKILL.md の指示で prepare-spec 後に `flow set auto on` を実行させる。"
+    },
+    {
+      "q": "prompt.js の recommended 変更は必要か？",
+      "a": "不要。auto mode は id=1 固定なので recommended を参照しない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "107-yes-auto-approve-mode"
+}

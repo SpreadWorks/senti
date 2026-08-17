@@ -1,0 +1,56 @@
+{
+  "goal": "`spec.js` ディスパッチャを廃止し、spec 系コマンドを flow に統合する。孤立した flow/run ファイルを削除し、guardrail の共有ロジックを lib に切り出す。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "guardrail のデータ形式を JSON に移行（ボード 5609）",
+      "guardrail の自動学習（ボード 4d21）",
+      "`spec/commands/guardrail.js` の `show` サブコマンドの移行（既存の `flow get guardrail` で代替可能か別途検討）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow run prepare-spec` が正常動作する（spec ディレクトリ・ブランチ・worktree 作成）",
+    "`sdd-forge flow run gate` が正常動作する（spec バリデーション）",
+    "`sdd-forge flow run lint` が正常動作する（guardrail lint パターン適用）",
+    "`sdd-forge flow get guardrail <phase>` が正常動作する",
+    "`sdd-forge spec` コマンドが存在しない（エラーまたはヘルプに表示されない）",
+    "`src/spec/` ディレクトリが存在しない",
+    "`src/flow/run/merge.js`, `src/flow/run/cleanup.js` が存在しない",
+    "既存テストが通る"
+  ],
+  "clarifications": [
+    {
+      "q": "`prepare-spec.js` と `gate.js` が現在 `runSync` で init.js / gate.js を呼んでいるが、どう変更するか？",
+      "a": "各ファイルのロジックを直接取り込む。runSync による子プロセス呼び出しを関数呼び出しに変更する。"
+    },
+    {
+      "q": "`spec/commands/` ディレクトリは残すか？",
+      "a": "guardrail.js の `show` サブコマンドのみ残る可能性があるが、共有ロジックが lib に移動した後は `spec/commands/` 自体を削除し、`show` が必要なら `flow get guardrail` で代替する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`spec/commands/guardrail.js` の `show` サブコマンドは flow get guardrail で完全に代替できるか？ → Yes。`flow/get/guardrail.js` が `loadMergedArticles` + `filterByPhase` を使って同等の機能を提供済み。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "101-remove-spec-js-dispatcher-and-clean-up-command-s"
+}

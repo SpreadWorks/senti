@@ -1,0 +1,59 @@
+{
+  "goal": "analysis.json のエントリにシソーラス付きキーワードを付与し、`flow get context --search` でキーワード検索して関連エントリを取得できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "enrich プロンプトに `keywords` フィールドを追加し、AI がシソーラス付きキーワード配列を生成する",
+      "`src/flow/get/context.js` に `--search \"keyword\"` オプションを追加し、keywords 配列に対する静的マッチで検索する",
+      "enrich の結果マージ処理で `keywords` フィールドを保存する"
+    ],
+    "out": [
+      "flow-plan/impl スキルへの自動統合（ボード 0bc9）",
+      "review 履歴からのキーワード生成（ボード ce15）",
+      "AI によるクエリ展開（検索時の AI 呼び出し）",
+      "独立した `sdd-forge context` トップレベルコマンド（既存の `flow get context` に統合）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge docs enrich` 実行後、analysis.json のエントリに `keywords` 配列が含まれること",
+    "`sdd-forge flow get context --search \"auth\"` で認証関連のエントリがヒットすること",
+    "`sdd-forge flow get context --search \"存在しないキーワード\"` で空の結果が返ること",
+    "既存の `flow get context`（パスなし / パスあり）の動作が変わらないこと"
+  ],
+  "clarifications": [
+    {
+      "q": "インデックスのデータソースは何か？",
+      "a": "analysis.json の enriched エントリ。別途 index.json は作らない。"
+    },
+    {
+      "q": "シソーラスはいつ作るか？",
+      "a": "enrich 時に AI が生成。検索時には AI を使わない。"
+    },
+    {
+      "q": "検索結果に何を含めるか？",
+      "a": "マッチしたエントリの file + summary + detail。`--raw` でプレーンテキスト、なしで JSON envelope。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "112-context-search-layer-keyword-index"
+}

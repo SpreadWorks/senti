@@ -1,0 +1,48 @@
+{
+  "goal": "finalize パイプラインの retro/report ステップがメインリポジトリに成果物を保存するよう修正し、worktree cleanup が正常に動作するようにする。また、finalize SKILL.md に report text の表示指示を追加する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/run/finalize.js`: retro と report の保存先をメインリポジトリの `specs/NNN/` に変更",
+      "`src/flow/run/finalize.js`: report 保存後に retro.json + report.json を git add + commit する",
+      "`src/templates/skills/sdd-forge.flow-finalize/SKILL.md`: report text の表示指示を追加"
+    ],
+    "out": [
+      "retro.js 本体の変更（finalize.js 側で保存先を制御する）",
+      "cleanup.js への `--force` 追加（根本原因を修正すれば不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "retro.json の保存先をどう変えるか？",
+      "a": "finalize.js の retro ステップで retro サブプロセスの実行後、生成された retro.json を worktree から mainRepoPath にコピーする。または retro の実行 cwd をメインリポジトリにする。"
+    },
+    {
+      "q": "report と retro のコミットタイミングは？",
+      "a": "report ステップ（Step 6、cleanup の後）でまとめて `git add specs/NNN/retro.json specs/NNN/report.json && commit`。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "124-fix-finalize-report-save"
+}

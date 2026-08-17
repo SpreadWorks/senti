@@ -1,0 +1,126 @@
+{
+  "goal": "spec phase の gate に新 guardrail `req-diff-verifiability` を追加し、各 REQ が unified diff + test execution summary だけで PASS/FAIL 判定可能であることを spec 段階で強制する。診断不能な REQ（将来挙動の保証・拡張性契約・diff 外プロセス不変条件）を spec 段階で弾き、impl phase の retry ceiling 浪費を防ぐ。",
+  "background": "issue #211 (cc61) は gate-impl の FAIL を「AI 判定ブレ」と仮定し多数決案を提示したが、3 spec (203/207 x2) の issue-log 分析で前提が崩れた。203 は REQ-11 の extensibility contract が diff 単独で検証不能なため 3 回一貫して FAIL、207 系は段階的な legitimate FAIL であり判定ブレではなかった。根本原因は「診断不能な REQ の書き方」を spec 段階で許していること。spec gate で verifiability を問う guardrail を追加することで、impl phase ceiling 浪費の構造的要因を断つ。",
+  "scope": {
+    "in": [
+      "`src/presets/base/guardrail.json` に guardrail エントリ 1 件追加 (id: `req-diff-verifiability`, phase: `spec`, category: `process`)",
+      "新 guardrail の phase filter 挙動 (spec phase のみ含まれ、draft / task-impl phase では含まれない) の回帰テスト",
+      "追加した guardrail entry の schema 妥当性 (id / title / body / meta.phase / meta.category)"
+    ],
+    "out": [
+      "既存 spec の REQ 書き換え・遡及修正",
+      "案C (多数決) / 案F との統合 (別 draft)",
+      "gate-impl 側の guardrail 調整・判定 fallback 見直し",
+      "guardrail JSON schema 自体の変更"
+    ]
+  },
+  "constraints": [
+    "既存の guardrail JSON schema (id / title / body / meta.phase / meta.category) は変更しない",
+    "既存 guardrail id / body は一切変更しない (追加のみ)",
+    "preset 継承チェーン・loader 側のロジック変更なし",
+    "AI evaluation response の schema (`evaluations[]`) 変更なし"
+  ],
+  "design_principles": [
+    "追加のみ (loader / run-gate 側に特別扱いを入れない)",
+    "新 guardrail 1 エントリのみで機能を成立させる"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/presets/base/guardrail.json` — 新 guardrail エントリの追加対象"
+      },
+      {
+        "text": "`src/lib/guardrail.js` — 変更なし (既存の phase filter がそのまま機能する)"
+      },
+      {
+        "text": "`src/flow/lib/run-gate.js` — 変更なし (knownIds が動的に guardrail 一覧から構築されるため新 id が自動的に許可される)"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "spec gate 起動 → guardrail.js が base preset から guardrail JSON を読み込み → phase=spec の entry を filter → run-gate.js が AI に prompt で guardrail 一覧を渡す → AI が各 guardrail について REQ を評価 → req-diff-verifiability が FAIL なら spec gate 全体 FAIL"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "phase は `spec` のみ。draft には含めない (draft-scope-boundary 原則により draft は要件レベルで verifiability を厳密に問う段階ではない)"
+      },
+      {
+        "text": "category は `process` (既存の unambiguous-requirements / complete-context と同系列のメタ要件)"
+      },
+      {
+        "text": "id は `req-diff-verifiability` (既存 id の kebab-case / 名詞句パターンに揃う)"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When spec phase の gate 実行時 (`sdd-forge spec gate` / `sdd-forge flow run gate --phase spec`) に guardrail 一覧を AI に渡すとき、guardrail 一覧は id=`req-diff-verifiability`, phase=`spec`, category=`process`, title と body を持つエントリを含まなければならない (shall)。",
+      "priority": "must"
+    },
+    {
+      "id": "R2",
+      "desc": "When draft phase または task-impl phase で guardrail を読み込むとき、`req-diff-verifiability` エントリは含まれてはならない (shall not)。",
+      "priority": "must"
+    },
+    {
+      "id": "R3",
+      "desc": "When `src/presets/base/guardrail.json` を JSON parse したとき、新規追加エントリは既存の guardrail JSON schema (id: 非空 string, title: 非空 string, body: 非空 string, meta.phase: string 配列, meta.category: string) に準拠していなければならない (shall)。",
+      "priority": "should"
+    },
+    {
+      "id": "R4",
+      "desc": "When 既存の guardrail (`unambiguous-requirements` 他すべて) を読み込むとき、id / title / body / meta すべて本 spec 前の値と一致しなければならない (shall)。",
+      "priority": "should"
+    }
+  ],
+  "acceptance_criteria": [
+    "`src/presets/base/guardrail.json` に id=`req-diff-verifiability` のエントリが 1 件存在する",
+    "`sdd-forge flow get guardrail spec` の markdown 出力に新 guardrail の title が含まれる",
+    "`sdd-forge flow get guardrail draft` の markdown 出力に新 guardrail の title が含まれない",
+    "`sdd-forge flow get guardrail task-impl` の markdown 出力に新 guardrail の title が含まれない",
+    "新規 / 既存のユニットテスト (`npm test`) がすべて PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "guardrail id の命名は既存と揃っているか？",
+      "a": "揃っている。既存の unambiguous-requirements / complete-context / prioritize-requirements 等と同じ kebab-case / 名詞句パターン。"
+    },
+    {
+      "q": "run-gate.js の knownIds validation は追加 id を受け入れるか？",
+      "a": "受け入れる。knownIds は guardrail JSON から動的に構築されるため (`src/flow/lib/run-gate.js:377` の `new Set(knownIds)`)、新 id が自動的に許可される。"
+    },
+    {
+      "q": "body 文面の最終形は？",
+      "a": "Each requirement shall be verifiable using a standard unified diff and a test execution summary alone. Requirements that depend on future behavior guarantees, extensibility contracts, or out-of-diff process invariants shall be rewritten."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "gate-impl 側に新 guardrail を追加",
+      "reason": "却下。impl phase で検出しても retry ceiling 浪費は発生済み。根本解決は spec 段階で弾くこと。"
+    },
+    {
+      "option": "guardrail JSON schema を拡張して verifiable_via 等の構造化フィールドを追加",
+      "reason": "却下。scope 拡大になる。既存 body 文字列で十分。"
+    },
+    {
+      "option": "draft phase にも同 guardrail を追加",
+      "reason": "却下。draft-scope-boundary 原則と衝突。verifiability 審査は spec phase で行う。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "212-req-diff-verifiability-gate"
+}

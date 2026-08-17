@@ -1,0 +1,66 @@
+{
+  "goal": "flow の全サブコマンド/オプションを棚卸しし、keep / remove / integrate into skill に分類する。remove 対象は実装・ドキュメントから削除し、integrate 対象はスキルに組み込み手順を追加する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`flow resume` の扱い（スキル自体はコンパクション復帰で有用）",
+      "redo ログ登録ロジックの再設計（別 issue 81d4 で対応）",
+      "keep 対象（`--skip-guardrail`, `--message`, `--dry-run`）の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] All flow subcommands/options have a classification and rationale in the Classification Table",
+    "[ ] Remove targets are deleted from both code and documentation",
+    "[ ] Integrate targets have usage instructions in the corresponding skill templates",
+    "[ ] `sdd-forge upgrade` has been run after template changes",
+    "[ ] Existing tests pass (`npm test`)"
+  ],
+  "clarifications": [
+    {
+      "q": "未使用コマンドは一括削除か？",
+      "a": "いいえ。個別に keep / remove / integrate を判断する。Issue の目的は棚卸しと分類。"
+    },
+    {
+      "q": "alpha ポリシーで migration plan は不要か？",
+      "a": "不要。ただし `--confirm-skip-guardrail` 削除による動作変更（`--skip-guardrail` 単独で有効化）は CHANGELOG に記載する。"
+    },
+    {
+      "q": "サブコマンド test-summary / lint / retro は削除か？",
+      "a": "削除ではなく integrate。完全実装済みで有用な機能。スキルへの組み込みが未完了なだけ。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**Delete all unused commands/options**",
+      "reason": "Rejected. Some are fully implemented and useful; the issue's goal is classification, not blanket removal."
+    },
+    {
+      "option": "**Keep everything as-is**",
+      "reason": "Rejected. `--confirm-skip-guardrail` and redo-related code are genuinely broken or useless, and integrate targets should be wired into skills."
+    }
+  ],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "172-audit-unused-flow-commands"
+}

@@ -1,0 +1,55 @@
+{
+  "goal": "`src/flow/registry.js` から不要な `redo` エントリを削除し、`flow set redo` 実行時の `entry.command is not a function` クラッシュを解消する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/registry.js` の `redo` エントリ（L233-236）の削除"
+    ],
+    "out": [
+      "`set-metric.js` の `VALID_COUNTERS` にある `\"redo\"` カウンター名（`flow set metric` 用であり別物）",
+      "`docs/cli_commands.md` の旧 `flow set redo` 記載の修正",
+      "回帰テストの追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`src/flow/registry.js` に `redo` エントリが存在しない",
+    "`flow set redo` 実行時にクラッシュ（`entry.command is not a function`）が発生しない"
+  ],
+  "clarifications": [
+    {
+      "q": "互換 shim を修正するか、削除するか？",
+      "a": "alpha 版ポリシー「後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する」に従い削除する。`src/` 内に `flow set redo` を呼び出すコードは存在しない。"
+    },
+    {
+      "q": "`set-metric.js` の `VALID_COUNTERS` にある `\"redo\"` は修正が必要か？",
+      "a": "不要。これは `flow set metric <phase> redo` 用のカウンター名であり、`flow set redo` コマンドとは無関係。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**互換 shim の修正**",
+      "reason": "`execute` を `command` に合わせて修正し RENAMED メッセージを返す案。alpha 版ポリシーに反するため却下。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "169-fix-flow-set-redo-error"
+}

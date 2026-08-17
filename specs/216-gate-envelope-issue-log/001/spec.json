@@ -1,0 +1,116 @@
+{
+  "goal": "gate エスカレーション判定 (ESCALATE_RETRY_EXHAUSTED / NO_PROGRESS_SINCE_LAST_FAIL) を Envelope.fail で返すパスでも issue-log に1件記録し、ESCALATE_REPEATED_FAIL (throw 経由) と挙動を揃える。",
+  "scope": {
+    "in": [
+      "checkRetryBelowMax の ESCALATE_RETRY_EXHAUSTED 経路で issue-log に1件追記する",
+      "checkNoProgressSinceLastFail の NO_PROGRESS_SINCE_LAST_FAIL 経路で issue-log に1件追記する",
+      "既存 skipPost=true による gateRetry 非加算挙動を維持する",
+      "追加ユニットテストで両経路の記録と retry カウンタ非増加を検証する"
+    ],
+    "out": [
+      "dispatcher (src/lib/dispatcher.js) の skipPost 分岐および success-path で Envelope.fail を honor する挙動の変更",
+      "appendIssueLogFromGateError のシグネチャやエントリスキーマの拡張",
+      "assertNoRepeatedFail (throw 経由) の記録経路の変更",
+      "authorized_test_modifications など gate の他の early-return パスの記録挙動変更"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止 (Node.js 組み込みのみ)",
+    "src/ にプロジェクト固有情報を含めない",
+    "既存テスト・スナップショットを修正しない",
+    "issue-log 書き込み失敗時のエラーを呑まない"
+  ],
+  "design_principles": [
+    "記録と判定の分離: dispatcher は判定のみ honor、記録はドメイン層 (gate ヘルパー) で明示呼び出し",
+    "既存ヘルパーの再利用: appendIssueLogFromGateError をそのまま流用",
+    "retry budget 非消費を維持: カウンタ加算は post-hook のみ"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-gate.js の checkRetryBelowMax / checkNoProgressSinceLastFail / appendIssueLogFromGateError"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "executeDiffBasedGate → checkRetryBelowMax or checkNoProgressSinceLastFail → 判定成立時に appendIssueLogFromGateError で issue-log 追記 → Envelope.fail return → dispatcher success-path で skipPost=true"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "記録トリガは gate ヘルパー内で呼ぶ (dispatcher には触れない)"
+      },
+      {
+        "text": "reason は envelope messages を join した文字列 (ESCALATE_REPEATED_FAIL と揃える)"
+      },
+      {
+        "text": "headSha/worktreeHash/failedEvaluations は付与しない (appendIssueLogFromGateError の簡易エントリ仕様を維持)"
+      }
+    ]
+  },
+  "background": "spec 213 で checkRetryBelowMax / checkNoProgressSinceLastFail が throw → Envelope.fail return に変更された結果、dispatcher success-path で skipPost=true となり post/onError が呼ばれず、issue-log にエントリが残らなくなった。ESCALATE_REPEATED_FAIL は throw 経由で記録されるため挙動が非対称。",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When checkRetryBelowMax が Envelope.fail (code=ESCALATE_RETRY_EXHAUSTED) を return する場合、同じ呼び出しで issue-log に新しいエントリが1件追記され、reason には envelope messages を連結した文字列が含まれる (shall)。",
+      "priority": "must"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When checkNoProgressSinceLastFail が Envelope.fail (code=NO_PROGRESS_SINCE_LAST_FAIL) を return する場合、同じ呼び出しで issue-log に新しいエントリが1件追記され、reason には envelope messages を連結した文字列が含まれる (shall)。",
+      "priority": "must"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "REQ-1 / REQ-2 のいずれのケースでも flowState.metrics[phase].gateRetry は増加しない (既存 post-hook 非実行挙動を維持) (shall)。",
+      "priority": "should"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "REQ-1 / REQ-2 で追記されるエントリの phase は呼び出し時の phase と一致し、step は resolveGateStepId(phase) の結果に一致する (shall)。",
+      "priority": "should"
+    }
+  ],
+  "acceptance_criteria": [
+    "ユニットテスト追加: checkRetryBelowMax が budget 超過で Envelope.fail を return し issue-log に1件追記 (REQ-1, REQ-4)",
+    "ユニットテスト追加: checkNoProgressSinceLastFail が state 一致で Envelope.fail を return し issue-log に1件追記 (REQ-2, REQ-4)",
+    "ユニットテスト追加: 両ケースで flowState.metrics[phase].gateRetry が変化しない (REQ-3)",
+    "npm test が PASS する。既存テストを変更しない"
+  ],
+  "clarifications": [
+    {
+      "q": "dispatcher success-path で Envelope.fail を honor する設計 (spec 213) を変更する案は?",
+      "a": "採らない。skipPost=true による gateRetry 非加算と不可分。判定と記録を分離し、記録だけドメイン層に追加する。"
+    },
+    {
+      "q": "記録用ヘルパーを新設するか、既存 appendIssueLogFromGateError を流用するか?",
+      "a": "流用する。reason 文字列を書くだけの要件で既存シグネチャが合致する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "dispatcher 修正で skipPost 時も onError を呼ぶ",
+      "reason": "却下。onError の契約と矛盾し、汎用層に gate 固有挙動が混入する。"
+    },
+    {
+      "option": "appendIssueLogFromGateResult で evaluations 付きに記録する",
+      "reason": "却下。AI 評価結果を持たず evaluations が空になるため情報量が増えない。throw 経路と揃える意味でも不要。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "216-gate-envelope-issue-log"
+}

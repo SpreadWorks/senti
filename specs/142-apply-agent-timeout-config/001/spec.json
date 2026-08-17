@@ -1,0 +1,60 @@
+{
+  "goal": "`config.json` の `agent.timeout`（秒）を `resolveAgent` の返り値に含め、全 AI 呼び出し（`callAgent` / `callAgentAsync`）のデフォルトタイムアウトとして一元的に適用する。現在各コマンドでバラバラに行われている timeout 解決を統一する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/agent.js` の `resolveAgent` が `timeoutMs` フィールドを返すようにする",
+      "`callAgent` / `callAgentAsync` が `agent.timeoutMs` をデフォルトとして使用する",
+      "各コマンドで個別に `cfg.agent?.timeout` を読んでいる箇所を `agent.timeoutMs` 参照に統一する",
+      "各コマンドで `DEFAULT_AGENT_TIMEOUT_MS` を直接使用している箇所を `agent.timeoutMs` 参照に統一する",
+      "`src/flow/lib/run-review.js` のハードコード `timeout: 300000` を config 経由に置き換える"
+    ],
+    "out": [
+      "`agent.timeout` の config バリデーション変更（`src/lib/types.js` のバリデーションは既存のまま）",
+      "CLI `--timeout` オプションの仕様変更（既存の優先順位を維持）",
+      "`src/lib/process.js` の `runCmd` のタイムアウト（agent 呼び出しではない）",
+      "`src/docs/commands/init.js` の AI フィルタリング呼び出し（`callAgent` に 60000ms を渡している短時間の補助呼び出しであり、意図的な固定値）",
+      "`src/docs/lib/template-merger.js` の `translateTemplate` 呼び出し（`callAgent` に 60000ms を渡している短時間の補助呼び出しであり、意図的な固定値）",
+      "`src/flow/lib/get-context.js` の AI キーワード検索呼び出し（`callAgent` に 30000ms を渡している意図的な短縮値であり変更しない）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "タイムアウトの優先順位は？",
+      "a": "CLI `--timeout` > `config.json` の `agent.timeout` > `DEFAULT_AGENT_TIMEOUT_MS` (300000ms)。この優先順位は変更しない。"
+    },
+    {
+      "q": "`agent.timeout` の単位は？",
+      "a": "config.json では秒（config.example.json 参照: `\"timeout\": 300`）。内部では ms。変換は `resolveAgent` で一度だけ行う。"
+    },
+    {
+      "q": "`run-review.js` のハードコードはなぜ config 経由にするか？",
+      "a": "review コマンドは agent を呼ぶ前に外部スクリプトを実行するが、そのタイムアウトも agent timeout に連動すべき。config の agent.timeout が参照されないのは不整合。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "142-apply-agent-timeout-config"
+}

@@ -1,0 +1,159 @@
+{
+  "goal": "retro の静的評価が常に rate: 0 を返すバグを修正し、テスト結果が正しく要件にマッピングされるようにする",
+  "scope": {
+    "in": [
+      "(must) parseTapOutput のインデント対応 (サブテスト行の捕捉)",
+      "(must) tryStaticEvaluation のマッピング方式変更 (要件ID抽出方式)",
+      "(must) evaluateRequirement の入力変更 (TAP結果の要件ID集約)",
+      "(should) test-map.json のファイル特定用途は維持"
+    ],
+    "out": [
+      "test-map.json のスキーマ変更",
+      "test.md プロンプトの変更",
+      "review.js の test-map 利用 (空/非空チェックのみなので影響なし)",
+      "AI フォールバック評価パス"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみ使用",
+    "alpha 版ポリシー: 後方互換コードは書かない"
+  ],
+  "design_principles": [
+    "TAP テスト名に含まれる要件ID (R1, R2 等) を抽出して要件と直接マッピングする",
+    "test-map.json の文字列完全一致に依存しない"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "req-map.js — TAP パースと要件評価のユーティリティ"
+      },
+      {
+        "text": "run-retro.js — retro コマンド実行。tryStaticEvaluation が静的評価を担当"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "test-map.json → テストファイル名の特定"
+      },
+      {
+        "text": "node --test --test-reporter tap → TAP 出力"
+      },
+      {
+        "text": "parseTapOutput → Map<testName, boolean> (サブテスト含む)"
+      },
+      {
+        "text": "TAP テスト名から要件ID抽出 → 要件ごとの pass/fail 集約"
+      },
+      {
+        "text": "evaluateRequirement → done/partial/not_done/unverified"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "要件IDベースのマッピング方式を採用。テスト名に R1:, R2: 等のプレフィックスが既に含まれているため、test-map.json のテスト名との文字列完全一致は不要",
+        "evidence": "specs/243, 242 のテストファイルで it('R1: ...') 形式が使われている。test.md プロンプトでも要件IDプレフィックスが暗黙的に規約化されている"
+      },
+      {
+        "text": "alpha 版ポリシーにより旧文字列一致フォールバックは残さない。test-map.json は引き続きテストファイル特定と review カバレッジチェックに使用する",
+        "evidence": "CLAUDE.md: alpha 版ポリシー — 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する"
+      }
+    ]
+  },
+  "background": "retro の静的評価（test-map.json ベース）が常に rate: 0 を返す。2つの原因がそれぞれ独立して 0% を引き起こす: (1) parseTapOutput の正規表現 /^(ok|not ok)/ がインデントされたサブテスト行を無視し TAP 結果が空になる、(2) test-map.json の階層形式テスト名 (file > describe > it) と TAP 出力のリーフ名が一致しない",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "parseTapOutput は先頭にインデント（空白）を持つ TAP サブテスト行（例: '    ok 1 - R1: test name'）を捕捉し、Map に testName → boolean として格納する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "parseTapOutput は TAP 13 のディレクティブ（未実装マーク・省略マーク）付きの行を処理する。未実装マーク付き行はディレクティブ部分を除去してテスト名を抽出し、省略マーク付き行は結果 Map から除外する",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "tryStaticEvaluation は TAP 結果のテスト名から要件ID（R1, R2 等の /^R\\d+/ パターン）を抽出し、要件IDベースで pass/fail を集約する。test-map.json のテスト名との文字列完全一致は行わない",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "tryStaticEvaluation は引き続き test-map.json からテストファイル名を特定する（split(' > ')[0] による既存ロジック維持）",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "テスト名に要件IDプレフィックスが含まれない場合（R-prefix が TAP 出力から1つも見つからない場合）、tryStaticEvaluation は null を返して AI フォールバック評価に委譲する",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "specs/244-fix-retro-static-eval-zero/tests/ 配下のテストが全件パスする",
+    "既存の npm test が全件パスする",
+    "Node.js --test-reporter tap のネストされたサブテスト出力を正しくパースし、要件IDに基づいて rate > 0 の評価結果を返す"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "test-map.json のテスト名フォーマットを TAP 出力に合わせて正規化する案",
+      "reason": "test-map.json スキーマ変更がスコープ外のため却下"
+    },
+    {
+      "option": "parseTapOutput で階層名（file > describe > it 形式）を再構成する案",
+      "reason": "パーサーの複雑度が大幅に増加し、# Subtest: 行の解析が必要になるため却下。要件IDベースの方がシンプル"
+    },
+    {
+      "option": "旧文字列一致フォールバックを残す案",
+      "reason": "alpha ポリシーで後方互換コード禁止のため却下"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Fix parseTapOutput to handle indented subtests",
+      "goal": "parseTapOutput の正規表現を修正し、インデントされたサブテスト行と TAP 13 ディレクティブを正しく処理する",
+      "acceptance": [
+        "インデント付き ok/not ok 行が Map に格納される",
+        "skip directive 付き行は Map から除外される",
+        "未実装マーク付き行はディレクティブ部分が除去されテスト名のみ格納される"
+      ],
+      "implementation_notes": "正規表現先頭に \\s* を追加してインデント許容。テスト名末尾の # directive を除去する後処理を追加",
+      "test_strategy": "parseTapOutput にインデント付き TAP 出力、TAP 13 ディレクティブ付き行を入力し期待する Map を検証する unit test",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Change tryStaticEvaluation to requirement-ID-based mapping",
+      "goal": "tryStaticEvaluation のマッピングロジックを test-map.json テスト名の完全一致から、TAP テスト名に含まれる要件ID（R1, R2 等）の抽出と集約に変更する",
+      "acceptance": [
+        "TAP テスト名から /^R\\d+/ パターンで要件IDを抽出する",
+        "要件IDベースで pass/fail を集約し evaluateRequirement に渡す",
+        "test-map.json からのテストファイル特定ロジック（split(' > ')[0]）は維持",
+        "要件IDが TAP 出力から1つも見つからない場合は null を返す"
+      ],
+      "implementation_notes": "parseTapOutput の結果 Map を走査し、テスト名から要件IDを抽出。Map<reqId, {passed, failed}> を構築して各要件の status を決定する",
+      "test_strategy": "tryStaticEvaluation を直接テストするのは困難（execFileSync 依存）なので、要件ID抽出ロジックを独立関数として export し unit test する。統合的な検証は既存 spec のテストで retro を実行して rate > 0 を確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T14:45:52.149Z",
+    "notes": "autoApprove"
+  },
+  "specId": "244-fix-retro-static-eval-zero"
+}

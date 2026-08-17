@@ -1,0 +1,226 @@
+{
+  "goal": "spec-review provider が必須の top-level review arrays を欠く JSON を返した場合でも、補完または schema-repair retry により spec-review artifact を作成できるようにする。",
+  "scope": {
+    "in": [
+      "spec-review prompt / fallback の JSON 出力契約を、blockingFindings[] と nonBlockingImprovements[] が常に必要であると明示する。",
+      "parse 済み JSON が blockingFindings または nonBlockingImprovements だけを欠く場合、その field を空配列として補完して schema validation を行う。",
+      "補完後も spec-review response schema に失敗する parse 済み JSON は、schema-repair-only prompt で 1 回だけ再出力させる。",
+      "schema-repair retry 後も invalid な JSON / non-array field / malformed item は従来通り spec-review failure として扱う。",
+      "spec-review.md と spec-review.json の既存 artifact field / section 名を維持する。",
+      "spec-local tests と既存 unit tests で missing-array 補完、schema-repair retry、invalid output rejection を検証する。"
+    ],
+    "out": [
+      "provider 全体の output parsing redesign。",
+      "spec-review artifact file name、field name、Markdown section name の変更。",
+      "flow review command の public CLI option / command name の変更。",
+      "特定 model、特定プロジェクト、特定ローカル環境にだけ効く分岐。",
+      "blocking / non-blocking finding item の schema 緩和。"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。Node.js 組み込みモジュールと既存 helper のみを使う。",
+    "bounded-resource-usage: schema-repair re-prompt は spec-review 1 実行につき最大 1 回に制限する。",
+    "既存の `sdd-forge flow run review --phase spec` CLI surface と exit code contract は変更しない。",
+    "src/ 以下にプロジェクト固有の path、Issue 固有の本文、環境固有の model 名を hardcode しない。",
+    "schema-repair prompt は review 判定をやり直さず、既存 raw response を required JSON shape に整形する目的に限定する。",
+    "errors は握りつぶさない。補完および schema-repair retry 後も validation が失敗した場合は、既存と同じ spec review schema validation failure として表面化する。"
+  ],
+  "design_principles": [
+    "必須 top-level arrays の欠落だけを自動補完し、finding item の中身は schema で検証する。",
+    "provider に再判定を依頼せず、schema-repair retry は同じ review result の JSON 形状修復に限定する。",
+    "既存 artifact reader / renderer が期待する blockingFindings と nonBlockingImprovements の契約を保つ。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/commands/review.js` owns spec-review prompt construction, provider invocation, response parsing, artifact formatting, and spec-review execution."
+      },
+      {
+        "text": "`tests/unit/flow/commands/review.test.js` already covers spec-review prompt schema, JSON parsing, markdown rejection, and artifact rendering; new cases extend that surface."
+      },
+      {
+        "text": "`specs/273-spec-review-json-fields/tests/` provides spec-local behavior tests with requirement headers."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "runSpecReview builds a spec summary and codebase context, calls the review agent, parses the raw JSON response, derives verdict, then writes spec-review.md and spec-review.json."
+      },
+      {
+        "text": "New flow: raw response -> JSON parse/repair -> missing-array normalization -> schema validation -> optional schema-repair retry -> final schema validation -> artifact formatting."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `SPEC_REVIEW_RESPONSE_SCHEMA` requires both review arrays and `buildSpecReviewPrompt` already sends the schema to the agent.",
+        "evidence": "src/flow/commands/review.js defines SPEC_REVIEW_RESPONSE_SCHEMA with required blockingFindings and nonBlockingImprovements, and buildSpecReviewPrompt calls setJsonSchema(SPEC_REVIEW_RESPONSE_SCHEMA)."
+      },
+      {
+        "text": "[VERIFY] Current parsing validates immediately after JSON parse/repair, so missing top-level arrays fail before artifact creation.",
+        "evidence": "src/flow/commands/review.js parseSpecReviewJsonOutput parses a candidate and calls validateSchema(parsed, SPEC_REVIEW_RESPONSE_SCHEMA), then throws on errors."
+      },
+      {
+        "text": "[VERIFY] runSpecReview has one review agent call before parsing, so schema-repair retry belongs in the spec-review execution boundary, not artifact rendering.",
+        "evidence": "src/flow/commands/review.js runSpecReview calls callReviewAgent with buildSpecReviewPrompt output, then calls parseSpecReviewFindings before verdict and artifact writes."
+      },
+      {
+        "text": "Missing top-level arrays are equivalent to empty categories only for spec-review response shape; malformed item objects and non-array fields are not silently accepted.",
+        "evidence": "Draft coverage repair restored Issue #352's fallback while preserving item-level validation and explicit rejection of invalid field values."
+      }
+    ]
+  },
+  "background": "Issue #352 reports a repeated spec-review failure where provider output omitted blockingFindings / nonBlockingImprovements. The CLI could not tell whether there were zero findings or merely missing fields, so it failed schema validation and could not create the review trace required by downstream SDD steps.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "The spec-review prompt and fallback format must explicitly require a JSON object containing blockingFindings[] and nonBlockingImprovements[], and must instruct the provider to return empty arrays for categories with no findings.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "When parsed spec-review JSON omits blockingFindings, nonBlockingImprovements, or both, the parser must add the omitted top-level fields as empty arrays before validating against the spec-review response schema.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When parsed spec-review JSON still fails the spec-review response schema after missing-array normalization, the spec-review execution must call the review agent at most one additional time with a schema-repair-only prompt.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "If schema-repair retry returns invalid JSON, non-array review fields, malformed finding items, or output that still violates the spec-review response schema, spec-review must fail with schema validation error behavior instead of writing a successful artifact.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Accepted and repaired spec-review outputs must continue to write spec-review.json with blockingFindings and nonBlockingImprovements arrays and spec-review.md with separate blocking and non-blocking sections.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Regression coverage must include spec-local tests for R1-R5 and unit-level assertions for missing-array normalization, schema-repair retry, and invalid-output rejection.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A provider response `{}` is accepted as zero blocking findings and zero non-blocking improvements after normalization.",
+    "A provider response containing only blockingFindings[] is accepted with nonBlockingImprovements[] filled as an empty array.",
+    "A provider response containing only nonBlockingImprovements[] is accepted with blockingFindings[] filled as an empty array.",
+    "A parsed response with a non-array review field triggers exactly one schema-repair agent call before final success or failure.",
+    "A schema-repair response that fixes the shape produces the same spec-review artifact structure as a valid first response.",
+    "A schema-repair response that remains invalid does not write a successful spec-review artifact and surfaces a schema validation failure.",
+    "Existing tests for markdown rejection, structured findings parsing, and artifact rendering continue to pass."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this change add or alter public CLI options?",
+      "a": "No. It changes internal spec-review prompt/parsing/retry behavior behind the existing `sdd-forge flow run review --phase spec` command."
+    },
+    {
+      "q": "Does schema-repair retry re-review the spec?",
+      "a": "No. It asks the provider to rewrite the existing raw response into the required JSON shape and is bounded to one additional call."
+    },
+    {
+      "q": "Are malformed finding item objects accepted after missing-array normalization?",
+      "a": "No. Top-level missing arrays can be defaulted, but item-level schema remains enforced."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Only strengthen the prompt and rely on the provider to comply.",
+      "reason": "Rejected because Issue #352 reports repeated provider non-compliance; prompt wording alone does not guarantee artifact creation."
+    },
+    {
+      "option": "Only auto-fill missing arrays and keep every other malformed response as immediate failure.",
+      "reason": "Rejected because Issue #352 explicitly includes a schema-repair-only re-prompt fallback when auto-fill is not possible."
+    },
+    {
+      "option": "Accept any malformed response by coercing item fields or non-array values.",
+      "reason": "Rejected because it would hide real review defects and weaken the existing spec-review response schema."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "spec-review",
+    "blockingFindings",
+    "nonBlockingImprovements",
+    "SPEC_REVIEW_RESPONSE_SCHEMA",
+    "parseSpecReviewJsonOutput",
+    "parseSpecReviewFindings",
+    "buildSpecReviewPrompt",
+    "callReviewAgent",
+    "schema repair",
+    "review artifact",
+    "flow review"
+  ],
+  "implementationTargets": [
+    "src/flow/commands/review.js",
+    "tests/unit/flow/commands/review.test.js",
+    "specs/273-spec-review-json-fields/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Normalize missing review arrays",
+      "goal": "Default omitted top-level spec-review arrays to empty arrays while preserving existing item-level schema validation.",
+      "acceptance": [
+        "R1 prompt/fallback text requires both review arrays.",
+        "R2 parser accepts omitted blockingFindings and nonBlockingImprovements as empty arrays.",
+        "R4 parser still rejects non-array values and malformed items."
+      ],
+      "implementation_notes": "Likely target: src/flow/commands/review.js near SPEC_REVIEW_RESPONSE_SCHEMA and parseSpecReviewJsonOutput. Keep normalization limited to absent properties.",
+      "test_strategy": "Unit tests in tests/unit/flow/commands/review.test.js plus spec-local tests covering R1, R2, and R4.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Add schema repair retry",
+      "goal": "Retry one schema-invalid parsed spec-review response through a schema-repair-only prompt and feed the repaired response through the same parser.",
+      "acceptance": [
+        "R3 performs at most one additional agent call for schema-invalid parsed responses after normalization.",
+        "R4 keeps invalid repair responses as failures.",
+        "R5 successful repair writes the existing artifact shape."
+      ],
+      "implementation_notes": "Likely target: runSpecReview around callReviewAgent and parseSpecReviewFindings. The repair prompt must include the required schema and original raw response, not a request to re-review the spec.",
+      "test_strategy": "Use test doubles or exported helpers to verify call count, repair prompt content, success path, and failure path without invoking a real provider.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover spec review recovery",
+      "goal": "Add spec-local and unit regression tests that prove the prompt contract, missing-array normalization, schema-repair retry, rejection behavior, and artifact compatibility.",
+      "acceptance": [
+        "R6 spec-local tests contain a `// spec: R1 R2 R3 R4 R5 R6` style header mapping requirements to assertions.",
+        "Existing review command unit tests still pass.",
+        "Project regression includes the changed unit test scope."
+      ],
+      "implementation_notes": "Prefer direct helper-level tests when existing exports allow it; otherwise extend local exports in the same pattern used by the current review command tests.",
+      "test_strategy": "Run the spec-local test file, the relevant unit review test file, and the project regression command required by the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-03T11:22:20.850Z",
+    "notes": "autoApprove: approved gate-passed spec for issue #352"
+  },
+  "specId": "273-spec-review-json-fields"
+}

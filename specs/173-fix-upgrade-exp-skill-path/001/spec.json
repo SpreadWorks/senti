@@ -1,0 +1,52 @@
+{
+  "goal": "`sdd-forge upgrade` 実行時に、experimental スキル（`sdd-forge.exp.workflow`）のテンプレートパスが sdd-forge パッケージディレクトリ基準で解決されるよう修正し、スキルが正しくインストールされるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/upgrade.js` の experimental スキルテンプレートパス解決ロジックの修正"
+    ],
+    "out": [
+      "通常スキルのデプロイロジック（`deploySkills`）— 既に PKG_DIR 基準で正常動作",
+      "experimental スキルの新規追加・機能変更",
+      "config バリデーション（`lib/types.js` の `experimental.workflow` スキーマ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "影響範囲は `upgrade.js:91` のみか？",
+      "a": "はい。`deploySkills` は内部で `MAIN_SKILLS_TEMPLATES_DIR`（PKG_DIR 基準）を使用しており正常。他の `path.join(root, ...templates...)` パターンはプロジェクトローカルテンプレート参照であり正常。"
+    },
+    {
+      "q": "テスト方針は？",
+      "a": "spec テスト（`specs/<spec>/tests/`）でパス解決の正しさを検証する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**`MAIN_SKILLS_TEMPLATES_DIR` と同様に `skills.js` 内で定数定義する案**",
+      "reason": "experimental スキルのテンプレートパスは `skills.js` のスコープ外（`experimental/workflow/` 配下）であり、`upgrade.js` 側で解決するのが適切。将来 experimental スキルが増えた場合も `upgrade.js` の config 分岐で管理するのが自然。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "173-fix-upgrade-exp-skill-path"
+}

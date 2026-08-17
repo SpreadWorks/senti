@@ -1,0 +1,157 @@
+{
+  "goal": "Remove the T-pending-spec placeholder task and allow tasks: [] in flow.json, fixing the unknown step error caused by currentTaskId pointing to a placeholder with empty steps.",
+  "scope": {
+    "in": [
+      "Remove empty tasks array rejection from assertTaskSchema in flow-store.js",
+      "Replace T-pending-spec placeholder with tasks: [] in run-prepare-spec.js",
+      "Remove filterPendingSpecPlaceholder function and its call site in run-gate.js",
+      "Update test t-a2-strict-load.test.js to verify tasks: [] is accepted"
+    ],
+    "out": [
+      "resolveMutationScope fallthrough logic",
+      "Existing flow.json migration",
+      "Changes to promoteNextPending or syncSpecTasksToFlow"
+    ]
+  },
+  "constraints": [
+    "Alpha policy: no backward compatibility code",
+    "No external dependencies",
+    "Test scenarios must remain valid after the change"
+  ],
+  "design_principles": [
+    "Represent 'no tasks yet' with an empty array, not a placeholder object"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "flow-store.js: Schema validation in assertTaskSchema — remove the empty-array rejection"
+      },
+      {
+        "text": "run-prepare-spec.js: Flow initialization — replace T-pending-spec with tasks: []"
+      },
+      {
+        "text": "run-gate.js: Gate evaluation — remove filterPendingSpecPlaceholder and its call site"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow prepare → run-prepare-spec creates flow.json with tasks: [] and currentTaskId: null"
+      },
+      {
+        "text": "approval done → syncSpecTasksToFlow appends real tasks from spec.json, promoteNextPending promotes first real task"
+      },
+      {
+        "text": "flow run review → post-hook calls updateStepStatus which now correctly operates on task scope (not placeholder)"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "Allow tasks: [] instead of requiring a placeholder. Empty array is the natural representation of 'no tasks defined yet'. All downstream functions already handle empty arrays correctly.",
+        "evidence": "flow-helpers.js:215 early return on empty tasks, sync-spec-tasks.js:44 early return on empty specTasks"
+      },
+      {
+        "text": "Remove filterPendingSpecPlaceholder rather than keeping it as defensive code. Alpha policy prohibits backward-compatibility shims.",
+        "evidence": "CLAUDE.md alpha policy: no backward compat code"
+      }
+    ]
+  },
+  "background": "run-prepare-spec.js creates a T-pending-spec placeholder task with steps: [] to satisfy flow-store.js schema validation that rejects empty tasks arrays. After approval, syncSpecTasksToFlow calls promoteNextPending which promotes T-pending-spec to currentTaskId because it is the first pending task in the array. Subsequently, updateStepStatus via resolveMutationScope scopes step searches to this task's empty steps array, causing 'unknown step' errors for flow-level steps like review. The read path (findActiveNode) has fallthrough to flow-level steps, but the write path (resolveMutationScope) does not.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "flow-store.js assertTaskSchema SHALL accept tasks: [] (empty array) without throwing",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "run-prepare-spec.js SHALL initialize flow.json with tasks: [] and currentTaskId: null, with no T-pending-spec placeholder",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "run-gate.js SHALL NOT contain filterPendingSpecPlaceholder function or any reference to T-pending-spec",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "specs/243-remove-t-pending-spec/tests/test.js SHALL verify that FlowStore.load() accepts tasks: [] and t-a2-strict-load.test.js SHALL be updated accordingly",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "flow-store.js load() does not throw when tasks is an empty array",
+    "flow prepare creates flow.json with tasks: [] (no T-pending-spec)",
+    "run-gate.js contains no filterPendingSpecPlaceholder function",
+    "npm test passes with updated test expectations",
+    "No references to T-pending-spec remain in src/"
+  ],
+  "implementationTargets": [
+    "src/lib/flow-store.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/flow/lib/run-gate.js",
+    "tests/unit/227-post-226-forest-integration/t-a2-strict-load.test.js"
+  ],
+  "clarifications": [
+    {
+      "q": "Does removing the empty-array rejection break downstream code?",
+      "a": "No. promoteNextPending, syncSpecTasksToFlow, and findNextPendingTask all handle empty arrays with early returns."
+    },
+    {
+      "q": "Should existing flow.json files be migrated?",
+      "a": "No. Alpha policy: no backward compatibility. Existing flows with T-pending-spec will need to be re-created."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Make T-pending-spec non-promotable via a flag",
+      "reason": "Rejected: adds complexity to solve a problem that shouldn't exist. The placeholder itself is the problem."
+    },
+    {
+      "option": "Add fallthrough to resolveMutationScope",
+      "reason": "Rejected: treats the symptom rather than the cause."
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "Remove T-pending-spec placeholder and allow empty tasks array",
+      "goal": "Remove the empty-array rejection from assertTaskSchema, replace T-pending-spec with tasks: [] in run-prepare-spec, remove filterPendingSpecPlaceholder from run-gate, and update the strict-load test.",
+      "acceptance": [
+        "assertTaskSchema does not throw on tasks: []",
+        "run-prepare-spec initializes with tasks: [] and no T-pending-spec",
+        "filterPendingSpecPlaceholder removed from run-gate.js",
+        "t-a2-strict-load.test.js verifies tasks: [] is accepted",
+        "npm test passes",
+        "No T-pending-spec references in src/"
+      ],
+      "implementation_notes": "flow-store.js: remove lines 52-57 (empty array rejection in assertTaskSchema). run-prepare-spec.js: replace tasks: [{id: 'T-pending-spec', ...}] with tasks: []. run-gate.js: remove filterPendingSpecPlaceholder function (lines 83-99) and replace its call site (line 1481) with direct fs.readFileSync. t-a2-strict-load.test.js: change 'throws when tasks is an empty array' to 'accepts empty tasks array'.",
+      "test_strategy": "specs/243-remove-t-pending-spec/tests/test.js: verify FlowStore.load() accepts tasks: [] and rejects missing tasks field. npm test confirms no regressions.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T08:21:42.716Z",
+    "notes": "autoApprove"
+  },
+  "specId": "243-remove-t-pending-spec"
+}

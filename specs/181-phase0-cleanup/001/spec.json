@@ -1,0 +1,66 @@
+{
+  "goal": "1877 Container 導入（Phase 1）に先行して、Container 設計判断とは独立に完了できる小規模クリーンアップ 4 件を一括で処理し、後続 Phase のレビュー差分を見通しやすくする。挙動変更を伴わないリファクタに限定する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "終了コード定数を単独モジュールから共通定数モジュールへ集約し、旧モジュールを削除する",
+      "リポジトリルート解決関数から未使用引数（`importMetaUrl`）を削除する",
+      "help 処理経路を CLI エントリ内の 1 分岐に統合し、独立コマンドマップから `help` を除去する",
+      "配線ゼロの補助関数 `writeAgentContext` / `cleanupAgentContext` を削除する（復活用資料は別 board に保存済み）"
+    ],
+    "out": [
+      "Container クラス / ディスパッチャの設計・導入（Phase 1）",
+      "agent API（`callAgent*` 系 10 関数）の引数整理・provider クラス化（Phase 2A）",
+      "FlowManager / Logger / flow registry の再設計（Phase 2B・2C・3）",
+      "`.tmp/1877.md` 指摘 5〜31 の各項目"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test`（`test:unit` / `test:e2e` / `test:acceptance`）がすべてパスする",
+    "`specs/181-phase0-cleanup/tests/` 配下のスモークテストがパスする: - help 5 入力パターンで出力と終了コードが同一 - 未知サブコマンドは `EXIT_ERROR`（= 1）で終了",
+    "`grep -r \"from.*exit-codes\" src/` が 0 件",
+    "`grep -r \"writeAgentContext\\|cleanupAgentContext\" src/` が 0 件",
+    "`grep -r \"repoRoot(import\\.meta\\.url)\" src/` が 0 件",
+    "`grep -rE \"^import.*\\\"./lib/constants.js\\\"\" src/` で `EXIT_SUCCESS` / `EXIT_ERROR` 参照元が期待通りヒットする"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**旧 `exit-codes.js` を残して再エクスポート**",
+      "reason": "alpha ポリシー（後方互換コードを書かない）に反するため却下"
+    },
+    {
+      "option": "**4 要件を 4 PR に分割**",
+      "reason": "Container 着手時期が遅れる。変更範囲が軽微・相互干渉なしのため 1 PR に集約"
+    },
+    {
+      "option": "**`help` を `INDEPENDENT` マップに残す**",
+      "reason": "2 経路分裂（早期分岐 vs マップ経由で `process.argv` 書き換え方法が異なる）の実害を解消しないため却下"
+    },
+    {
+      "option": "**`writeAgentContext` / `cleanupAgentContext` を保留**",
+      "reason": "配線ゼロ dead code は alpha ポリシー「非推奨パスは保持せず削除」に従い即削除"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "181-phase0-cleanup"
+}

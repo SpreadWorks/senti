@@ -1,0 +1,41 @@
+{
+  "goal": "spec 188 で導入した統一実行機構 (Command 基底クラス + 単一 dispatcher + コマンドレジストリ + 共有 Container) に対し、過渡的な橋渡しアダプタ経由で接続されている旧スタイルのコマンド実装を、統一機構の標準形（Command 派生クラスによる直接実装）へ全面移行する。併せてディスパッチャ内に残っている build 専用経路を共通契約に寄せ、橋渡し用の一時コードを除去する。これにより spec 188 の R2「単一コンテキスト取得」と AC1「静的検査 0 件違反」を完全達成する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "コマンドが提供する業務ロジックの意味論変更（scan / enrich / build / gate 等が行う処理内容）。",
+      "CLI 外部インターフェースの意図的変更（サブコマンド名・flag/option 名・正常系出力 semantics・終了コード）。R4 に従い原則として完全互換。",
+      "spec 188 で既に導入済みの Container / dispatcher / registry / 基底 Command クラスの再設計。",
+      "新ドメインのコマンド追加、および本 spec で対象外のコマンドに対するリファクタ。",
+      "ユーティリティ目的で named export されている関数（`main` 以外）の可視性変更。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`command-runner.js` モジュール本体を削除するか予約として残すか — 実装フェーズで、参照除去後の当該ファイルの扱い（削除推奨）を最終判断する。参照 0 件であれば alpha ポリシー上は削除が妥当。",
+    "build コマンド移行後のディスパッチャ側 help 表示経路 — 実装フェーズで、統一機構の help 契約上で自然な表示になるよう最終化する。外部 stdout の help 文言は AC4 により前後一致を要求する。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "189-unify-command-classes"
+}

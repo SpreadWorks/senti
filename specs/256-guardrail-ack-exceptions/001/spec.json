@@ -1,0 +1,671 @@
+{
+  "goal": "Reflect explicit guardrail exception acknowledgments from spec.json in guardrail evaluation prompts so intentionally documented exceptions do not produce repeated guardrail FAIL loops.",
+  "scope": {
+    "in": [
+      "must: Extract matched rationale entries from spec.json constraints / clarifications / alternatives_considered using case-sensitive token-boundary guardrail_id matching, and render source JSON path plus text in a `## Matched Spec Acknowledgment Rationale` section.",
+      "must: Add common acknowledged-exception clauses to backward-compatible-cli-interface, exit-code-contract, bounded-resource-usage, and no-synchronous-io-in-hot-paths. A matched rationale qualifies only when it is in a scanned field, includes the guardrail_id at least once, and has at least 20 non-whitespace characters after removing the guardrail_id.",
+      "must: Inject the matched rationale section into run-gate spec / task-impl / integration guardrail eval prompts and the flow review review-phase guardrail prompt.",
+      "must: Add raw markdown support to PromptBuilder or an equivalent shared prompt-building API so the matched rationale section is inserted once without duplicate headings.",
+      "must: Forward acknowledged-rationale options through runGateFlow, checkGuardrail, and buildGuardrailArticleEvalPrompt for all guardrail article evaluation call sites.",
+      "must: Preserve acknowledged-exception semantics when any preset-chain or project guardrail override replaces one of the four target guardrails.",
+      "should: Document the author convention in `src/flow/prompts/plan/spec.md`, `src/flow/prompts/plan/gate.md`, `src/flow/prompts/plan/gate-draft.md`, `src/flow/prompts/impl/implement.md`, `src/flow/prompts/impl/gate-impl.md`, `src/flow/prompts/impl/review.md`, `src/flow/prompts/task/impl.md`, `src/flow/prompts/task/review.md`, `src/templates/skills/sdd-forge.flow/SKILL.md`, and in `src/flow/lib/run-gate.js` `buildGuardrailArticleEvalPrompt` rules: write the target guardrail_id directly in constraints / clarifications / alternatives_considered when acknowledging an exception.",
+      "nice-to-have: Add tests across extractor matching, prompt rendering, phase integration, and guardrail article content using spec 228 as the existing fixture and synthetic fixtures for 235 / 229 collision cases."
+    ],
+    "out": [
+      "Adding new spec.json fields or changing the spec schema.",
+      "Replacing the AI guardrail evaluator with a deterministic rules engine.",
+      "Adding acknowledged-exception clauses to guardrails outside the four Issue #314 targets.",
+      "Adding a new guardrail that scores rationale quality.",
+      "Scanning design_principles, approval notes, issue-log text, or generated markdown for acknowledgments.",
+      "Adding draft.json acknowledgment extraction or injecting matched rationale into draft-gate prompts; draft gate remains strict because spec.json does not exist yet."
+    ]
+  },
+  "constraints": [
+    "No external dependencies; use Node.js built-ins only.",
+    "Do not change spec.json schema. Existing author fields are used: constraints, clarifications, alternatives_considered.",
+    "Do not scan design_principles. This exclusion is intentional and must be covered by unit tests and author guidance.",
+    "Matched rationale prompt growth is bounded: max 3 entries per guardrail, max 600 characters per entry, max 4000 characters for the whole matched rationale section.",
+    "Token-boundary matching is case-sensitive. A guardrail_id matches only when both adjacent characters are absent or are not ASCII letters, digits, or hyphen.",
+    "Canonical source paths for rendered entries are `$.constraints[N]`, `$.clarifications[N]`, and `$.alternatives_considered[N]`; pair entries use the parent object path, not child field paths.",
+    "Rendering order is deterministic: guardrails follow the filtered guardrail order supplied to the helper; within each guardrail, entries follow scanned field order `constraints`, `clarifications`, `alternatives_considered`, with ascending array index inside each field.",
+    "Entry text is normalized before qualification, truncation, and rendering by collapsing internal whitespace, newlines, and indentation to single spaces.",
+    "The 4000-character section cap is applied at entry boundaries: render entries in deterministic order until the next full entry would exceed the cap, then stop without cutting markdown mid-entry.",
+    "If `src/templates/skills/` files are changed, run `sdd-forge upgrade` and verify generated `.agents/skills/` and `.claude/skills/` diffs. Flow prompt and preset edits are verified by source diffs and tests.",
+    "Preset-chain and project-level guardrail overrides replace earlier guardrails by id, so target guardrail acknowledgment clauses must be preserved by prompt-time augmentation or another deterministic guardrail-loading mechanism."
+  ],
+  "design_principles": [
+    "Keep extraction and rendering in a shared helper so run-gate and review prompts cannot drift.",
+    "Represent meaningful values with classes: rationale entry and rationale set carry invariants and rendering behavior.",
+    "Treat matched rationale as context. Exception permission is defined by the guardrail article clause, not by prompt injection alone.",
+    "Use parser-like structured extraction from spec.json rather than searching rendered markdown or raw prompt text.",
+    "Keep behavior additive for internal callers through optional options objects while removing no current CLI behavior."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/acknowledged-rationale.js — new shared helper containing AcknowledgedRationaleEntry, AcknowledgedRationaleSet, token-boundary matching, caps, source labels, and prompt section rendering."
+      },
+      {
+        "text": "src/flow/lib/run-gate.js — passes parent spec context to guardrail article evaluation and renders matched rationale between Guardrail Articles and Content."
+      },
+      {
+        "text": "src/lib/prompt-builder.js — provides raw markdown section insertion so pre-rendered rationale sections are not wrapped in duplicate headings."
+      },
+      {
+        "text": "src/lib/guardrail.js — preserves the common acknowledged-exception clause for the four target guardrail IDs even when preset-chain or project guardrail overrides replace preset bodies."
+      },
+      {
+        "text": "src/flow/commands/review.js — passes parent spec context into buildDraftSystemPrompt and renders matched rationale after Additional Guardrail Review Perspectives."
+      },
+      {
+        "text": "src/presets/base/guardrail.json, src/presets/cli/guardrail.json, src/presets/node-cli/guardrail.json — receive common acknowledged-exception clauses for the four target guardrails."
+      },
+      {
+        "text": "src/flow/prompts/plan/spec.md — documents the author convention for writing guardrail_id directly in scanned spec fields."
+      },
+      {
+        "text": "src/flow/prompts/plan/gate.md and src/flow/prompts/impl/implement.md — steer remediation and implementation agents to the scanned acknowledgment fields and current task-impl / integration guardrail phases."
+      },
+      {
+        "text": "src/flow/prompts/task/impl.md and src/templates/skills/sdd-forge.flow/SKILL.md — keep per-task implementation guidance and distributed command references aligned with task-impl / integration guardrail phases."
+      },
+      {
+        "text": "src/flow/prompts/impl/gate-impl.md — tells task-impl / integration remediation agents how to record intentional exception rationale in scanned spec fields before rerunning gate."
+      },
+      {
+        "text": "src/flow/prompts/impl/review.md and src/flow/prompts/task/review.md — tell review remediation agents where to record intentional review-phase guardrail exceptions before rerunning review."
+      },
+      {
+        "text": "src/flow/prompts/plan/gate-draft.md — states draft gate is strict and spec.json acknowledgments are unavailable before spec generation."
+      },
+      {
+        "text": "src/flow/lib/get-guardrail.js — renders guardrail ids in default markdown output so agents can cite exact guardrail_id values without requiring JSON mode."
+      },
+      {
+        "text": "src/flow/registry.js — advertises guardrail lookup phases using VALID_GUARDRAIL_PHASES rather than broad flow phases."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Parent spec.json -> AcknowledgedRationaleSet.fromSpec(spec, guardrails) -> bounded per-guardrail entries -> `## Matched Spec Acknowledgment Rationale` markdown -> run-gate / review prompt."
+      },
+      {
+        "text": "spec gate uses loaded spec.json directly; task-impl and integration load active flow state.spec; flow review injects rationale when parent spec context is available."
+      },
+      {
+        "text": "runGateFlow receives prompt options from executeSpec / executeDiffBasedGate, forwards them to checkGuardrail, and checkGuardrail forwards them to buildGuardrailArticleEvalPrompt."
+      },
+      {
+        "text": "PromptBuilder.addRaw(markdown) appends a pre-rendered section verbatim; callers use it for matched rationale so the helper-owned `## Matched Spec Acknowledgment Rationale` heading appears exactly once."
+      },
+      {
+        "text": "buildGuardrailPrompt, buildGuardrailArticleEvalPrompt, checkGuardrail, and runGateFlow all accept the same optional prompt options object; empty options preserve current output."
+      },
+      {
+        "text": "executeDiffBasedGate loads previously passed guardrail ids from issue-log, builds acknowledged-rationale prompt options, and passes both to its direct checkGuardrail call as distinct arguments."
+      },
+      {
+        "text": "Previously passed IDs sent to guardrail article evaluation are intersected with the current filtered guardrail article ids; requirement retry state remains separate."
+      },
+      {
+        "text": "When optional parent spec context is unavailable in review, helper returns `{ markdown: \"\", warning: \"parent spec context unavailable\" }`; no stderr or log warning is emitted."
+      },
+      {
+        "text": "Parent spec load failures in diff-based gate and review are treated as unavailable acknowledgment context with warning metadata; spec gate keeps existing strict validation."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] run-gate prompt currently lacks matched rationale section.",
+        "evidence": "src/flow/lib/run-gate.js buildGuardrailPrompt calls buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds). buildGuardrailArticleEvalPrompt adds Guardrail Articles and Content only."
+      },
+      {
+        "text": "[VERIFY] review prompt uses one system prompt builder for loop and single-call paths.",
+        "evidence": "src/flow/commands/review.js defines buildDraftSystemPrompt(guardrails = []) around line 207. runLoopReview uses it around line 548 and single-call review uses it around line 1417."
+      },
+      {
+        "text": "[VERIFY] bounded-resource-usage includes review phase.",
+        "evidence": "src/presets/base/guardrail.json defines bounded-resource-usage with phase [\"spec\", \"review\"], so review prompt coverage is required for Issue #314."
+      },
+      {
+        "text": "[VERIFY] four target guardrails are in preset guardrail files.",
+        "evidence": "backward-compatible-cli-interface and exit-code-contract are in src/presets/cli/guardrail.json; bounded-resource-usage is in src/presets/base/guardrail.json; no-synchronous-io-in-hot-paths is in src/presets/node-cli/guardrail.json."
+      },
+      {
+        "text": "[VERIFY] spec authoring prompt source exists.",
+        "evidence": "src/flow/prompts/plan/spec.md contains spec-writing instructions and is the concrete source file for documenting the guardrail_id convention."
+      },
+      {
+        "text": "[VERIFY] runGateFlow is a required forwarding layer.",
+        "evidence": "src/flow/lib/run-gate.js has executeSpec and executeDiffBasedGate paths that call runGateFlow before guardrail article evaluation."
+      },
+      {
+        "text": "[VERIFY] PromptBuilder currently wraps every section with a caller-supplied header.",
+        "evidence": "src/lib/prompt-builder.js exposes add(header, content) and build() renders `${header}\\n${content}`, so pre-rendered markdown sections need raw insertion support."
+      },
+      {
+        "text": "[VERIFY] project guardrails override preset guardrails by id.",
+        "evidence": "src/lib/guardrail.js mergeById replaces parent entries when ids collide, so a project override can drop preset body text."
+      },
+      {
+        "text": "[VERIFY] implementation prompt references retired impl guardrail phase.",
+        "evidence": "src/flow/prompts/impl/implement.md tells agents to run `sdd-forge flow get guardrail impl`, while valid gate phases include task-impl and integration."
+      },
+      {
+        "text": "[VERIFY] default guardrail markdown hides ids.",
+        "evidence": "src/flow/lib/get-guardrail.js toMarkdown renders `## Guardrail: ${g.title}` and body only, while JSON output includes id."
+      },
+      {
+        "text": "[VERIFY] per-task implementation has separate prompt guidance.",
+        "evidence": "src/flow/prompts/task/impl.md drives per-task implementation and is followed by task-impl guardrail evaluation."
+      },
+      {
+        "text": "[VERIFY] distributed flow skill command reference still lists impl.",
+        "evidence": "src/templates/skills/sdd-forge.flow/SKILL.md command reference says `sdd-forge flow get guardrail <draft|spec|impl|test|lint>`."
+      },
+      {
+        "text": "[VERIFY] guardrail lookup uses broader flow phases.",
+        "evidence": "src/flow/lib/get-guardrail.js validates lookup phases with VALID_PHASES, while guardrail articles are constrained by VALID_GUARDRAIL_PHASES."
+      },
+      {
+        "text": "[VERIFY] guardrail command help uses the same broad phase list.",
+        "evidence": "src/flow/registry.js help text for `flow get guardrail` interpolates VALID_PHASES."
+      },
+      {
+        "text": "[VERIFY] gate-impl remediation prompt omits spec-field exception workflow.",
+        "evidence": "src/flow/prompts/impl/gate-impl.md focuses on failure reasons and diff handling; Issue #314 needs intentional exceptions recorded in scanned spec fields."
+      },
+      {
+        "text": "Impact on Existing Features: exported prompt builders keep empty-options output unchanged; `flow get guardrail impl` remains available as an alias to task-impl with exit code 0; invalid phases still fail with non-zero exit.",
+        "evidence": "This spec changes guardrail prompt context, default guardrail markdown, and guardrail phase help while preserving existing callers through optional options objects and an impl alias."
+      },
+      {
+        "text": "Impact on Existing Features: adding acknowledged-exception clauses changes the text seen by all existing and future evaluations of the four target guardrails.",
+        "evidence": "The change is limited to backward-compatible-cli-interface, exit-code-contract, bounded-resource-usage, and no-synchronous-io-in-hot-paths; non-target guardrails do not gain exception semantics."
+      },
+      {
+        "text": "Impact on Existing Features: default guardrail markdown headings change from `## Guardrail: <title>` to `## Guardrail: <title> (<id>)`.",
+        "evidence": "This may affect consumers that parse headings exactly; tests cover markdown id rendering, and JSON output remains unchanged for structured consumers."
+      }
+    ]
+  },
+  "background": "Issue #314 identifies a recurring failure pattern: a spec explicitly acknowledges a guardrail collision, but guardrail evaluation still fails because the evaluator sees only guardrail articles and raw target content, not guardrail-specific rationale extracted from spec fields. Authors already write guardrail_id rationale in constraints, clarifications, and alternatives_considered. This spec formalizes that existing pattern without adding schema fields.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Add `src/flow/lib/acknowledged-rationale.js` with class `AcknowledgedRationaleEntry` constructor `(guardrailId, sourcePath, text, truncated = false)` and method `toPromptLines()`, plus class `AcknowledgedRationaleSet` for per-guardrail entry storage, token-boundary matching, caps, ordering, and rendering.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Implement `buildAcknowledgedRationaleSection({ spec, guardrails, heading = \"Matched Spec Acknowledgment Rationale\" })` returning `{ markdown: string, warning: string }`. If `spec` is null, return `{ markdown: \"\", warning: \"parent spec context unavailable\" }`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Extractor scans only `constraints[]`, `clarifications[].q` plus `.a` as one pair entry, and `alternatives_considered[].option` plus `.reason` as one pair entry. It does not scan design_principles, approval notes, issue-log entries, generated markdown, or raw diff text.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R27",
+      "desc": "The 20 non-whitespace-character qualification removes every token-boundary occurrence of the matched guardrail_id from the entry text before counting. Pair labels `Q:`, `A:`, `Option:`, and `Reason:` do not count toward the minimum; truncation happens after qualification. Repeated ids, id-only entries, and pair entries are covered by tests.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Matching is case-sensitive and token-boundary aware. A guardrail_id match is valid only when the previous and next characters are absent or are not ASCII letters, digits, or hyphen. Backtick, quote, colon, space, and newline count as valid delimiters.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Rendering adds `## Matched Spec Acknowledgment Rationale`, then `### <guardrail_id>`, then entries formatted as `- source: <json-path>` and `  text: <text>`. Canonical source paths are `$.constraints[N]`, `$.clarifications[N]`, and `$.alternatives_considered[N]`. Pair entries use fixed labels `Q: ... A: ...` and `Option: ... Reason: ...`. Entry text is normalized by collapsing internal whitespace, newlines, and indentation to single spaces before qualification, truncation, and rendering. Truncated entries append `[truncated]`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Bound prompt growth with max 3 entries per guardrail, max 600 characters per entry, and max 4000 characters for the whole matched rationale section. Rendering order is filtered guardrail order, then scanned field order `constraints`, `clarifications`, `alternatives_considered`, then ascending array index. Apply the section cap at entry boundaries: render entries in deterministic order until the next full entry would exceed the cap, then stop without cutting markdown mid-entry. Tests assert rendered output does not exceed these caps.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Update `buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds, options = {})` to accept optional `options.acknowledgedRationale` and render it after Guardrail Articles and before Content when markdown is non-empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R26",
+      "desc": "Update exported `buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds, options = {})` to forward options to `buildGuardrailArticleEvalPrompt`; empty options preserve existing output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Update `checkGuardrail` to accept the same optional options object and pass acknowledged rationale to `buildGuardrailArticleEvalPrompt`; existing callers without options keep current behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R17",
+      "desc": "Update `runGateFlow` to accept guardrail prompt options, including `acknowledgedRationale`, and forward them to `checkGuardrail` alongside `previouslyPassedIds`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R18",
+      "desc": "Add `PromptBuilder.addRaw(markdown)` or an equivalent shared prompt-builder API and use it for acknowledged rationale so the helper-owned `## Matched Spec Acknowledgment Rationale` heading is not duplicated or stripped by callers.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "In `executeSpec`, build acknowledged rationale from the loaded parent spec.json and filtered guardrails, then pass it to guardrail article evaluation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "In `executeDiffBasedGate` for task-impl and integration, load parent spec.json from active `state.spec`, build acknowledged rationale from filtered guardrails, load previously passed guardrail IDs from issue-log, intersect them with the current filtered guardrail article IDs, and call `checkGuardrail(root, text, phase, role, previouslyPassedIds, options)` while keeping `previouslyPassedIds` distinct from the options object.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "Update `buildDraftSystemPrompt(guardrails = [], options = {})` in `src/flow/commands/review.js` to render matched rationale immediately after `## Additional Guardrail Review Perspectives` when `options.acknowledgedRationale.markdown` is non-empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R12",
+      "desc": "Flow review loads active parent spec.json when available and supplies acknowledged rationale to `buildDraftSystemPrompt` for both `runLoopReview` and the single-call review path. Missing or invalid parent spec context produces empty rationale plus warning metadata rather than a hard failure.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R34",
+      "desc": "For task-impl / integration gates, missing, invalid JSON, or schema-invalid parent specs are treated as unavailable acknowledgment context and produce `{ markdown: \"\", warning: \"parent spec context unavailable\" }`; spec gate keeps existing strict spec validation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R13",
+      "desc": "Add common acknowledged-exception clause and one example sentence to target guardrail bodies in `src/presets/cli/guardrail.json`, `src/presets/base/guardrail.json`, and `src/presets/node-cli/guardrail.json`. The clause states that exception rationale applies only in phases where a matched rationale section is present, must be in scanned fields, include guardrail_id at least once, and contain at least 20 non-whitespace characters after removing guardrail_id.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R19",
+      "desc": "Preserve the common acknowledged-exception clause for the four target guardrail IDs when any preset-chain or project guardrail override replaces an earlier entry, either by prompt-time augmentation in `src/lib/guardrail.js` or by another deterministic guardrail-loading mechanism. Clause preservation is idempotent: append only when the loaded body lacks the common clause.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R14",
+      "desc": "Document the author convention in `src/flow/prompts/plan/spec.md` and in `buildGuardrailArticleEvalPrompt` rules: write the target guardrail_id directly in constraints, clarifications, or alternatives_considered when acknowledging a guardrail exception.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R20",
+      "desc": "Update `src/flow/prompts/plan/gate.md` so gate remediation states that guardrail exception acknowledgments are detected only in constraints, clarifications, and alternatives_considered, must include the exact guardrail_id, and should not be recorded in design_principles or approval notes for this purpose.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R23",
+      "desc": "Update `src/flow/lib/get-guardrail.js` markdown output to include each guardrail id next to the title, for example `## Guardrail: <title> (<id>)`, while preserving JSON output.",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R28",
+      "desc": "Update `src/flow/lib/get-guardrail.js` to validate guardrail lookup phases against `VALID_GUARDRAIL_PHASES`: `draft`, `spec`, `task-spec`, `task-impl`, `integration`, `test`, `lint`, and `review`. Preserve backward compatibility by mapping `sdd-forge flow get guardrail impl` to `task-impl` with exit code 0 and the same output as `task-impl`; unknown phases fail with non-zero exit and an error listing valid phases.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R29",
+      "desc": "Update `src/flow/registry.js` `flow get guardrail` help to list guardrail article phases `draft|spec|task-spec|task-impl|integration|test|lint|review` and note `impl` as a backward-compatible alias for `task-impl`.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R21",
+      "desc": "Update `src/flow/prompts/impl/implement.md` to fetch implementation guardrail articles using current phases `task-impl` and `integration` instead of the retired `impl` phase.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R24",
+      "desc": "Update `src/templates/skills/sdd-forge.flow/SKILL.md` command reference to list current guardrail phases, including `task-impl` and `integration`, and rely on `sdd-forge upgrade` to propagate generated skill changes.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R25",
+      "desc": "Update `src/flow/prompts/task/impl.md` to fetch and apply `task-impl` guardrails, reference the same scanned-field guardrail_id acknowledgment convention, and correct stale completion guidance that still says the next action advances to task.run-tests.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R30",
+      "desc": "Update `src/flow/prompts/impl/gate-impl.md` so task-impl / integration gate remediation says intentional guardrail exceptions must be recorded in scanned spec fields with the exact guardrail_id before rerunning gate.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R32",
+      "desc": "Update `src/flow/prompts/impl/review.md` and `src/flow/prompts/task/review.md` so review remediation says intentional review-phase guardrail exceptions must be recorded in scanned parent spec fields with the exact guardrail_id before rerunning review.",
+      "priority": "should",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R33",
+      "desc": "Document in `src/flow/prompts/plan/gate-draft.md` and spec author guidance that draft gate remains strict and out of scope for matched spec acknowledgment rationale because draft evaluation runs before spec.json exists; draft gate violations must be fixed directly or escalated, not acknowledged in draft.json.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    },
+    {
+      "id": "R15",
+      "desc": "Add nice-to-have broad fixture coverage using exact existing fixture paths `specs/228-fix-baseline-exit-code/spec.json`, `specs/235-remove-flow-test-management/spec.json`, and `specs/229-test-runner-file-filter/spec.json`, plus synthetic fixtures when collision cases are not present in those files.",
+      "priority": "nice-to-have",
+      "status": "done"
+    },
+    {
+      "id": "R31",
+      "desc": "Add must-have unit tests for extractor matching, design_principles exclusion, prompt section ordering, empty acknowledged-rationale output preservation, section cap behavior, direct diff-gate previous-pass preservation, guardrail phase validation, target guardrail body clauses, override/idempotence clause preservation, and the `impl` alias.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R22",
+      "desc": "Prompt rendering tests assert exact run-gate section order: previously passed guardrails when present, diff scope constraint when applicable, Guardrail Articles, Matched Spec Acknowledgment Rationale, then Content. Tests also assert empty acknowledged rationale preserves existing prompt output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R16",
+      "desc": "Because `src/templates/skills/sdd-forge.flow/SKILL.md` changes, run `sdd-forge upgrade` and verify generated `.agents/skills/sdd-forge.flow/SKILL.md` and `.claude/skills/sdd-forge.flow/SKILL.md` diffs match the template change. Flow prompt and preset guardrail edits are verified by tests and source diffs, not by upgrade output.",
+      "priority": "must",
+      "testable": false,
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`npm test` passes.",
+    "Unit tests prove `exit-code-contract` matches in `exit-code-contract` and `` `exit-code-contract` ``, and does not match `not-exit-code-contract-anymore`.",
+    "Unit tests prove clarifications and alternatives are included as whole pair entries when either side contains the guardrail_id.",
+    "Unit tests prove the 20 non-whitespace-character qualification removes all token-boundary guardrail_id occurrences before counting and excludes pair labels from the count.",
+    "Unit tests prove multiline, Markdown, and indented rationale text is normalized to single-space text before qualification, truncation, and rendering.",
+    "Unit tests assert exact source labels `$.constraints[N]`, `$.clarifications[N]`, and `$.alternatives_considered[N]`.",
+    "Unit tests prove design_principles, approval notes, issue-log text, generated markdown, and raw diff text are not scanned.",
+    "Prompt rendering tests assert the exact `## Matched Spec Acknowledgment Rationale` structure, source paths, pair labels, and `[truncated]` marker.",
+    "Prompt rendering tests assert run-gate section order: Previously Passed Guardrails when present, Diff Scope Constraint when applicable, Guardrail Articles, Matched Spec Acknowledgment Rationale, then Content.",
+    "Prompt rendering tests assert empty acknowledged rationale preserves the current prompt output byte-for-byte except for intentional PromptBuilder internal representation changes.",
+    "Prompt rendering tests assert max 3 entries per guardrail, max 600 characters per entry, max 4000 characters for the section, and section-cap stopping at entry boundaries.",
+    "Prompt rendering tests assert deterministic ordering by filtered guardrail order, scanned field order, and ascending array index.",
+    "run-gate spec / task-impl / integration paths include matched rationale when parent spec has matching scanned entries.",
+    "run-gate task-impl / integration and flow review paths treat missing, invalid, or schema-invalid parent spec context as empty acknowledged rationale with warning metadata; spec gate remains strict.",
+    "run-gate task-impl / integration direct diff gate prompts preserve Previously Passed Guardrails when previous passes exist.",
+    "run-gate task-impl / integration direct diff gate prompts filter previous passed IDs to current guardrail article IDs before rendering Previously Passed Guardrails.",
+    "flow review loop and single-call paths include matched rationale in the system prompt when active parent spec context is available.",
+    "The four target guardrail bodies contain the common acknowledgment clause and one example sentence each.",
+    "A preset-chain override and a project guardrail override for target IDs still present the common acknowledged-exception clause to guardrail evaluation without duplicating it when the body already contains the clause.",
+    "Must-have guardrail content tests assert all four target IDs contain the common clause and example sentence, and non-target guardrails do not gain acknowledged-exception semantics.",
+    "Default `sdd-forge flow get guardrail <phase>` markdown output includes exact guardrail ids.",
+    "`sdd-forge flow get guardrail impl` exits 0 and returns the same output as `task-impl`; unknown phases exit non-zero and list valid phases `draft|spec|task-spec|task-impl|integration|test|lint|review`.",
+    "`src/flow/prompts/plan/spec.md` contains the author convention for direct guardrail_id acknowledgments.",
+    "`src/flow/prompts/plan/gate.md` tells remediation agents that only constraints, clarifications, and alternatives_considered are scanned for exception acknowledgments.",
+    "`src/flow/prompts/plan/gate-draft.md` says acknowledged exceptions are spec.json-only and draft gate violations must be fixed directly or escalated.",
+    "`src/flow/prompts/impl/implement.md` and `src/flow/prompts/task/impl.md` fetch task-impl and integration guardrail articles instead of `impl` where relevant.",
+    "`src/flow/prompts/impl/gate-impl.md` documents the scanned-field acknowledgment remediation path for intentional exceptions.",
+    "`src/flow/prompts/impl/review.md` and `src/flow/prompts/task/review.md` document the scanned-field acknowledgment remediation path for intentional review-phase exceptions.",
+    "Spec documentation states draft gate remains strict and out of scope for matched spec acknowledgment rationale.",
+    "`src/templates/skills/sdd-forge.flow/SKILL.md` command reference lists task-impl and integration guardrail phases.",
+    "`src/flow/registry.js` guardrail command help lists guardrail article phases and names `impl` as a task-impl alias.",
+    "Every spec verification test file under `specs/256-guardrail-ack-exceptions/tests/` starts with a `// spec: R<N> ...` header.",
+    "`sdd-forge upgrade` has been executed because the flow skill template changes, and generated skill diffs match the template change."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this add a new spec.json field?",
+      "a": "No. The implementation uses existing constraints, clarifications, and alternatives_considered fields."
+    },
+    {
+      "q": "Is design_principles scanned for acknowledgments?",
+      "a": "No. The initial scan surface follows Issue #314 Fix Policy: constraints, clarifications, and alternatives_considered only."
+    },
+    {
+      "q": "Does matched rationale automatically make a guardrail pass?",
+      "a": "No. Matched rationale is prompt context. Exception semantics come from the target guardrail's acknowledgment clause."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add a dedicated acknowledged_exceptions field to spec.json.",
+      "reason": "Rejected because Issue #314 explicitly avoids schema changes and existing fields already carry author rationale."
+    },
+    {
+      "option": "Search raw targetText or rendered spec.md for guardrail_id strings.",
+      "reason": "Rejected because spec.json is already loaded structurally in relevant phases and raw text matching loses field source labels."
+    },
+    {
+      "option": "Limit prompt injection to the four target guardrails only.",
+      "reason": "Rejected because extraction and rendering can be generic while exception semantics remain limited to guardrails with a clause."
+    },
+    {
+      "option": "Add the acknowledgment clause to every guardrail.",
+      "reason": "Rejected because it changes behavior outside Issue #314 and expands exception semantics too far."
+    },
+    {
+      "option": "Scan design_principles as well.",
+      "reason": "Rejected for the initial implementation because Issue #314 Fix Policy names constraints, clarifications, and alternatives_considered as the prompt injection fields."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "acknowledged-rationale",
+    "guardrail-eval",
+    "guardrail-id",
+    "token-boundary-match",
+    "buildGuardrailArticleEvalPrompt",
+    "checkGuardrail",
+    "buildDraftSystemPrompt",
+    "constraints",
+    "clarifications",
+    "alternatives-considered",
+    "bounded-resource-usage",
+    "exit-code-contract",
+    "backward-compatible-cli-interface",
+    "no-synchronous-io-in-hot-paths",
+    "sdd-forge-upgrade"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/acknowledged-rationale.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/get-guardrail.js",
+    "src/flow/commands/review.js",
+    "src/lib/prompt-builder.js",
+    "src/lib/guardrail.js",
+    "src/flow/prompts/plan/spec.md",
+    "src/flow/prompts/plan/gate.md",
+    "src/flow/prompts/plan/gate-draft.md",
+    "src/flow/prompts/impl/implement.md",
+    "src/flow/prompts/impl/gate-impl.md",
+    "src/flow/prompts/impl/review.md",
+    "src/flow/prompts/task/impl.md",
+    "src/flow/prompts/task/review.md",
+    "src/templates/skills/sdd-forge.flow/SKILL.md",
+    "src/presets/base/guardrail.json",
+    "src/presets/cli/guardrail.json",
+    "src/presets/node-cli/guardrail.json",
+    "specs/256-guardrail-ack-exceptions/tests/acknowledged-rationale.test.js"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-09T14:39:59.579Z",
+    "notes": "autoApprove: gate-passed spec approved"
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add rationale helper",
+      "goal": "Create a shared helper that extracts, bounds, and renders acknowledged guardrail rationale from spec.json.",
+      "acceptance": [
+        "Defines AcknowledgedRationaleEntry and AcknowledgedRationaleSet classes.",
+        "Exports buildAcknowledgedRationaleSection with the specified object parameter and return shape.",
+        "Implements scanned fields, token-boundary matching, whitespace normalization, caps, entry-boundary section cap behavior, deterministic rendering order, canonical source paths, pair labels, empty-context warning, and 20-character qualification rules."
+      ],
+      "implementation_notes": "Owns all matching and rendering rules to avoid duplication between run-gate and review.",
+      "test_strategy": "Pure unit tests for matching, non-scanned fields, pair entries, caps, truncation, and empty context.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Inject gate rationale",
+      "goal": "Wire matched rationale into run-gate guardrail article evaluation for spec, task-impl, and integration phases.",
+      "acceptance": [
+        "buildGuardrailArticleEvalPrompt accepts options.acknowledgedRationale.",
+        "buildGuardrailPrompt accepts and forwards the same optional options object.",
+        "PromptBuilder can insert the helper-rendered markdown section without duplicate headings.",
+        "checkGuardrail accepts and forwards the optional options object.",
+        "runGateFlow accepts and forwards guardrail prompt options to checkGuardrail.",
+        "executeSpec and executeDiffBasedGate pass parent spec matched rationale to guardrail evaluation, including executeDiffBasedGate's direct checkGuardrail call.",
+        "executeDiffBasedGate treats unavailable parent spec context as empty acknowledged rationale with warning metadata while spec gate remains strict.",
+        "executeDiffBasedGate preserves Previously Passed Guardrails context when passing acknowledged-rationale options.",
+        "executeDiffBasedGate filters previous-pass IDs to current guardrail article IDs before rendering the previous-pass section.",
+        "Rendered prompt places matched rationale after Guardrail Articles and before Content while preserving previous-pass and diff-scope ordering."
+      ],
+      "implementation_notes": "Keep existing callers valid by using optional options objects. Spec gate missing or malformed spec remains fatal.",
+      "test_strategy": "Prompt builder unit tests and mocked run-gate tests for spec / task-impl / integration paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Inject review rationale",
+      "goal": "Wire matched rationale into flow review's review-phase guardrail system prompt.",
+      "acceptance": [
+        "buildDraftSystemPrompt accepts options.acknowledgedRationale.",
+        "Matched rationale renders after Additional Guardrail Review Perspectives.",
+        "runLoopReview and single-call review pass active parent spec rationale when available.",
+        "Optional parent spec absence omits the section and exposes warning metadata through helper return value."
+      ],
+      "implementation_notes": "Review prompt coverage is required because bounded-resource-usage has review phase.",
+      "test_strategy": "Unit tests for buildDraftSystemPrompt plus integration-style tests for loop and single-call review prompt construction.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Update guardrail clauses",
+      "goal": "Add common acknowledged-exception clauses and one example sentence to the four Issue #314 target guardrail bodies.",
+      "acceptance": [
+        "backward-compatible-cli-interface body contains the common clause and migration-plan example.",
+        "exit-code-contract body contains the common clause and failure-signal example.",
+        "bounded-resource-usage body contains the common clause and bounded-resource example.",
+        "no-synchronous-io-in-hot-paths body contains the common clause and startup-path example.",
+        "The clause states exception semantics apply only when a matched rationale section is present for the evaluated phase.",
+        "Preset-chain and project guardrail overrides for target IDs still present the common clause to guardrail evaluation without duplicate clauses.",
+        "No non-target guardrail body gains acknowledged-exception semantics."
+      ],
+      "implementation_notes": "Keep clauses generic enough to avoid encoding project-specific values in src/.",
+      "test_strategy": "Guardrail content tests load merged preset guardrails and assert target / non-target body text.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Expose author convention",
+      "goal": "Document where spec authors must write guardrail_id acknowledgments.",
+      "acceptance": [
+        "src/flow/prompts/plan/spec.md names constraints, clarifications, and alternatives_considered as the acknowledgment fields.",
+        "src/flow/prompts/plan/gate.md warns that design_principles, approval notes, overview fields, task fields, and generated markdown are not scanned for this purpose.",
+        "src/flow/prompts/impl/implement.md and src/flow/prompts/task/impl.md fetch guardrails for task-impl and integration phases when implementation guardrail context is needed.",
+        "src/flow/prompts/impl/gate-impl.md explains how intentional task-impl / integration exceptions are remediated through scanned spec fields.",
+        "src/flow/prompts/impl/review.md and src/flow/prompts/task/review.md explain how intentional review-phase exceptions are remediated through scanned spec fields.",
+        "src/flow/prompts/plan/gate-draft.md explains that draft gate has no spec.json acknowledgment context and violations must be fixed directly or escalated.",
+        "The spec guidance names draft gate as strict and out of scope for spec-based matched rationale.",
+        "src/templates/skills/sdd-forge.flow/SKILL.md command reference lists task-impl and integration guardrail phases.",
+        "buildGuardrailArticleEvalPrompt rules state that matched rationale is context and exception permission comes from the guardrail article clause.",
+        "design_principles is named as out of scan scope."
+      ],
+      "implementation_notes": "This task changes prompt text and may require sdd-forge upgrade.",
+      "test_strategy": "Prompt text unit or snapshot test for convention visibility.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-6",
+      "title": "Add rationale tests",
+      "goal": "Add deterministic tests covering extractor matching, prompt rendering, phase wiring, guardrail body content, and upgrade-sensitive outputs.",
+      "acceptance": [
+        "Must-have tests cover extractor matching, design_principles exclusion, prompt ordering, empty-output preservation, section cap behavior, phase validation, target guardrail clauses, override idempotence, and direct diff-gate previous-pass preservation.",
+        "Tests use spec 228 existing fixture and synthetic fixtures for 235 / 229 collision cases.",
+        "Tests cover repeated guardrail ids, id-only rationale, multiline normalization, pair-entry length qualification, and guardrail markdown id rendering.",
+        "Tests use exact fixture paths `specs/228-fix-baseline-exit-code/spec.json`, `specs/235-remove-flow-test-management/spec.json`, and `specs/229-test-runner-file-filter/spec.json`.",
+        "Tests cover target project guardrail overrides, exact prompt section order, and empty acknowledged-rationale no-op output.",
+        "Every spec verification test file under specs/256-guardrail-ack-exceptions/tests/ starts with a `// spec: R<N> ...` header.",
+        "No test invokes a live AI agent."
+      ],
+      "implementation_notes": "Prefer pure helper tests and mocked prompt construction over live agent calls.",
+      "test_strategy": "Run npm test. Run npm run test:agent only if AI command behavior changes require it.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    },
+    {
+      "id": "T-7",
+      "title": "Align guardrail CLI phase handling",
+      "goal": "Keep guardrail lookup help, validation, markdown ids, and the retired impl phase compatible with current guardrail article phases.",
+      "acceptance": [
+        "src/flow/lib/get-guardrail.js markdown output includes exact guardrail ids.",
+        "Valid guardrail phases are draft, spec, task-spec, task-impl, integration, test, lint, and review.",
+        "`sdd-forge flow get guardrail impl` maps to task-impl, exits 0, and returns the same output as task-impl.",
+        "Unknown guardrail phases exit non-zero and list valid guardrail phases.",
+        "src/flow/registry.js help lists guardrail article phases and names impl as a task-impl alias."
+      ],
+      "implementation_notes": "This task owns behavioral CLI changes separate from prompt documentation.",
+      "test_strategy": "Spec verification tests cover impl alias output, unknown-phase failure, help text, and markdown id rendering.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    }
+  ],
+  "specId": "256-guardrail-ack-exceptions"
+}

@@ -1,0 +1,70 @@
+{
+  "goal": "`sdd-forge check scan` の出力をアクション可能な情報に絞り込む。現状は「scan.include 外の全ファイルリスト」という意味のない情報が大量に出力されており、ユーザーが取るべきアクションが見えにくい。出力を「DataSource に解析されなかったファイルの情報」に集中させ、ユーザーが「どの拡張子の DataSource を追加すればよいか」を即座に判断できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/check/commands/scan.js` の出力ロジック改修",
+      "text / json / md の全フォーマットに対応"
+    ],
+    "out": [
+      "`scan.include` パターン自体の変更提案機能",
+      "DataSource の自動生成・追加機能",
+      "他コマンドの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge check scan` を実行したとき、出力の先頭行に DataSource のカバレッジ率（例: `DataSource: 40 / 45 files (89%)`）が表示される。",
+    "`Include Coverage` セクションが出力に含まれない。",
+    "解析漏れファイルが存在する場合、拡張子サマリー（例: `.php  12 files`）がファイルリストより上に表示される。",
+    "解析漏れファイルが存在しない場合、サマリーとリストは表示されない。",
+    "`--list` フラグ指定時に全ての解析漏れファイルが表示される。",
+    "`--format json` 時、レスポンスに `includeCoverage` キーが含まれない。"
+  ],
+  "clarifications": [
+    {
+      "q": "「DataSourceがないもの」として表示したいのは？",
+      "a": "拡張子ごとにグルーピングしたサマリー表示（例: `.php  12 files`）。ファイルリストより上に表示する。"
+    },
+    {
+      "q": "Include Coverage の件数・パーセンテージは残すか？",
+      "a": "削除する。uncoveredリストを削除するとアクション不可能な数値になるため。"
+    },
+    {
+      "q": "カバレッジ率はどこに表示するか？",
+      "a": "出力の先頭に表示する（DataSource Coverage のみ）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**Level 1 uncovered リストのフィルタリング（.claude, .tmp を除外）**",
+      "reason": "問題の根本はリスト自体が不要であること。部分除外では根本解決にならないため却下。"
+    },
+    {
+      "option": "**Include Coverage の数値のみ残す**",
+      "reason": "対応する uncoveredリストがない数値はアクション不可能と判断し削除。"
+    }
+  ],
+  "open_questions": [
+    "なし"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "159-fix-check-scan-report"
+}

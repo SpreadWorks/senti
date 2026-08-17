@@ -1,0 +1,98 @@
+{
+  "goal": "`sdd-forge flow run tests` 実行時に flow.json の `test.summary` へ unit / integration / acceptance の 3 種別件数を確実に記録できるようにする。あわせて preset ごとに独自 log parser を差し込めるプラグイン口を提供し、将来の多言語 test runner 対応の土台を整える。",
+  "background": "",
+  "scope": {
+    "in": [
+      "対象プロジェクトの test runner に対し、実行サマリへ種別ラベル行（unit / integration / acceptance の 3 行）を emit する改修。",
+      "`flow run tests` の log parser 層に、preset が独自 parser を差し込める解決経路を追加。",
+      "組込み（node 標準 runner 想定）デフォルト parser の動作保証・テスト強化。",
+      "本プロジェクトのテスト分類（unit / e2e / acceptance）→ `test.summary` schema（unit / integration / acceptance）の semantic mapping を確定（e2e → integration）。"
+    ],
+    "out": [
+      "他言語 runner（jest / vitest / phpunit / pytest 等）向け組込 parser 実装。本 spec ではプラグイン口の提供のみ。",
+      "`test.summary` schema の変更（spec 198 で確定済み）。",
+      "flow.json の他フィールド（exitCode 以外の詳細メトリクス）の拡張。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "**REQ-1 (Must / P1)** When プロジェクトの test runner が全テスト実行を完了したとき、shall 実行結果サマリに unit / integration / acceptance の 3 種別件数を明示的なラベル行として標準出力へ emit する（カウントが 0 でも 0 として明示する）。"
+    },
+    {
+      "id": "R2",
+      "desc": "**REQ-2 (Must / P1)** When `sdd-forge flow run tests` が本プロジェクトで正常完了したとき、shall flow.json の `test.summary` に unit / integration / acceptance / exitCode の 4 キーが数値で記録される。"
+    },
+    {
+      "id": "R3",
+      "desc": "**REQ-3 (Must / P1)** When 入力 log にラベル行が含まれるとき、shall 組込み log parser は unit / integration / acceptance を独立にパースし、欠損キーは summary に書き込まないフォールバック挙動を維持する。"
+    },
+    {
+      "id": "R4",
+      "desc": "**REQ-4 (Must / P1)** When 本変更が適用されたとき、shall 既存の TAP 出力・プロセス終了コード伝播・既存テスト群の pass 状態は一切変更されない。"
+    },
+    {
+      "id": "R5",
+      "desc": "**REQ-5 (Should / P2)** When 対象プロジェクトの preset が独自 log parser を提供しているとき、shall `flow run tests` はその parser を優先して適用し、提供がない場合は shall 組込みデフォルト parser を適用する。"
+    },
+    {
+      "id": "R6",
+      "desc": "**REQ-6 (Should / P2)** When preset が parser を提供するとき、shall parser は unit / integration / acceptance 3 キーのうち検出できたものだけを返す契約に従う（未検出キーは返却オブジェクトから省略する）。"
+    }
+  ],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "プロジェクトの e2e テストは `test.summary` のどのキーにカウントするか?",
+      "a": "`integration` にカウントする（schema は spec 198 で固定、e2e は結合テスト相当で semantic ずれが最小）。"
+    },
+    {
+      "q": "ラベル行が欠損したキーは `test.summary` にどう反映されるか?",
+      "a": "欠損キーは summary に書き込まない。runner 側で 0 を明示出力するため本プロジェクトでは 3 キーが揃う。"
+    },
+    {
+      "q": "preset parser の発見方式は?",
+      "a": "preset 解決の既存慣習パターンに揃える。詳細配置は実装 phase で確定。"
+    },
+    {
+      "q": "契約の将来拡張時の互換性は?",
+      "a": "初版は 3 キー件数の返却のみ。追加情報は新メソッドを足す形で既存契約を壊さない方針。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**log parser 側でプロジェクトのテスト配置を走査**",
+      "reason": "test runner とフロー側の責務が混ざる。runner 側でラベル emit するほうが責務分離が保てるため却下。"
+    },
+    {
+      "option": "**schema を unit/e2e/acceptance に変更**",
+      "reason": "spec 198 で確定済み。変更コストが大きく却下。"
+    },
+    {
+      "option": "**カスタムレポータ機構を利用**",
+      "reason": "実装コストが高く、既存 TAP 出力との共存も難しいため却下（ラベル行の追加が最もシンプル）。"
+    }
+  ],
+  "open_questions": [
+    "preset parser の具体的な配置パス（preset ディレクトリ内の慣習的ファイル名）は、既存の preset 解決パターンを実装 phase で参照して最終確定する。選定方針（既存 DataSource / テンプレートの解決慣習に揃える）は決定済み。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "200-test-type-labels-parser"
+}

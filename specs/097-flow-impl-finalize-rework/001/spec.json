@@ -1,0 +1,52 @@
+{
+  "goal": "`flow-impl` と `flow-finalize` の skill テンプレートを、確認しやすさと worktree 安定性を重視した進行に更新する。review 方針の3択化、指摘の1件ずつ提示、impl-confirm による実装確認、finalize の context 解決強化、merge/cleanup の分岐安定化を行う。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "include ディレクティブ（Task 04）",
+      "redolog 学習ロジック（Task 05）",
+      "flow-plan の変更（Task 02 で完了済み）",
+      "`flow run impl-confirm` の内部ロジック変更（spec 095 で実装済み、テンプレートから呼ぶだけ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "review の「自動改善」と「レビューのみ」の違いは？",
+      "a": "自動改善は AI が proposals を生成し承認済みのものを一括適用。レビューのみは proposals を 1 件ずつユーザーに提示し、ユーザーの判断を集めてから反映。"
+    },
+    {
+      "q": "impl-confirm の概要と詳細の違いは？",
+      "a": "概要は変更ファイル一覧 + 要件充足サマリー。詳細は requirement 単位で 1 件ずつ確認。"
+    },
+    {
+      "q": "finalize で worktree path を取り違える問題の原因は？",
+      "a": "`.active-flow` が main repo 側にあるが、ファイル操作は worktree 側で行う必要がある。`flow get resolve-context` で両方のパスを明示的に確定することで解決。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "097-flow-impl-finalize-rework"
+}

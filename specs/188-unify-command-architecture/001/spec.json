@@ -1,0 +1,42 @@
+{
+  "goal": "`sdd-forge` CLI 内で共存する 3 種類のコマンド実行アーキテクチャ（flow 型 / docs 型 / bare 型）を 1 パターンに統合し、全コマンドが同一の実行機構（引数解析・共有コンテキスト注入・ライフサイクル・出力処理）を経由するようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "コマンド本体のビジネスロジック変更（scan / enrich / build / gate 等、既存コマンドが実施している処理の内容そのもの）。",
+      "CLI 外部インターフェースの意図的な変更（サブコマンド名・flag/option 名・出力内容 semantics・終了コード）。R8 に基づき原則として完全互換。",
+      "Envelope クラスの再設計。",
+      "Container が保持する既存サービス（logger / agent / flowManager / i18n 等）の追加・削除・再設計。",
+      "config スキーマ変更。",
+      "プリセット / テンプレート側の変更。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [],
+  "alternatives_considered": [],
+  "open_questions": [
+    "pre/post/onError 以外のフック（例: finally）を本リファクタで採用するか — 採用しない。現行 flow 型で `finally` スロットは予約のみで未使用。YAGNI に従い R4 は pre/post/onError のみとする。将来必要になれば別 spec で追加。",
+    "出力モード `envelope` / `raw` の命名の妥当性 — 実装フェーズで最終化する。spec 層は概念として 2 モードの存在を要求する（R5）に留め、識別子名は実装フェーズの判断とする。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "188-unify-command-architecture"
+}

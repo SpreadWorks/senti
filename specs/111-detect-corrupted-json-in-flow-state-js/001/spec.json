@@ -1,0 +1,47 @@
+{
+  "goal": "`flow-state.js` の `loadActiveFlows()` で JSON パースエラーが発生した場合に警告ログを出力する。現在はすべてのエラーを無言で握りつぶしているため、`.active-flow` ファイルが破損してもユーザーが気づけない。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/flow-state.js` の `loadActiveFlows()` 内の catch ブロック1箇所を修正"
+    ],
+    "out": [
+      "flow-state.js 内の他の catch ブロックの修正（別 issue e03c で対応）",
+      "ファイル修復ロジックの追加",
+      "loadFlowState() 等の他の関数の修正"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "ENOENT はどう扱うか？",
+      "a": "`loadActiveFlows()` は catch の前に `fs.existsSync()` でファイル存在を確認済み。ENOENT が catch に到達する可能性は低いが、到達した場合も無視して良い（正常動作）。"
+    },
+    {
+      "q": "logger はどうするか？",
+      "a": "`console.error` を使用する。flow-state.js は共有ライブラリであり、createLogger 依存を追加するのは過剰。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "111-detect-corrupted-json-in-flow-state-js"
+}

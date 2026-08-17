@@ -1,0 +1,88 @@
+{
+  "goal": "guardrail の保存形式を Markdown (`guardrail.md`) から JSON (`guardrail.json`) に移行し、独自パーサーを `JSON.parse()` に置き換える。同時に内部の命名を `articles` から `guardrails` に統一する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/guardrail.js` の内部実装書き換え（パーサー廃止、JSON 読み込み）",
+      "全プリセットのテンプレートファイル変換（`guardrail.md` → `guardrail.json`、18 ファイル）",
+      "プロジェクト側 `.sdd-forge/guardrail.md` → `.sdd-forge/guardrail.json` への対応",
+      "`articles` → `guardrails` の全面リネーム（JSON キー、変数名、関数名）",
+      "未使用コードの削除",
+      "使い捨て変換スクリプトによる一括変換"
+    ],
+    "out": [
+      "`flow get guardrail` の出力形式変更（別タスク b5cd）",
+      "exemption 廃止（別タスク 0fa0）",
+      "draft フェーズへの差し込み（別タスク 02df）",
+      "guardrailCandidate → guardrail.json の自動追加パイプライン"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow get guardrail <phase>` が JSON ファイルから正しく guardrail を読み込み、フェーズフィルタリングが動作する",
+    "`sdd-forge flow run gate` が JSON 形式の guardrail で正常に動作する",
+    "プリセットチェーンのマージが id ベースで正しく動作する（同 id は子で上書き、新 id は追加）",
+    "`lint` フィールドの文字列→RegExp 変換が正しく動作する",
+    "全プリセットの `guardrail.md` が `guardrail.json` に置き換わっている",
+    "`parseGuardrailArticles()`, `serializeArticle()`, `loadGuardrailTemplate()` が削除されている",
+    "コード内に `articles` という名前の guardrail 関連変数が残っていない",
+    "既存テストが全てパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "JSON の構造はフラット（`phase`, `scope`, `lint` がトップレベル）か、現行 Article 型に合わせて `meta` ネストにするか？",
+      "a": "`meta` ネスト構造を維持する。`JSON.parse()` したらそのまま Article 型として使える形にする。変換レイヤー不要。"
+    },
+    {
+      "q": "JSON のルートキー名は `articles` か `guardrails` か？",
+      "a": "`guardrails`。内部コードの変数・関数・型名もすべて `articles` → `guardrails` にリネームする。"
+    },
+    {
+      "q": "`id` フィールドの生成方法は？",
+      "a": "title から kebab-case で自動生成する。変換スクリプトで付与する。"
+    },
+    {
+      "q": "`lint` フィールドの格納形式は？",
+      "a": "文字列（`\"/pattern/flags\"`）で保持し、ロード時に `new RegExp()` に変換する。"
+    },
+    {
+      "q": "マージ時の id 重複処理は？",
+      "a": "子が親を完全上書き。フィールド単位マージはしない。"
+    },
+    {
+      "q": "`loadGuardrailTemplate()` と `serializeArticle()` は？",
+      "a": "未使用コードなので削除。"
+    },
+    {
+      "q": "テンプレート変換の方法は？",
+      "a": "使い捨てスクリプトで一括変換。既存の md→json 変換コードがあれば参考にする。"
+    },
+    {
+      "q": "`template-merger.js` への影響は？",
+      "a": "なし。guardrail は template-merger を経由していない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "既存の md→json 変換コードの場所を特定し、参考にできるか確認する - 専用の変換コードは存在しない。`parseGuardrailArticles()` が md→オブジェクト変換を担っており、変換スクリプトでこれを利用して md→JSON 変換を行う。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "121-migrate-guardrail-data-format-to-json"
+}

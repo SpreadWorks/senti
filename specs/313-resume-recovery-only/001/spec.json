@@ -1,0 +1,355 @@
+{
+  "goal": "Redesign `senti flow resume` as a recovery-only entry point that discovers ambiguous flow candidates, selects only explicitly recoverable targets, and hands a verified `runId` target to later continuation commands without contaminating normal `/senti.flow` active-flow resolution.",
+  "scope": {
+    "in": [
+      "Clarify and implement responsibilities for `senti flow resume`, `senti flow get resolve-context`, normal active-flow resolution, and target-aware continuation.",
+      "Keep broad `scanAllFlows()` discovery limited to explicit recovery/discovery behavior, not normal active-flow detection.",
+      "Make candidates shown by recovery discovery selectable with `senti flow resume --spec <specId>` only when they carry a usable `runId`.",
+      "Require `runId` for normal continuation after resume recovery; candidates without `runId` are displayed for diagnosis and blocked from continuation.",
+      "Update `senti.flow-resume` so it gives guarded continuation or safe-stop instructions instead of unqualified `/senti.flow` re-entry.",
+      "Define recovery candidate states for stale, finalized, orphan worktree, and branch-only flows."
+    ],
+    "out": [
+      "npm publish and release work.",
+      "Unrelated changes to the normal new-flow `ACTIVE_FLOW_MISMATCH` application boundary.",
+      "Prior normal flow entry-side fixes unless directly required by the recovery contract."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules; do not add external dependencies.",
+    "Do not put project-specific values in `src/` package code.",
+    "After editing `src/skills/**`, run `senti upgrade` so generated skill files are updated.",
+    "Migration parity applies: retained public command behavior must be inventoried, mapped to the new owner, and verified with behavior-level tests.",
+    "Normal active-flow resolution must not call broad branch/worktree discovery.",
+    "Recovery discovery must preserve bounded scanning: at most `SCAN_FLOWS_LIMIT` candidates, currently 200, across local specs, git worktrees, and `feature/*` branches."
+  ],
+  "design_principles": [
+    "Recovery discovery and normal active-flow execution are separate paths.",
+    "`runId` is the only safe identity for normal continuation after resume recovery.",
+    "Displayed recovery candidates that cannot be safely continued should explain their state instead of disappearing silently.",
+    "Target guards must fail before any continuation step can act on a different flow."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/lib/flow-manager.js` owns active-flow registry resolution and broad flow scanning."
+      },
+      {
+        "text": "`src/flow/lib/run-resume.js` owns the recovery/discovery command surface and selected target envelope."
+      },
+      {
+        "text": "`src/flow/lib/resolve-context-envelope.js` owns the normal active-flow context envelope shared with `get resolve-context`."
+      },
+      {
+        "text": "`src/lib/flow-target-guard.js` owns target mismatch checks used by guarded status, next-action, and run continuation."
+      },
+      {
+        "text": "`src/skills/senti.flow-resume/SKILL.md` owns user-facing recovery guidance after context loss."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Normal `/senti.flow` continuation reads registered active flow state, applies target guards when supplied, and does not inspect branch/worktree discovery candidates."
+      },
+      {
+        "text": "`senti flow resume` performs explicit recovery discovery, classifies active and recovery candidates, and returns candidate state without mutating normal active-flow registration."
+      },
+      {
+        "text": "`senti flow resume --spec <specId>` selects a discovered candidate only when it has both `runId` and an execution root. Continuation runs from that root with `--expect-run-id`."
+      },
+      {
+        "text": "Candidates without `runId`, without an execution root, finalized flows, stale references, and branch-only flows are displayed with state and safe-stop guidance rather than entering normal continuation."
+      },
+      {
+        "text": "Recovery selectability: active and orphan-worktree candidates are continuable only when `runId` and execution root exist; stale, finalized, branch-only, and missing-runId candidates are blocked/display-only."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Normal `resolveActiveFlow()` intentionally avoids `scanAllFlows()`; recovery discovery remains separate from active-flow execution.",
+        "evidence": "`src/lib/flow-manager.js` documents that `resolveActiveFlow()` does not call `scanAllFlows()` because branch/worktree discovery is a recovery concern."
+      },
+      {
+        "text": "[VERIFY] Current `resume --spec` only selects registered active flows, which contradicts the recovery candidate UX described in the Issue.",
+        "evidence": "`src/lib/flow-manager.js` selects `opts.selectSpecId` from `.senti/.active-flow` entries and throws when the spec is not registered active."
+      },
+      {
+        "text": "[VERIFY] Current `senti.flow-resume` skill instructs mainline users to invoke `/senti.flow`, losing the selected resume target.",
+        "evidence": "`src/skills/senti.flow-resume/SKILL.md` says mainline phases should run `/senti.flow` after resume."
+      },
+      {
+        "text": "[VERIFY] Target guard options already exist for status and next-action surfaces and should be reused for resume continuation.",
+        "evidence": "`src/flow/registry.js` defines `--expect-issue`, `--expect-spec`, and `--expect-run-id` for status and next-action help."
+      },
+      {
+        "text": "`resume --spec <specId>` remains the explicit recovery selection surface rather than introducing a second selector.",
+        "evidence": "Draft q1 user answer selected `resume --spec` for discovery candidate selection.",
+        "consideredAlternatives": "A separate discovery-specific selection command was considered and rejected by user decision."
+      },
+      {
+        "text": "`runId` is required for normal continuation after resume recovery; `spec` and `worktreePath` are diagnostic only when `runId` is missing.",
+        "evidence": "Draft q2 user answer rejected `spec + worktreePath` fallback as unsafe for continuation."
+      },
+      {
+        "text": "Continuation handoff uses the selected candidate execution root plus `--expect-run-id`; this avoids registering recovery candidates as normal active flows.",
+        "evidence": "Spec review found that runId guards cannot load arbitrary candidates by themselves. The repaired contract uses cwd/root resolution plus target guard."
+      },
+      {
+        "text": "Migration inventory: `resume` discovery keeps discovery output; `resume --spec` changes selector scope; status/next-action/run keep guarded execution; resolve-context and `.active-flow` keep normal ownership.",
+        "evidence": "Draft gate and spec gate required inventory for affected user-facing commands, APIs, generated state, and side effects."
+      },
+      {
+        "text": "Migration mapping: recovery discovery is owned by `senti flow resume`; normal active state remains owned by `.senti/.active-flow`; target mismatch remains owned by flow target guards.",
+        "evidence": "Retained surfaces are mapped to owners rather than being merged into one resolver."
+      },
+      {
+        "text": "Behavior verification maps one public surface per check: resume discovery, resume selection, status, next-action, run, resolve-context, active registry, and resume skill guidance.",
+        "evidence": "Gate migration-parity finding required behavior-level verification for each retained surface."
+      },
+      {
+        "text": "Finalized flows remain visible in discovery but are blocked from normal continuation.",
+        "evidence": "Draft q3 user answer selected display-only behavior for finalized flows."
+      },
+      {
+        "text": "The resume skill must show guarded continuation or safe-stop instructions rather than only telling users to run `/senti.flow`.",
+        "evidence": "Draft q4 user answer selected `runId` guard guidance."
+      }
+    ]
+  },
+  "background": "`flow resume` was intended to recover context after compaction or when invoked outside the worktree, but it currently mixes candidate discovery, target selection, and continuation guidance. Broad discovery can show stale branch/worktree candidates, while `resume --spec` can only select `.senti/.active-flow` registrations. The skill then tells users to invoke `/senti.flow` without preserving the selected target, allowing a later command to continue a different flow.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Normal active-flow resolution must remain registry-based and must not use broad `scanAllFlows()` recovery discovery when starting or continuing `/senti.flow`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`senti flow resume` must act as explicit recovery discovery and classify active, stale, finalized, orphan worktree, and branch-only candidates separately from normal active flows.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`senti flow resume --spec <specId>` must select a displayed recovery candidate only when that candidate has a usable `runId` and execution root; candidates without both values must be display-only and blocked from normal continuation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Continuation after resume recovery must run from the selected candidate execution root and verify the selected `runId` before status, next-action, or run command execution can proceed; a mismatched target must return `ACTIVE_FLOW_MISMATCH` before step execution.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "`senti.flow-resume` must stop presenting unqualified `/senti.flow` re-entry and must instead show execution-root plus `runId` guarded continuation commands when both values exist, or safe-stop instructions when either value is missing.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Migration parity must be verified for retained public surfaces: resume discovery, resume selection, normal active-flow status, target-aware status, next-action, run continuation, resolve-context, active-flow registry, and skill guidance.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "At least one e2e worktree recovery case must verify real git-worktree discovery and separation from normal active-flow resolution.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Recovery discovery must keep bounded resource usage by preserving the `SCAN_FLOWS_LIMIT` candidate cap and limiting traversal to local specs, registered git worktrees, and `feature/*` branches.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Given `.senti/.active-flow` is absent, normal `/senti.flow` new-flow startup and normal status resolution are not affected by stale candidates found by recovery discovery.",
+    "Given recovery discovery lists multiple candidates, `senti flow resume --spec <specId>` can select a displayed active or orphan-worktree candidate that has `runId` and execution root, and returns an envelope containing the selected `runId`, `spec`, and root/path context.",
+    "Given a discovery candidate lacks `runId` or execution root, `senti flow resume --spec <specId>` does not enter normal continuation and reports the candidate as display-only or blocked.",
+    "Given a finalized flow is discovered, it is labeled as finalized and blocked from normal continuation while remaining visible for diagnosis.",
+    "Given a stale reference or branch-only candidate is discovered, it is labeled as a blocked/display-only recovery candidate rather than a normal active flow.",
+    "Given an orphan worktree candidate with `runId` and execution root is discovered, it can be selected and continued from that root with `--expect-run-id`.",
+    "Given a selected `runId` and execution root, target-aware status, next-action, and run command paths run from that root, verify `runId` before acting, and return `ACTIVE_FLOW_MISMATCH` on mismatch.",
+    "`senti flow get resolve-context` continues to describe the normal active flow and does not include unrelated broad discovery candidates.",
+    "`senti.flow-resume` output no longer instructs users to run `/senti.flow` without target guard context.",
+    "Spec-local tests under `specs/313-resume-recovery-only/tests/` include `// spec: R<N>` headers covering the new behavior.",
+    "Behavior-level verification for `senti flow resume`: discovery lists classified recovery candidates and remains capped at `SCAN_FLOWS_LIMIT` candidates.",
+    "Behavior-level verification for `senti flow resume --spec`: selectable candidates with `runId` and execution root return a selected target envelope.",
+    "Behavior-level verification for `senti flow get status`: normal status ignores stale recovery discovery candidates, while target-aware status rejects mismatched `runId`.",
+    "Behavior-level verification for `senti flow get next-action`: guarded next-action rejects mismatched `runId` before dispatcher work.",
+    "Behavior-level verification for representative `senti flow run ...`: guarded run continuation rejects mismatched `runId` before step execution.",
+    "Behavior-level verification for `senti flow get resolve-context`: output remains the normal active-flow context envelope and does not include unrelated recovery candidates.",
+    "Behavior-level verification for `.senti/.active-flow`: recovery discovery does not register display-only candidates as normal active flows.",
+    "Behavior-level verification for `senti.flow-resume`: guidance includes execution-root plus `runId` guard instructions or safe-stop instructions.",
+    "Shared unit/e2e tests cover migration parity for CLI command behavior and skill guidance, including an e2e worktree recovery case."
+  ],
+  "clarifications": [
+    {
+      "q": "Can `spec + worktreePath` substitute for `runId` during continuation?",
+      "a": "No. `spec + worktreePath` may identify a displayed recovery candidate for diagnosis, but normal continuation after resume recovery requires `runId`."
+    },
+    {
+      "q": "Can `runId` alone load an arbitrary recovery candidate?",
+      "a": "No. Normal continuation after resume recovery requires both `runId` and an execution root. Commands run from the execution root and use `--expect-run-id` to verify the selected flow."
+    },
+    {
+      "q": "Which recovery states are continuable?",
+      "a": "Active and orphan-worktree candidates are continuable only when they have both `runId` and execution root. Stale references, finalized flows, branch-only candidates, and missing-runId candidates are display-only/blocked."
+    },
+    {
+      "q": "What public behavior is migrated or retained?",
+      "a": "`senti flow resume` keeps discovery but becomes recovery-only; `resume --spec` changes from active-only selection to recovery selection with runId/root gating; status, next-action, run, resolve-context, and `.senti/.active-flow` retain normal active-flow ownership; `senti.flow-resume` changes guidance only."
+    },
+    {
+      "q": "What resource bounds apply to recovery discovery?",
+      "a": "Discovery must preserve the existing `SCAN_FLOWS_LIMIT` cap of 200 candidates and scan only local specs, registered git worktrees, and `feature/*` branches."
+    },
+    {
+      "q": "Should finalized flows be hidden from recovery discovery?",
+      "a": "No. They should be visible with finalized state and blocked continuation."
+    },
+    {
+      "q": "Does this spec change npm release behavior?",
+      "a": "No. npm publish and release work are out of scope."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add a separate recovery selection command instead of changing `resume --spec`.",
+      "reason": "Rejected because the user chose to make the existing `resume --spec <specId>` surface match the displayed recovery candidates."
+    },
+    {
+      "option": "Allow `spec + worktreePath` fallback for continuation when `runId` is missing.",
+      "reason": "Rejected because missing `runId` means normal continuation cannot prove it is acting on the selected flow instance."
+    },
+    {
+      "option": "Hide finalized flows from discovery.",
+      "reason": "Rejected because hiding them removes diagnostic context and makes stale/finalized candidate differences less visible."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "flow resume",
+    "runId",
+    "scanAllFlows",
+    "resolveActiveFlow",
+    "ACTIVE_FLOW_MISMATCH",
+    "flow-target-guard",
+    "resolve-context",
+    "active-flow registry",
+    "orphan worktree",
+    "branch-only flow",
+    "finalized flow",
+    "senti.flow-resume"
+  ],
+  "implementationTargets": [
+    "src/lib/flow-manager.js",
+    "src/flow/lib/run-resume.js",
+    "src/flow/lib/resolve-context-envelope.js",
+    "src/lib/flow-target-guard.js",
+    "src/flow/registry.js",
+    "src/skills/senti.flow-resume/SKILL.md",
+    "tests/unit/flow",
+    "tests/e2e/flow",
+    "specs/313-resume-recovery-only/tests"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Classify recovery candidates",
+      "goal": "Make explicit recovery discovery classify broad scan results without changing normal active-flow resolution.",
+      "acceptance": [
+        "`scanAllFlows()` output is consumed only by recovery discovery.",
+        "Recovery discovery preserves the `SCAN_FLOWS_LIMIT` candidate cap and reports truncation behavior.",
+        "Active, stale, finalized, orphan worktree, and branch-only candidates have distinguishable state in resume output.",
+        "Normal active-flow resolution remains registry-based."
+      ],
+      "implementation_notes": "Focus on candidate modeling and discovery boundaries in flow-manager and resume code. Preserve normal resolve-context semantics.",
+      "test_strategy": "Unit tests for discovery classification, candidate cap behavior, and a regression that normal active resolution ignores stale scan candidates.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Select resume target",
+      "goal": "Make `senti flow resume --spec <specId>` select displayed candidates only when a safe `runId` exists.",
+      "acceptance": [
+        "`resume --spec` selects a displayed candidate with `runId` and execution root even when `.senti/.active-flow` is absent.",
+        "A candidate without `runId` or execution root is reported as blocked/display-only and does not enter normal continuation.",
+        "Finalized, stale, and branch-only candidates are visible and blocked."
+      ],
+      "implementation_notes": "Keep `spec + worktreePath` as diagnostic identity only. Do not register display-only candidates as normal active flows. Select only active or orphan-worktree candidates with `runId` and execution root.",
+      "test_strategy": "Spec-local tests for selectable and blocked candidates; shared unit tests for `.active-flow` absent behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Guard continuation commands",
+      "goal": "Ensure continuation after resume recovery verifies selected `runId` before status, next-action, or run command execution proceeds.",
+      "acceptance": [
+        "Status and next-action reject mismatched `runId` with `ACTIVE_FLOW_MISMATCH` before dispatcher actions.",
+        "Run command paths used after resume recovery are invoked from the selected execution root and reject mismatched `runId` before step execution.",
+        "Resolve-context remains a normal active-flow envelope and does not mix in recovery discovery candidates."
+      ],
+      "implementation_notes": "Reuse existing target guard semantics where possible. The handoff contract is execution-root plus `--expect-run-id`, not global runId lookup. Extend guard parsing only where command surfaces lack it.",
+      "test_strategy": "Unit tests for target mismatch on status, next-action, and representative run command paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Update resume guidance",
+      "goal": "Update `senti.flow-resume` instructions to show guarded continuation or safe-stop recovery guidance.",
+      "acceptance": [
+        "The skill no longer tells users to run `/senti.flow` without a target guard.",
+        "The skill names the execution root and guarded status/continuation commands when `runId` exists.",
+        "The skill tells users to stop or perform manual recovery when `runId` or execution root is absent."
+      ],
+      "implementation_notes": "Update source skill files and run `senti upgrade` so generated skill artifacts are synchronized. Guidance should tell the operator to run follow-up commands from the selected execution root.",
+      "test_strategy": "Skill text regression tests assert old unqualified guidance is absent and guarded guidance is present.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Verify recovery behavior",
+      "goal": "Add spec-local and shared regression coverage for migration parity and worktree recovery.",
+      "acceptance": [
+        "Spec-local tests under `specs/313-resume-recovery-only/tests/` include `// spec: R<N>` headers.",
+        "A shared e2e test covers worktree recovery discovery with real git worktree state.",
+        "Regression tests cover normal active-flow isolation, resume selection, blocked candidates, execution-root handoff, target mismatch, resolve-context parity, active registry non-mutation, bounded discovery, and skill guidance."
+      ],
+      "implementation_notes": "Keep tests focused on behavior-level verification rather than help text or mock routing alone.",
+      "test_strategy": "Run targeted unit/e2e tests during implementation and rely on final-regression for full project coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-25T10:15:49.392Z",
+    "notes": "User approved spec after spec gate PASS"
+  },
+  "specId": "313-resume-recovery-only"
+}

@@ -1,0 +1,242 @@
+{
+  "goal": "Enforce standard run ID, Issue, and spec target guards for preparing-flow prelude commands before mutation, agent execution, or worktree creation while preserving existing routing and guard-free behavior.",
+  "scope": {
+    "in": [
+      "Expose the selected preparing run as `preparingFlowState` while retaining `flowState: null` in preparing-mode context.",
+      "Validate target guards against `preparingFlowState ?? flowState` in the base command and dispatcher before command or lifecycle side effects.",
+      "Align request, note, auto, auto-check, and prepare preparing-mode routing, registry guard options, and help text.",
+      "Keep explicit unknown run IDs isolated from unrelated active or preparing flows.",
+      "Add focused existing and spec-local tests for selection, matching and mismatching guards, side-effect ordering, help parity, and post-prepare behavior."
+    ],
+    "out": [
+      "FlowStore, PreparingFlowStore, flow set init, and flow get status behavior changes.",
+      "New public commands, broader target semantics, manual state recovery, or compatibility paths.",
+      "Issue 415 or any other flow, worktree, feature implementation, or recovery.",
+      "External dependencies, push, publish, or release."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing command, registry, envelope, and class patterns.",
+    "Limit product changes to `src/flow/registry.js`, `src/flow/lib/flow-context.js`, `src/flow/lib/base-command.js`, and `src/lib/dispatcher.js`.",
+    "Retain `flowState: null` for preparing-mode routing and expose selected preparing state only through `preparingFlowState`.",
+    "Do not change FlowStore ownership, preparing-state storage, init semantics, or status semantics.",
+    "Reject guard mismatches as `ACTIVE_FLOW_MISMATCH` before mutation, command module loading, agent execution, lifecycle hooks, or worktree creation.",
+    "Preserve documented behavior when no target guard is supplied, including existing command-specific failures for a guard-free unknown `--run-id`."
+  ],
+  "design_principles": [
+    "Represent the selected preparing target explicitly instead of changing the meaning of active flow state.",
+    "Apply one shared target-state selection rule at both command and dispatcher safety boundaries.",
+    "Make explicit run selection authoritative, including a missing-run result, so it cannot fall through.",
+    "Keep registry argument metadata and rendered help synchronized through existing target-option helpers."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/flow-context.js` selects active or preparing authority and exposes the selected preparing state without changing preparing routing state."
+      },
+      {
+        "text": "`src/flow/lib/base-command.js` performs command-level target validation against the selected active or preparing state."
+      },
+      {
+        "text": "`src/lib/dispatcher.js` rejects target mismatches before command loading, lifecycle hooks, execution, and worktree or agent side effects."
+      },
+      {
+        "text": "`src/flow/registry.js` owns prelude command routing declarations, accepted guard options, and help parity."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "An explicit `--run-id` selects exactly one preparing record; the context retains `flowState: null` and publishes the selected record as `preparingFlowState`, or an isolated empty preparing target snapshot when that explicit run does not exist."
+      },
+      {
+        "text": "The dispatcher and FlowCommand choose `preparingFlowState ?? flowState`, compare all supplied expectations, and return `ACTIVE_FLOW_MISMATCH` before any side effect when one differs."
+      },
+      {
+        "text": "After successful validation, request, note, auto, auto-check, or prepare follows its existing preparing route; prepare promotes the same run to flow.json and subsequent guards validate the active state."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[CORRECTION] checked preparing selection in `src/flow/lib/flow-context.js`; retain `flowState: null`, expose the loaded state as `preparingFlowState`, and isolate an explicit missing run instead of continuing to active discovery.",
+        "evidence": "`preparingAuthorityForRunId()` currently discards the loaded state and returns only `flowState: null`; when it returns null for an unknown run, `resolveAuthorityFlowState()` proceeds to active-flow resolution."
+      },
+      {
+        "text": "[CORRECTION] checked null-state guard behavior; represent an explicit missing preparing run with an isolated empty target snapshot so supplied expectations mismatch within the approved files, while guard-free calls continue to command-owned missing-run errors.",
+        "evidence": "`targetMismatchEnvelopeForInput()` does not report a mismatch for null state and `src/lib/flow-target-guard.js` is out of scope; a non-null empty snapshot activates existing comparisons without changing guard-free paths."
+      },
+      {
+        "text": "[CORRECTION] checked shared command validation in `src/flow/lib/base-command.js`; validate the selected target state while keeping `requiresFlow` based on active routing state.",
+        "evidence": "`FlowCommand.run()` currently passes only `ctx.flowState` to `targetMismatchEnvelopeForInput`, so requiresFlow:false preparing commands parse expectations but do not validate them."
+      },
+      {
+        "text": "[CORRECTION] checked dispatcher ordering in `src/lib/dispatcher.js`; use selected preparing state for guard validation and runtime target identity before command loading, hooks, execution, or side effects.",
+        "evidence": "`dispatch()` builds hook context and validates only `hookCtx.flowState` at step 3, before module loading and hooks; extending that target selection preserves the existing early-return boundary."
+      },
+      {
+        "text": "[CORRECTION] checked registry parity; add standard guard options/help to auto-check and prepare, and declare note as `requiresFlow:false` so its existing dual-mode command can reach preparing routing.",
+        "evidence": "`prepare.args` and `run.auto-check.args` omit `FLOW_TARGET_GUARD_OPTIONS`; request and auto declare `requiresFlow:false`, but note does not even though `SetNoteCommand` itself uses `super({ requiresFlow:false })`."
+      },
+      {
+        "text": "[VERIFY] checked request, note, and auto implementations; result=match: each already uses explicit preparing run resolution and mutates the selected preparing record after command entry.",
+        "evidence": "`set-request.js`, `set-note.js`, and `set-auto.js` call `resolvePreparingRunId()` and then `mutatePreparingFlow()` when `flowState` is null."
+      },
+      {
+        "text": "Migration parity inventory maps guard-free request/note/auto behavior to existing command owners, null preparing routing and unknown-run isolation to flow-context, shared guard rejection to base-command/dispatcher, auto-check/prepare options and help to registry, and post-prepare guard validation to existing active-state paths; no public behavior is removed.",
+        "evidence": "Issue 431 Requirements and Verification explicitly require guard-free compatibility, selection shape, all five command surfaces, unknown-run isolation, pre-side-effect rejection, help parity, and post-prepare guards."
+      }
+    ]
+  },
+  "background": "Prelude commands operate before flow.json exists and therefore route through a preparing record. The current context intentionally reports no active flow for that route, but shared guards inspect only active flow state. As a result, request, note, and auto accept expectations without enforcing them, while auto-check and prepare do not accept the standard options. A missing explicit run can also continue into unrelated active-flow discovery. The repair must make the selected preparing identity available to shared guard boundaries without converting it into an active flow or changing storage ownership.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Preparing selection shall return both `flowState: null` and the loaded `preparingFlowState`; when an explicit non-empty run ID does not exist, selection shall return `flowState: null` plus an isolated empty `preparingFlowState` snapshot and shall not fall through to unrelated active or preparing flow discovery.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "FlowCommand and dispatcher target validation shall evaluate `preparingFlowState ?? flowState` for `--expect-run-id`, `--expect-issue`, and `--expect-spec`, returning `ACTIVE_FLOW_MISMATCH` before mutation, command module execution, lifecycle hooks, agent calls, runtime target persistence, or worktree creation while preserving existing `requiresFlow` routing semantics.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`flow set request`, `flow set note`, and `flow set auto` shall use coherent preparing routing with matching guards succeeding, each guard mismatch failing before mutation, a non-null expected spec failing while preparing spec is null, guarded explicit unknown runs returning `ACTIVE_FLOW_MISMATCH`, and guard-free documented behavior including unknown-run errors unchanged; registry note routing shall declare `requiresFlow:false` consistently with its command class.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "`flow run auto-check` and `flow prepare` shall accept and document the standard run ID, Issue, and spec guard options using registry helper conventions; guarded mismatches and guarded unknown runs shall return `ACTIVE_FLOW_MISMATCH` before auto-check agent execution or prepare branch/worktree/spec creation, guard-free unknown runs shall retain command-specific failures, and matching guarded prepare shall return the promoted spec.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "After successful prepare, matching run ID, Issue, and spec guards shall continue to succeed against the active flow, changing any one shall return `ACTIVE_FLOW_MISMATCH`, and all existing guard-free public behavior and FlowStore ownership shall remain unchanged.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Focused unit, end-to-end, and spec-local tests shall pair every retained behavior with evidence: selection shape; request/note/auto guard-free and guarded routes; all mismatch types; unknown-run no-fallback; auto-check no-agent rejection; prepare no-worktree rejection; successful guarded prepare; post-prepare three-guard behavior; and registry/help parity.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: A flow-context unit test selects a known preparing run and observes `flowState === null`, `preparingFlowState` with the expected run and Issue, main authority root, and no active-flow discovery.",
+    "AC2: An explicit unknown run ID with unrelated active or preparing flows present produces an isolated empty `preparingFlowState`, does not select either unrelated flow, returns `ACTIVE_FLOW_MISMATCH` when any expectation guard is supplied, and retains the existing command-specific error when invoked without guards.",
+    "AC3: Preparing request, note, and auto calls with matching run and Issue guards succeed; changing run, Issue, or expected spec returns `ACTIVE_FLOW_MISMATCH` before the preparing state changes; guard-free calls retain documented results.",
+    "AC4: Registry and help tests show the same standard target guard definitions for request, note, auto, auto-check, and prepare, with note routed as a requiresFlow:false dual-mode command.",
+    "AC5: Auto-check with matching preparing guards reaches its existing execution path; each mismatch and an unknown run with supplied expectation guards return `ACTIVE_FLOW_MISMATCH` without invoking the agent or persisting an auto-check verdict, while guard-free unknown-run behavior remains unchanged.",
+    "AC6: Prepare with matching run and Issue guards succeeds and returns a spec; each mismatch, a non-null expected spec while preparing spec is null, and an unknown run with supplied expectation guards return `ACTIVE_FLOW_MISMATCH` before branch, worktree, spec directory, or hook creation, while guard-free unknown-run behavior remains unchanged.",
+    "AC7: After prepare, matching run, Issue, and returned spec guards succeed, while changing any one returns `ACTIVE_FLOW_MISMATCH`; guard-free continuation remains unchanged.",
+    "AC8: Spec-local tests include `// spec: R<N>` coverage for R1-R6, focused existing suites pass, and the configured targeted and final project regressions pass without harness files entering Git."
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "Populate `flowState` with the preparing record.",
+      "reason": "Rejected because preparing commands use `flowState: null` to select their existing dual-mode routes, and Issue 431 explicitly preserves that contract."
+    },
+    {
+      "option": "Add guards independently inside all five command implementations.",
+      "reason": "Rejected because shared base-command and dispatcher boundaries already own target validation ordering and prevent duplication across command surfaces."
+    },
+    {
+      "option": "Allow an unknown explicit run to fall back to the current active flow.",
+      "reason": "Rejected because explicit caller intent must remain isolated and the Issue requires no unrelated-flow fallback."
+    },
+    {
+      "option": "Change FlowStore or preparing-state persistence.",
+      "reason": "Rejected because existing stores already provide the required state and are explicitly out of scope."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "preparingFlowState",
+    "flowState",
+    "target guard",
+    "ACTIVE_FLOW_MISMATCH",
+    "expectRunId",
+    "expectIssue",
+    "expectSpec",
+    "auto-check",
+    "flow prepare",
+    "unknown run isolation",
+    "dispatcher",
+    "command registry"
+  ],
+  "implementationTargets": [
+    "src/flow/registry.js",
+    "src/flow/lib/flow-context.js",
+    "src/flow/lib/base-command.js",
+    "src/lib/dispatcher.js",
+    "tests/unit/flow/optional-flow-context.test.js",
+    "tests/unit/lib/dispatcher.test.js",
+    "tests/e2e/flow/concurrent-prelude-guard.test.js",
+    "tests/e2e/flow/commands/set-request-note.test.js",
+    "tests/unit/flow/run-auto-check.test.js",
+    "specs/318-enforce-target-guards-for-preparing-flow-prelude/tests/preparing-target-guards.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Expose preparing target context",
+      "goal": "Make preparing selection preserve routing state while exposing the selected identity and isolating unknown explicit run IDs.",
+      "acceptance": [
+        "R1 selection shape and unknown-run isolation pass focused unit coverage.",
+        "R2 base-command validation uses the selected preparing or active target without changing requiresFlow semantics."
+      ],
+      "implementation_notes": "Limit production changes to `flow-context.js` and `base-command.js`. Reuse the existing target mismatch helper and return-object context pattern.",
+      "test_strategy": "Extend optional-flow-context tests for known and unknown preparing selection, matching guards, and preserved active selection behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Guard prelude dispatch",
+      "goal": "Apply preparing target validation at the pre-execution dispatcher boundary and align prelude routing, arguments, and help metadata.",
+      "acceptance": [
+        "R2 dispatcher mismatches return before module loading, hooks, agents, mutation, or worktree creation.",
+        "R3 and R4 command registry and help contracts are coherent for all five prelude commands.",
+        "R5 active post-prepare guard behavior and guard-free behavior remain unchanged."
+      ],
+      "implementation_notes": "Limit production changes to `dispatcher.js` and `registry.js`. Use existing `withTargetGuardOptions` and shared target-state selection instead of command-local validation.",
+      "test_strategy": "Extend dispatcher and registry/help tests, plus focused command E2E coverage for request, note, auto-check, and prepare side-effect ordering.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Verify prelude target isolation",
+      "goal": "Provide behavior-level parity evidence for every retained and newly enforced prelude guard path.",
+      "acceptance": [
+        "R1-R6 are covered by spec-local headers and focused existing suites.",
+        "AC1-AC8 pass, including no-agent and no-worktree mismatch assertions.",
+        "The harness remains ignored and absent from the Git diff."
+      ],
+      "implementation_notes": "Prefer existing fixture helpers; extract a shared helper when the same setup or mismatch assertion appears twice.",
+      "test_strategy": "Run spec-local tests, focused unit/E2E suites, configured targeted regression, and final full regression through the guarded flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-12T14:40:40.693Z",
+    "notes": "Parent pre-approved the Issue 431 bounded spec and its source-backed unknown-run clarification."
+  },
+  "specId": "318-enforce-target-guards-for-preparing-flow-prelude"
+}

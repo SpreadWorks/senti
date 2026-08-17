@@ -1,0 +1,253 @@
+{
+  "goal": "Preserve every unrelated unresolved preparing-flow record across init and prepare, and consume only the selected record after successful preparation conversion.",
+  "scope": {
+    "in": [
+      "Remove age-based global preparing-record deletion from flow set init and flow prepare.",
+      "Retain init creation and existing-run warning behavior without modifying pre-existing records.",
+      "Delete only the run selected by flow prepare --run-id after preparation conversion succeeds.",
+      "Preserve selected and unrelated preparing records when prepare fails before conversion completes.",
+      "Replace obsolete TTL-deletion tests and add spec-local preservation, isolation, and failure-atomicity coverage."
+    ],
+    "out": [
+      "Reconstructing, inferring, or replacing the missing #415 preparing record.",
+      "Adding cleanup, archive, audited deletion, or other preparing-record lifecycle commands.",
+      "Changing target resolution, command syntax, flow lifecycle behavior outside init and prepare, or compatibility policy."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules only; add no dependency.",
+    "Preserve the existing FlowManager and PreparingFlowStore ownership boundary.",
+    "Add no compatibility shim for TTL cleanup APIs removed by this alpha-version change.",
+    "Do not reconstruct or silently replace any lost preparing record, including #415.",
+    "Do not introduce an implicit or explicit cleanup/archive replacement in this issue.",
+    "Keep PreparingFlowStore.list() bounded by PREPARING_SCAN_LIMIT at 100 runIds; init warning generation must not read or emit more than that limit."
+  ],
+  "design_principles": [
+    "Preparing state remains the retryable source until its selected conversion has succeeded.",
+    "Deletion is explicit to the selected runId; unrelated records are never lifecycle side effects.",
+    "Elapsed time alone does not authorize disposal of unresolved preparing state.",
+    "Tests compare raw record bytes where the contract requires byte-identical preservation."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/set-init.js creates preparing records and warns when other preparing records already exist."
+      },
+      {
+        "text": "src/flow/lib/run-prepare-spec.js converts a selected preparing record into worktree/spec/active-flow state."
+      },
+      {
+        "text": "src/lib/preparing-flow-store.js owns per-run preparing record creation, loading, mutation, listing, and target deletion."
+      },
+      {
+        "text": "src/lib/flow-manager.js exposes PreparingFlowStore operations to flow commands; src/lib/flow-helpers.js contains shared preparing constants."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow set init lists at most PREPARING_SCAN_LIMIT (100) existing preparing runIds without writing or deleting their files, warns when the bounded list is non-empty, and creates one new runId record."
+      },
+      {
+        "text": "flow prepare resolves and loads the selected runId, performs validation and conversion, then deletes that selected preparing record only after all successful conversion work completes."
+      },
+      {
+        "text": "Any prepare failure before target deletion leaves selected and unrelated preparing record bytes unchanged, even if other preparation side effects require a later retry or external cleanup."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Remove init's global prune while retaining its existing-run warning from a non-mutating list.",
+        "evidence": "src/flow/lib/set-init.js currently calls flowManager.pruneStalePreparingFlowsAndList() and uses only the returned remaining runIds for the warning. PreparingFlowStore.list() already provides a bounded non-mutating listing operation.",
+        "consideredAlternatives": "Keep pruning records older than one hour; rejected because Issue #433 requires age-independent byte preservation."
+      },
+      {
+        "text": "[VERIFY] Move selected-record deletion to the successful end of prepare conversion and remove global preparing cleanup from prepare.",
+        "evidence": "src/flow/lib/run-prepare-spec.js currently calls cleanStalePreparingFlows() and deletePreparingFlow(runIdArg) before worktree/spec/flow state creation, docs scanning, plugin lifecycle completion, and active-flow registration.",
+        "consideredAlternatives": "Delete before conversion and recreate on failure; rejected because exact source bytes and unresolved metadata cannot be guaranteed after failure."
+      },
+      {
+        "text": "[VERIFY] Keep preparing-record persistence operations owned by PreparingFlowStore behind FlowManager.",
+        "evidence": "src/lib/flow-manager.js delegates create, load, list, mutate, and delete operations to src/lib/preparing-flow-store.js; Issue #433 explicitly preserves that ownership boundary.",
+        "consideredAlternatives": "Add command-local filesystem manipulation; rejected because it duplicates persistence ownership and weakens isolation guarantees."
+      },
+      {
+        "text": "Migration parity inventory: affected commands are flow set init and flow prepare; affected internal APIs are FlowManager preparing delegates and PreparingFlowStore list/delete. CLI syntax, exported package APIs, config keys, and hook registration remain unchanged.",
+        "evidence": "set-init.js and run-prepare-spec.js are the command owners. flow-manager.js delegates preparing persistence to preparing-flow-store.js. The diff and behavior tests verify no command option, response field, config schema, or plugin hook registration change.",
+        "consideredAlternatives": "Redesign preparing lifecycle or warnings; rejected as outside the minimal published issue."
+      },
+      {
+        "text": "Migration ownership map: init validation, issue caching, warning, and creation stay on SetInitCommand -> FlowManager -> PreparingFlowStore; prepare target resolution, conversion, and output stay on RunPrepareSpecCommand and existing helpers; selected deletion stays on FlowManager -> PreparingFlowStore and moves to post-success.",
+        "evidence": "Behavior-level tests verify positive issue validation, issue/request state, warning format, new record creation, successful conversion response, and post-success selected-source removal through the same command entrypoints.",
+        "consideredAlternatives": "Command-local filesystem deletion was rejected because PreparingFlowStore already owns preparing persistence."
+      },
+      {
+        "text": "Migration artifact and side-effect map: preparing files, spec/draft/issue/flow artifacts, branch/worktree creation, plugin/config synchronization, docs analysis, and active registry keep their current owners and order except selected deletion moves after success. Only implicit global TTL deletion is removed.",
+        "evidence": "run-prepare-spec.js owns these artifacts and side effects today. Integration tests verify successful artifacts and target removal; failure tests verify preparing bytes. No generated artifact format, hook invocation, config entry, or non-preparing side effect is removed.",
+        "consideredAlternatives": "Redesign preparing lifecycle or warnings; rejected as outside the minimal published issue."
+      }
+    ]
+  },
+  "background": "Preparing records hold unresolved flow requests before flow.json exists. The current init and prepare paths globally remove records whose file modification time exceeds one hour, so an unrelated command can destroy unresolved state. Prepare also deletes its selected record before conversion operations complete. Issue #433 narrows the remedy to preventing future loss: records remain unresolved until their exact runId is successfully converted, while cleanup policy and historical reconstruction remain outside scope.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "flow set init must leave every pre-existing preparing record byte-identical, including records older than one hour, while creating the requested new record and warning with the at-most-100 runIds returned by the existing PREPARING_SCAN_LIMIT-bounded list when that list is non-empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "A successful flow prepare --run-id B must leave every unrelated preparing record byte-identical and delete only B after worktree/spec/flow conversion, docs validation, plugin lifecycle, and active-flow registration succeed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "If flow prepare --run-id B fails before successful conversion completes, B and every unrelated preparing record must retain their original bytes.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Production init and prepare call paths must contain no reachable global preparing-record deletion based on file age, and obsolete preparing TTL constants and prune helpers must be removed when they have no remaining caller.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "flow set init must retain positive-integer issue validation, issue-body and request persistence, warning format for a non-empty at-most-100-runId list, and its runId/issue/issueBody/request response fields; flow prepare must retain target guards and input inheritance, branch/worktree/spec/draft/flow creation, docs validation, plugin lifecycle, active-flow registration, and its result/runId/issue/spec/worktreePath/changed/artifacts/next/output response fields.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Shared tests in the listed implementation targets and spec-local tests must cover multiple preparing records, records older than 60 minutes, byte-identical isolation, target-only successful deletion, and selected/unrelated preservation across prepare failure paths.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Given preparing record A with an mtime more than one hour old, flow set init creates B and the raw bytes of A before and after the command are equal.",
+    "Given more than one preparing record, flow set init reports the at-most-100 runIds returned by PreparingFlowStore.list() in its warning and modifies none of the preparing files, including files beyond the warning scan limit.",
+    "Given unrelated A and selected B, successful flow prepare --run-id B removes B only after conversion succeeds and leaves A bytes equal to their pre-command value.",
+    "When prepare validation rejects B before conversion, raw bytes for A and B remain equal to their pre-command values.",
+    "When agent, write, docs validation, plugin lifecycle, or active-flow conversion fails before completion, raw bytes for A and B remain equal to their pre-command values.",
+    "Search and diff inspection show no init or prepare call to a global age-based preparing cleanup path and no obsolete one-hour preparing TTL deletion contract in production code.",
+    "Existing init creation/warning and successful prepare behavior tests pass with only the intentional preservation semantics changed.",
+    "Spec-local tests under specs/319-preserve-unrelated-preparing-flows/tests include requirement headers covering R1 through R6 and pass at integration scope."
+  ],
+  "clarifications": [
+    {
+      "q": "Does preservation prevent prepare from deleting its selected source record?",
+      "a": "No. Successful conversion consumes only the explicitly selected runId after every conversion operation succeeds."
+    },
+    {
+      "q": "Does a failed prepare need to roll back worktree or spec side effects?",
+      "a": "This issue requires preparing-record byte preservation. Existing recovery behavior for other partial side effects remains unchanged and outside scope."
+    },
+    {
+      "q": "What replaces the removed one-hour cleanup behavior?",
+      "a": "Nothing in this issue. Any future deletion operation must be designed separately as an explicit, target-guarded, auditable action."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Retain TTL pruning but increase the threshold",
+      "reason": "Rejected because any elapsed-time threshold can delete unrelated unresolved state without explicit target authorization."
+    },
+    {
+      "option": "Delete the selected record before conversion and reconstruct it on failure",
+      "reason": "Rejected because reconstruction cannot guarantee byte identity or preserve metadata added by other prelude operations."
+    },
+    {
+      "option": "Add cleanup or archive commands now",
+      "reason": "Rejected because Issue #433 is a minimal prevention fix and explicitly excludes lifecycle design."
+    },
+    {
+      "option": "Reconstruct the missing #415 record",
+      "reason": "Rejected because no tombstone or journal exists from which to recover exact historical bytes."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "preparing flow",
+    "set init",
+    "run prepare spec",
+    "PreparingFlowStore",
+    "FlowManager",
+    "target deletion",
+    "failure atomicity",
+    "byte-identical preservation",
+    "TTL pruning",
+    "active flow conversion"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/set-init.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/lib/preparing-flow-store.js",
+    "src/lib/flow-manager.js",
+    "src/lib/flow-helpers.js",
+    "tests/unit/flow/set-init-cleanup.test.js",
+    "tests/unit/flow/clean-stale-preparing-flows.test.js",
+    "tests/unit/lib/flow-state-runid.test.js",
+    "specs/319-preserve-unrelated-preparing-flows/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Remove implicit preparing cleanup",
+      "goal": "Make init and prepare enumerate or resolve preparing records within the existing 100-runId scan bound without global age-based deletion, and remove obsolete TTL cleanup surfaces.",
+      "acceptance": [
+        "Init creates a new record while all prior record bytes remain equal.",
+        "Prepare no longer invokes global preparing cleanup.",
+        "Unused TTL constants and prune wrappers are absent from production code."
+      ],
+      "implementation_notes": "Use the existing non-mutating PreparingFlowStore listing operation for init warnings. Remove obsolete PreparingFlowStore and FlowManager global stale-prune operations and the preparing TTL constant if no production caller remains.",
+      "test_strategy": "Update set-init, preparing-store, and flow-state unit tests to assert preservation for fresh and 60-plus-minute records and warning membership capped at 100 runIds.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Defer selected record deletion",
+      "goal": "Keep the selected preparing record intact until prepare conversion completes successfully, then delete only that runId.",
+      "acceptance": [
+        "Successful prepare removes only the selected record after conversion.",
+        "Every failure before completion preserves selected and unrelated record bytes."
+      ],
+      "implementation_notes": "Place target deletion after the successful branch/worktree/spec/flow/docs/plugin/registry path. Preserve existing command output and unrelated partial-side-effect recovery behavior.",
+      "test_strategy": "Exercise successful target-only removal and injected validation, agent/plugin, write/docs, and conversion failures with raw-byte snapshots of selected and unrelated records.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover preparing record isolation",
+      "goal": "Provide spec-local behavioral evidence for preservation, target-only consumption, compatibility, and failure atomicity across the complete Issue #433 contract.",
+      "acceptance": [
+        "Spec-local tests carry // spec: R<N> headers covering R1 through R6.",
+        "Obsolete 61-minute deletion expectations are replaced by preservation assertions.",
+        "The named shared unit tests and spec-local integration tests pass."
+      ],
+      "implementation_notes": "Reuse existing CLI fixtures and store ownership boundaries. Compare raw buffers or hashes before and after commands where byte identity is required.",
+      "test_strategy": "Run spec-local integration coverage plus the named shared unit and e2e test files; full project regression remains the final-regression step.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-12T20:24:16.908Z",
+    "notes": "Parent pre-authorized routine Issue #433-preserving approval after guarded draft/spec review and gate PASS."
+  },
+  "specId": "319-preserve-unrelated-preparing-flows"
+}

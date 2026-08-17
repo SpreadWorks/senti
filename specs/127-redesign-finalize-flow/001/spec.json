@@ -1,0 +1,77 @@
+{
+  "goal": "finalize パイプラインを再設計し、worktree モードでのパス解決バグを根本的に解消する。ステップ順序の変更、子コマンドの関数呼び出し化、パス情報の ctx 経由一元管理により、信頼性の高い finalize フローを実現する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "finalize.js のステップ順序変更とオーケストレーション書き換え",
+      "子コマンド（merge.js, retro.js, report.js）の呼び出し方式を別プロセスから関数呼び出しに変更",
+      "cleanup.js のロジックを finalize.js に統合",
+      "ctx に worktreePath / mainRepoPath を追加し、各ステップに渡す",
+      "report.js を registry.js に登録（単体実行可能化）",
+      "merge.js の runIfDirect 削除",
+      "finalize スキル（SKILL.md）のステップ説明更新"
+    ],
+    "out": [
+      "sync.js の関数呼び出し化（docs build は別プロセス実行を維持）",
+      "retro.js の内部ロジック変更（呼び出し方式のみ変更）",
+      "report.js の出力フォーマット変更",
+      "通常ブランチモード・spec-only モードの動作変更（パス解決は worktree 固有の問題だが、関数呼び出し化は全モードに影響する）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: worktree モードで finalize --mode all を実行した場合、merge が1回だけ実行される（現状の2回ではない）",
+    "AC2: worktree モードで finalize 実行後、retro.json と report.json が main repo の spec ディレクトリに存在する",
+    "AC3: 通常ブランチモードで finalize --mode all が正常に完了する",
+    "AC4: spec-only モード（featureBranch === baseBranch）で finalize が正常に完了する（merge/cleanup スキップ）",
+    "AC5: `sdd-forge flow run report` で report.js が単体実行可能である",
+    "AC6: finalize 完了時の画面表示に report 内容と sync の変更ファイル一覧が含まれる",
+    "AC7: cleanup.js が削除され、finalize.js にロジックが統合されている",
+    "AC8: merge.js から runIfDirect が削除され、main(ctx) を export している"
+  ],
+  "clarifications": [
+    {
+      "q": "retro と report は finalize のステップとして独立させるか？",
+      "a": "commit の post 処理として実行。ユーザーに見えるステップは commit / merge / sync / cleanup の4つ。"
+    },
+    {
+      "q": "SKILL.md の更新はこの spec に含めるか？",
+      "a": "含める。finalize の動作仕様を記述したものなので、コード変更と一緒に更新する。"
+    },
+    {
+      "q": "--steps オプションの指定方法は？",
+      "a": "ユーザーから見える4ステップ（commit / merge / sync / cleanup）を対象とする。retro / report は commit に内包されるため個別選択不可。"
+    },
+    {
+      "q": "docs build が merge 後でないと正しく動かない理由は？",
+      "a": "worktree には feature branch のスナップショットしかなく、`sdd-forge build` は merge 後の統合コードに対して実行する必要がある。そのため sync は merge の後に実行する。"
+    },
+    {
+      "q": "report.json に sync 結果を含めるか？",
+      "a": "含めない。sync 結果は画面表示のみ。これにより report を merge 前に生成でき、merge が1回で済む。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "merge.js を registry.js に登録して単体実行可能にするか → 今回のスコープ外。必要になった時点で別途対応する"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "127-redesign-finalize-flow"
+}

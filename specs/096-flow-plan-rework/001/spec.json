@@ -1,0 +1,56 @@
+{
+  "goal": "`flow-plan` skill テンプレートを新しい進行ルール（step 並び変更、draft 質問運用改善、gate 移動、test 再設計、metrics 反映）に合わせて更新する。合わせて全 skill テンプレートのコマンドを `flow get/set/run` 体系に移行する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "flow-impl / flow-finalize の確認フロー変更（Task 03）",
+      "include ディレクティブ（Task 04）",
+      "redolog 学習ロジック（Task 05）",
+      "guardrail 昇格ロジック"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "要件カテゴリのチェックリストはどこに置くか？",
+      "a": "skill テンプレートに埋め込む。CLIデータではなくAIの行動指針。"
+    },
+    {
+      "q": "draft の探索的設問は CLI が生成するか？",
+      "a": "いいえ。`flow get prompt plan.draft` はハイブリッド kind。CLIはレイアウトデータのみ、AIが質問を生成する。"
+    },
+    {
+      "q": "コマンド置換は flow-plan のみか？",
+      "a": "全 skill テンプレートを一括置換。"
+    },
+    {
+      "q": "終了コードの規約は？",
+      "a": "spec 095 で定義済み。`ok: true` で exit 0、`ok: false` で exit 1。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "096-flow-plan-rework"
+}

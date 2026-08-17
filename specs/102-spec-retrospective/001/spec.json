@@ -1,0 +1,74 @@
+{
+  "goal": "実装完了後に spec の精度を自動評価し、`specs/NNN-xxx/retro.json` に保存する機能を追加する。将来の spec 精度向上のための振り返りデータを蓄積する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/run/retro.js` を新規作成し、retro 評価ロジックを実装する",
+      "`src/flow/registry.js` に `run retro` エントリを追加する",
+      "finalize パイプライン（スキル）の commit ステップ前に retro を自動実行するよう flow-finalize スキルを更新する",
+      "`sdd-forge flow run retro` で手動実行も可能にする"
+    ],
+    "out": [
+      "retro データの集計・可視化（将来の機能）",
+      "retro 結果に基づく spec テンプレートの自動改善",
+      "flow.json の metrics 転記（既に flow.json に保持されている）",
+      "ユーザー承認フロー（自動評価のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow run retro` を実行すると、アクティブなフローの spec と diff を比較して `retro.json` が生成される",
+    "`retro.json` は spec ディレクトリ（`specs/NNN-xxx/`）に保存される",
+    "`retro.json` の `requirements` 配列は spec の Requirements と 1:1 で対応する",
+    "`retro.json` の `unplanned` には spec にない変更がリストされる",
+    "`retro.json` の `summary.rate` は達成率を 0〜1 の数値で示す",
+    "flow.json が存在しない場合は `fail()` で非ゼロ終了コードを返す",
+    "finalize パイプライン（スキル経由）で commit 前に自動実行される",
+    "`--dry-run` オプションで実行プレビューができる"
+  ],
+  "clarifications": [
+    {
+      "q": "retro の実行タイミングは？",
+      "a": "finalize の最初（commit 前）に自動実行。retro.json を実装コミットに含められる。"
+    },
+    {
+      "q": "出力形式は？",
+      "a": "JSON (`retro.json`)。集計・比較が容易。表示は別コマンドで整形可能。"
+    },
+    {
+      "q": "ファイル名は `retrolog.json` ではなく `retro.json`？",
+      "a": "retro はスナップショット（1回の評価結果）であり、ログ形式ではない。`redolog.json`（追記型）とは役割が異なるため、名前も区別する。"
+    },
+    {
+      "q": "記録項目は？",
+      "a": "requirements（各要件の達成状況）、unplanned（spec にない追加変更）、summary（達成率・所見）。"
+    },
+    {
+      "q": "評価方法は？",
+      "a": "AI が spec.md の requirements と git diff を比較して自動評価。ユーザー承認なし。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "AI エージェントが利用できない環境での fallback 動作 → エラーを返す。スキル側で retro 失敗時はスキップして続行可能とする（review.js と同じパターン）。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "102-spec-retrospective"
+}

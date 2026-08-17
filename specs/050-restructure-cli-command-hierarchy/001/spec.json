@@ -1,0 +1,58 @@
+{
+  "goal": "CLI コマンド体系を `docs` / `spec` / `flow` の3名前空間に再構築し、sdd-forge をドキュメントジェネレーターではなく SDD ツールチェーンとして位置づける。合わせてファイル配置を整理する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "コマンドの実装ロジック変更（ルーティングとファイル配置のみ）",
+      "新コマンドの追加（`flow close`, `flow commit` 等は別 spec）",
+      "後方互換のエイリアス"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge docs build` でドキュメント生成パイプラインが実行される",
+    "`sdd-forge spec init` で spec が作成される",
+    "`sdd-forge spec gate --spec ...` でゲートチェックが実行される",
+    "`sdd-forge setup` / `sdd-forge upgrade` が独立コマンドとして動作する",
+    "`sdd-forge docs` / `sdd-forge spec` が引数なしでサブコマンド一覧を表示する",
+    "`sdd-forge help` が名前空間ごとにグループ表示する",
+    "旧コマンド（`sdd-forge build`, `sdd-forge gate` 等）が unknown command エラーになる",
+    "`npm test` が全て通る"
+  ],
+  "clarifications": [
+    {
+      "q": "`sdd-forge docs` 引数なしの挙動は？",
+      "a": "サブコマンド一覧を表示する"
+    },
+    {
+      "q": "`sdd-forge spec` 引数なしの挙動は？",
+      "a": "サブコマンド一覧を表示する（flow と同様）"
+    },
+    {
+      "q": "`build` のショートカットは残すか？",
+      "a": "残さない。`docs build` に統一する（ドキュメントジェネレーター的印象を避ける）"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "050-restructure-cli-command-hierarchy"
+}

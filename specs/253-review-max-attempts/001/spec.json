@@ -1,0 +1,517 @@
+{
+  "goal": "review steps の maxAttempts を CLI 側で強制し、AI の自走による retry 上限超過を invariant として防止する。",
+  "background": "review (plan.review-draft / plan.review-spec / plan.review-test / impl.review) の maxAttempts は現状 AI が自主的に守る soft rule で、AI が誤って自走した場合に止める仕組みがない。spec 251 (Issue #310) の draft で auto:1 のところを 3 回イテレーションした事例が発生したため、CLI ラッパー層で同等の invariant を実装する。既存 gate (gateRetry counter / checkRetryBelowMax / updateGateRetryCounter / resolveRetryMax) の機構を review にも横展開する形を取り、review コマンド本体の AI 評価ロジックは変更しない。\n\n## Impact on Existing Features\n\n- `sdd-forge flow run review --phase <p>`: count >= max のとき新たに Envelope.fail('REVIEW_MAX_ATTEMPTS_EXCEEDED') で短絡するようになる。従来は無条件で AI subprocess を起動していた。ok:false の exit code は dispatcher 既存契約 (exit code 1) を維持する。\n- `sdd-forge flow set gate-retry reset <phase>`: 削除される。新形式 `sdd-forge flow set retry reset <gate|review> <phase> --yes` に置き換わる。alpha 期間ポリシーに従い alias は付けない。既存の呼び出し箇所 (テスト含む) は新形式に書き換える。\n- `sdd-forge flow set metric <phase> reviewRetry`: 新たに valid な counter として受理される (既存 gateRetry と同列)。debug 用エスケープハッチ。\n- `flow.json#metrics`: 新カウンタ種別 'reviewRetry' のエントリが追加される。既存 metricsSummary は audit-only raw totals として動作 (reset 解釈なし)。\n- `src/flow/prompts/plan/review-{draft,spec,test}.md`, `impl/review.md`, `task/review.md`: AI 向け instruction が更新される。CLI 強制が invariant になったので 'AI が自主的に守る' トーンは CLI が enforce する旨に書き換わる。\n- `src/templates/skills/sdd-forge.flow/SKILL.md`: Commands リファレンスに新しい retry reset CLI が記載される。\n- 既存 gate retry counter (gateRetry) の挙動: 変更なし。テスト (tests/unit/flow/gate-retry-counter*.test.js) は引き続き PASS する。",
+  "scope": {
+    "in": [
+      "review attempt counter を flow.json に永続化する (state.metrics の append-only entry, counter='reviewRetry')",
+      "src/lib/constants.js#VALID_METRIC_COUNTERS に 'reviewRetry' を追加する。これにより `sdd-forge flow set metric <phase> reviewRetry` が公開 CLI として受理されるが、これは既存 gateRetry と同じ運用 (set metric は debug 用エスケープハッチ) で意図的に許容する",
+      "RunReviewCommand.execute 冒頭で count >= max なら短絡し AI 評価を実行しない (subprocess 起動なし、counter 更新なし、step 状態変更なし)",
+      "短絡時の Envelope: errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED', data === { phase, attempts, max } を返す。messages の文面は安定 contract から外す",
+      "review verdict=PASS で counter をリセット (delta=0, reset:true)、verdict=FAIL で counter を加算 (delta=1) する",
+      "max 値は FLOW_DEFINITION の review ノード (plan/review-draft, plan/review-spec, plan/review-test, plan/impl/review) の resolveMaxAttempts(context) で導出する (auto/manual モード考慮)",
+      "対象 phase: draft / spec / test / impl の 4 phase。CLI 表面では --phase draft|spec|test のみ受け付け、impl は --phase 省略で起動する既存仕様を維持。persisted phase key として 'impl' を内部的に使う",
+      "PASS 判定: plan 系は artifacts.verdict === 'PASS'、impl は result === 'no-changes' || result === 'no-proposals' || artifacts.proposalCount === 0 (run-review.js の next='gate-impl' 条件と一致させ、counter リセットと workflow 進行を整合させる)。それ以外 (proposalCount > 0 の未知 result を含む) は FAIL として扱う (fail-closed)",
+      "未知 phase は短絡前に fail-closed: errors[0].code === 'UNKNOWN_REVIEW_PHASE'",
+      "registry の review post hook を async 化し、updateReviewRetryCounter を呼び出してから既存の step done 更新を行う",
+      "scope 隔離: updateReviewRetryCounter / checkReviewRetryBelowMax は state.currentTaskId が非 null のとき task review とみなし counter 更新と短絡判定を skip する (task scope は本 spec のスコープ外で副作用ゼロ)",
+      "リセット CLI の表面形式: `sdd-forge flow set retry reset <gate|review> <phase> --yes` を採用する。registry 上の key は 'set retry'、positional args は kind と phase。VALID_PHASES は kind ごとに分岐 (gate: ['task-impl', 'integration'] / review: ['draft', 'spec', 'test', 'impl'])",
+      "既存の set-gate-retry 関連テスト (specs/253-review-max-attempts/tests/set-retry.test.js) を新形式に書き換える (旧 `flow set gate-retry reset <phase>` 呼び出しは removed)",
+      "src/templates/skills/sdd-forge.flow/SKILL.md の Commands リファレンスに新しい retry reset CLI を追記する。`sdd-forge upgrade` 実行で配布反映",
+      "max 超過後の recovery 経路を提供する: 既存の counter リセット CLI を拡張して review counter にもリセット手段を提供する。alpha 期間ポリシーに従い後方互換 alias は付けない",
+      "post hook 失敗時は gate と対称: ok:true (envelope.ok) は維持しつつ POST_HOOK_FAILED warning を envelope.errors に追加し、dispatcher の既存挙動 (exit code 1) を変更しない。'fatal にしない' は envelope.ok の話で exit code は dispatcher 既存契約のまま",
+      "テスト: 単体 (count 計算 / max 解決 / 短絡判定 / counter 更新 / 副作用ゼロ invariant) と end-to-end (実 flow.json 永続化と読み戻し / 短絡時の subprocess 不発火 / リセット CLI 経由の復旧)"
+    ],
+    "out": [
+      "review コマンド本体 (src/flow/commands/review.js) の AI 評価ロジック変更",
+      "task scope (TASK_DEFINITION の task/review) の enforcement",
+      "CLI の --phase に 'impl' を新規追加すること",
+      "spec 251 (Issue #310) の flow integration phase 順序修正",
+      "skill instructions / memory 側の文言改善"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止 (Node.js 組み込みモジュールのみ)",
+    "alpha 期間: 後方互換コードは書かない。CLI 拡張時に alias は付けない",
+    "src/ 配下にプロジェクト固有情報を含めない",
+    "既存 gate retry の機構 (countGateRetry / updateGateRetryCounter / checkRetryBelowMax / resolveRetryMax) と命名・配置・契約形式を対称にする",
+    "Exit code contract: `sdd-forge flow run review` は count >= max の短絡時 envelope.ok=false を返し dispatcher は exit code 1 を設定する。`sdd-forge flow set retry reset <kind> <phase> --yes` は成功時 exit code 0、引数不足 / 不正値 / --yes 欠如時 exit code 1 を返す",
+    "Argument validation: `flow set retry` は entry point で action / kind / phase の妥当性を検証する。action は 'reset' のみ、kind は 'gate' | 'review'、phase は kind ごとの VALID_PHASES に含まれること、--yes フラグの有無を確認する",
+    "テストコードは specs/253-review-max-attempts/tests/ 配下に置き、各ファイルの先頭に `// spec: R<N> [, R<M>...]` 形式のヘッダコメントを記述する (spec 251 の single-execution-point rule に従う)"
+  ],
+  "design_principles": [
+    "CLI ラッパー層のみで完結 (review コマンド本体は変更しない)",
+    "verdict 判定ロジックは review path 知識に依存するため run-review.js 側に閉じる (registry に染み出さない)",
+    "fail-closed: 未知 result / 未知 phase は FAIL 側に倒す",
+    "短絡時の副作用ゼロを invariant として明示しテストで保証する",
+    "持続的 audit trail: append-only metrics + reset entry で reset 履歴を保持する",
+    "attempt の単位は CLI invocation (1 回の `flow run review` 呼び出し = 1 attempt)。review.js 内部の AI detect/fix iteration は scope 外で counter に影響しない",
+    "counter 更新 vs step status 更新の precedence: counter update を先に実行し例外伝播させる。counter update が throw した場合 step status は更新されない (= 同じ状態で再試行可能)。これにより 'permanent な状態の不整合' を防ぐ"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/constants.js — VALID_METRIC_COUNTERS に 'reviewRetry' 追加"
+      },
+      {
+        "text": "src/flow/lib/run-review.js — countReviewRetry / resolveReviewRetryMax / checkReviewRetryBelowMax / updateReviewRetryCounter の追加 + RunReviewCommand.execute 冒頭での pre-check"
+      },
+      {
+        "text": "src/flow/registry.js — review post hook を async 化し updateReviewRetryCounter を呼ぶ"
+      },
+      {
+        "text": "src/flow/lib/set-gate-retry.js — review counter リセットへの拡張 (CLI 表面形式は spec 設計通り)"
+      },
+      {
+        "text": "specs/253-review-max-attempts/tests/run-review-max-attempts.test.js — 新規"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "execute 開始 → state.metrics 読み出し → countReviewRetry(state.metrics, phase) → resolveReviewRetryMax(ctx, phase) → count < max なら subprocess 起動 / count >= max なら Envelope.fail で短絡"
+      },
+      {
+        "text": "subprocess 完了 → ok:true で return → dispatcher が post hook を await 起動 → updateReviewRetryCounter(ctx, result) が verdict 判定して appendMetric → 既存の step done 更新ロジック実行"
+      },
+      {
+        "text": "リセット CLI 呼び出し → appendMetric({ phase, counter:'reviewRetry', delta:0, reset:true }) → 次回 count 計算で 0 から再開"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "D-1: 永続化形式は state.metrics への append-only entry とする。state.reviewAttempts のような可変 dict は作らない。既存 gate retry counter と同形を採用し audit trail を確保する。Issue 本文も '同等のキー' を許容している。",
+        "evidence": "src/flow/lib/run-gate.js#countGateRetry / updateGateRetryCounter, src/lib/flow-store.js#appendMetric, src/lib/constants.js#VALID_METRIC_COUNTERS"
+      },
+      {
+        "text": "D-2: 対象は draft / spec / test / impl の 4 phase。CLI 表面では --phase draft|spec|test のみ受け付け、impl は --phase 省略で起動する既存仕様を維持。persisted phase key として 'impl' を内部的に割り当てる。",
+        "evidence": "Issue #315 本文 (plan.review-draft / plan.review-spec / plan.review-test / impl.review)、src/lib/constants.js#VALID_REVIEW_PHASES、src/flow/lib/run-review.js の phase=null 分岐"
+      },
+      {
+        "text": "D-3: max 解決は FLOW_DEFINITION の review ノードに固定する。task scope (TASK_DEFINITION の task/review, default maxAttempts=1) は本 spec のスコープ外。flow run review は currentTaskId に分岐しないため task/review が CLI から触られる経路はない。",
+        "evidence": "src/flow/lib/run-review.js#RunReviewCommand.execute は currentTaskId を見ない、src/flow/registry.js の review エントリにも task 分岐なし、src/flow/definition.js#TASK_DEFINITION の task/review ノード"
+      },
+      {
+        "text": "D-4: PASS / FAIL 判定: plan 系は artifacts.verdict === 'PASS' (厳密一致のみ; FAIL/undefined/不明値は FAIL)。impl は result === 'no-changes' || result === 'no-proposals' || artifacts.proposalCount === 0 で reset (run-review.js が next='gate-impl' に進める条件と一致)。proposalCount===0 を含めるのは workflow 進行 (gate-impl への next) と counter リセットを整合させるため。proposalCount > 0 で result が 'ok' / 不明値はすべて FAIL (fail-closed)。",
+        "evidence": "src/flow/lib/run-review.js の plan parse 関数 (artifacts.verdict 厳密一致); impl path l.146-167 の result 文字列固定 ('no-changes' / 'no-proposals' / 'ok'); l.165 の next='gate-impl' 条件 (noChanges || noProposals || proposalCount === 0)"
+      },
+      {
+        "text": "D-5: 短絡境界条件は count < max のとき試行可能 (gate と同一)。短絡時は subprocess 不起動・counter 不更新・step 状態不変更を invariant として明示しテストで検証する。",
+        "evidence": "src/flow/lib/run-gate.js#checkRetryBelowMax (count < max ガード), src/lib/dispatcher.js (ok:false 時 skipPost)"
+      },
+      {
+        "text": "D-6: Envelope の安定 contract は code と data shape のみ。messages 文面はテストで exact match 不要。code = 'REVIEW_MAX_ATTEMPTS_EXCEEDED', data = { phase, attempts, max }。",
+        "evidence": "src/lib/flow-envelope.js#Envelope.fail シグネチャ"
+      },
+      {
+        "text": "D-7: 未知 phase は fail-closed で 'UNKNOWN_REVIEW_PHASE' エラー。FlowNode の default maxAttempts=1 に silent フォールバックしない (silent failure を防ぐ)。",
+        "evidence": "src/flow/definition.js#FlowNode constructor の maxAttempts default=1"
+      },
+      {
+        "text": "D-8: post hook は async 化し dynamic import で updateReviewRetryCounter を呼ぶ。dispatcher が post hook を await する契約 (gate post hook と同パターン)。",
+        "evidence": "src/lib/dispatcher.js の post hook 実行 (await entry.post)、src/flow/registry.js の gate エントリ async post"
+      },
+      {
+        "text": "D-9: post hook 失敗時は gate と対称に warning 化 (stderr + envelope warning)。fatal にすると軽微な永続化失敗で review ループ全体が止まる。永続化失敗の検知は test 層で担保する。",
+        "evidence": "src/flow/registry.js の gate post hook の try/catch + stderr、src/lib/dispatcher.js の POST_HOOK_FAILED warning 化"
+      },
+      {
+        "text": "D-10: max 超過後の recovery: 既存 set-gate-retry を generic 化して review counter もリセット可能にする。alpha 期間ポリシーに従い後方互換 alias は付けず、既存 CLI 呼び出しは新形式に書き換える。CLI 表面形式は実装時に決定。",
+        "evidence": "src/flow/lib/set-gate-retry.js (現状 gateRetry only)、CLAUDE.md の alpha ポリシー (後方互換コード禁止)"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "src/lib/constants.js#VALID_METRIC_COUNTERS に 'reviewRetry' を追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R2",
+      "desc": "RunReviewCommand.execute 冒頭で countReviewRetry(state.metrics, phase) を読み、count >= max なら Envelope.fail('run','review','REVIEW_MAX_ATTEMPTS_EXCEEDED', messages, { phase, attempts, max }) を返す",
+      "priority": "must"
+    },
+    {
+      "id": "R3",
+      "desc": "短絡時に subprocess (review CLI) が起動されないこと、appendMetric が呼ばれないこと、step status が変更されないことを invariant として保証する",
+      "priority": "must"
+    },
+    {
+      "id": "R4",
+      "desc": "registry の review post hook を `async post(ctx, result)` 化し、updateReviewRetryCounter を dynamic import で呼んでから既存の planPhases 早期 return / impl step done 更新ロジックを実行する",
+      "priority": "must"
+    },
+    {
+      "id": "R5",
+      "desc": "updateReviewRetryCounter は plan 系で artifacts.verdict === 'PASS' (厳密一致) のみ reset エントリを appendMetric。verdict === 'FAIL' / undefined / 不明値はすべて delta=1 として扱う (fail-closed)",
+      "priority": "must"
+    },
+    {
+      "id": "R6",
+      "desc": "updateReviewRetryCounter は impl (phase=null) で result === 'no-changes' || result === 'no-proposals' || artifacts.proposalCount === 0 のとき reset (run-review.js が next='gate-impl' に進める条件と一致)。それ以外 (proposalCount > 0 で result が ok / 不明値) は delta=1 (fail-closed)。persisted phase key は 'impl'",
+      "priority": "must"
+    },
+    {
+      "id": "R7",
+      "desc": "resolveReviewRetryMax は flow scope (FLOW_DEFINITION) の review ノードから resolveMaxAttempts(context) を呼ぶ。auto/manual モードは context.autoApprove で切り替わる",
+      "priority": "must"
+    },
+    {
+      "id": "R8",
+      "desc": "未知 phase に対しては fail-closed で Envelope.fail('run','review','UNKNOWN_REVIEW_PHASE', ..., { phase }) を返す。FlowNode default maxAttempts へのフォールバックはしない",
+      "priority": "must"
+    },
+    {
+      "id": "R9",
+      "desc": "subprocess 起動失敗 (review CLI 自体のエラー) は counter に加算しない (post hook が ok:true 時のみ動作する dispatcher 契約に依存)",
+      "priority": "must"
+    },
+    {
+      "id": "R10",
+      "desc": "post hook 失敗時は gate と対称に warning 化する (stderr 書き込み + envelope POST_HOOK_FAILED warning)。fatal にしない",
+      "priority": "should"
+    },
+    {
+      "id": "R11",
+      "desc": "既存の set-gate-retry CLI を拡張し、review counter にも同等のリセット手段を提供する。alpha 期間ポリシーに従い後方互換 alias は付けない (既存テスト・呼び出しは新形式に書き換える)",
+      "priority": "must"
+    },
+    {
+      "id": "R12",
+      "desc": "specs/253-review-max-attempts/tests/ 配下に単体テスト (review-retry-helpers.test.js) を追加し、count 計算 / max 解決 / 短絡判定 / 副作用ゼロ / counter 更新 / phase 別独立 / 未知 result FAIL / 未知 phase fail-closed / autoApprove による max 切り替えの単体検証を行う",
+      "priority": "must",
+      "testable": false
+    },
+    {
+      "id": "R13",
+      "desc": "specs/253-review-max-attempts/tests/run-review-enforcement.test.js に end-to-end 永続化テストを含め、tmp dir で flow.json を初期化 → updateReviewRetryCounter で FAIL を simulate → flow.json を再 load して countReviewRetry が想定値を返す → 後続の review 呼び出しが REVIEW_MAX_ATTEMPTS_EXCEEDED で短絡することを確認する",
+      "priority": "must"
+    },
+    {
+      "id": "R14",
+      "desc": "specs/253-review-max-attempts/tests/run-review-enforcement.test.js または set-retry-cli.test.js で、リセット CLI 呼び出し後の review 呼び出しが REVIEW_MAX_ATTEMPTS_EXCEEDED を返さず subprocess の起動 (または短絡解除) に進むことを end-to-end で検証する",
+      "priority": "should"
+    },
+    {
+      "id": "R15",
+      "desc": "scope 隔離: updateReviewRetryCounter / checkReviewRetryBelowMax は state.currentTaskId が非 null のとき counter 更新と短絡判定を skip する。task scope (currentTaskId 非 null かつ phase=null = task review) で reviewRetry counter は読み書きされないこと、短絡しないことをテストで確認する",
+      "priority": "must"
+    },
+    {
+      "id": "R16",
+      "desc": "リセット CLI の表面形式は `sdd-forge flow set retry reset <gate|review> <phase> --yes`。registry の args / help text に kind 引数を加える。旧 `flow set gate-retry reset <phase>` は alias を付けず削除する",
+      "priority": "must"
+    },
+    {
+      "id": "R17",
+      "desc": "specs/253-review-max-attempts/tests/set-retry-cli.test.js を新形式 CLI 用に新規作成し、旧 tests/unit/flow/set-gate-retry.test.js (gateRetry 専用) を削除する。新形式で gate / review 両 kind の reset 動作と旧形式呼び出しの拒否を検証する",
+      "priority": "must",
+      "testable": false
+    },
+    {
+      "id": "R18",
+      "desc": "src/templates/skills/sdd-forge.flow/SKILL.md の Commands リファレンスに新しい retry reset CLI (`sdd-forge flow set retry reset <kind> <phase>`) を追記する。`.claude/skills/` / `.agents/skills/` への配布反映は `sdd-forge upgrade` 実行で行う (本 spec の diff には含めない)",
+      "priority": "must",
+      "testable": false
+    },
+    {
+      "id": "R19",
+      "desc": "countReviewRetry は flow scope counter を読むため state.metrics のうち taskId == null のエントリのみカウントする。reset CLI と post hook の appendMetric 呼び出しは明示的に { taskId: null } を渡して flow scope に固定する (state.currentTaskId からの自動推論を防ぐ)",
+      "priority": "must"
+    },
+    {
+      "id": "R20",
+      "desc": "registry の set-gate-retry エントリを削除し set-retry エントリを追加する。registry key='retry'、CLI args は positional で `<action> <kind> <phase>` 順、envelope key='retry'。help text と error メッセージ (INVALID_USAGE / INVALID_ACTION / INVALID_KIND / INVALID_PHASE) を新形式に更新",
+      "priority": "must"
+    },
+    {
+      "id": "R21",
+      "desc": "impl review の post hook の step status 挙動: 既存挙動 (impl review は実行直後に step='done') を維持する。FAIL であっても step='done' とし、次回呼び出しは reviewRetry counter で短絡される (step status の制御ではなく counter で retry を制御する)",
+      "priority": "should"
+    },
+    {
+      "id": "R22",
+      "desc": "updateReviewRetryCounter は registry post hook 内部で try/catch されず、エラーは dispatcher に伝播させて POST_HOOK_FAILED warning として envelope に記録される。gate post hook の swallow 挙動とは意図的に差別化し、永続化失敗を観測可能にする",
+      "priority": "should"
+    },
+    {
+      "id": "R23",
+      "desc": "docs/cli_commands.md は本 spec のスコープ外: docs は src 解析から自動生成されるため、CLI 変更後に `sdd-forge build` を実行することで反映される (本 spec の diff には含めない)",
+      "priority": "nice-to-have",
+      "testable": false
+    },
+    {
+      "id": "R24",
+      "desc": "specs/253-review-max-attempts/tests/review-retry-helpers.test.js の R1 ケース (VALID_METRIC_COUNTERS includes reviewRetry) で、reviewRetry counter が VALID_METRIC_COUNTERS に登録されたことが暗黙的に `flow set metric <phase> reviewRetry` 受理を意味することを検証する (set metric の generic CLI は constants.js の enum をそのまま参照する設計のため)",
+      "priority": "should",
+      "testable": false
+    },
+    {
+      "id": "R25",
+      "desc": "attempt の単位定義: reviewRetry counter は `sdd-forge flow run review` の CLI invocation を 1 attempt として数える。src/flow/commands/review.js 内部の runReviewLoop の AI detect/fix iteration は scope 外で counter に影響を与えない (Issue 本文の 'review コマンド自体のロジック変更は不要' に従う)",
+      "priority": "must"
+    },
+    {
+      "id": "R26",
+      "desc": "src/flow/prompts/plan/review-{draft,spec,test}.md, src/flow/prompts/impl/review.md, src/flow/prompts/task/review.md の AI 向け instruction を更新し、(a) maxAttempts は CLI invocation 単位であること、(b) `REVIEW_MAX_ATTEMPTS_EXCEEDED` envelope を受け取ったら STOP し reset CLI による recovery 手段をユーザーに案内すること、を明示する",
+      "priority": "must",
+      "testable": false
+    },
+    {
+      "id": "R27",
+      "desc": "`flow set retry` の error code coverage: INVALID_USAGE (引数不足) / INVALID_ACTION (action != reset) / INVALID_KIND (kind != gate|review) / INVALID_PHASE (kind ごとの VALID_PHASES に含まれない phase) / 旧 `flow set gate-retry` 呼び出しの拒否を specs/253-review-max-attempts/tests/set-retry-cli.test.js で検証する",
+      "priority": "must"
+    },
+    {
+      "id": "R28",
+      "desc": "src/flow/lib/get-status.js#buildMetricsSummary は reset entry を解釈せず raw 累積を維持する (audit-only)。current retry count を表示したい場合は countReviewRetry / countGateRetry を呼ぶ。意味論は buildMetricsSummary の JSDoc に明記する (audit-only raw totals)。",
+      "priority": "should"
+    },
+    {
+      "id": "R29",
+      "desc": "post hook の precedence: registry の review post hook で updateReviewRetryCounter を最初に呼び、それが ok:true を返してから既存の step status 更新を実行する。counter update が throw した場合 step status は更新されず、dispatcher が POST_HOOK_FAILED warning を envelope に追加する。この動作により再試行時に同じ前提から再開できる (R21 の impl step='done' は counter update が成功したケースに限る)",
+      "priority": "must"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: `sdd-forge flow run review --phase draft` を auto モード (autoApprove=true) で 1 回呼んで FAIL すると、2 回目の呼び出しで Envelope.fail (errors[0].code='REVIEW_MAX_ATTEMPTS_EXCEEDED', data={phase:'draft', attempts:1, max:1}) を返す",
+    "AC2: 同条件で短絡した呼び出しは subprocess (review CLI) を起動せず、flow.json の metrics に新規エントリを追加しない",
+    "AC3: PASS verdict が返った review 呼び出し後、flow.json の metrics に reset エントリ ({phase, counter:'reviewRetry', delta:0, reset:true}) が追加され、次回呼び出しから count が 0 から再開する",
+    "AC4: impl review (--phase 省略) で result='ok' かつ proposalCount > 0 なら counter=+1、result='no-changes' || result='no-proposals' || proposalCount===0 なら reset。persisted phase key は 'impl'",
+    "AC5: 未知 phase で `flow run review` を呼ぶと fail-closed で UNKNOWN_REVIEW_PHASE エラー",
+    "AC6: post hook で counter 更新が失敗しても review コマンド自体は ok:true で完了し、stderr に warning が出力され、envelope.errors に POST_HOOK_FAILED warning が含まれる",
+    "AC7: リセット CLI 経由で review counter をリセットでき、リセット後の review 呼び出しは通常通り subprocess を起動する",
+    "AC8: 既存 gate retry counter テスト (tests/unit/flow/gate-retry-counter*.test.js) が引き続き PASS する (gate 機能の回帰なし)。set-gate-retry.test.js は新形式 (`flow set retry reset <kind> <phase>`) に書き換えられて PASS する",
+    "AC9: state.currentTaskId が非 null の状態で `flow run review` を呼んでも reviewRetry counter は変動せず短絡もしない (task scope は副作用ゼロ)",
+    "AC10: 新形式 CLI `sdd-forge flow set retry reset <gate|review> <phase> --yes` で各 kind の reset エントリが appendMetric される。旧形式 `flow set gate-retry reset <phase>` は INVALID_USAGE で拒否される",
+    "AC11: src/templates/skills/sdd-forge.flow/SKILL.md の Commands セクションに新しい retry reset CLI が記載されており、sdd-forge upgrade で配布される .claude/skills/ 配下にも同等の記載が反映される",
+    "AC12: countReviewRetry は taskId != null の metrics エントリを無視する (task scope leakage 防止)。post hook と reset CLI の appendMetric は { taskId: null } を明示的に渡す",
+    "AC13: updateReviewRetryCounter の plan path は artifacts.verdict === 'PASS' でのみ reset。verdict === 'FAIL' / undefined / その他値はすべて delta=1 を append する",
+    "AC14: registry の `set retry` エントリの help text に新形式 (`flow set retry reset <gate|review> <phase> --yes`) が記載され、INVALID_KIND / INVALID_ACTION / INVALID_PHASE エラーが新形式で返る",
+    "AC15: post hook の updateReviewRetryCounter が throw した場合、step status は更新されず envelope.errors に POST_HOOK_FAILED warning が含まれる。次回呼び出しは同じ count から再開できる",
+    "AC16: prompt template (review-draft.md / review-spec.md / review-test.md / impl/review.md / task/review.md) を読むと REVIEW_MAX_ATTEMPTS_EXCEEDED 受信時の停止 + reset CLI 案内が含まれる"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "state.reviewAttempts という可変 dict で count を直接保存する",
+      "reason": "却下。append-only でない構造は reset 履歴の追跡が困難で、既存 gate counter パターンから外れ、flow-store の schema 変更も必要になる"
+    },
+    {
+      "option": "CLI に --phase impl を新規追加する",
+      "reason": "却下。run-review.js の plan / impl path 分岐の再設計が必要でスコープ拡大。CLI 表面の意味論 (phase = レビュー成果物の種類) を保つため --phase 省略の既存形式を維持する"
+    },
+    {
+      "option": "scope 自動判定で TASK_DEFINITION の task/review の maxAttempts も拾う",
+      "reason": "却下。task/review の default maxAttempts=1 が突然有効化されてユーザー UX を変えてしまう。Issue が言及していない以上スコープ外として保留"
+    },
+    {
+      "option": "impl review の PASS 条件を result === 'no-changes' または 'no-proposals' のみに限定し proposalCount === 0 を含めない",
+      "reason": "却下。run-review.js は proposalCount === 0 のとき next='gate-impl' に進めるが result === 'ok' のままのケースがあり、counter が FAIL カウントされるのに workflow は前進する不整合が発生する。reset 条件を next='gate-impl' の条件と一致させて整合性を保つ"
+    },
+    {
+      "option": "post hook で先に increment してから max 比較する",
+      "reason": "却下。subprocess 起動失敗 (mechanical retry) も count に乗ってしまう。AI verdict ベースで判定する gate 流儀の方が semantic に正しい"
+    },
+    {
+      "option": "post hook 失敗を fatal 化する",
+      "reason": "却下。gate と非対称になり、軽微な永続化失敗で review ループ全体が止まる。silent failure 懸念は test 層で担保する"
+    },
+    {
+      "option": "未知 phase で FlowNode default maxAttempts=1 にフォールバックする",
+      "reason": "却下。silent failure リスク。設定漏れが気付かれずに 1 回だけ試行できる挙動になり、原因究明が困難"
+    },
+    {
+      "option": "max 超過後の recovery を out of scope にする (手動で flow.json を編集してもらう)",
+      "reason": "却下。append-only 形式の知識を要求し UX が悪い。永久ブロックは review 機能の実害なので CLI で対応する必要がある"
+    },
+    {
+      "option": "既存 set-gate-retry に後方互換 alias を残す",
+      "reason": "却下。alpha 期間ポリシー (CLAUDE.md) に従い後方互換コードを書かない。既存テスト・呼び出しは新形式に書き換える"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add reviewRetry to VALID_METRIC_COUNTERS",
+      "goal": "src/lib/constants.js#VALID_METRIC_COUNTERS に 'reviewRetry' を追加し、metrics store / set metric CLI が新カウンタ名を許容するようにする",
+      "acceptance": [
+        "VALID_METRIC_COUNTERS が ['question', 'docsRead', 'srcRead', 'gateRetry', 'reviewRetry'] を含む",
+        "`sdd-forge flow set metric draft reviewRetry` が ok:true で受理される"
+      ],
+      "implementation_notes": "constants.js の単一行追加。既存 enum 順序の末尾に追加",
+      "test_strategy": "unit (新規テスト): VALID_METRIC_COUNTERS.includes('reviewRetry')",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement review retry counter helpers",
+      "goal": "src/flow/lib/run-review.js に countReviewRetry / resolveReviewRetryMax / checkReviewRetryBelowMax / updateReviewRetryCounter のヘルパ関数を追加する。run-gate.js の対応関数と命名・契約を対称にする。task scope 隔離 (currentTaskId 非 null で副作用ゼロ) を組み込む",
+      "acceptance": [
+        "countReviewRetry(state.metrics, phase) が PASS reset を考慮して current count を返す",
+        "resolveReviewRetryMax(ctx, phase) が FLOW_DEFINITION の review ノードから resolveMaxAttempts(context) を呼んで max を返す",
+        "未知 phase で resolveReviewRetryMax がエラーを throw するか、checkReviewRetryBelowMax が UNKNOWN_REVIEW_PHASE Envelope.fail を返す",
+        "checkReviewRetryBelowMax(ctx, phase) は count < max で null、count >= max で Envelope.fail を返す",
+        "checkReviewRetryBelowMax と updateReviewRetryCounter は state.currentTaskId が非 null のとき null を返し副作用ゼロ (task scope 隔離)",
+        "updateReviewRetryCounter(ctx, result) は plan/impl の verdict 判定をして appendMetric を呼ぶ。impl PASS は result === 'no-changes' || result === 'no-proposals' || artifacts.proposalCount === 0"
+      ],
+      "implementation_notes": "ヘルパは pure に設計し AI subprocess を mock 不要で単体テスト可能にする。impl の verdict 判定は ctx.phase が null のとき result.result + proposalCount で分岐。phase=null のとき persisted key は文字列 'impl'。currentTaskId は ctx.flowState.currentTaskId で確認",
+      "test_strategy": "unit: 各ヘルパを直接呼び、PASS reset 考慮 / 境界条件 / fail-closed 動作を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Wire pre-check into RunReviewCommand.execute",
+      "goal": "RunReviewCommand.execute 冒頭に checkReviewRetryBelowMax を組み込み、count >= max のときは subprocess を起動せず Envelope.fail で短絡する",
+      "acceptance": [
+        "count >= max のとき execute は ok:false envelope (code='REVIEW_MAX_ATTEMPTS_EXCEEDED', data={phase, attempts, max}) を返す",
+        "短絡時は runCmd / runCmdWithRetry が呼ばれない",
+        "短絡時は appendMetric が呼ばれない (post hook も skipPost で発火しない)",
+        "未知 phase は UNKNOWN_REVIEW_PHASE で短絡する"
+      ],
+      "implementation_notes": "execute 冒頭の VALID_REVIEW_PHASES チェックの直後に挿入。phase=null のとき persisted key 'impl' で count を読む",
+      "test_strategy": "unit + e2e: subprocess spy / appendMetric spy で副作用ゼロを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Update review post hook to track counter",
+      "goal": "src/flow/registry.js の review エントリの post hook を async 化し、updateReviewRetryCounter を dynamic import で呼んでから既存の step done 更新ロジックを実行する。impl review の step status は FAIL でも 'done' を維持し counter で retry を制御する",
+      "acceptance": [
+        "review post hook が async post(ctx, result) になっている",
+        "updateReviewRetryCounter は try/catch で swallow せず例外を伝播させ、dispatcher が POST_HOOK_FAILED warning を envelope に追加する (R22)",
+        "counter 更新後に既存の planPhases 早期 return / impl step='done' 更新が実行される (FAIL でも step='done')",
+        "appendMetric 呼び出しは { taskId: null } を明示的に渡す (R19)"
+      ],
+      "implementation_notes": "gate post hook の async / dynamic import パターンを踏襲。ただし try/catch swallow ではなく、エラーは伝播させて dispatcher の POST_HOOK_FAILED 経路に乗せる (gate との意図的な差別化)。impl の step='done' は維持し、次回呼び出しは reviewRetry counter が短絡する仕組みで retry を制御する",
+      "test_strategy": "unit: registry エントリを直接呼んで post hook の挙動を検証 (counter update 成功時 / 例外時の warning 伝播 / impl FAIL でも step='done' / taskId:null 明示)",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Replace set-gate-retry with set-retry kind/phase CLI",
+      "goal": "既存の set-gate-retry CLI を `sdd-forge flow set retry reset <gate|review> <phase> --yes` に置き換え、review counter もリセット可能にする。alpha 期間ポリシーに従い旧形式 alias は付けず削除する。specs/253-review-max-attempts/tests/set-retry.test.js を新形式に合わせて書き換える",
+      "acceptance": [
+        "新形式 CLI で gate / review 両方の counter をリセットできる",
+        "旧形式 (`flow set gate-retry reset <phase>`) は INVALID_USAGE で拒否される",
+        "specs/253-review-max-attempts/tests/set-retry.test.js が新形式に書き換えられ PASS する",
+        "リセット呼び出しで flow.json に reset エントリ ({counter, phase, delta:0, reset:true}) が appendMetric される",
+        "--yes フラグの確認パターンが維持される"
+      ],
+      "implementation_notes": "src/flow/lib/set-gate-retry.js のクラス名・CLI binding を generic 化 (SetRetryCommand 等)。kind 引数で gate / review を分岐。VALID_PHASES は kind ごとに分ける (gate: ['task-impl', 'integration'] / review: ['draft', 'spec', 'test', 'impl'])。registry.js の `set gate-retry` エントリを `set retry` に差し替える",
+      "test_strategy": "unit: 各 kind / phase でリセットエントリが正しく書かれることと旧形式の拒否を確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-8",
+      "title": "Update review prompt templates with max-attempts handling",
+      "goal": "src/flow/prompts/plan/review-{draft,spec,test}.md, src/flow/prompts/impl/review.md, src/flow/prompts/task/review.md に REVIEW_MAX_ATTEMPTS_EXCEEDED 受信時の停止指示と reset CLI による recovery 案内を追記する",
+      "acceptance": [
+        "5 つの review prompt template に attempt = CLI invocation の定義が記載されている",
+        "REVIEW_MAX_ATTEMPTS_EXCEEDED envelope を受け取ったら STOP し reset CLI を案内する instruction が含まれる"
+      ],
+      "implementation_notes": "既存の prompt template の retry instruction を更新。CLI 強制が invariant になったので 'AI が自主的に守る' トーンの記述を CLI が enforce する旨に書き換える",
+      "test_strategy": "manual: prompt template を読んで内容を確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-8"
+    },
+    {
+      "id": "T-9",
+      "title": "Update throw-to-envelope-codes test for new retry CLI errors",
+      "goal": "specs/253-review-max-attempts/tests/retry-envelope-codes.test.js に新エラーコード (INVALID_USAGE / INVALID_ACTION / INVALID_KIND / INVALID_PHASE) のケースを追加し、旧 `flow set gate-retry` の拒否も検証する",
+      "acceptance": [
+        "新エラーコード 4 種類のテストケースが追加されている",
+        "旧 `flow set gate-retry reset <phase>` 呼び出しが INVALID_USAGE で拒否されることが検証されている"
+      ],
+      "implementation_notes": "既存のテーブル driven テストパターンに沿って追加",
+      "test_strategy": "unit",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-9"
+    },
+    {
+      "id": "T-7",
+      "title": "Update flow skill template with new retry reset CLI",
+      "goal": "src/templates/skills/sdd-forge.flow/SKILL.md の Commands リファレンスに `sdd-forge flow set retry reset <kind> <phase> --yes` を追記する。`sdd-forge upgrade` で .claude/skills/ への配布も含めて反映する",
+      "acceptance": [
+        "src/templates/skills/sdd-forge.flow/SKILL.md の Commands (reference) セクションに新しい retry reset CLI が記載されている",
+        "古い `set gate-retry` の言及が template から削除されている",
+        "sdd-forge upgrade を実行すると .claude/skills/sdd-forge.flow/SKILL.md と .agents/skills/sdd-forge.flow/SKILL.md にも反映される"
+      ],
+      "implementation_notes": "src/templates/ 配下を編集する。upgrade コマンドは src/templates/ から .claude/skills/ / .agents/skills/ に差分反映する仕組みなので、template ファイル自体の diff が source of truth",
+      "test_strategy": "manual: sdd-forge upgrade --dry-run で diff を確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    },
+    {
+      "id": "T-6",
+      "title": "Add unit and e2e tests for review max attempts enforcement",
+      "goal": "specs/253-review-max-attempts/tests/run-review-max-attempts.test.js を追加し、ヘルパの単体検証と dispatcher / flow-store を経由した end-to-end 永続化検証を実装する",
+      "acceptance": [
+        "単体: VALID_METRIC_COUNTERS / countReviewRetry / resolveReviewRetryMax (autoApprove=true で max=1, false で max=5 の review-draft 確認) / checkReviewRetryBelowMax (境界条件) / updateReviewRetryCounter (PASS reset / FAIL increment / impl 既知 PASS / 未知 result FAIL)",
+        "e2e: tmp dir で flow.json を初期化 → updateReviewRetryCounter で FAIL を 5 回 simulate → flow.json を再 load して countReviewRetry===5 → `flow run review --phase draft` が REVIEW_MAX_ATTEMPTS_EXCEEDED で短絡 → リセット CLI で counter リセット → 次回呼び出しは REVIEW_MAX_ATTEMPTS_EXCEEDED を返さず subprocess を起動する",
+        "phase 別独立性 (draft FAIL が spec の count に影響しない)",
+        "短絡時の subprocess 不発火 / appendMetric 不発火 invariant",
+        "未知 phase fail-closed",
+        "既存 gate retry テストが引き続き PASS"
+      ],
+      "implementation_notes": "tests/unit/flow/gate-retry-counter*.test.js / set-gate-retry.test.js のパターンを踏襲。execFileSync で実 CLI 経由のテストも含める",
+      "test_strategy": "unit + e2e (tmp dir + 実 CLI 呼び出し)",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    }
+  ],
+  "keywords": [
+    "reviewRetry",
+    "REVIEW_MAX_ATTEMPTS_EXCEEDED",
+    "RunReviewCommand",
+    "updateGateRetryCounter",
+    "checkRetryBelowMax",
+    "resolveMaxAttempts",
+    "FLOW_DEFINITION",
+    "VALID_METRIC_COUNTERS",
+    "appendMetric",
+    "set-gate-retry",
+    "registry post hook",
+    "ModeMaxAttempts",
+    "autoApprove",
+    "fail-closed"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-08T14:24:55.862Z",
+    "notes": "auto-approved after spec gate PASS"
+  },
+  "specId": "253-review-max-attempts"
+}

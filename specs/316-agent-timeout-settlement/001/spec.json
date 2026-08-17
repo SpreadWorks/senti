@@ -1,0 +1,263 @@
+{
+  "goal": "Ensure an Agent.call subprocess that ignores SIGTERM after its configured timeout settles in a bounded time, releases all lifecycle resources, and leaves no direct child or descendant process alive.",
+  "scope": {
+    "in": [
+      "src/lib/agent.js timeout lifecycle ownership",
+      "ChildProcessSupervisor and AgentTimeoutError classes",
+      "automated unit, agent, and spec-local regression coverage for timeout races and process cleanup",
+      "required generated documentation synchronization after source changes"
+    ],
+    "out": [
+      "unrelated audit findings",
+      "new public agent configuration fields",
+      "npm publishing, dist-tags, and releases"
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and add no dependencies.",
+    "Represent ChildProcessSupervisor and AgentTimeoutError as classes with constructor-enforced invariants; do not use object-literal tagged unions for their meaningful state.",
+    "Preserve the existing Agent.call public contract for command construction, successful responses, callbacks, retry, caching, metrics, logging, temporary schema cleanup, non-timeout failures, and agent.timeout configuration.",
+    "The alpha policy applies: do not add compatibility paths for superseded timeout lifecycle ownership.",
+    "Do not add a user-facing timeout or grace-period configuration surface in this issue.",
+    "Run senti upgrade only if src/skills, src/presets, or templates are changed; this issue is not expected to change them.",
+    "Synchronize generated docs after source changes because docs freshness was stale before implementation."
+  ],
+  "design_principles": [
+    "ChildProcessSupervisor has sole ownership of timeout escalation, terminal settlement, listener removal, and timer removal for one child process lifecycle.",
+    "Agent retains invocation building, provider parsing, retries, callbacks, logging, caching, metric collection, and temporary schema-file lifecycle.",
+    "Terminal ownership is settle-once: a pre-deadline close/error preserves the existing result, while the deadline atomically claims the lifecycle and every later close/error resolves as one AgentTimeoutError.",
+    "Termination must be bounded and observable: the deadline sends SIGTERM to the managed process tree, grace expiry initiates forced tree termination, and rejection occurs only after direct-child close plus a platform-specific tree-dead condition within a fixed cleanup margin."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/agent.js owns Agent.call invocation setup and will host the ChildProcessSupervisor and AgentTimeoutError classes."
+      },
+      {
+        "text": "tests/unit/lib/agent.test.js and related agent tests cover Agent.call invocation, retry, timeout, and failure contracts."
+      },
+      {
+        "text": "tests/agent/ provides real-agent regression coverage; specs/316-agent-timeout-settlement/tests/ provides required spec-local requirement coverage."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Agent._callOnce builds and spawns the provider command, then delegates child lifecycle observation to ChildProcessSupervisor."
+      },
+      {
+        "text": "Agent spawns a managed process tree: a detached process group on POSIX, and a direct child whose tree can be terminated with taskkill /T on win32."
+      },
+      {
+        "text": "At timeout, ChildProcessSupervisor claims the lifecycle, signals the process tree with SIGTERM where supported, starts a bounded grace timer, and force-terminates the full tree with POSIX process-group SIGKILL or win32 taskkill /T /F."
+      },
+      {
+        "text": "A post-deadline close never restores success or an ordinary exit error; settlement waits for direct-child close and the platform tree-dead condition, then removes listeners and timers before returning one AgentTimeoutError."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] The draft policy that agent.js has only a SIGTERM timeout and independently clears it in close/error handlers matches source.",
+        "evidence": "src/lib/agent.js _callOnce sets setTimeout(() => child.kill(\"SIGTERM\"), timeoutMs), clears that timer in separate close and error listeners, and has no grace-period escalation or terminal settlement owner."
+      },
+      {
+        "text": "[VERIFY] Existing agent.timeout remains the public deadline source and is resolved from seconds to milliseconds before _callOnce.",
+        "evidence": "src/lib/agent.js AgentResolutionAttempt.toResolved derives timeoutMs from config.agent.timeout or DEFAULT_AGENT_TIMEOUT_MS, and _callOnce receives timeoutMs from the resolved profile."
+      },
+      {
+        "text": "Adopt a class-owned supervisor because the replacement affects one cohesive child-process lifecycle and needs constructor-enforced ownership of timers, listeners, and settlement.",
+        "evidence": "Issue #411 requires ChildProcessSupervisor, AgentTimeoutError, settle-once handling, and cleanup on all termination paths; repository rules require meaningful runtime values to use classes."
+      },
+      {
+        "text": "The missing temporary F-005 report is not a test dependency; traceability is provided by Issue #411, source references, spec-local tests, and issue-log evidence.",
+        "evidence": "The prepared worktree lacks .tmp/refactoring/report.md, recorded in issue-log.json, while the linked Issue body names F-005 and the target source boundary."
+      },
+      {
+        "text": "Use platform process-tree termination without new dependencies: create and signal a detached process group on POSIX; on win32 send the initial child SIGTERM and use taskkill /PID <pid> /T /F for forced tree cleanup.",
+        "evidence": "Node child.kill targets only the direct child. POSIX negative-PGID signaling and the Windows taskkill tree option provide bounded descendant termination with built-in runtime or OS facilities."
+      },
+      {
+        "text": "Once the configured deadline fires, timeout ownership overrides every later close code or signal; the caller receives AgentTimeoutError only after direct close and observable process-tree cleanup.",
+        "evidence": "This resolves the otherwise ambiguous grace-window close and prevents returning while SIGKILL or descendant cleanup is still in flight."
+      }
+    ]
+  },
+  "background": "F-005 identifies a liveness failure in Agent._callOnce: timeout sends SIGTERM once and the caller remains dependent on close or error. A process that ignores SIGTERM can therefore keep the call pending. Separate timeout, close, and error handlers also make terminal races and incomplete cleanup possible. This change replaces only child-process lifecycle ownership while retaining the caller-visible Agent.call contract.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "Add ChildProcessSupervisor and AgentTimeoutError in src/lib/agent.js. Spawn provider commands as managed trees: a detached process group on POSIX and a win32 child compatible with taskkill /T. At the resolved agent.timeout deadline, atomically claim timeout ownership and send SIGTERM to the POSIX group or direct win32 child; after one bounded internal grace period, send SIGKILL to the POSIX group or run taskkill /PID <pid> /T /F on win32.",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "ChildProcessSupervisor shall arbitrate close, error, timeout, grace expiry, forced termination completion, and process-tree-dead observation so Agent._callOnce observes exactly one terminal result and every terminal path removes all registered listeners and timers. Grace expiry initiates forced termination but is not itself a successful cleanup observation.",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "A pre-deadline close or spawn error shall retain existing success or non-timeout error behavior. Once the deadline fires, any later close, including exit 0 or non-zero during grace, shall reject as AgentTimeoutError after cleanup. The error shall expose code AGENT_TIMEOUT, timeoutMs, graceMs, the final termination signal/action, and killed=true, and shall settle within timeout plus grace plus a fixed cleanup/test margin.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "Timeout termination shall not settle until the direct child has emitted close and the managed tree is observably dead: POSIX process-group signal-0 probing returns ESRCH, or win32 taskkill /T /F has completed and the direct child has closed. No recorded direct or descendant PID may remain alive after the returned timeout failure.",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "Automated tests shall reproduce a SIGTERM-ignoring child, a timeout immediately before exit, spawn error, and descendant-process termination; spec-local files shall cover R1 through R4 with // spec: R<N> headers.",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "Regression tests shall prove unchanged Agent.call command/argument dispatch, agent.timeout resolution, success text and JSON results, callbacks, retry, stdin fallback, logging, metrics, cache behavior, schema cleanup, and non-timeout failure behavior through the supervisor path.",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "should",
+      "desc": "After the source update, run the existing documentation synchronization flow and record its successful runtime result and generated-doc commit as flow evidence; this operational requirement does not introduce a new documentation-sync implementation path.",
+      "status": "done",
+      "testable": false
+    }
+  ],
+  "acceptance_criteria": [
+    "A SIGTERM-ignoring fixture tree receives SIGTERM at the configured deadline, receives POSIX process-group SIGKILL or win32 taskkill /T /F after grace, rejects with AgentTimeoutError, and settles within timeout plus grace plus cleanup margin.",
+    "A close/error/timeout race fixture produces exactly one observed resolution or rejection and leaves no active supervisor timer or child event listener; forced termination dispatch alone cannot complete the timeout before direct close and tree-dead observation.",
+    "A fixture that exits immediately before its deadline returns its normal result without a later timeout rejection.",
+    "A fixture that closes with exit 0 or non-zero after the deadline but before grace expiry rejects once as AgentTimeoutError with code, timing, killed, and final-action fields rather than returning success or an ordinary exit error.",
+    "A spawn-error fixture rejects once with the existing formatted spawn-error contract and leaves no timer or listener behind.",
+    "A timed-out fixture that launches a descendant has neither recorded PID alive after settlement.",
+    "Agent.call regression tests verify unchanged command dispatch, configured timeout conversion, success text and JSON parsing, callbacks, retry, stdin fallback, logger/metric/cache behavior, schema cleanup, and non-timeout errors.",
+    "Spec-local tests under specs/316-agent-timeout-settlement/tests/ cover R1 through R4 with requirement headers, and shared tests cover the existing Agent contract.",
+    "Documentation synchronization completes after source changes, or the flow records a concrete environment failure and guarded recovery command."
+  ],
+  "clarifications": [
+    {
+      "q": "Does the new grace period create a public configuration option?",
+      "a": "No. agent.timeout remains the public deadline; the bounded grace period is an internal supervisor invariant for this issue."
+    },
+    {
+      "q": "Which component owns existing Agent.call behavior outside child lifecycle termination?",
+      "a": "Agent retains invocation construction, provider parsing, retries, callbacks, logging, caching, metrics, and temporary schema-file cleanup; ChildProcessSupervisor owns only child lifecycle termination and settlement."
+    },
+    {
+      "q": "What replaces the unavailable temporary F-005 report for verification?",
+      "a": "The linked Issue, source verification decisions, spec-local tests, shared regressions, and issue-log evidence provide durable traceability."
+    },
+    {
+      "q": "Does R7 require a new documentation synchronization implementation?",
+      "a": "No. R7 requires running the existing flow sync after source changes and retaining its result. The self-hosted sync passed docs review and committed the generated changes as 44a65981; the baseline ignoreError review contradiction was repaired only to make that existing path executable."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep timeout handling as separate callbacks in Agent._callOnce.",
+      "reason": "Rejected because the Issue requires settle-once terminal ownership and reliable cleanup across close/error/timeout races, which scattered callbacks cannot make explicit."
+    },
+    {
+      "option": "Expose grace period as a new agent configuration field.",
+      "reason": "Rejected because Issue #411 requires bounded recovery but does not request a public configuration change; an internal invariant preserves the existing configuration surface."
+    },
+    {
+      "option": "Treat SIGTERM as the final timeout action.",
+      "reason": "Rejected because a SIGTERM-ignoring child causes the liveness failure named by F-005."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "Agent.call",
+    "ChildProcessSupervisor",
+    "AgentTimeoutError",
+    "agent.timeout",
+    "SIGTERM",
+    "SIGKILL",
+    "child process",
+    "descendant process",
+    "settle once",
+    "spawn error",
+    "timeout race",
+    "listener cleanup",
+    "grace period"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Model child process supervision",
+      "goal": "Add the class-owned timeout, escalation, settlement, and cleanup behavior for one spawned child process.",
+      "acceptance": [
+        "ChildProcessSupervisor sends SIGTERM to the managed tree at timeout and force-terminates the full tree after the bounded grace period on POSIX and win32.",
+        "AgentTimeoutError represents a completed timeout escalation.",
+        "Terminal events settle once, wait for direct close and tree-dead observation, and always remove timers and listeners."
+      ],
+      "implementation_notes": "Keep class ownership limited to lifecycle observation and termination. Use detached POSIX process groups with negative-PGID signaling and tree-dead probing; use taskkill /T /F for win32 forced cleanup. Preserve Agent responsibilities outside that boundary.",
+      "test_strategy": "Unit tests use controlled child fixtures for SIGTERM ignore, close/timeout race, and spawn error.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Integrate supervised invocation",
+      "goal": "Route Agent._callOnce through ChildProcessSupervisor without changing existing Agent.call behavior outside timeout termination.",
+      "acceptance": [
+        "Timeout exhaustion and every post-deadline close reject as AgentTimeoutError only after observable tree cleanup within the bounded deadline.",
+        "Success, non-zero exit, and spawn-error paths preserve their existing externally visible contracts.",
+        "Direct and descendant processes are absent after timeout settlement."
+      ],
+      "implementation_notes": "Retain provider parsing, callbacks, retry, cache, metrics, logging, and schema cleanup in Agent.",
+      "test_strategy": "Shared Agent.call regression tests assert the retained behavior surfaces through the integrated path.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Prove timeout lifecycle behavior",
+      "goal": "Add spec-local and shared automated coverage for the F-005 failure reproduction and all timeout acceptance paths.",
+      "acceptance": [
+        "Spec-local tests carry R1 through R4 headers.",
+        "Automated fixtures cover SIGTERM ignore, pre-deadline exit, post-deadline grace-window exit 0/non-zero, spawn error, and descendants.",
+        "Existing success behavior regression coverage remains executable."
+      ],
+      "implementation_notes": "Use stable Node.js child fixtures and explicit cleanup assertions; do not depend on the absent temporary audit report.",
+      "test_strategy": "Run targeted unit, agent, and spec-local tests before integration gate; full project regression remains final-regression evidence.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Synchronize generated documentation",
+      "goal": "Refresh generated documentation for the updated agent subprocess behavior.",
+      "acceptance": [
+        "Documentation synchronization runs after source changes and produces current flow evidence."
+      ],
+      "implementation_notes": "No source skill or preset change is expected, so senti upgrade is not expected unless implementation scope changes.",
+      "test_strategy": "Use the flow synchronization artifact and docs freshness check.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-11T14:47:23.692Z",
+    "notes": "User approved Wave 1 specifications for Issues #410, #411, and #412 together by selecting option 1 on 2026-07-11."
+  },
+  "specId": "316-agent-timeout-settlement"
+}

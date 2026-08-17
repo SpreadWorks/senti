@@ -1,0 +1,67 @@
+{
+  "goal": "SDD フローの実装完了後に、コード品質レビューを行う `sdd-forge flow review` コマンドを追加する。\n2段階レビュー（draft → final）で提案を生成・検証し、ユーザー承認後に適用する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`sdd-forge flow review` コマンドの新規作成（`src/flow/commands/review.js`）",
+      "`src/flow.js` ディスパッチャーへの `review` ルート追加",
+      "`FLOW_STEPS` への `review` ステップ追加（`implement` と `finalize` の間）",
+      "`config.json` の `agent.commands` で `flow.review.draft` / `flow.review.final` を個別設定可能にする",
+      "レビュー結果を `specs/NNN-xxx/review.md` に保存"
+    ],
+    "out": [
+      "`flow close` スキルへの review 呼び出し組み込み（スキル側は別途対応）",
+      "レビュー観点のカスタマイズ設定（将来拡張）",
+      "個別提案の承認/却下（一括判断のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow review` が正常に実行できる",
+    "config.json で `flow.review.draft` と `flow.review.final` に別々のエージェントを設定できる",
+    "review.md にすべての提案と判定結果（承認/却下+理由）が記録される",
+    "ユーザーが「レビューしない」を選択した場合、スキップされる",
+    "`sdd-forge flow status` で review ステップの進捗が表示される"
+  ],
+  "clarifications": [
+    {
+      "q": "レビュー対象のファイル特定方法は？",
+      "a": "spec scope から対象ファイルを特定。特定できなければ base ブランチとの diff にフォールバック"
+    },
+    {
+      "q": "同じエージェントでレビューする意味はあるか？",
+      "a": "system prompt で異なるレビュー観点を与えれば有効。エージェント設定は config.json に従う"
+    },
+    {
+      "q": "フェーズ名は？",
+      "a": "`flow.review.draft`（提案生成）/ `flow.review.final`（提案検証）"
+    },
+    {
+      "q": "却下された提案の扱いは？",
+      "a": "review.md 上で却下理由を付けてマーク。全提案 + 判定結果が残る"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "apply フェーズのエージェントは `flow.review.draft` と同じものを使う（別 command ID は設けない）"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "053-flow-review"
+}

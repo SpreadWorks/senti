@@ -1,0 +1,264 @@
+{
+  "goal": "flow prepare --worktree の worktree 作成直後に、.sdd-forge/config.json の flow.hooks.PostWorktree で定義された shell command を非中断で実行できるようにし、sdd-forge hook list で利用可能な hook と現在設定を確認できるようにする。",
+  "scope": {
+    "in": [
+      "flow.hooks 設定を config schema に追加する。",
+      "onHook(hookName, context) で hook 設定参照、{{KEY}} 置換、shell command 実行、10分 timeout、非中断警告、結果 envelope 返却を行う。",
+      "flow prepare --worktree の git worktree add 成功直後に PostWorktree を呼び出す。",
+      "sdd-forge hook list を追加し、標準は表形式、オプションで JSON 出力に対応する。",
+      "config validation、hook execution、PostWorktree 呼び出し、CLI routing/help を spec-local tests と必要な shared regression で固定する。"
+    ],
+    "out": [
+      "PostWorktree 以外の hook 実行点は追加しない。",
+      "npm install や git submodule update などのプロジェクト固有 command を src/ に固定しない。",
+      "外部 npm package は追加しない。",
+      "npm publish、dist-tag、release 作業は行わない。"
+    ]
+  },
+  "constraints": [
+    "src/ 以下に特定プロジェクト固有の hook command 値を書かない。hook command は config から読む。",
+    "外部依存を追加せず、Node.js 組み込み module と既存 command/dispatcher/config/process pattern を使う。",
+    "hook failure は caller flow を中断しない。失敗時は console.warn で警告し、返却 envelope で ok:false を観測可能にする。",
+    "context に存在しない {{KEY}} placeholder は元の文字列を残し、警告で設定ミスを見せる。",
+    "hook command は shell 構文を含められる文字列として実行する。",
+    "sdd-forge hook list は既存 top-level command の意味を変えない新規 namespace とする。",
+    "sdd-forge hook list の exit code contract: valid invocation は表示対象 hook が未設定でも exit 0、unknown option や invalid value は non-zero とする。",
+    "sdd-forge hook list の user-facing argument: --json は boolean flag で、指定時は JSON を stdout に出力する。その他の引数や option は invalid として non-zero にする。"
+  ],
+  "design_principles": [
+    "設定値は利用者が所有し、実装は hook 定義と実行境界だけを提供する。",
+    "prepare flow の既存成功条件を hook 設定で狭めない。",
+    "管理 CLI は人間が読む標準表示と automation 用 JSON を分離する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/hooks.js: flow hook 定義、placeholder 置換、shell command 実行、hook list 用 metadata を集約する新規 shared utility。"
+      },
+      {
+        "text": "src/flow/lib/run-prepare-spec.js: git worktree add 成功直後に PostWorktree を呼び出す prepare integration point。"
+      },
+      {
+        "text": "src/hook.js and src/hook/commands/list.js: sdd-forge hook list namespace と list command を提供する。"
+      },
+      {
+        "text": "src/lib/config.js: CONFIG_SCHEMA.flow.hooks を string map として許可する。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": ".sdd-forge/config.json -> loadConfig -> onHook(PostWorktree, { CWD }) -> placeholder replacement -> shell execution with cwd=context.CWD -> warning/result envelope."
+      },
+      {
+        "text": "sdd-forge hook list -> hook definitions + config.flow.hooks -> table stdout or --json structured stdout."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] run-prepare-spec.js centralizes worktree creation; PostWorktree belongs immediately after git worktree add.",
+        "evidence": "src/flow/lib/run-prepare-spec.js useWorktree branch calls runGitTrim(root, [\"worktree\", \"add\", worktreePath, \"-b\", branchName, resolvedBase]) before writeSpecFiles/writeFlowState/docs scan."
+      },
+      {
+        "text": "[VERIFY] config schema must be extended because root config validation disallows unknown properties.",
+        "evidence": "src/lib/config.js CONFIG_SCHEMA has additionalProperties:false at root and explicit flow.properties entries. flow.hooks is currently absent."
+      },
+      {
+        "text": "[VERIFY] new hook CLI should follow existing namespace dispatcher and command registry patterns.",
+        "evidence": "src/sdd-forge.js routes top-level namespaces through NAMESPACE_SCRIPTS; src/lib/command-registry.js registers raw-output commands for docs/check/metrics/spec."
+      },
+      {
+        "text": "Shell string execution is required for hook command values.",
+        "evidence": "Issue #366 and draft-refine q1 selected support for command strings such as `git submodule update --init --recursive && npm install`."
+      },
+      {
+        "text": "Missing placeholders remain visible and produce warning output.",
+        "evidence": "Draft-refine q2 selected preserving unresolved `{{KEY}}`; this follows complete-context and unambiguous-requirements guardrails by making config mistakes observable."
+      },
+      {
+        "text": "hook list defaults to table output and supports JSON via option.",
+        "evidence": "Draft-refine q3 selected both formats. Default table matches management use; JSON supports automation."
+      }
+    ]
+  },
+  "background": "flow prepare --worktree currently creates an isolated worktree and then writes spec/draft state, but it has no project-configurable extension point immediately after worktree creation. Users who need submodule initialization or dependency installation in the new worktree must run those steps manually or wrap sdd-forge externally. Issue #366 defines a single concern: add a flow hook mechanism with PostWorktree support and a management command that exposes the available hook definitions and current configuration.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Add flow.hooks to .sdd-forge/config.json schema as an object whose additional property values are strings.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Implement onHook(hookName, context) so an undefined hook returns a successful no-op envelope, a defined hook replaces all {{KEY}} tokens with context values, leaves missing keys unchanged with a warning, executes the replaced command as a shell command with a 600000 ms timeout and cwd set to context.CWD when provided, returns { ok, output, stderr, status }, and never throws hook execution failure to the caller.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Call PostWorktree immediately after git worktree add succeeds in flow prepare --worktree, passing { CWD: worktreePath }, executing the hook command with cwd set to worktreePath, and continue prepare even when the hook result is ok:false.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Add sdd-forge hook list with table output by default and --json output on request, listing PostWorktree name, description, available placeholders, and current configured command value.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Cover config validation, onHook no-op/success/failure/missing-placeholder behavior, PostWorktree prepare integration, and hook list table/JSON/invalid-argument behavior with tests.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Given config.flow.hooks.PostWorktree is unset, onHook(\"PostWorktree\", { CWD }) returns ok:true without executing a command.",
+    "Given config.flow.hooks.PostWorktree is `printf {{CWD}}`, onHook replaces {{CWD}} with the provided path and returns stdout in output.",
+    "Given config.flow.hooks.PostWorktree contains an unavailable {{MISSING}} token, onHook leaves `{{MISSING}}` in the command string and emits a warning.",
+    "Given onHook(\"PostWorktree\", { CWD }) executes a configured shell command, the child process working directory is CWD.",
+    "Given a configured hook command exits non-zero, onHook returns ok:false with stderr/status and prepare continues after warning.",
+    "After git worktree add succeeds in flow prepare --worktree, PostWorktree is invoked before spec/draft files are written.",
+    "`sdd-forge hook list` exits 0 and prints PostWorktree with description, placeholders, and current config value.",
+    "`sdd-forge hook list --json` exits 0 and prints structured JSON containing the same PostWorktree data.",
+    "`sdd-forge hook list --unknown` exits non-zero."
+  ],
+  "clarifications": [
+    {
+      "q": "Should hook commands be shell strings or argument arrays?",
+      "a": "Shell strings. The user selected shell string execution in draft-refine q1 because Issue #366 includes shell syntax."
+    },
+    {
+      "q": "How should missing placeholders be handled?",
+      "a": "Leave the original {{KEY}} token in the command string and warn. The user selected this in draft-refine q2."
+    },
+    {
+      "q": "What output format should hook list use?",
+      "a": "Table output by default, with --json for structured output. The user selected this in draft-refine q3."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Argument-array hook commands only",
+      "reason": "Rejected because Issue #366 requires shell command execution and gives an example containing &&."
+    },
+    {
+      "option": "Replace missing placeholders with an empty string",
+      "reason": "Rejected because it hides configuration mistakes and can silently transform the command."
+    },
+    {
+      "option": "JSON-only hook list output",
+      "reason": "Rejected because hook list is primarily a management command for human inspection; JSON remains available through --json."
+    },
+    {
+      "option": "Make hook failure abort flow prepare",
+      "reason": "Rejected because Issue #366 requires hook failures not to interrupt the caller flow."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "PostWorktree",
+    "flow.hooks",
+    "onHook",
+    "hook list",
+    "run-prepare-spec",
+    "worktree add",
+    "config schema",
+    "shell command",
+    "placeholder replacement",
+    "non-blocking hook",
+    "command registry"
+  ],
+  "implementationTargets": [
+    "src/lib/config.js",
+    "src/lib/hooks.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/sdd-forge.js",
+    "src/hook.js",
+    "src/hook/commands/list.js",
+    "src/lib/command-registry.js",
+    "specs/280-event-hook-mechanism/tests/",
+    "tests/unit/lib/config.test.js",
+    "tests/e2e/dispatchers.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add hook configuration",
+      "goal": "Allow flow.hooks string values in config validation and expose shared hook definitions for PostWorktree.",
+      "acceptance": [
+        "flow.hooks accepts string values in config validation.",
+        "Non-string hook values are rejected by schema validation.",
+        "PostWorktree metadata includes name, description, and {{CWD}} placeholder."
+      ],
+      "implementation_notes": "Update CONFIG_SCHEMA.flow and introduce hook metadata in a shared module without hardcoded project-specific command values.",
+      "test_strategy": "Unit tests for config validation and hook metadata shape.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement hook execution",
+      "goal": "Implement onHook so configured hook commands are rendered, executed as shell strings, and reported without interrupting callers.",
+      "acceptance": [
+        "Undefined hooks return ok:true no-op results.",
+        "Defined hooks replace context placeholders and execute with 600000 ms timeout.",
+        "Defined hooks execute with cwd set to context.CWD when CWD is present.",
+        "Missing placeholders remain unchanged and produce a warning.",
+        "Non-zero hook exits return ok:false and warn without throwing."
+      ],
+      "implementation_notes": "Use Node.js built-in process execution. Keep result fields { ok, output, stderr, status } stable for callers.",
+      "test_strategy": "Spec-local unit tests for no-op, success, cwd, missing placeholder, failure, and timeout option behavior where feasible.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Wire PostWorktree",
+      "goal": "Invoke PostWorktree immediately after worktree creation in prepare flow while preserving existing prepare success behavior.",
+      "acceptance": [
+        "PostWorktree receives { CWD: worktreePath } after git worktree add succeeds.",
+        "PostWorktree command execution cwd is worktreePath.",
+        "Spec/draft creation continues when hook result is ok:false.",
+        "Existing prepare behavior is unchanged when PostWorktree is not configured."
+      ],
+      "implementation_notes": "Modify only the useWorktree branch in src/flow/lib/run-prepare-spec.js. Do not add hook calls for branch or spec-only mode.",
+      "test_strategy": "Spec-local integration-style test using controlled command stubs or observable side effects to confirm call order and non-blocking behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Add hook list CLI",
+      "goal": "Add sdd-forge hook list so users can inspect available hooks and current configuration.",
+      "acceptance": [
+        "Default output lists PostWorktree name, description, placeholders, and configured value.",
+        "--json outputs structured JSON with the same data.",
+        "Invalid arguments exit non-zero."
+      ],
+      "implementation_notes": "Add a top-level hook namespace and register the list command with existing dispatcher patterns.",
+      "test_strategy": "Spec-local CLI tests plus shared dispatcher regression for the new namespace.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-05T06:08:06.281Z",
+    "notes": "User approved spec via option 1."
+  },
+  "specId": "280-event-hook-mechanism"
+}

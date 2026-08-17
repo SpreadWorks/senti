@@ -1,0 +1,317 @@
+{
+  "goal": "final-regression の nested child command が失敗した理由を、テストを再実行せず raw log と final artifact の保存済み evidence だけから説明可能にする。",
+  "scope": {
+    "in": [
+      "tests/run.js が実行する unit、integration、acceptance、other child command ごとの bounded execution record。",
+      "src/flow/lib/test-regression.js の child process result model、stream capture、failure mode classification、diagnostic serialization。",
+      "src/flow/lib/run-final-regression.js の nested record extraction、raw-log persistence、artifact serialization、failure classification。",
+      "final-regression-result.json と tests/.raw/final-regression-attempt-NNN.log の diagnostic contract。",
+      "spec-local requirement tests と影響を受ける shared unit/e2e regression tests。"
+    ],
+    "out": [
+      "Issue #451 で失敗した product code 自体の修正。",
+      "final-regression の execution point、outer invocation count、retry behavior、record-and-proceed failed-state display の変更。",
+      "失敗を fallback で PASS または skipped に変換する処理。",
+      "assertion の削減または test command の diagnostic enrichment 再実行。",
+      "外部 dependency と legacy artifact compatibility shim の追加。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールだけを使用し、外部 dependency を追加しない。",
+    "意味のある child execution record、stream capture、final artifact fragment は専用 class と constructor invariant で表現する。",
+    "final-regression artifact に永続化する child stdout/stderr capture は明示的な byte bound を持ち、元 byte length、captured byte length、truncated flag を保存し、consumer が durable attempt-log reference を付与する。producer marker は未確定の attempt path を保持しない。",
+    "diagnostic enrichment は既存 child invocation と既存 outer final-regression invocation の中で完結し、process を追加 spawn しない。",
+    "assertion、current-change、existing attribution は concrete preserved evidence が存在する場合だけ設定する。",
+    "attribution を証明できない failure は unknown とし、existing failure の record-and-proceed eligibility を与えない。",
+    "tests/run.js の category order、summary、aggregate exit code と final-regression の pass/fail/skipped、retry、status/report transitions を維持する。",
+    "alpha policy に従い generated artifact は新 contract を直接採用し、旧 format の読み替えや compatibility branch を追加しない。",
+    "stream、record count、artifact evidence collection は bounded-resource-usage guardrail に従い、size/count 上限を code と tests で検証可能にする。"
+  ],
+  "design_principles": [
+    "Outer process の終了状態と nested child command の終了状態を別の typed evidence として扱う。",
+    "Child runner を execution record の canonical producer、final-regression を durable artifact と classification の canonical consumer にする。",
+    "Human-readable raw log と machine-readable final artifact は同じ child record から生成し、片方だけに診断が存在する状態を避ける。",
+    "分類不能を assertion または existing と推測するより unknown として fail closed にする。",
+    "既存の ChildProcessExecutionResult と FinalRegressionArtifact を深い module boundary として拡張し、caller-side plain object assembly を増やさない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/test-regression.js owns typed child process outcomes, bounded stream captures, invariants, serialization, and parsing helpers."
+      },
+      {
+        "text": "tests/run.js owns one execution record per nested category command and emits its bounded machine-readable diagnostic marker without spawning another process."
+      },
+      {
+        "text": "src/flow/lib/run-final-regression.js owns extraction of nested markers from the outer result, durable raw-log references, final artifact child records, and evidence-based recovery classification."
+      },
+      {
+        "text": "spec-local tests own R1-R8 requirement coverage; affected shared tests preserve the existing test runner and final-regression public contracts."
+      },
+      {
+        "text": "src/flow/lib/test-regression.js now owns bounded UTF-8 ProcessStreamCapture values, typed nonzero-exit classification, invariant-checked ChildProcessExecutionRecord values, and a bounded marker codec.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "tests/run.js now emits one machine-readable execution record for every category result while retaining the existing spawn and stream-forwarding owner.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "src/flow/lib/run-final-regression.js now decodes bounded child execution records, attaches the durable attempt-log path, persists them in FinalRegressionArtifact, and owns unattributed_unknown_failure recovery.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js now validates the new childProcesses artifact contract, stream metadata, unknown failure kind, and unknown category at the system boundary.",
+        "added_by_task": "T-2"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "tests/run.js spawns each category command once and converts the spawnSync result into a typed ChildProcessExecutionResult."
+      },
+      {
+        "text": "The result class classifies the concrete process termination, creates bounded stdout/stderr captures with truncation metadata, and serializes one diagnostic marker."
+      },
+      {
+        "text": "tests/run.js continues forwarding child stdout/stderr and emits the marker; the outer final-regression process captures that output in its existing single invocation."
+      },
+      {
+        "text": "RunFinalRegressionCommand writes the outer output to the attempt log, parses bounded child markers, attaches the attempt-log reference, and persists child records in final-regression-result.json."
+      },
+      {
+        "text": "Final-regression classification consumes typed outer and child evidence. Assertion and attribution fields are set only when their supporting evidence is present; otherwise the result is unattributed_unknown_failure with a non-proceed recovery policy."
+      },
+      {
+        "text": "Each spawn result becomes a ChildProcessExecutionResult, then a bounded ChildProcessExecutionRecord; tests/run.js forwards raw streams and writes the codec marker during the same category iteration.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "RunFinalRegressionCommand decodes child markers before classification, writes the same marker-bearing outer output to the raw attempt log, and serializes class-backed child records with that rawOutputPath.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Failure classification derives attribution from typed child termination and captured stream evidence; absent or unsupported attribution becomes a stop-only unknown result.",
+        "added_by_task": "T-2"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] tests/run.js creates one ChildProcessExecutionResult per category spawn, forwards streams, and emits diagnosticLines only when the child is not passed; result=match.",
+        "evidence": "tests/run.js executeFiles: one spawn call inside the category loop, processResultFromSpawnSync conversion, stdout/stderr forwarding, and conditional diagnosticLines emission."
+      },
+      {
+        "text": "[VERIFY] numeric non-zero child exits are currently classified as assertion-failure without inspecting assertion evidence; result=match.",
+        "evidence": "src/flow/lib/test-regression.js childProcessResult: the kind fallback selects assertion-failure whenever exitCode !== 0 after timeout/max-buffer/spawn-error/signal checks."
+      },
+      {
+        "text": "[VERIFY] final-regression currently persists only the outer process summary and output, and can classify output that does not reference changed files as ExistingRegressionFailure; result=match.",
+        "evidence": "src/flow/lib/run-final-regression.js: FinalRegressionProcess serializes only outer fields; FinalRegressionArtifact has no child record field; classifyFinalRegressionFailure returns ExistingRegressionFailure when failureReferencesChangedFile is false."
+      },
+      {
+        "text": "[VERIFY] existing final-regression already combines bounded failure evidence with a durable rawOutputPath; result=match and reused for nested stream references.",
+        "evidence": "src/flow/lib/run-final-regression.js defines MAX_FAILURE_EVIDENCE_CHARS, writes final-regression-attempt-NNN.log, and stores rawOutputPath/rawOutputLines in FinalRegressionArtifact."
+      },
+      {
+        "text": "Represent a numeric non-zero exit without assertion evidence as nonzero-exit rather than assertion-failure.",
+        "evidence": "Issue #463 requires distinct assertion-output and no-output non-zero exit modes; the verified current fallback conflates them."
+      },
+      {
+        "text": "Emit records for passed and failed nested commands so execution order, completed categories, and the exact failing category remain reconstructable.",
+        "evidence": "Issue #463 requires a record for every nested command; tests/run.js already has a single typed result at the canonical category boundary."
+      },
+      {
+        "text": "Use unattributed_unknown_failure with stop recovery and no record-and-proceed eligibility when current/existing attribution lacks preserved evidence.",
+        "evidence": "Issue #463 forbids auto-classifying unknown as existing; existing FinalRegressionFailure subclasses already encode conservative stop policies for evidence gaps."
+      },
+      {
+        "text": "Retain all current command, config, hook, artifact, and side-effect owners; extend their behavior rather than introducing a parallel diagnostic execution path.",
+        "evidence": "Draft migration-parity inventory maps tests/run.js, test-regression.js, RunFinalRegressionCommand, FinalRegressionArtifact, post-hooks, status/report, issue-log, and config discovery to existing owners."
+      },
+      {
+        "text": "Numeric non-zero exits become assertion-failure only when bounded preserved output contains assertion evidence; otherwise they become nonzero-exit.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "The marker codec enforces record-count and line-byte limits and reconstructs class instances rather than exposing plain discriminated objects.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Concrete changed-file references produce current-change attribution; assertion evidence that names an unchanged source/test path may produce existing attribution; all other typed child failures remain unknown.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Unknown failures use failureCategory=unknown, failureNature=execution unless child assertion evidence exists, currentDiffRelationship=unknown, and record-and-proceed eligibility=false.",
+        "added_by_task": "T-2"
+      }
+    ]
+  },
+  "background": "Issue #451 showed that the outer node tests/run.js command could exit with code 1 while its nested unit/e2e evidence was preserved as empty streams. The final artifact then labeled the failure as assertion and unattributed existing even though neither conclusion was supported by durable evidence. The current child result model already distinguishes spawn, signal, timeout, and max-buffer outcomes, but treats every remaining numeric non-zero exit as assertion-failure. The final-regression artifact stores only the outer process fields and text-derived classification. Preserving bounded typed child records through the existing invocation closes this evidence gap without rerunning tests or changing lifecycle policy.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "Every nested test command shall produce one typed execution record containing command argv, started/completed state, exit code, signal, error code, timeout state, spawn error, and bounded stdout/stderr captures.",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "Child outcomes shall distinguish passed, assertion-failure with concrete assertion output, nonzero-exit without assertion evidence, signal, timeout, spawn-error, and max-buffer outcomes through class-enforced invariants.",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "Each captured child stream shall record original byte length, captured byte length, truncation state, bounded content, and a durable final-regression attempt-log reference when content exceeds the configured capture bound.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "tests/run.js shall emit one machine-readable child execution marker for every executed category while preserving existing stream forwarding, category order, summary, aggregate exit code, and exactly one spawn per category.",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "The final-regression raw log and final-regression-result.json shall identify each nested command and its typed outcome, and the artifact shall expose bounded child records linked to the raw attempt log.",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "Final-regression shall set failureNature assertion and current-versus-existing attribution only when preserved evidence supports them; an unsupported attribution shall become unattributed_unknown_failure with no automatic existing-failure eligibility.",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "must",
+      "desc": "The change shall preserve final-regression execution count, pass/fail/skipped envelopes, retry behavior, record-and-proceed failed-state display, status/report transitions, config-derived command/timeout behavior, and issue-log side effects except for evidence-based failure fields.",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "desc": "Automated coverage shall prove all child failure modes, bounded truncation and durable references, raw-log/artifact persistence, evidence-based classification, retained-surface behavior parity, and zero additional test-process invocations without requiring legacy artifact compatibility.",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "[AC1/R1] Passed and failed unit, integration, acceptance, and other category executions each yield one record with command identity, lifecycle fields, termination fields, and two stream captures.",
+    "[AC2/R2] Fixtures independently produce passed, assertion-failure, nonzero-exit, signal, timeout, spawn-error, and max-buffer records; a numeric exit with empty or non-assertion output never yields assertion-failure.",
+    "[AC3/R3] A stream below the capture bound is preserved without truncation; a stream above the bound reports exact original/captured byte counts, truncated=true, bounded content, and the final attempt-log path.",
+    "[AC4/R4] tests/run.js writes each child stream and one parseable record marker, preserves category summary and aggregate exit behavior, and a process spy reports the same spawn count as the number of executed categories.",
+    "[AC5/R5] Given a nested unit or e2e failure, the attempt log and final-regression-result.json both identify the child command, typed failure mode, exit/signal/timeout/spawn details, stream metadata, and raw-log reference.",
+    "[AC6/R6] Assertion output may set failureNature=assertion; no-output non-zero exit does not. A failure with no concrete current/existing evidence is unattributed_unknown_failure, is not marked existing, and is not auto-selected for record-and-proceed.",
+    "[AC7/R7] Current spec-local tests exercise tests/run.js ordering/summary/exit and final-regression pass/fail/skipped/retry/status/report, config command/timeout, issue-log, and record-and-proceed behavior through production code. Only evidence-supported diagnostic fields change.",
+    "[AC8/R8] Integration-gate acceptance uses current spec-local test-execute evidence for every child failure mode, retained surface, and one invocation per scenario. A completed final-regression result and affected shared-suite evidence are not integration-gate prerequisites because that step runs later; downstream final-regression remains mandatory and runs the full project command once without a diagnostic rerun."
+  ],
+  "clarifications": [
+    {
+      "q": "Does every numeric non-zero child exit mean an assertion failed?",
+      "a": "No. assertion-failure requires preserved assertion evidence. Other numeric non-zero exits use nonzero-exit."
+    },
+    {
+      "q": "Are successful child commands recorded?",
+      "a": "Yes. Every executed category produces one record so execution order and the failure boundary are reconstructable."
+    },
+    {
+      "q": "Does bounded artifact capture discard the full child output?",
+      "a": "No. The structured record is bounded and carries truncation metadata; the existing attempt log is the durable source reference for forwarded output."
+    },
+    {
+      "q": "Can an unknown failure continue as an existing failure in auto mode?",
+      "a": "No. Unsupported attribution is unattributed_unknown_failure and cannot receive automatic existing-failure record-and-proceed eligibility."
+    },
+    {
+      "q": "Does this add another test execution for diagnostics?",
+      "a": "No. Records are produced and consumed inside the existing nested and outer invocations."
+    },
+    {
+      "q": "Can change-scope classification substitute for preserved failure attribution when a child assertion omits a concrete path?",
+      "a": "No. Change scope does not prove failure causality; R7 preserves retry behavior except for evidence-based failure fields, so R6 requires unattributed_unknown_failure when preserved child evidence cannot support current-versus-existing attribution."
+    },
+    {
+      "q": "Must integration gate evidence include a completed downstream final-regression?",
+      "a": "No. The lifecycle runs final-regression only after integration gate and acceptance. Integration gate validates current spec-local test-execute evidence; final-regression then validates the affected shared suite and single full-project invocation before report/finalization."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Rerun only the failed nested command after the outer command exits.",
+      "reason": "Rejected because it changes invocation count, can produce different evidence, and violates Issue #463."
+    },
+    {
+      "option": "Keep parsing only free-form stdout/stderr text in final-regression.",
+      "reason": "Rejected because empty output cannot identify the child or termination mode and text heuristics caused the incorrect assertion/existing classification."
+    },
+    {
+      "option": "Store unbounded stdout/stderr copies in every child artifact record.",
+      "reason": "Rejected by bounded-resource-usage; the bounded record plus durable attempt-log reference preserves auditability without unbounded artifact growth."
+    },
+    {
+      "option": "Treat every unattributed failure as existing and ask only after record-and-proceed selection.",
+      "reason": "Rejected because existing attribution is not proven and could hide a regression caused by the current change."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "ChildProcessExecutionResult",
+    "ProcessStreamSummary",
+    "processResultFromSpawnSync",
+    "processOutputLines",
+    "executeFiles",
+    "run-final-regression",
+    "FinalRegressionArtifact",
+    "child process diagnostics",
+    "nonzero-exit",
+    "assertion evidence",
+    "stream truncation",
+    "rawOutputPath",
+    "unattributed_unknown_failure"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Model bounded child execution evidence",
+      "goal": "Extend the existing child process result module and test runner boundary to produce one invariant-checked, bounded execution record for every nested category command without changing invocation behavior.",
+      "acceptance": [
+        "R1 records every required lifecycle, termination, command, and stream field.",
+        "R2 distinguishes all required typed outcomes and requires concrete assertion evidence.",
+        "R3 enforces stream bounds and serializes truncation metadata.",
+        "R4 emits one parseable marker per executed category with unchanged runner behavior."
+      ],
+      "implementation_notes": "Extend ChildProcessExecutionResult with dedicated stream-capture and serialization classes rather than plain record literals. Keep executeFiles as the single spawn owner. Use a stable marker/parser contract shared with final-regression, exclude marker text from user stream payload parsing, and keep size/count limits explicit.",
+      "test_strategy": "Add spec-local unit coverage for constructors, invariants, UTF-8 byte bounds, exact-bound and over-bound captures, all termination modes, assertion evidence detection, marker round trips, every-category emission, summary/exit parity, and spawn-count spying. Update affected shared tests for the exported result contract.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Classify preserved final-regression evidence",
+      "goal": "Persist parsed nested records in the existing final-regression raw log and artifact, then derive failure nature and attribution only from preserved typed evidence.",
+      "acceptance": [
+        "R5 exposes every nested record with a durable attempt-log reference in raw and structured artifacts.",
+        "R6 removes unsupported assertion/existing inference and uses unattributed_unknown_failure conservatively.",
+        "R7 preserves command, lifecycle, config, report, retry, issue-log, and record-and-proceed behavior.",
+        "R8 proves retained-surface behavior parity, artifact/classification behavior, and zero diagnostic reruns."
+      ],
+      "implementation_notes": "Let RunFinalRegressionCommand consume the shared marker parser and attach rawOutputPath through dedicated artifact fragment classes. Extend FinalRegressionFailure and recovery policy classes for unknown attribution. Preserve outer process diagnostics and existing pass/skipped paths. Do not add a compatibility reader for old artifacts.",
+      "test_strategy": "Add spec-local command-level fixtures for nested exit, signal, timeout, spawn-error, assertion, silent non-zero, truncation, malformed/absent marker boundaries, artifact validation, and unknown recovery. Preserve shared pass/fail/skipped/retry/status/report/config/issue-log tests and spy on runProcessDetailed plus nested spawn calls to prove unchanged counts.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-25T05:55:14.583Z",
+    "notes": "Auto-approved after spec review PASS and spec gate PASS; user enabled auto mode at preflight."
+  },
+  "specId": "340-preserve-child-diagnostics"
+}

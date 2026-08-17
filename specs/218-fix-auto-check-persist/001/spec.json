@@ -1,0 +1,185 @@
+{
+  "goal": "`flow run auto-check` と `flow set auto on` の split-brain を解消し、Issue 起点フローで auto mode が正常に有効化できる状態にする。直前の auto-check 判定結果を `set auto on` が trust する構造に変更し、異なる入力での二重評価を排除する。",
+  "background": "skill `sdd-forge.flow` の B.0.5 は `flow run auto-check --input \"<issue body>\"` で eligible 判定したうえで `flow set auto on --run-id <id>` を実行するフローになっている。現状 `set auto on` は preparing flow のとき `buildInputText(state)` で入力を再構築するが、`state.request` が空かつ `state.issue` だけだと入力は `Issue #<n>` という 10 文字程度の literal になり、AI スコア 0 点で hard-gate zero reject される。結果として 1 回目 (run auto-check) は eligible を返すのに 2 回目 (set auto on) は必ず reject する split-brain が発生し、Issue 起点フローで auto mode が実質使えない。",
+  "scope": {
+    "in": [
+      "`flow run auto-check` の結果永続化を preparing flow にも対称適用する。",
+      "`flow set auto on` が保存済み verdict を trust し、AI 再呼出を省略する。",
+      "上記挙動を説明する flow skill テンプレートの該当行を更新する。",
+      "新挙動と fallback 経路（verdict 無し → 従来通り）を検証する unit test を追加する。"
+    ],
+    "out": [
+      "Issue body を `set-auto` 側で `gh issue view` で取得するアプローチ（候補 A）。",
+      "skill 層で `--request` に issue body を埋め込むアプローチ（候補 C）。",
+      "入力テキストの hash 一致検証（G2）や経過時間ベースの無効化（G3）。",
+      "`sdd-forge.flow-auto` skill（active flow 対象で、今回のバグ経路外）。",
+      "auto-check スコアリングロジック本体（スコア算出・ハードゲート・静的ゲート）の変更。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみ使用（外部依存追加禁止）。",
+    "CLAUDE.md の alpha 版ポリシーに従い、後方互換コードは追加しない。",
+    "既存 CLI フラグ・サブコマンドの削除や意味変更を行わない。非破壊的な追加オプションは、関連コマンドとの対称性が必要な範囲で許可する（例: `run auto-check` に `--run-id` を追加して、既存の `set auto on --run-id` と `flow prepare --run-id` に合わせる）。",
+    "`src/templates/` 配下を編集した場合、derived ファイル（`.claude/skills/` 等）は `sdd-forge upgrade` 経由で同期する。",
+    "既存テストを修正・削除しない（新規追加のみ）。",
+    "エラー時は非ゼロ終了コードで通知する（exit code contract）。"
+  ],
+  "design_principles": [
+    "Single source of truth: auto-check の verdict は 1 回計算、1 回保存、以降 trust する。",
+    "対称性: active flow と preparing flow で同じルールを適用する（persistence / trust）。",
+    "過剰防衛しない: 内部インターフェースである flow state は信頼し、hash 比較や時間無効化は導入しない。",
+    "既存パターンに追従する: stub agent ベースの unit test 流儀を踏襲する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/run-auto-check.js` — verdict 計算と永続化の起点。"
+      },
+      {
+        "text": "`src/flow/lib/set-auto.js` — verdict の trust / fallback 振り分けと `autoApprove` 反映。"
+      },
+      {
+        "text": "`src/lib/flow-state.js` — preparing flow / active flow の state 読み書き（既存 API 利用）。"
+      },
+      {
+        "text": "`src/templates/skills/sdd-forge.flow/SKILL.md` — ユーザー向け挙動説明。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "1. skill が `flow run auto-check --input \"<issue body>\"` を呼ぶ。"
+      },
+      {
+        "text": "2. `run-auto-check` は静的ゲート → AI スコアリング → verdict 構築の順に計算し、`autoCheck` を active / preparing のいずれの state にも保存する。"
+      },
+      {
+        "text": "3. ユーザーが [1] を選ぶと skill が `flow set auto on --run-id <id>` を呼ぶ。"
+      },
+      {
+        "text": "4. `set-auto` は state 内の既存 `autoCheck` を検出した場合、その `eligible` を直接使い、AI 呼出を行わない。`autoCheck.eligible === true` なら `autoApprove: true` を書き、false なら非ゼロ終了で `AUTO_CHECK_INELIGIBLE` を返す。"
+      },
+      {
+        "text": "5. state に `autoCheck` が無ければ従来の fallback 経路（入力組み立て → AI 呼出 → 保存 → 判定）を実行する。"
+      },
+      {
+        "text": "6. active flow の spec-approved shortcut（`isSpecApproved(state) === true` なら auto-check スキップ）は維持する。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "方針: 候補 B（persist-and-trust）を採用。split-brain の根治・AI 呼出 1 回・既存 persistence パターンとの対称性を満たす。"
+      },
+      {
+        "text": "stale ガード: G1（verdict があれば trust、無ければ再検証）のみ。hash 検証・時間無効化は採用しない。"
+      },
+      {
+        "text": "テスト観点: 「AI が再呼出されていない」ことを観測する。具体手段は既存 unit test 基盤（stub agent）の枠内で選定する。"
+      },
+      {
+        "text": "ファイル編集: `src/templates/skills/sdd-forge.flow/SKILL.md` の該当説明のみ source of truth として更新し、derived ファイルは触らない。"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "P1-R1",
+      "desc": "When `sdd-forge flow run auto-check` runs against a preparing flow, it shall write the computed `autoCheck` verdict envelope into the corresponding preparing state file so that a subsequent `flow set auto on --run-id <id>` can read it.",
+      "priority": "must"
+    },
+    {
+      "id": "P1-R2",
+      "desc": "When `sdd-forge flow set auto on` loads the target state (active flow `flow.json` or preparing flow `.active-flow.<runId>`) and the state already contains an `autoCheck` object, it shall treat `autoCheck.eligible` as the gate outcome and shall not invoke the AI agent for auto-check again.",
+      "priority": "must"
+    },
+    {
+      "id": "P1-R3",
+      "desc": "When `sdd-forge flow set auto on` loads the target state and no `autoCheck` object is present, it shall fall back to the existing behavior: build input text from state (`request` + `issue`), run the AI auto-check, persist the verdict, then apply the same eligibility check.",
+      "priority": "must"
+    },
+    {
+      "id": "P1-R4",
+      "desc": "When the resolved `autoCheck.eligible` is `false`, the CLI shall exit with a non-zero status code carrying `AUTO_CHECK_INELIGIBLE`, shall not set `autoApprove: true`, and shall not further mutate the state.",
+      "priority": "must"
+    },
+    {
+      "id": "P2-R5",
+      "desc": "When the active flow state satisfies `isSpecApproved(state) === true`, the CLI shall preserve the existing spec-approved shortcut and skip the auto-check entirely (write `autoApprove: true` and a `skipped: true` verdict).",
+      "priority": "should"
+    },
+    {
+      "id": "P2-R6",
+      "desc": "The flow skill template (`src/templates/skills/sdd-forge.flow/SKILL.md`) shall describe `flow set auto on` as trusting the previously computed `auto-check` verdict rather than re-verifying it via another AI call.",
+      "priority": "should"
+    },
+    {
+      "id": "P3-R7",
+      "desc": "The unit test suite shall include cases that (a) assert the agent is not invoked when a verdict is already persisted for both preparing and active modes, and (b) assert the fallback path still invokes the agent when no verdict is present.",
+      "priority": "nice-to-have"
+    }
+  ],
+  "acceptance_criteria": [
+    "A1: In preparing mode, `sdd-forge flow run auto-check` writes `autoCheck` into `.sdd-forge/.active-flow.<runId>` (verifiable by reading the file after the command runs).",
+    "A2: In preparing mode, when `.sdd-forge/.active-flow.<runId>` already contains `autoCheck.eligible: true`, `sdd-forge flow set auto on --run-id <runId>` exits 0, sets `autoApprove: true` in the same file, and produces no AI agent invocation.",
+    "A3: In preparing mode, when `.sdd-forge/.active-flow.<runId>` already contains `autoCheck.eligible: false`, `sdd-forge flow set auto on --run-id <runId>` exits non-zero with `AUTO_CHECK_INELIGIBLE`, does not set `autoApprove: true`, and produces no AI agent invocation.",
+    "A4: In both preparing and active modes, when the state has no `autoCheck` field, `sdd-forge flow set auto on` invokes the agent, persists the verdict, then behaves per A2/A3 based on eligibility.",
+    "A5: In active mode with `isSpecApproved(state) === true`, `sdd-forge flow set auto on` writes `autoApprove: true` and a `skipped: true` verdict without invoking the agent.",
+    "A6: The flow skill template text matches the new description (no mention of CLI re-verification in the B.0.5 step).",
+    "A7: The end-to-end reproduction from Issue #230 (`set init --issue <n>` → `run auto-check --input \"<body>\"` → `set auto on --run-id <id>`) completes successfully (exit 0 on step 3) with a stub agent that returns the passing score."
+  ],
+  "clarifications": [
+    {
+      "q": "なぜ候補 A（`set-auto` 側で body を fetch）ではないか",
+      "a": "split-brain の根治ではなく対症療法。action 側に外部 CLI 依存を増やすのは責務境界の悪化。AI 呼出も 2 回のままで非決定性リスクが残る。"
+    },
+    {
+      "q": "なぜ候補 C（skill で `--request` に body を詰める）ではないか",
+      "a": "`--request` の本来の意味（ユーザーの要望文）と body を混ぜる semantic pollution。skill 層に body 加工責務を持たせると複数 skill 間で重複する。split-brain も解消されない。"
+    },
+    {
+      "q": "preparing flow / active flow の対称性をどう確保するか",
+      "a": "両者とも verdict が存在すれば trust、無ければ fallback。active flow の spec-approved skip shortcut は既存仕様として維持する。"
+    },
+    {
+      "q": "stale 対策を簡素にして問題ないか",
+      "a": "skill B.0.5 は `run auto-check` → `set auto on` を連続実行するため、間に state を壊せるのは手動介入のみ。壊れた場合も auto mode が有効化されないだけで安全側に倒れる。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "A: `set-auto.js` 内で `gh issue view` を呼び、`buildInputText` に body を合成する",
+      "reason": "不採用。split-brain は残る（2 回 AI 呼出）、外部 CLI 依存増加、AI コスト 2 倍。"
+    },
+    {
+      "option": "B (選択): 直前 verdict の永続化と trust",
+      "reason": "split-brain を構造的に排除し、AI 呼出 1 回で済む。既存パターン（active flow への persist）と対称であり、alpha 版ポリシーに沿って後方互換コードが不要。"
+    },
+    {
+      "option": "C: skill B.0 で `--request` に issue body を渡す",
+      "reason": "不採用。split-brain は残る、`--request` の意味が汚染、skill 層に非本質的な責務が付く。"
+    },
+    {
+      "option": "G2/G3 (stale guard 強化): 入力 hash 比較 or 経過時間無効化",
+      "reason": "不採用。skill B.0.5 は連続実行のため手動介入余地が極小で YAGNI。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-auto-check.js",
+    "src/flow/lib/set-auto.js",
+    "src/templates/skills/sdd-forge.flow/SKILL.md",
+    "tests/unit/flow/run-auto-check.test.js",
+    "tests/unit/flow/set-auto.test.js"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "218-fix-auto-check-persist"
+}

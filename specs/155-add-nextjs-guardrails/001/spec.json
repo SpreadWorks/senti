@@ -1,0 +1,60 @@
+{
+  "goal": "nextjs プリセットに Next.js 固有の guardrail を9件追加し、AI が nextjs プロジェクトの実装時に従うべきルールを強化する。既存の重複チェック済みリストから抽出した新規ルールのみを追加する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/presets/nextjs/guardrail.json` への9件追加",
+      "`src/presets/nextjs/NOTICE` ファイルの新規作成"
+    ],
+    "out": [
+      "既存の3件（no-server-code-in-client-bundle, audit-next-public-env-vars, verify-against-official-docs）の変更",
+      "親プリセット（webapp / js-webapp / base）への変更",
+      "guardrail ローダーや表示ロジックの変更",
+      "新規テストの追加（`npm test` で既存テストが通ることを確認するのみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`guardrail.json` に9件が追加され、既存3件が変更されていないこと",
+    "追加された各エントリが `id`, `title`, `body`, `meta.phase` を持つこと",
+    "`await-async-request-apis` の body に \"In Next.js 15 and later\" と記載されていること",
+    "`NOTICE` ファイルが `src/presets/nextjs/` に存在し、9件の記事名と出典が記載されていること",
+    "`npm test` がすべて PASS すること"
+  ],
+  "clarifications": [
+    {
+      "q": "`await-async-request-apis` は Next.js 15 以降に固有のルール。body の記述方針は？",
+      "a": "body の文章内で自然に「In Next.js 15 and later, ...」と説明する。タグ形式（`[Next.js 15+]`）は使わない。"
+    },
+    {
+      "q": "テスト方針は？",
+      "a": "`npm test` を実行して既存テストが通ることを確認するのみ。guardrail.json への追加はデータ変更のみであり、新規テストは不要。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "webapp / js-webapp への一部配置",
+      "reason": "今回の調査では、抽出された候補すべてが Next.js 固有の API・規約に依存するため、nextjs プリセットのみへの配置が適切。framework-agnostic なルールは既存の webapp / js-webapp ですでにカバーされている。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "155-add-nextjs-guardrails"
+}

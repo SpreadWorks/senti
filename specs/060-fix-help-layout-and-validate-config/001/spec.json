@@ -1,0 +1,46 @@
+{
+  "goal": "`sdd-forge help` に未登録の flow サブコマンド（review, merge, cleanup）を追加し、全コマンドが help で発見可能にする\n- `validateConfig()` を現在の config.json ネスト構造（`agent.*`）に対応させ、バリデーションの抜け穴を塞ぐ",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`resolveAgent()` の変更（既に両構造に対応済み。今回は validateConfig のみ）",
+      "config.json のマイグレーションツール（alpha 版ポリシー: 後方互換は不要）",
+      "`agent.providers.{name}.profiles` のバリデーション追加（任意フィールドのため）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge help` の出力に `flow review`, `flow merge`, `flow cleanup` が含まれる",
+    "ネスト構造の config.json で validateConfig() がエラーなく通る",
+    "`agent.providers` に `command` がないエントリでバリデーションエラーが出る",
+    "`npm test` が全て PASS"
+  ],
+  "clarifications": [
+    {
+      "q": "旧フラット構造のバリデーションは残すか？",
+      "a": "alpha 版ポリシーに従い削除する。後方互換コードは書かない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "060-fix-help-layout-and-validate-config"
+}

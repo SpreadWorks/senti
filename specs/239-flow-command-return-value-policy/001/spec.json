@@ -1,0 +1,219 @@
+{
+  "goal": "flow get/set/run コマンドの返却値を「状態クエリ系」と「操作系」に分類し、前提条件不足時の挙動を統一する",
+  "scope": {
+    "in": [
+      "[must] 全 flow get/set/run コマンドの分類（状態クエリ vs 操作）と方針の docs 明文化",
+      "[must] 状態クエリ系コマンドの requiresFlow:false 化と空状態返却の実装",
+      "[should] 操作系コマンド内のユーザー起因エラーの throw → Envelope.fail 統一",
+      "[nice-to-have] 内部エラー（agent 呼び出し失敗等）のエラーコード付与"
+    ],
+    "out": [
+      "dispatcher.js の throw→Envelope.fail ラップ機構の変更",
+      "Envelope クラス自体の変更",
+      "registry.js のフック構造の変更",
+      "base-command.js の requiresFlow guard の削除"
+    ]
+  },
+  "constraints": [
+    "alpha 版ポリシーにより後方互換コードは書かない",
+    "Node.js 組み込みモジュールのみ使用",
+    "既存の dispatcher.js の catch-all ラップは安全弁として残す"
+  ],
+  "design_principles": [
+    "状態クエリ系コマンドは副作用を持たず、flow 不在時でも ok:true + 空状態を返す",
+    "操作系コマンドはユーザー起因の前提条件違反を Envelope.fail で返し、内部エラーは throw のまま",
+    "get-status の { active: false } パターンを状態クエリ系の標準とする"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "flow/lib/get-next-action.js, get-check.js: 状態クエリ系。requiresFlow:false 化と空状態返却を実装"
+      },
+      {
+        "text": "flow/lib/run-reopen-draft.js, set-issue-log.js, run-retro.js: 操作系。ユーザー起因 throw → Envelope.fail 統一"
+      },
+      {
+        "text": "src/CLAUDE.md: 返却値方針の明文化（分類基準と規約）"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "消費者 (AI スキル) → sdd-forge flow get <key> → Envelope.ok({ active: false, ... }) or Envelope.ok({ step, action, ... })"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "分類基準: コマンドの目的が「現在の状態を読み取る」か「状態を変更する/副作用を起こす」か",
+        "evidence": "get-status.js が requiresFlow:false + { active: false } を既に実装しており正しいパターンとして確立済み"
+      },
+      {
+        "text": "操作系の前提条件違反は Envelope.fail を返す。内部エラーは throw のまま残す",
+        "evidence": "dispatcher.js:229 — Envelope.fail return は skipPost=true で post-hook をスキップ。throw は onError hook を呼ぶ。前提条件違反は expected rejection であり post-hook スキップが正しい挙動"
+      },
+      {
+        "text": "alpha 版ポリシーにより後方互換コードは書かない。exit code 変化は直接変更",
+        "evidence": "CLAUDE.md: alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する"
+      }
+    ]
+  },
+  "background": "flow get/set/run コマンドで前提条件不足時の挙動が3パターン混在 (ok:true+状態値 / throw Error / Envelope.fail return)。#187 の draft レビューで「エラーなのか状態返却なのか判断がブレている」と指摘された。throw と Envelope.fail は dispatcher の catch-all で最終的に同じ JSON envelope になるが、post-hook スキップの挙動が異なる。",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "get-next-action: flow 不在時に ok:true + { step: null, action: null } を返す",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "get-next-action: 全ステップ完了時に ok:true + { step: null, action: 'completed' } を返す",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "get-check: requiresFlow:false に変更。flow 不在時の step prerequisites は { pass: false, summary: 'no active flow' } を返す",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "src/CLAUDE.md に返却値方針セクションを追加",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "should",
+      "desc": "run-reopen-draft: ユーザー起因 throw を Envelope.fail に統一",
+      "status": "skipped"
+    },
+    {
+      "id": "R6",
+      "priority": "should",
+      "desc": "set-issue-log: 混在 throw を Envelope.fail に統一",
+      "status": "skipped"
+    },
+    {
+      "id": "R7",
+      "priority": "should",
+      "desc": "run-retro: ユーザー起因 throw を Envelope.fail に統一",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "flow 不在時に sdd-forge flow get next-action が exit code 0 + ok:true + data.step=null を出力する",
+    "全ステップ完了時に sdd-forge flow get next-action が exit code 0 + ok:true + data.action='completed' を出力する",
+    "flow 不在時に sdd-forge flow get check dirty が正常に dirty チェックを実行する",
+    "flow 不在時に sdd-forge flow get check impl が ok:true + pass:false + summary:'no active flow' を返す",
+    "src/CLAUDE.md に返却値方針セクションが追加されている",
+    "run-reopen-draft, set-issue-log, run-retro でユーザー起因エラーが Envelope.fail で返る",
+    "既存テストが全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "base-command.js の requiresFlow guard と dispatcher.js の guard が二重化している",
+      "a": "スコープ外。base-command.js の guard はテストで直接インスタンス化時の安全弁として残す"
+    },
+    {
+      "q": "exit code 変更 (1→0) の後方互換性",
+      "a": "alpha 版ポリシーにより移行計画は不要。消費者は sdd-forge 自身の AI スキルのみ。スキルは ok フィールドで分岐しており exit code は参照していない"
+    },
+    {
+      "q": "post-hook 挙動変化の影響",
+      "a": "操作系の前提条件違反で onError hook → skipPost ルートに変わる。registry.js の onError フィールドを確認し、前提条件違反時に onError が必要な場合はその箇所を除外する"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "全 throw を Envelope.fail に統一",
+      "reason": "内部エラーまで code 付与は過剰。dispatcher の catch-all で十分"
+    },
+    {
+      "option": "ok:false + NOT_ACTIVE code で統一",
+      "reason": "Issue の方針に反する。状態クエリは ok:true であるべき"
+    },
+    {
+      "option": "deprecated 警告で段階移行",
+      "reason": "alpha 版ポリシーに反する"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/get-check.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/set-issue-log.js",
+    "src/flow/lib/run-retro.js",
+    "src/CLAUDE.md"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-28T03:22:39.364Z",
+    "notes": "autoApprove"
+  },
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "状態クエリ系 get コマンドの空状態返却",
+      "goal": "get-next-action, get-check を requiresFlow:false にし、flow 不在時に ok:true + 意味のある空状態を返すよう修正",
+      "acceptance": [
+        "get-next-action: flow 不在時に { step: null, action: null } を返す",
+        "get-next-action: 全ステップ完了時に { step: null, action: 'completed' } を返す",
+        "get-check: flow 不在時に dirty/gh は正常実行。step prerequisites は { pass: false, summary: 'no active flow' } を返す"
+      ],
+      "implementation_notes": "get-next-action.js:61-62 の throw を空状態返却に変更。line 102-103 の NO_IN_PROGRESS_STEP throw も同様。get-check.js で requiresFlow:false にし line 74-76 の throw を空状態返却に変更",
+      "test_strategy": "unit テスト: flow 不在・全ステップ完了・正常時の3パターンを検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "操作系コマンドの throw → Envelope.fail 統一",
+      "goal": "run-reopen-draft, set-issue-log, run-retro のユーザー起因エラーを throw から Envelope.fail に変更",
+      "acceptance": [
+        "run-reopen-draft: ユーザー起因の throw が Envelope.fail に置換されている",
+        "set-issue-log: 混在 throw が Envelope.fail に置換されている",
+        "run-retro: ユーザー起因の throw が Envelope.fail に置換されている"
+      ],
+      "implementation_notes": "各ファイルの throw を Envelope.fail return に変更。Envelope import が必要。内部エラー（agent 呼び出し失敗等）は変更しない",
+      "test_strategy": "unit テスト: 前提条件違反時に Envelope.fail が返ることを検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "返却値方針の docs 明文化",
+      "goal": "src/CLAUDE.md に flow コマンド返却値方針セクションを追加し、新規コマンド作成時の規約とする",
+      "acceptance": [
+        "src/CLAUDE.md に返却値方針セクションが追加されている",
+        "状態クエリ系と操作系の分類基準が明記されている",
+        "各カテゴリの前提条件不足時の挙動規約が明記されている"
+      ],
+      "implementation_notes": "src/CLAUDE.md のコマンドルーティングセクション付近に方針セクションを追加",
+      "test_strategy": "gate-impl の guardrail チェックで検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "specId": "239-flow-command-return-value-policy"
+}

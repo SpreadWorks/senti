@@ -1,0 +1,84 @@
+{
+  "goal": "worktree モードで SDD フローを実行中に `callAgent` / `callAgentAsync` が書き込むエージェントログが、worktree の `.tmp/logs/` に保存されてしまい、worktree クリーンアップ後に消失する問題を修正する。ログは常にメインリポジトリ側に書き込まれるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/agent-log.js` の `resolveLogDir` 関数のみ修正する",
+      "worktree 検出に `src/lib/cli.js` の既存関数 `isInsideWorktree` / `getMainRepoPath` を使用する"
+    ],
+    "out": [
+      "`callAgent` / `callAgentAsync` の引数変更",
+      "`appendAgentLog` の try/catch 範囲の変更",
+      "ログローテーション・圧縮",
+      "worktree 以外のパス解決ロジックの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "req0: `resolveLogDir(cwd, cfg)` は `cfg.logs.dir` が設定されている場合、worktree 検出を行わずそのまま返す"
+    },
+    {
+      "id": "R2",
+      "desc": "req1: `resolveLogDir(cwd, cfg)` は `cwd` が worktree パス（`isInsideWorktree(cwd)` が true）の場合、`getMainRepoPath(cwd)` で取得したメインリポジトリパスをベースにログディレクトリを解決する"
+    },
+    {
+      "id": "R3",
+      "desc": "req2: `resolveLogDir(cwd, cfg)` は `cwd` が通常リポジトリ（`isInsideWorktree(cwd)` が false）の場合、従来通り `cwd` ベースでログディレクトリを解決する"
+    },
+    {
+      "id": "R4",
+      "desc": "req3: `getMainRepoPath(cwd)` が throw した場合、`resolveLogDir` はそのエラーをキャッチせず伝播させる"
+    }
+  ],
+  "acceptance_criteria": [
+    "worktree 内から `callAgent` を呼び出した場合、`prompts.jsonl` がメインリポジトリの `{workDir}/logs/` に書き込まれる",
+    "通常リポジトリ（非 worktree）での動作は変わらない",
+    "`cfg.logs.dir` が明示指定されている場合は worktree 検出を行わず、指定パスに書き込まれる",
+    "`getMainRepoPath` が失敗した場合はプロセスが throw で終了する"
+  ],
+  "clarifications": [
+    {
+      "q": "worktree 検出にどの関数を使うか？",
+      "a": "`src/lib/cli.js` の `isInsideWorktree(root)` と `getMainRepoPath(root)` を使用する。これらは既に `flow-state.js` でも使われている実績ある関数。"
+    },
+    {
+      "q": "`resolveLogDir` 内で検出するか、呼び出し側が渡すか？",
+      "a": "`resolveLogDir` 内で検出する。`callAgent` の引数変更を避け、影響範囲を最小化するため。"
+    },
+    {
+      "q": "`getMainRepoPath` が失敗した場合の挙動は？",
+      "a": "throw してプロセスを終了する。ログ書き込み先の決定に失敗した場合は致命的エラーとして扱う。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**呼び出し側から main repo パスを渡す案**",
+      "reason": "`callAgent` の引数を変更する必要があり、影響範囲が広いため不採用。"
+    },
+    {
+      "option": "**エラー時にフォールバックする案**",
+      "reason": "worktree パスにサイレントで書き続けるとデータ消失が気づかれないため不採用。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "149-fix-agent-log-worktree-path"
+}

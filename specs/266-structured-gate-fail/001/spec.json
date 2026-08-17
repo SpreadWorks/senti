@@ -1,0 +1,419 @@
+{
+  "goal": "Make gate-impl FAIL output and repeat handling structured through Observation, Diagnosis, and NextAction so agents and humans can identify the next repair target without rereading the full spec or guardrail text.",
+  "scope": {
+    "in": [
+      "[must] Add Observation, Diagnosis, and NextAction in-memory classes with JSON conversion, markdown rendering, and similarity signatures.",
+      "[must] Emit `artifacts.nextAction.diagnosis.observations[]` for gate PASS and FAIL results and make gate consumers read that shape.",
+      "[must] Define gate-impl failure modes as `spec-impl-mismatch`, `guardrail-violation`, and `process-evidence-missing` with explicit severity policy.",
+      "[must] Replace new issue-log `failedEvaluations` persistence with `observations` for gate failures while keeping issue-log audit-only for prior-memory behavior.",
+      "[must] Store gate-impl prior memory state in `flow.json` and detailed memory entries in a spec-local artifact, retaining the latest 3 gate-impl rounds.",
+      "[must] Convert unmigrated legacy phase evaluations to NextAction at the wire boundary without phase-specific adapter branches.",
+      "[must] Rewrite base preset `no-overengineering` and `code-placement` guardrail wording into diff-verifiable violation conditions.",
+      "[must] Add reusable guardrail rewrite rubric material under `src/presets/base` and keep generated preset/skill copies synchronized with source changes.",
+      "[must] Add spec-local tests under `specs/266-structured-gate-fail/tests` and update shared tests whose assertions read `artifacts.reasons`, `artifacts.evaluations`, `artifacts.issues`, or `failedEvaluations`."
+    ],
+    "out": [
+      "Cross-flow learning between unrelated specs or historical flows.",
+      "Similarity algorithm changes beyond renaming inputs from `guardrail_id`/`reason` to `requirementRef`/`observed`.",
+      "Full guardrail rewrite across all presets beyond base `no-overengineering` and `code-placement`.",
+      "Test-phase-specific failureMode expansion.",
+      "Adding external dependencies.",
+      "Adding, removing, or renaming user-facing CLI commands or options."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers.",
+    "Represent Observation, Diagnosis, NextAction, and any meaningful memory entry values as classes with constructor invariants and behavior methods; do not model them as object-literal discriminated unions.",
+    "Do not keep backward-compatible parsing or persistence for old alpha gate failure formats when writing new artifacts.",
+    "Keep `src/` generic and free of project-specific issue details.",
+    "Issue-log entries are audit records only and must not be read for gate behavior; no-progress rejection, pass-to-fail flip handling, and prior-memory prompt input must use flow.json and the spec-local memory artifact.",
+    "Gate-impl prior memory must be bounded to the latest 3 rounds for prompt injection and bounded resource usage.",
+    "A failed Observation parse consumes the existing gate retry maxAttempts budget; no new unbounded retry loop is introduced.",
+    "Prompt and preset source changes under `src/flow/prompts`, `src/skills`, or `src/presets` require generated preset/skill copies to be synchronized with their source files.",
+    "No new user-facing CLI argument is introduced. Existing gate command exit-code behavior remains: successful evaluation returns exit code 0; command errors, invalid artifacts, retry exhaustion, and unrecoverable parse errors use existing non-zero envelope paths."
+  ],
+  "design_principles": [
+    "Use NextAction as the single wire-level representation of what happened and what phase should run next.",
+    "Keep wire and persistence as JSON, but use classes in memory for invariant enforcement and behavior.",
+    "Treat issue-log as audit evidence and flow.json/artifacts as behavior state.",
+    "Use adapters only as temporary wire-boundary conversion for unmigrated phases; do not let adapters become phase-specific quasi-specs.",
+    "Make guardrail text diff-verifiable so gate failures name observable conditions rather than subjective design opinions.",
+    "Prefer bounded prompt memory over complete historical replay."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/observation.js` defines Observation, Diagnosis, NextAction, gate-impl severity policy helpers, and legacy-to-NextAction adapter functions."
+      },
+      {
+        "text": "`src/flow/lib/run-gate.js` builds guardrail prompts, parses AI gate output, creates gate PASS/FAIL artifacts, performs repeated FAIL detection, and writes issue-log entries."
+      },
+      {
+        "text": "`src/flow/schemas/next-action/gate.schema.json` documents the gate wire contract for NextAction artifacts."
+      },
+      {
+        "text": "`src/flow/prompts/impl/gate-impl.md` tells agents how to read gate-impl FAIL output and must point to `artifacts.nextAction.diagnosis.observations`."
+      },
+      {
+        "text": "`src/presets/base/guardrail.json` owns base guardrail articles inherited by presets, including `no-overengineering` and `code-placement`."
+      },
+      {
+        "text": "`flow.json` owns active flow behavior state and will store the gate-impl prior-memory index."
+      },
+      {
+        "text": "`specs/<spec>/gate-impl-memory.json` stores detailed prior-memory entries used to build the next gate-impl prompt."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Gate-impl AI output is parsed into Observation instances. Invalid Observation fields cause a retry using the existing gate retry budget."
+      },
+      {
+        "text": "Observation[] is grouped into a Diagnosis, then wrapped in NextAction with `prescription` set to the next phase id already used by gate PASS/FAIL routing."
+      },
+      {
+        "text": "Gate verdicts are aggregated from Observation severity: any blocking Observation yields gate FAIL and the existing FAIL prescription; advisory-only Observations yield gate PASS with advisory observations retained in `nextAction.diagnosis.observations`; no Observations yield gate PASS with an empty observations array."
+      },
+      {
+        "text": "Gate result artifacts include `nextAction`; consumers read observations from `nextAction.diagnosis.observations` instead of reconstructing action from flattened reasons."
+      },
+      {
+        "text": "On gate-impl results, gate behavior state writes a bounded index, `headSha`, `worktreeHash`, and passed-guardrail status to flow.json, and detailed Observation history to the spec-local memory artifact. Issue-log receives audit text but is not read to drive behavior."
+      },
+      {
+        "text": "Before later gate-impl AI calls, the prompt receives the latest 3 rounds from the memory artifact with status, statusReason, signature, and Observation fields."
+      },
+      {
+        "text": "Unmigrated phases produce legacy evaluations and immediately convert them to NextAction before the wire boundary by mapping guardrail failures to `guardrail-violation`, spec/task mismatches to `spec-impl-mismatch`, and structural or process evidence gaps to `process-evidence-missing`; missing fields use null, empty string, or empty array according to the target JSON field type."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Gate prompts currently ask for guardrail article evaluations, not Observation records.",
+        "evidence": "`src/flow/lib/run-gate.js` `buildGuardrailArticleEvalPrompt` asks for `evaluations[]` with `guardrail_id`, `result`, `reason`, and optional `violations[]`."
+      },
+      {
+        "text": "[VERIFY] Current FAIL reasons are flattened from violation text.",
+        "evidence": "`src/flow/lib/run-gate.js` `reasonsFromEvaluations` formats FAIL rows as `${title} — ${v.target} — ${v.why_violates} (at ${v.where})`."
+      },
+      {
+        "text": "[VERIFY] Current repeated FAIL detection reads `failedEvaluations` from issue-log.",
+        "evidence": "`findPreviousFailedEvaluations` flattens `issueLog.entries[].failedEvaluations`; `appendIssueLogFromGateResult` writes `failedEvaluations` from gate artifacts."
+      },
+      {
+        "text": "[VERIFY] gate-impl agent instructions currently read flattened reasons.",
+        "evidence": "`src/flow/prompts/impl/gate-impl.md` says to show all failures from `data.artifacts.reasons` and fix using only those failure reasons."
+      },
+      {
+        "text": "[VERIFY] Gate schema currently lacks NextAction structure.",
+        "evidence": "`src/flow/schemas/next-action/gate.schema.json` currently requires only `verdict` and optional `issues`."
+      },
+      {
+        "text": "Use regeneration retry for invalid Observation JSON.",
+        "evidence": "Draft q1: user selected regeneration retry. Observation constructor invariants detect invalid fields.",
+        "consideredAlternatives": "Envelope.fail was safer but too eager to stop on fixable JSON shape errors. Force advisory could hide a blocking violation."
+      },
+      {
+        "text": "Use flow.json plus artifact for prior memory and keep issue-log audit-only.",
+        "evidence": "Draft q3: user rejected using issue-log for flow behavior and approved flow.json state plus a detailed artifact.",
+        "consideredAlternatives": "flow.json-only was rejected because full Observation history would bloat active state. artifact-only was rejected because the current behavior state would be detached from flow.json."
+      },
+      {
+        "text": "Move all existing gate behavior state out of issue-log, including unchanged-rerun state and passed-guardrail flip state.",
+        "evidence": "Source review found `checkNoProgressSinceLastFail` reads issue-log `headSha` and `worktreeHash`, while `findPreviousPassedGuardrails` and `applyFlipOverride` read issue-log `passedGuardrails`; these fields must move to `gateImplMemory` to preserve the audit-only issue-log decision.",
+        "consideredAlternatives": "Leaving these fields as issue-log behavior exceptions was rejected because it would contradict the user-approved issue-log audit-only policy."
+      },
+      {
+        "text": "Keep prior memory to the latest 3 gate-impl rounds.",
+        "evidence": "Draft q2 selected recent-round Observation memory; draft gate refined the value to 3 so the bound is verifiable."
+      },
+      {
+        "text": "Store reusable guardrail rewrite rubric under `src/presets/base`.",
+        "evidence": "Draft q4: user selected `src/presets/base` so the rubric ships with the base preset and is included in upgrade propagation."
+      }
+    ]
+  },
+  "background": "Issue #341 identifies two related causes of repeated gate-impl FAIL loops. First, gate FAILs are flattened into natural-language reason strings, so agents and humans must reconstruct the repair target, evidence, and severity. Second, prior FAIL context is not carried forward as behavior state, and broad guardrail wording lets AI evaluators apply different concrete interpretations across rounds. The current source confirms this shape: gate artifacts expose `reasons`, issue-log stores `failedEvaluations`, and gate-impl instructions read `artifacts.reasons`. This spec replaces that path with structured Observation/Diagnosis/NextAction output, bounded prior memory, and diff-verifiable base guardrail text.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Add `src/flow/lib/observation.js` exporting Observation, Diagnosis, and NextAction classes. Constructors shall reject invalid severity, empty `observed`, invalid `where.file`, invalid `refs`, and empty `prescription`. Each class shall implement `toJSON()`, `fromJSON()`, and `toMarkdown()`; Observation shall also implement `signature()`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Observation JSON shall have exactly `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`; `kind` is `violation`, `where` is null or `{file, locator?}`, `severity` is `blocking` or `advisory`, and `refs` is an array.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Gate failureMode shall be exactly `spec-impl-mismatch`, `guardrail-violation`, or `process-evidence-missing` for every phase that emits NextAction. `spec-impl-mismatch` and `guardrail-violation` are always blocking, while `process-evidence-missing` is blocking only when the missing evidence is diff-verifiable and advisory otherwise.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "The gate-impl evaluator prompt shall make AI emit only `failureMode`, `requirementRef`, `where`, and `observed` for each violation; code shall derive `kind`, `severity`, and `refs`. Shared gate parsing shall continue to support unmigrated legacy evaluations and convert them to Observation/NextAction at the wire boundary.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "If AI emits invalid Observation JSON, unknown `failureMode`, unknown `requirementRef`, or missing required fields, gate shall request regeneration and consume one existing gate retry attempt. If regeneration still fails through maxAttempts exhaustion, gate shall stop through the existing retry exhaustion path.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Gate PASS and FAIL artifacts shall include `nextAction` with `{diagnosis:{summary,observations},prescription}`. Any blocking Observation shall produce gate FAIL with the existing FAIL prescription; advisory-only Observations shall produce gate PASS with advisory observations retained; zero Observations shall produce gate PASS with an empty observations array. Gate-impl consumers shall read `artifacts.nextAction.diagnosis.observations` as the primary repair input.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "New gate issue-log entries shall persist `observations` derived from `nextAction.diagnosis.observations` instead of `failedEvaluations`; issue-log shall not be read by prior-memory, no-progress rejection, or pass-to-fail flip logic.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Gate-impl prior memory shall store behavior state in flow.json under `gateImplMemory` with `version`, `artifactPath`, `roundsKept`, `lastUpdatedAt`, `headSha`, `worktreeHash`, `passedGuardrails`, and `entries[]` containing `signature`, `status`, and `observationRef`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "The spec-local prior-memory artifact shall store full Observation JSON, `headSha`, `worktreeHash`, `passedGuardrails`, `round`, `status`, `statusReason`, and `updatedAt` for the latest 3 gate-impl rounds. Prompt injection shall read this artifact and include only those latest 3 rounds.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "Repeated FAIL similarity shall compare current Observation `requirementRef` and `observed` against prior Observation `requirementRef` and `observed`, reusing the existing Jaccard algorithm and threshold without adding `where` to the similarity key.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "Unmigrated phases shall convert legacy evaluations to NextAction before wire output. The adapter shall contain no phase-specific branches and shall map guardrail failures to `guardrail-violation`, spec/task mismatches to `spec-impl-mismatch`, and structural or process evidence gaps to `process-evidence-missing`; unavailable Observation fields shall be filled only with null, empty string, or empty array according to the target field type.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R12",
+      "desc": "`src/flow/schemas/next-action/gate.schema.json` shall document the gate NextAction wire shape, including diagnosis summary, observations, and prescription, without duplicating every class invariant already enforced in `src/flow/lib/observation.js`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R13",
+      "desc": "`src/flow/prompts/impl/gate-impl.md` and generated skill/template copies shall instruct agents to show every Observation from `artifacts.nextAction.diagnosis.observations` on FAIL and avoid relying on flattened `artifacts.reasons` as the primary repair input.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R14",
+      "desc": "Base `no-overengineering` shall list separate diff-verifiable violation conditions for single-caller indirection, duplicate code shape, and missing design-confirmation evidence; each condition shall state blocking or advisory severity criteria.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R15",
+      "desc": "Base `code-placement` shall define the diff-verifiable violation `derivation logic placed in consumer module` using these conditions: new export or module in diff, operation on data owned by an existing data-owner module, and no change to that owner module in the diff.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R16",
+      "desc": "A reusable guardrail rewrite rubric shall be stored under `src/presets/base` and describe how to rewrite abstract guardrail prose into named violation, diff-verification condition, and severity-policy fields.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R17",
+      "desc": "After changes to `src/presets/base` or prompt/skill source, generated skill/preset copies shall be synchronized with the source files so the diff contains both the source change and the corresponding generated-copy change.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R18",
+      "desc": "Tests shall cover Observation class invariants and JSON conversion, invalid AI output regeneration behavior, NextAction artifacts, issue-log observation persistence, prior-memory flow.json/artifact separation, legacy adapter conversion, prompt consumer changes, and base guardrail/rubric updates.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A gate-impl FAIL artifact contains `artifacts.nextAction.diagnosis.observations[]` with actionable requirementRef, where, observed, severity, and failureMode fields.",
+    "A gate-impl PASS artifact still contains `artifacts.nextAction` with an empty or summary-only diagnosis and the correct next prescription.",
+    "Advisory-only Observations produce gate PASS with those advisory observations retained in `artifacts.nextAction.diagnosis.observations`; any blocking Observation produces gate FAIL.",
+    "Invalid Observation AI output is retried through the existing gate retry path and does not silently downgrade blocking observations to advisory.",
+    "Issue-log entries written by new gate runs use `observations`; prior-memory, no-progress rejection, and pass-to-fail flip behavior reads flow.json and the memory artifact, not issue-log.",
+    "The gate-impl prompt receives prior-memory content from the latest 3 same-flow same-phase rounds.",
+    "Unmigrated phases expose NextAction at the wire boundary without consumer branching on old and new formats.",
+    "Base `no-overengineering` and `code-placement` guardrail bodies are diff-verifiable and include severity criteria.",
+    "Spec-local tests exist under `specs/266-structured-gate-fail/tests` with `// spec: R<N>` headers.",
+    "Generated skill/preset copies are synchronized after preset or prompt source changes."
+  ],
+  "clarifications": [
+    {
+      "q": "Should issue-log drive gate-impl prior memory?",
+      "a": "No. issue-log remains audit-only. flow.json stores current behavior state and a spec-local artifact stores detailed prior-memory entries."
+    },
+    {
+      "q": "How many prior rounds are injected into gate-impl prompts?",
+      "a": "The latest 3 gate-impl rounds for the same flow and phase."
+    },
+    {
+      "q": "How should invalid Observation AI output be handled?",
+      "a": "Regenerate using the existing gate retry budget. Do not force advisory and do not create a separate unbounded retry loop."
+    },
+    {
+      "q": "Where is the reusable guardrail rewrite rubric stored?",
+      "a": "Under `src/presets/base` so it ships with the base preset and is propagated by upgrade."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Use issue-log as the prior-memory source.",
+      "reason": "Rejected because issue-log is an audit log and should not drive flow behavior."
+    },
+    {
+      "option": "Store all prior-memory detail directly in flow.json.",
+      "reason": "Rejected because full Observation history would mix detailed prompt/audit content with active flow state and grow flow.json."
+    },
+    {
+      "option": "Store prior memory only in a spec-local artifact.",
+      "reason": "Rejected because the flow's active behavior state would not be visible from flow.json."
+    },
+    {
+      "option": "Force invalid Observation output to advisory.",
+      "reason": "Rejected because a parser failure is not evidence that the underlying issue is non-blocking."
+    },
+    {
+      "option": "Enhance similarity with `where` or hierarchical matching.",
+      "reason": "Rejected for this spec; Issue #341 keeps similarity algorithm changes out of scope except the field rename to requirementRef/observed."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "gate-impl",
+    "Observation",
+    "Diagnosis",
+    "NextAction",
+    "run-gate",
+    "failedEvaluations",
+    "issue-log",
+    "prior memory",
+    "guardrail",
+    "no-overengineering",
+    "code-placement",
+    "gate.schema",
+    "legacy adapter",
+    "generated copy synchronization"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/observation.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/schemas/next-action/gate.schema.json",
+    "src/flow/prompts/impl/gate-impl.md",
+    "src/presets/base/guardrail.json",
+    "src/presets/base",
+    "src/skills or generated skill copies synchronized with source changes",
+    "tests and specs/266-structured-gate-fail/tests"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add Observation model",
+      "goal": "Create the in-memory Observation, Diagnosis, and NextAction class model with JSON conversion, markdown rendering, severity policy, and legacy adapter support.",
+      "acceptance": [
+        "Classes enforce invariants in constructors.",
+        "Observation.signature() returns the fields needed by existing Jaccard comparison.",
+        "Legacy adapter fills unavailable fields with null, empty string, or empty array and has no phase-specific branches."
+      ],
+      "implementation_notes": "Implement in `src/flow/lib/observation.js`. Keep wire JSON plain and in-memory processing class-based.",
+      "test_strategy": "Unit tests for constructor validation, toJSON/fromJSON, toMarkdown, signature, severity policy, and adapter conversion.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Wire gate NextAction",
+      "goal": "Update gate result construction, schema documentation, issue-log persistence, and gate consumers to use NextAction as the primary wire output.",
+      "acceptance": [
+        "Gate PASS and FAIL artifacts include `nextAction`.",
+        "New issue-log gate entries write `observations` instead of `failedEvaluations`.",
+        "Consumers no longer need old/new artifact branching for gate repair input."
+      ],
+      "implementation_notes": "Modify `src/flow/lib/run-gate.js`, `src/flow/schemas/next-action/gate.schema.json`, and prompt/consumer references that read `artifacts.reasons` as primary input.",
+      "test_strategy": "Spec-local tests for gate artifact shape and issue-log persistence; shared tests adjusted where they assert old fields.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Add gate memory",
+      "goal": "Implement bounded gate-impl prior memory using flow.json for behavior state and a spec-local artifact for detailed Observation history.",
+      "acceptance": [
+        "flow.json stores only the defined gateImplMemory index fields.",
+        "The memory artifact stores the latest 3 gate-impl rounds with full Observation details.",
+        "Prompt injection uses the memory artifact and never reads issue-log for behavior."
+      ],
+      "implementation_notes": "Reuse existing gate retry and similarity infrastructure, replacing `guardrail_id`/`reason` with `requirementRef`/`observed` for repeated FAIL comparison.",
+      "test_strategy": "Unit/integration tests for memory writes, pruning to 3 rounds, prompt rendering, and issue-log audit-only separation.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Rewrite guardrails",
+      "goal": "Rewrite base preset `no-overengineering` and `code-placement` into diff-verifiable violation conditions and add the reusable rewrite rubric under `src/presets/base`.",
+      "acceptance": [
+        "`no-overengineering` lists three named violation conditions with severity policy.",
+        "`code-placement` lists the derivation-in-consumer violation conditions.",
+        "Reusable rubric material exists under `src/presets/base`."
+      ],
+      "implementation_notes": "Changing `src/presets/base` requires generated preset/skill copies to be synchronized before completion.",
+      "test_strategy": "Static tests verify updated guardrail ids/text include required violation names, conditions, and severity policy; generated copies are checked for synchronization with source files.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Update tests",
+      "goal": "Add spec-local and shared regression coverage for the structured gate output, prior memory, adapter, prompt, and guardrail changes.",
+      "acceptance": [
+        "Spec-local tests under `specs/266-structured-gate-fail/tests` include `// spec: R<N>` headers.",
+        "Shared tests that assert old gate fields are updated to NextAction expectations.",
+        "Regression commands required by the flow pass or produce valid failure artifacts."
+      ],
+      "implementation_notes": "Keep test updates focused on changed contracts; do not modify tests merely to hide product failures.",
+      "test_strategy": "Run spec-local tests through the flow test steps and run targeted project tests for modified shared behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-22T08:53:37.349Z",
+    "notes": "User selected [1] approve gate-passed spec."
+  },
+  "specId": "266-structured-gate-fail"
+}

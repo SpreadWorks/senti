@@ -1,0 +1,67 @@
+{
+  "goal": "Clarify when the AI should record issues in redolog during SDD flow execution, so that bugs and errors discovered in auto mode are not silently lost.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Expand `src/templates/partials/redo-recording.md` with explicit trigger conditions and examples.",
+      "Add minimal phase-specific supplementary instructions to each skill template that includes redo-recording: - `src/templates/skills/sdd-forge.flow-plan/SKILL.md` (test phase) - `src/templates/skills/sdd-forge.flow-impl/SKILL.md` (implement/review phases) - `src/templates/skills/sdd-forge.flow-finalize/SKILL.md` (commit/merge/worktree operations)"
+    ],
+    "out": [
+      "Renaming redolog (tracked separately: board 2dbb)",
+      "Changing redolog.json format or `sdd-forge flow set redo` command interface",
+      "Adding new commands or files",
+      "Changing flow logic in `src/flow/`"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`redo-recording.md` contains a \"When to record\" section with at least 6 trigger conditions.",
+    "`redo-recording.md` contains an \"Examples\" subsection with at least 2 concrete command invocations.",
+    "`flow-plan` SKILL.md has a redo-related note in the test phase section.",
+    "`flow-impl` SKILL.md has a redo-related note in the implement section.",
+    "`flow-finalize` SKILL.md has a redo-related note near worktree/merge/commit operations.",
+    "`sdd-forge upgrade` correctly expands the updated partial into generated SKILL.md files.",
+    "No changes to any file under `src/flow/`."
+  ],
+  "clarifications": [
+    {
+      "q": "Should bugs be recorded in redolog or in spec.md Open Questions?",
+      "a": "redolog. It already exists, persists with the spec, and its partial is included in all skills."
+    },
+    {
+      "q": "Should we rename redolog since the name doesn't match expanded usage?",
+      "a": "Out of scope. Tracked as board item 2dbb."
+    },
+    {
+      "q": "Which skills need changes?",
+      "a": "All three flow skills (plan, impl, finalize). The shared partial handles most of the content; each skill gets minimal supplementary instructions."
+    },
+    {
+      "q": "Should the partial or each skill contain the trigger conditions?",
+      "a": "The partial. Trigger conditions are cross-cutting knowledge. Each skill adds only phase-specific notes."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "115-auto-mode-automatically-register-discovered-bugs"
+}

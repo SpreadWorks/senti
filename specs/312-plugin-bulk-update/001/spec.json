@@ -1,0 +1,292 @@
+{
+  "goal": "Support npm / pnpm-style `senti plugin update [name]`: without a name it lists all installed plugin update candidates and updates all only after explicit confirmation; with a name it updates only that plugin.",
+  "scope": {
+    "in": [
+      "`senti plugin update` without positional arguments checks enabled installed plugin packages for update candidates.",
+      "`senti plugin update` without positional arguments shows an `Update all installed plugins? [y/N]` equivalent prompt before changing plugin package state.",
+      "`senti plugin update` without positional arguments updates all enabled installed plugins only when stdin is `y` or `yes` after trimming and case normalization.",
+      "`senti plugin update` without positional arguments does not update when stdin is empty, `n`, `no`, or any other value.",
+      "`senti plugin update <name>` updates only the named installed plugin and does not show the bulk update confirmation.",
+      "Existing bulk-update behavior owned by `update-all` is migrated to `update` without arguments, including update result fields and automatic upgrade behavior."
+    ],
+    "out": [
+      "Interactive target selection UI.",
+      "Dry-run mode.",
+      "`--all` option.",
+      "Advanced subset selection beyond a single plugin name or all installed plugins.",
+      "A new command dedicated solely to bulk plugin updates."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules.",
+    "Do not add project-specific values under `src/`; plugin update behavior must remain generic package code.",
+    "Do not preserve `update-all` solely as a backward-compatibility path. This project is alpha and public UX should move to `update [name]`.",
+    "Confirmation must be required only for bulk update. Single-plugin update must not prompt for all plugins.",
+    "No update may occur before the bulk confirmation is accepted.",
+    "Bulk update must use a non-mutating plan phase before confirmation and a separate apply phase after accepted confirmation.",
+    "Disabled plugin packages (`enabled === false`) are excluded from bulk update candidates to preserve existing bulk update behavior.",
+    "When `--json` is present, confirmation prompts and refusal/status text must be written to stderr so stdout remains parseable JSON.",
+    "Bulk update must preserve the existing enabled-package upper bound enforced by `MAX_ENABLED_PLUGIN_PACKAGES` and must not introduce unbounded package scanning."
+  ],
+  "design_principles": [
+    "Keep command routing user-facing behavior in `src/plugin.js` and package state mutation in `src/lib/plugin-registry.js`.",
+    "Reuse existing output and automatic upgrade formatting so install/update/update-all migration parity can be checked at behavior level.",
+    "Prefer small helper functions for prompt parsing and shared update execution instead of duplicating branch logic."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/plugin.js` owns `plugin` subcommand parsing, confirmation prompting, human/JSON output, and automatic `senti upgrade` reporting."
+      },
+      {
+        "text": "`src/lib/plugin-registry.js` owns reading plugin sources/packages and installing package files into `.senti/plugins`."
+      },
+      {
+        "text": "`src/lib/command-registry.js` owns help metadata for `senti plugin --help` and subcommand usage."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Bulk update first builds a non-mutating plan for enabled installed plugin packages, prints candidates, reads confirmation, then applies the plan only on accepted input."
+      },
+      {
+        "text": "Single update resolves the named installed package source, updates only that package, renders the same package line shape, then runs automatic upgrade when the package changed and `--no-upgrade` is absent."
+      },
+      {
+        "text": "No-update bulk path prints candidates or no-candidate status, skips package mutation, and skips automatic upgrade with an explicit skip reason."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `src/plugin.js` currently has `update-all` but no `update`; bulk behavior uses `syncInstalledPlugins(root, { update: true })`.",
+        "evidence": "`src/plugin.js` imports `syncInstalledPlugins`; the `command === \"update-all\"` branch calls `syncInstalledPlugins(root, { update: true })` and skips upgrade when no result has `updated`."
+      },
+      {
+        "text": "[VERIFY] `syncInstalledPlugins` returns update metadata needed for candidate display.",
+        "evidence": "`src/lib/plugin-registry.js` sets `previousCommit` and `updated` on results when `update` is true. This supports before/after candidate output."
+      },
+      {
+        "text": "[CORRECTION] Candidate display must not call existing mutating `syncInstalledPlugins(..., { update: true })` before confirmation; implementation needs a non-mutating plan/apply split.",
+        "evidence": "`syncInstalledPlugins` calls `installFromSource` during update. The repair adds non-mutating planning before confirmation and separate apply after confirmation."
+      },
+      {
+        "text": "[CORRECTION] Bulk update preserves existing disabled-package behavior by excluding packages where `enabled === false`.",
+        "evidence": "`syncInstalledPlugins` filters `config.plugin.packages.filter((pkg) => pkg.enabled !== false)`. Scope and requirements now use enabled installed packages."
+      },
+      {
+        "text": "[CORRECTION] JSON mode keeps stdout parseable by writing confirmation prompts and refusal/status text to stderr.",
+        "evidence": "`outputPluginOperationWithUpgrade` writes JSON to stdout when `--json` is present. Prompt text on stdout would corrupt JSON."
+      },
+      {
+        "text": "[CORRECTION] Bulk update remains bounded by the existing enabled-package limit.",
+        "evidence": "`src/lib/plugin-registry.js` defines `MAX_ENABLED_PLUGIN_PACKAGES` and `syncInstalledPlugins` checks enabled package count before processing. New planning/apply helpers must keep that bound."
+      },
+      {
+        "text": "[VERIFY] Help metadata must move from `update-all` to `update`.",
+        "evidence": "`src/lib/command-registry.js` currently registers `plugin update-all`; `tests/e2e/help.test.js` asserts that help contains `update-all`."
+      },
+      {
+        "text": "Migration inventory: `update-all` route, all-package update semantics, update result rendering, automatic upgrade condition, help metadata, and user-visible impact of the old route.",
+        "evidence": "Draft gate migration-parity repair recorded these retained public surfaces from Issue #406 and existing source."
+      },
+      {
+        "text": "Migration owner mapping: retained bulk behavior moves to `senti plugin update` without args; `senti plugin update <name>` owns single-package update; `update-all` is removed from normal command surface.",
+        "evidence": "Issue #406 says not to add a separate bulk command and asks for npm / pnpm-style `update [name]` UX."
+      }
+    ]
+  },
+  "background": "Issue #406 requests moving plugin update UX to `senti plugin update [name]`. The current CLI has `sync`, `install`, and an existing `update-all` command. That separate bulk command provides useful behavior, but its public surface does not match the requested `update [name]` model and it updates without a command-level confirmation prompt. This spec migrates the retained bulk behavior to `update` without arguments, adds explicit confirmation before mutation, and defines single-plugin update behavior for `update <name>`.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`senti plugin update` without a plugin name must compute and display enabled installed plugin update candidates via a non-mutating plan before any package state is changed, while preserving the existing enabled-package count bound.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`senti plugin update` without a plugin name must ask for bulk confirmation and apply the prepared enabled-package update plan only when the answer is `y` or `yes` after trimming and case normalization.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`senti plugin update` without a plugin name must leave plugin package state unchanged when the answer is empty, `n`, `no`, or any other value.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "`senti plugin update <name>` must update only the named installed plugin and must not display the bulk update confirmation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "The retained public behavior of existing bulk update must be available through `senti plugin update` without args, including disabled-package exclusion, result rendering, and automatic upgrade skip/run conditions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "The plugin help metadata must advertise `senti plugin update [name]`; `senti plugin update-all` must not be preserved as a compatibility route and must fail without updating when invoked.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "When no enabled installed plugin has a newer candidate, `senti plugin update` without args should report that no package updates are available and should not show the bulk confirmation prompt.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: Running `senti plugin update` without args displays enabled installed plugin update candidates from a non-mutating plan before confirmation and before package files or config commits are changed.",
+    "AC2: Running `senti plugin update` without args with stdin `y` applies the prepared enabled-package update plan and runs automatic upgrade when at least one package changed and `--no-upgrade` is absent.",
+    "AC3: Running `senti plugin update` without args with stdin `yes` behaves the same as `y`.",
+    "AC4: Running `senti plugin update` without args with empty stdin, `n`, `no`, or another value does not update plugin package commits or installed files.",
+    "AC5: Running `senti plugin update <name>` updates only `<name>` and does not print the bulk confirmation prompt.",
+    "AC6: Running `senti plugin update <name>` for an uninstalled plugin fails instead of installing a new plugin package.",
+    "AC7: `senti plugin --help` and `senti plugin update --help` document `update [name]`; `update-all` is not advertised.",
+    "AC8: Existing bulk update result semantics are preserved through `senti plugin update` without args: disabled packages are excluded, package id/source/commit data is rendered, `previousCommit` and `updated` remain available for JSON output, and automatic upgrade is skipped when no package changed.",
+    "AC9: With `--json`, bulk confirmation prompt and refusal/status text are written to stderr, while stdout contains only the final JSON object.",
+    "AC10: Running `senti plugin update-all` fails with an unknown-command style error, exits non-zero, and does not update plugin package state.",
+    "AC11: Spec-local coverage files live under `specs/312-plugin-bulk-update/tests/` and include `// spec: R<N>` headers for every testable requirement."
+  ],
+  "clarifications": [
+    {
+      "q": "What counts as accepting the bulk update prompt?",
+      "a": "`y` and `yes` after trimming surrounding whitespace and lowercasing. Every other input is a refusal."
+    },
+    {
+      "q": "How is `update-all` treated?",
+      "a": "The retained behavior migrates to `senti plugin update` without args. `senti plugin update-all` is removed as a compatibility route; invoking it must fail with an unknown-command style error, exit non-zero, and leave plugin package state unchanged."
+    },
+    {
+      "q": "Should no-candidate bulk update ask for confirmation?",
+      "a": "No. When no package can be updated, there is no mutation to approve. The command reports no updates and skips automatic upgrade."
+    },
+    {
+      "q": "Are disabled installed plugin packages included in bulk update?",
+      "a": "No. Bulk update preserves existing `update-all` behavior and excludes packages where `enabled === false`."
+    },
+    {
+      "q": "Where does the bulk confirmation prompt go in JSON mode?",
+      "a": "The prompt and refusal/status text go to stderr. Stdout remains reserved for parseable JSON."
+    },
+    {
+      "q": "What upper bound applies to bulk update candidate processing?",
+      "a": "The existing `MAX_ENABLED_PLUGIN_PACKAGES` bound remains the package-count limit for enabled installed packages. New planning/apply code must not scan beyond that bounded set."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep `senti plugin update-all` and add `senti plugin update` as another bulk path.",
+      "reason": "Rejected because Issue #406 asks to avoid a separate bulk command UX and the alpha policy does not require keeping backward-compatibility aliases."
+    },
+    {
+      "option": "Add `--all` for bulk update.",
+      "reason": "Rejected because Issue #406 explicitly lists `--all` as out of scope."
+    },
+    {
+      "option": "Prompt before checking candidates.",
+      "reason": "Rejected because Issue #406 requires listing candidates before performing updates, and users need candidate visibility before approving mutation."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "plugin update",
+    "plugin update-all",
+    "syncInstalledPlugins",
+    "installPlugin",
+    "plugin confirmation",
+    "bulk update",
+    "automatic upgrade",
+    "command registry",
+    "plugin help",
+    "previousCommit"
+  ],
+  "implementationTargets": [
+    "src/plugin.js",
+    "src/lib/plugin-registry.js",
+    "src/lib/command-registry.js",
+    "tests/e2e/help.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add update routing",
+      "goal": "Add `senti plugin update [name]` routing for bulk and single-plugin update while preserving the existing plugin operation output style.",
+      "acceptance": [
+        "`update` without args reaches the non-mutating bulk candidate planning flow for the bounded enabled-package set.",
+        "`update <name>` reaches a single installed-plugin update flow.",
+        "`update <name>` does not print the bulk confirmation prompt."
+      ],
+      "implementation_notes": "Keep routing in `src/plugin.js`. Add or reuse registry helpers in `src/lib/plugin-registry.js` so single update operates only on installed packages and bulk update can build a non-mutating plan for enabled installed packages within the existing `MAX_ENABLED_PLUGIN_PACKAGES` bound.",
+      "test_strategy": "Spec-local CLI tests cover command routing with and without a name.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Add bulk confirmation",
+      "goal": "Require explicit confirmation before bulk update applies a prepared enabled-package update plan.",
+      "acceptance": [
+        "`y` and `yes` approve the update.",
+        "Empty input, `n`, `no`, and any other input refuse the update.",
+        "Refusal leaves package commits and installed plugin files unchanged.",
+        "`--json` prompt/refusal/status text does not corrupt stdout JSON."
+      ],
+      "implementation_notes": "Read stdin only for bulk update. Parse confirmation with a small helper. Candidate display must happen before the prompt and mutation must happen after acceptance. In JSON mode, write prompt and non-JSON status text to stderr.",
+      "test_strategy": "Spec-local CLI tests feed stdin variants and inspect package commit state before and after execution.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Migrate bulk surface",
+      "goal": "Move retained `update-all` behavior to `update` without args and make help output advertise the new command surface.",
+      "acceptance": [
+        "`update` without args preserves enabled-package result rendering and automatic upgrade run/skip behavior.",
+        "Help output documents `senti plugin update [name]`.",
+        "`update-all` is not advertised and invoking it fails without updating plugin package state."
+      ],
+      "implementation_notes": "Update `src/lib/command-registry.js` and affected help tests. Remove the old route as a compatibility path and include a behavior-level test that `update-all` exits non-zero without updating package state.",
+      "test_strategy": "Update shared help regression and add spec-local behavior tests for migrated bulk output.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Cover update behavior",
+      "goal": "Add spec-local tests that prove the new update behavior satisfies R1 through R7.",
+      "acceptance": [
+        "Spec-local tests are placed under `specs/312-plugin-bulk-update/tests/` and include `// spec: R<N>` headers for covered requirements.",
+        "Tests cover accepted bulk update, refused bulk update, no-candidate bulk update, single update, and help surface.",
+        "Tests avoid network dependency by using local plugin source fixtures."
+      ],
+      "implementation_notes": "Use temporary repositories and local plugin sources, following existing plugin registry tests where practical.",
+      "test_strategy": "Run spec-local tests during `test-execute`; full project regression remains for final-regression.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-19T15:07:49.905Z",
+    "notes": "autoApprove accepted the gate-passed spec for issue #406"
+  },
+  "specId": "312-plugin-bulk-update"
+}

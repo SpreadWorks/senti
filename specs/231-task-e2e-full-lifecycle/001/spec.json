@@ -1,0 +1,161 @@
+{
+  "goal": "flow prepare から finalize 到達まで CLI 経由のみで全ステップを遷移する通し E2E テストを実装し、task decomposition ライフサイクル全体の回帰検知を可能にする。",
+  "background": "既存 E2E テスト（227-forest-e2e.test.js）は個別遷移を検証しているが、全ステップを一貫して CLI のみで遷移するテストが存在しない。遷移間の副作用の結合不整合を検出するには通しシナリオが必要。",
+  "scope": {
+    "in": [
+      "flow prepare → 全 flow ステップ → タスクステップ × N → finalize 到達の通し E2E テスト",
+      "フラット構造タスク（2 タスク、parent: null）の完了・昇格検証",
+      "親子構造タスク（親 1 + 子 2）の子完了→親自動完了の連鎖検証",
+      "各ステップ完了後の next-action が正しい step/taskId を返すことの検証"
+    ],
+    "out": [
+      "AI 呼び出しの実テスト（gate, review, draft の AI 品質検証）",
+      "worktree モードの E2E テスト",
+      "finalize の実行（merge, cleanup 等は別テストで検証済み）",
+      "既存テストの修正・リファクタ"
+    ]
+  },
+  "constraints": [
+    "AI を呼ばない。AI 関与ステップは flow set step で done 扱い",
+    "既存テストを変更しない",
+    "tests/helpers/ の既存ヘルパーを活用する",
+    "既存機能への影響: テストファイルの新規追加のみ。既存テスト・プロダクトコード・ヘルパーへの変更なし"
+  ],
+  "design_principles": [
+    "CLI コマンドのみで遷移を検証し、flow.json の直接編集を行わない（CLI インターフェースの結合テスト）",
+    "フラット・親子の両タスク構造をカバーし、spec 226 の森構造の回帰検知を行う"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "tests/e2e/231-task-e2e-full-lifecycle.test.js — テストファイル。fixture セットアップ + CLI 逐次呼び出しで通しシナリオを実行"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "fixture setup → flow prepare → plan-phase steps (done) → approval (triggers task sync) → task-scope steps × N → complete-task × N → flow-scope finalize 到達"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "AI ステップを flow set step done でスキップする方式を採用。AI スタブは gate/review 内部実装への依存が高く保守コストが大きいため。",
+        "evidence": "既存 227 テストが同パターンを採用しており、実績がある"
+      },
+      {
+        "text": "フラットと親子の 2 シナリオを別テストケースに分離。各シナリオの独立性を保つため。",
+        "evidence": "spec 226 で導入された森構造の回帰カバレッジが目的"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "tests/e2e/ に E2E テストファイルを追加し、フラット構造タスク（2 タスク、parent: null）で prepare → approval → タスクステップ全完了 → complete-task → 全タスク完了 → finalize 到達の通しシナリオを CLI のみで遷移すること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "親子構造タスク（親 1 + 子 2）のシナリオで、子タスク完了 → 親タスク自動完了 → finalize 到達の通しを CLI のみで遷移し、currentTaskId が各時点で正しいタスクを指すことをアサートすること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "各ステップ完了後の flow get next-action が返す step と taskId が期待値と一致することをアサートすること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "approval done 後に flow.json.tasks[] が spec.json.tasks[] と一致する数だけ生成されていることをアサートすること",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "complete-task 後に currentTaskId が次の pending タスクに切り替わること（最後のタスクの場合は null）をアサートすること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "npm test で既存テストと合わせてパスすること。テスト実行時間は 10 秒以内であること",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "npm test が全テストパスすること",
+    "フラット構造シナリオが prepare → finalize 到達まで CLI コマンドのみで遷移すること",
+    "親子構造シナリオが子完了→親自動完了→finalize 到達まで遷移すること",
+    "既存テストに変更がないこと"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "stub-agent.js による AI スタブ",
+      "reason": "AI スタブはプロンプト生成・パース全体のスタブ化が必要で、gate/review の内部実装に依存するため保守コストが高い。step 手動完了のほうが安定する。"
+    },
+    {
+      "option": "フラット構造のみのテスト",
+      "reason": "親子構造の検証を省くと spec 226 の主要機能（森構造タスク）をカバーできない。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "Implement flat-task E2E lifecycle test",
+      "goal": "フラット構造タスク（T-1, T-2、parent: null）で prepare → approval → 全タスクステップ完了 → complete-task → finalize 到達の通し E2E テストを実装する。",
+      "acceptance": [
+        "R1: フラット構造の通しシナリオが CLI のみで遷移しパスする",
+        "R3: 各ステップ完了後の next-action が正しい step/taskId を返す",
+        "R4: approval done 後に tasks[] が正しく同期される",
+        "R5: complete-task 後に currentTaskId が正しく切り替わる",
+        "R6: npm test で既存テストと合わせてパスする"
+      ],
+      "implementation_notes": "既存 227 と同パターンの fixture セットアップ。AI ステップは flow set step done で完了扱い。タスクステップを順に done にし、各ステップ後の next-action をアサート。",
+      "test_strategy": "テスト自体が成果物。npm test の一部として実行される。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement parent-child task E2E lifecycle test",
+      "goal": "親子構造タスク（T-A 親 + T-A1, T-A2 子）で子タスク完了→親自動完了→finalize 到達の通し E2E テストを実装する。",
+      "acceptance": [
+        "R2: 親子構造の通しシナリオが CLI のみで遷移しパスする",
+        "R3: 各ステップ完了後の next-action が正しい step/taskId を返す",
+        "R5: 子タスク完了後に currentTaskId が正しく切り替わり、全子完了後に親が自動完了する",
+        "R6: npm test で既存テストと合わせてパスする"
+      ],
+      "implementation_notes": "spec.json に parent 付きタスクを定義し、approval 後にタスク同期。子タスク T-A1 → T-A2 の順に全ステップ完了 → complete-task → 親 T-A の自動完了を検証。",
+      "test_strategy": "テスト自体が成果物。npm test の一部として実行される。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T12:54:05.757Z",
+    "notes": "autoApprove"
+  },
+  "specId": "231-task-e2e-full-lifecycle"
+}

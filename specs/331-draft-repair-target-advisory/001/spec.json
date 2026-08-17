@@ -1,0 +1,233 @@
+{
+  "goal": "draft-questions と draft-coverage の repairTargets を raw ADVISORY と整合する canonical advisory findings として一度だけ記録し、既存の disposition invariant、triage 伝播、duplicate protection を維持したまま result_recording を成功させる。",
+  "scope": {
+    "in": [
+      "src/flow/lib/run-review.js の draft-questions と draft-coverage に限定した canonical bucket mapping。",
+      "複数の draft canonical findings に対する deterministic fallback findingId。",
+      "src/flow/commands/review.js が保持する repair_target category、target、evidence、rationale と review-history contract の統合確認。",
+      "tests/unit/flow/commands/review.test.js の focused producer-to-canonical matrix と Issue #453 checkpoint-shaped fixture。",
+      "specs/331-draft-repair-target-advisory/tests/ の requirement-header 付き spec-local behavior verification。",
+      "既存 review-convergence negative matrix と duplicate fingerprint rejection の維持確認。",
+      "この active run を停止させ、公式の guarded next-action では回復できなかった不具合に限る user-authorized unblocker repair。対象は acceptance deferred-finding deduplication、repair fingerprint invalidation、stale test evidence refresh、active integration gate phase selection、recovered result post-hook handling、provider proposal preamble normalization、reactivated step の stale stop outcome 判定であり、各修正は focused regression test と issue-log evidence を伴う。"
+    ],
+    "out": [
+      "Issue #453 の Acceptance Criteria 自体の実装または checkpoint worktree・artifact・flow state の変更。",
+      "review retry 上限、counter reset、一般 recovery、同一 target の duplicate review permission の変更。",
+      "provider、prompt、sandbox、OS permission、autoApprove の変更。",
+      "active flow の pause、park、checkpoint lifecycle 機能の変更。",
+      "src/flow/lib/review-convergence.js の disposition validation 緩和。",
+      "Issue #454 と無関係な既存不具合の修正。上記の明示的な unblocker repair 以外の advisory finding は acceptance-review に引き渡し、この implementation では修正しない。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールだけを使用し、外部 dependency を追加しない。",
+    "PASS は finding 0件、ADVISORY は blocking 0件かつ advisory 1件以上、REJECTED は blocking 1件以上の既存 invariant を維持する。",
+    "同一 artifact、同一 phase・tree・evidence、同一 content fingerprint の duplicate protection を緩和しない。",
+    "repairTargets は draft-questions と draft-coverage だけで advisory input へ追加し、他 phase の mapping を変更しない。",
+    "test skip、assertion 削減、allowlist、期待値の弱体化で検証を通さない。",
+    "full regression は focused verification と独立 review 後の必須 final-regression step で一度だけ実行し、全 project test の PASS を完了条件とする。",
+    "project-test-integrity: task-gate は後続の spec-level test-execute と final-regression より前に実行されるため両 step を完了扱いにしない。test-execute の focused verification と mandatory final-regression の全 project test PASS をそれぞれ定義順に実行し、finalize 前に必ず検証する。"
+  ],
+  "design_principles": [
+    "Raw verdict に寄与する producer bucket は canonical disposition input にも同じ意味で反映する。",
+    "Fallback identity は artifact 内で一意かつ deterministic にし、content fingerprint による真の重複拒否を残す。",
+    "Raw artifact、review history、canonical convergence、triage の各責務を混同しない。",
+    "Issue #454 の修正に必要な module と test だけを変更する。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/commands/review.js builds raw draft review artifacts and review-history records while preserving repair_target metadata."
+      },
+      {
+        "text": "src/flow/lib/run-review.js promotes raw artifact buckets into canonical blocking and advisory findings before result_recording."
+      },
+      {
+        "text": "src/flow/lib/review-convergence.js owns immutable PASS, ADVISORY, REJECTED, finding identity, and duplicate fingerprint invariants."
+      },
+      {
+        "text": "tests/unit/flow/commands/review.test.js exercises both draft phases, empty and mixed buckets, multiple identities, duplicate rejection, and checkpoint replay."
+      },
+      {
+        "text": "src/flow/lib/run-review.js now promotes repairTargets into canonical advisory inputs only for draft-questions and draft-coverage and assigns deterministic phase-and-bucket fallback finding IDs.",
+        "added_by_task": "T-1"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Draft review emits blockingFindings, advisoryFindings, and repairTargets with a PASS, ADVISORY, or REJECTED raw verdict."
+      },
+      {
+        "text": "Review history stores repairTargets as non-blocking records with category=repair_target and authored target, evidence, and rationale."
+      },
+      {
+        "text": "Canonical promotion combines draft repairTargets with advisory findings and assigns phase-and-bucket-scoped fallback findingId values."
+      },
+      {
+        "text": "ReviewDisposition validates the unchanged invariant, records evidence once, and routes the raw repairTargets to existing draft triage."
+      },
+      {
+        "text": "During result_recording, draft repairTargets join advisory findings, are canonicalized once, validated by the unchanged ReviewDisposition invariant, and become finalized review evidence while the raw artifact remains the triage source.",
+        "added_by_task": "T-1"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] DraftReviewArtifact maps empty buckets to PASS, advisoryFindings or repairTargets to ADVISORY, and blockingFindings to REJECTED; result=match.",
+        "evidence": "src/flow/commands/review.js: DraftReviewArtifact derives verdict from blockingFindings, advisoryFindings, and repairTargets."
+      },
+      {
+        "text": "[CORRECTION] Draft assigned canonical normalization to commands/review.js; source verification assigns result_recording bucket promotion to run-review.js.",
+        "evidence": "src/flow/commands/review.js writes raw and history artifacts. src/flow/lib/run-review.js reviewArtifactFindingLists and persistCanonicalReviewArtifact construct ReviewDisposition inputs. The fix therefore changes run-review.js while preserving the existing history mapping."
+      },
+      {
+        "text": "[VERIFY] ReviewDisposition already rejects invalid PASS, ADVISORY, REJECTED, duplicate findingId, and duplicate fingerprint combinations; result=match.",
+        "evidence": "src/flow/lib/review-convergence.js: ReviewDisposition and assertFindingBudget own the fail-closed disposition and duplicate invariants."
+      },
+      {
+        "text": "User authorized a direct Issue #454 fix because the bug blocked its own planning review and explicitly prohibited changes outside this issue.",
+        "evidence": "Current conversation instruction and Issue #454 Scope / Out of Scope."
+      },
+      {
+        "text": "Existing-feature impact is limited to draft-questions and draft-coverage result_recording when repairTargets are present; other phases, public CLI behavior, retry policy, providers, and disposition validation remain unchanged.",
+        "evidence": "The implementation gates repairTargets on the draft-questions and draft-coverage phase set. Focused tests assert empty, blocking, advisory-plus-repair, duplicate, and non-draft boundaries."
+      },
+      {
+        "text": "Keep raw history normalization and ReviewDisposition validation unchanged; repair the producer-to-canonical mismatch only in run-review.js.",
+        "added_by_task": "T-1"
+      }
+    ]
+  },
+  "background": "A raw draft artifact becomes ADVISORY when repairTargets exist, but canonical result_recording previously ignored that bucket. The resulting ADVISORY had no advisory findings and failed closed. After including repairTargets, multiple anonymous findings also shared the fallback findingId review-finding; draft-scoped deterministic IDs are required while duplicate fingerprints remain rejected.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "A draft-questions repairTargets-only artifact shall record each repair target once as a canonical advisory finding and complete result_recording.",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "A draft-coverage repairTargets-only artifact shall use the same canonical advisory contract.",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "advisoryFindings and repairTargets shall both be preserved as advisory inputs without producing blocking findings.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "Repair targets shall retain category=repair_target, target, evidence, and rationale in review history and remain available to the existing triage route.",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "An artifact with all finding buckets empty shall remain PASS with zero canonical findings.",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "ADVISORY with blocking findings, PASS with findings, and REJECTED without blocking findings shall continue to fail closed.",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "must",
+      "desc": "Multiple distinct draft findings shall receive unique deterministic fallback findingId values while duplicate content fingerprints and duplicate review evidence remain rejected.",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "desc": "An Issue #453 checkpoint-shaped repair-target artifact shall be processed once and advance through canonical recording to triage without invoking review AI.",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "[AC1/R1] draft-questions repairTargets-only produces ADVISORY, one or more canonical advisory findings, and successful result_recording.",
+    "[AC2/R2] draft-coverage repairTargets-only follows the same successful canonical recording path.",
+    "[AC3/R3] advisoryFindings plus repairTargets are both retained as advisory findings and produce no blocking findings.",
+    "[AC4/R4] repair_target category and authored target, evidence, and rationale remain in review history and the raw triage source.",
+    "[AC5/R5] empty buckets produce PASS and zero canonical findings.",
+    "[AC6/R6] invalid PASS, ADVISORY, and REJECTED combinations remain rejected by ReviewDisposition.",
+    "[AC7/R7] distinct anonymous draft findings receive unique fallback IDs, identical content still fails duplicate fingerprint validation, and completed evidence cannot be registered twice.",
+    "[AC8/R8] the checkpoint-shaped fixture records once, does not call review AI, and advances the production review hook to triage."
+  ],
+  "clarifications": [
+    {
+      "q": "Does canonical recording replace the raw repairTargets bucket?",
+      "a": "No. Canonical promotion consumes repairTargets as advisory inputs; the raw artifact remains the existing triage source."
+    },
+    {
+      "q": "Does assigning unique fallback IDs permit duplicate content?",
+      "a": "No. findingId collisions are removed for distinct anonymous findings, while identical content still collides on fingerprint and fails closed."
+    },
+    {
+      "q": "Must final-regression already be complete at task-gate?",
+      "a": "No. task-gate precedes spec-level test execution by definition. When the task-gate retry limit is reached, acceptance-review owns the final disposition of the deferred finding. project-test-integrity remains mandatory: focused verification and final-regression run in their defined downstream steps, and every project test must pass before finalize."
+    },
+    {
+      "q": "Are flow-blocking recovery fixes part of the Issue #454 feature scope?",
+      "a": "Only as a narrowly authorized execution exception. The user directed this active run to repair bugs that made the guarded flow impossible to continue and prohibited unrelated fixes. The exception is limited to the named blocker classes in scope.in, preserves their issue-log and focused-test evidence, and does not turn review advisory findings into implementation work. The separately requested .codex/rules/default.rules command authorization is user-owned execution-environment configuration, not Issue #454 product behavior."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Relax ReviewDisposition so ADVISORY may contain no advisory findings.",
+      "reason": "Rejected because it weakens the canonical invariant instead of aligning producer inputs."
+    },
+    {
+      "option": "Reset tooling counters or permit a duplicate review on the unchanged target.",
+      "reason": "Rejected as explicitly out of scope and unnecessary after recording the fix on a new target tree."
+    },
+    {
+      "option": "Copy repairTargets into raw advisoryFindings.",
+      "reason": "Rejected because it duplicates raw artifact meaning and can pollute advisory memory; canonical promotion should combine the buckets."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "draft review",
+    "repairTargets",
+    "reviewArtifactFindingLists",
+    "canonical findings",
+    "ReviewDisposition",
+    "result recording",
+    "findingId",
+    "duplicate fingerprint",
+    "draft triage",
+    "review convergence"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Normalize draft canonical findings",
+      "goal": "Align canonical promotion with raw draft ADVISORY semantics for both draft routes and preserve fail-closed identity invariants.",
+      "acceptance": [
+        "R1 through R5 map draft buckets to the expected canonical disposition and preserve repair-target triage data.",
+        "R6 leaves ReviewDisposition validation unchanged.",
+        "R7 assigns deterministic unique fallback IDs and continues rejecting duplicate fingerprints.",
+        "R8 replays checkpoint-shaped evidence once without review AI."
+      ],
+      "implementation_notes": "For the Issue #454 feature, change only src/flow/lib/run-review.js canonical artifact promotion and tests/unit/flow/commands/review.test.js, and keep src/flow/lib/review-convergence.js validation unchanged. In addition, retain only the user-authorized active-run unblocker repairs enumerated in scope.in, with focused regressions and issue-log evidence; do not implement unrelated advisory findings.",
+      "test_strategy": "Add specs/331-draft-repair-target-advisory/tests/draft-repair-target-recording.test.js with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header and deterministic no-AI behavior coverage. Also run the focused draft classification and checkpoint tests, existing review-convergence contract tests, and the complete review command unit file. Run full regression once in the mandatory final-regression step after independent review, and require every project test to pass.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-24T05:50:12.483Z",
+    "notes": "User selected [1] and approved the gate-passed Issue #454 specification."
+  },
+  "specId": "331-draft-repair-target-advisory"
+}

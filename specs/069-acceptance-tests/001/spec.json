@@ -1,0 +1,64 @@
+{
+  "goal": "全プリセット（laravel, symfony, cakephp2, node-cli, library, php, node + webapp, cli, base のシンボリックリンク）に対して、sdd-forge パイプライン全体（scan → enrich → init → data → text → readme）を実行し、生成されたドキュメントの品質・構成・内容を検証する acceptance テストを構築する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`tests/acceptance/` ディレクトリにテスト基盤を構築",
+      "7つの fixture プロジェクトを作成（laravel, symfony, cakephp2, node-cli, library, php, node）",
+      "3つのシンボリックリンク fixture を作成（webapp→php, cli→node-cli, base→node）",
+      "`tests/acceptance/run.js` ランナーの実装",
+      "npm script `test:acceptance` の追加",
+      "各プリセットに対する構造検証（assert ベース）",
+      "各プリセットに対する AI 品質検証"
+    ],
+    "out": [
+      "既存の unit/e2e テストの変更",
+      "sdd-forge 本体のコード変更（テストで発見されたバグの修正は別 spec で対応）",
+      "CI/CD パイプラインへの組み込み"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm run test:acceptance` で全 10 プリセットのテストが実行される",
+    "各プリセットで scan → enrich → init → data → text → readme が正常完了する",
+    "構造検証（章ファイル存在、ディレクティブ解決、空セクションなし）が全プリセットで PASS する",
+    "AI 品質検証が全プリセットで `pass: true` を返す（`pass: false` の場合は `issues` をテスト失敗メッセージとして出力）",
+    "`npm run test:acceptance -- <preset>` で単一プリセット指定が動作する",
+    "シンボリックリンク fixture（webapp, cli, base）は実体 fixture を共有し config.json の type のみ異なる"
+  ],
+  "clarifications": [
+    {
+      "q": "fixture のコードは実行可能である必要があるか？",
+      "a": "不要。構文的に正しく、フレームワーク規約に沿った現実的な構造であること。"
+    },
+    {
+      "q": "AI 品質検証で使うエージェントはどれか？",
+      "a": "各 fixture の `.sdd-forge/config.json` に設定された defaultAgent を使用する。テスト実行時にエージェントが利用可能であることが前提。"
+    },
+    {
+      "q": "enrich ステップはエージェントなしでも動くか？",
+      "a": "エージェントが未設定の場合 enrich はスキップされる。acceptance テストではエージェントを設定する前提で進める。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "069-acceptance-tests"
+}

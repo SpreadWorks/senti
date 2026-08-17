@@ -1,0 +1,53 @@
+{
+  "goal": "`experimental/workflow` の `add` / `update` / `publish` コマンドが、GitHub Projects ボードに必要な status (draft 用 / publish 後) が事前に存在しない場合に `status not found` で失敗する問題を解消する。新規ボードでも追加セットアップなしでボード操作 CLI が動作する状態にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`add` / `update` 実行時、参照される status (デフォルトは draft 用 status、`--status` で任意指定可) が存在しなければ自動作成してから処理を続行する",
+      "`publish` 実行時、publish 後 status が存在しなければ自動作成してから処理を続行する",
+      "ボード操作 CLI 側で status option 作成を行うための手段を整備する"
+    ],
+    "out": [
+      "Status フィールド自体（\"Status\" という SingleSelectField）が存在しない場合の自動作成。フィールド構造の変更は影響範囲が大きいため。",
+      "別途 `init` サブコマンドの提供。",
+      "既存 status の名称変更・削除・並び替え。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**別途 `init` サブコマンドを提供**",
+      "reason": "明示的な初期化フローを設けることで動作が予測しやすいが、ユーザーが追加手順を踏む必要があり Issue の期待動作と乖離する。"
+    },
+    {
+      "option": "**Status フィールドごと自動作成**",
+      "reason": "完全な「ゼロ設定」を実現できるが、ボード構造を意図せず変更してしまうリスクがあり破壊的。"
+    },
+    {
+      "option": "**依存注入と mock テスト**",
+      "reason": "テストカバレッジは厚くなるが、既存 `experimental/` テストの軽量さと整合せず、保守コストが上がる。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "176-auto-create-board-status"
+}

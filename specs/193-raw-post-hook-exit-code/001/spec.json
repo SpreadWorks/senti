@@ -1,0 +1,81 @@
+{
+  "goal": "コマンドディスパッチ層の post hook 失敗が、出力モード（envelope / raw）に依存せずプロセス終了コード（exit code 1）として呼び出し側に伝わるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "post hook が失敗した場合の exit code を envelope mode / raw mode の両方で 1 に統一する。",
+      "envelope mode では既存の warning（POST_HOOK_FAILED）記録を維持しつつ、exit code を 1 にする。",
+      "raw mode では既存の stderr 出力を維持しつつ、exit code を 1 にする。"
+    ],
+    "out": [
+      "envelope の ok フラグ（Command 本体の成功/失敗を表す）の意味変更。",
+      "post hook が output 書き出しの後に実行される設計の再検討（Issue Related 欄の 1877 残存課題）。",
+      "pre hook / onError hook の exit code 挙動変更。",
+      "post hook 失敗を warning ではなく error として envelope に積む拡張。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "envelope mode で post hook が失敗する状況を再現したとき、プロセスの exit code が 1 である。envelope JSON には ok=true と warnings 配列内の POST_HOOK_FAILED エントリが含まれる。",
+    "raw mode で post hook が失敗する状況を再現したとき、プロセスの exit code が 1 である。stderr に失敗メッセージが出力されている。",
+    "envelope mode で post hook が成功する（または post hook が未定義）とき、exit code は従来と同じである。",
+    "raw mode で post hook が成功する（または post hook が未定義）とき、exit code は従来と同じである。",
+    "pre hook 失敗時、Command 本体失敗時の exit code は従来と同じ 1 である。"
+  ],
+  "clarifications": [
+    {
+      "q": "post hook 成功時の挙動は変わるか？",
+      "a": "変わらない。exit code は現状維持。"
+    },
+    {
+      "q": "envelope の ok フラグを反転するのか？",
+      "a": "しない。Command 本体の成否を示す既存セマンティクスを保つ。"
+    },
+    {
+      "q": "raw mode で stderr 出力は残すのか？",
+      "a": "残す。観測性を落とさない。"
+    },
+    {
+      "q": "出力モード判定の基準は何か？",
+      "a": "各 Command クラスの出力モード宣言。既存のディスパッチロジックから変更しない。"
+    },
+    {
+      "q": "post hook の非同期例外も対象か？",
+      "a": "対象。同期・非同期いずれの throw も exit code 1 に反映する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**envelope の ok を反転する案",
+      "reason": "** warning と error のセマンティクス区別が崩れ、Command 本体成功の事実が失われるため却下。"
+    },
+    {
+      "option": "**raw mode のみ修正する案",
+      "reason": "** Issue が「envelope/raw の扱いを明示的に統一する」ことを求めているため却下。envelope mode の exit 0 もバグとして扱う。"
+    },
+    {
+      "option": "**post hook 失敗を failure 経路に合流させる案",
+      "reason": "** Command 本体成功と本体失敗が区別不能になるため却下。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "193-raw-post-hook-exit-code"
+}

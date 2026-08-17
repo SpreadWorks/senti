@@ -1,0 +1,78 @@
+{
+  "goal": "spec 151 で整備済みの AgentLog + logger 基盤を全 callAgent/callAgentAsync 呼び出し元で有効化し、エージェント呼び出しのログ記録を実現する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "Logger クラスのシングルトン化（init/log インターフェース）",
+      "Log 基底クラスへの finalize フック追加",
+      "AgentLog の自動計測対応（開始時刻・終了時刻・経過時間）",
+      "CLI エントリポイント（sdd-forge.js）での Logger 初期化",
+      "全 19 箇所の callAgent/callAgentAsync 呼び出し元へのログ記録導入 - flow 系 12 箇所（spec/phase あり） - docs 系 7 箇所（spec/phase なし）"
+    ],
+    "out": [
+      "同期版ロガー（loggerSync）の追加（ボード ffe7）",
+      "callAgent 引数のオブジェクト化・バケツリレー解消（ボード 1877）",
+      "統合 JSONL ログ設計（type 区別・コンビニエンスメソッド）（ボード 8469）",
+      "既存の callAgent/callAgentAsync 関数シグネチャの変更",
+      "ログの閲覧・分析機能"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `cfg.logs.prompts` が有効な状態で sdd-forge コマンドを実行し、callAgent/callAgentAsync が呼ばれた後に prompts.jsonl にエントリが追記される",
+    "AC2: 各ログエントリに executeStartAt, executeEndAt, executeTime, spec, phase, prompt フィールドが含まれる",
+    "AC3: Logger が未初期化の状態でコマンドを直接実行した場合、console.error に警告が出力され、プロセスは正常に完了する",
+    "AC4: callAgent がタイムアウト等で例外を投げた場合も、ログエントリが記録される（executeTime が記録される）",
+    "AC5: 既存の callAgent/callAgentAsync の動作（戻り値、例外、タイムアウト）に変更がない"
+  ],
+  "clarifications": [
+    {
+      "q": "sync 関数内で async な logger をどう扱うか？",
+      "a": "fire-and-forget（`logger().catch(() => {})`）で呼ぶ。ログ欠損は許容する。対象は run-gate.js (2), get-context.js (1), init.js (1), template-merger.js (1) の計 5 箇所。"
+    },
+    {
+      "q": "Logger が初期化されていない場合の挙動は？",
+      "a": "console.error で警告メッセージを出し、ログ書き込みをスキップする。エラーは投げない。テスト・直接実行時に init されないケースを考慮。"
+    },
+    {
+      "q": "callAgent が例外を投げた場合にログを残すか？",
+      "a": "残す。try/finally で Logger.log() を呼び、失敗した呼び出しの実行時間も記録する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**ctx.logger 方式（引数引き回し）**",
+      "reason": "設計としてはきれいだが、19 箇所すべてで ctx から logger を取り出すコードが必要になり、変更箇所が増える。シングルトンの方が呼び出し側がシンプル。"
+    },
+    {
+      "option": "**loggerSync の追加**",
+      "reason": "sync 関数内での確実なログ書き込みが可能になるが、この spec のスコープを超える。fire-and-forget で実用上の問題はない。"
+    },
+    {
+      "option": "**2段階初期化（getInstance + init）**",
+      "reason": "sdd-forge.js を必ず通るため init 忘れの実害はないが、コンストラクタで完結させる方がシンプル。ただし Logger はシングルトンとして getInstance().init() で初期化する方式を採用（Q&A での合意）。"
+    }
+  ],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "152-add-logger-to-callsites"
+}

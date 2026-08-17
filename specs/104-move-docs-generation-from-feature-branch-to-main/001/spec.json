@@ -1,0 +1,52 @@
+{
+  "goal": "finalize パイプラインの docs 生成（sync ステップ）をメインブランチ上で実行するように修正する。現状は worktree モードで cleanup 後に sync が実行され、cwd が無効になり docs 生成が失敗する。また、マージ方法の選択を auto 判定に変更し、ユーザーの手動選択を不要にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "flow-sync スキルの新規実装（既存の `flow run sync` コマンドはそのまま）",
+      "GitHub Actions による自動 docs 生成",
+      "merge と squash の選択肢の統合（実質同じ squash merge だが、今回はラベルの整理にとどめる）",
+      "cleanup の動作変更（worktree/ブランチ削除の確認フローは既存動作のまま。finalize スキルがユーザー承認後に実行するため、追加の確認は不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "worktree モードで sync はどこで実行するか？",
+      "a": "`resolveWorktreePaths()` で `mainRepoPath` を取得し、そこで docs build を実行する。merge 完了後なのでメインブランチにマージ済みのコードがある。"
+    },
+    {
+      "q": "PR ルートで sync はどうするか？",
+      "a": "PR ではまだマージされていないため sync を自動スキップし、リマインドメッセージを出力する。"
+    },
+    {
+      "q": "マージ方法の選択は廃止するか？",
+      "a": "「すべて実行」時は auto 判定のみ（選択不要）。「個別選択」時はマージステップで上書き可能。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "Should we keep the step numbers (3-7) or renumber to (1-5)? → Keep 3-7 for consistency with existing flow state tracking."
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "104-move-docs-generation-from-feature-branch-to-main"
+}

@@ -1,0 +1,242 @@
+{
+  "goal": "Make flow gate prerequisite validation and required evaluations fail-closed.",
+  "scope": {
+    "in": [
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/set-review-evidence.js",
+      "gate prerequisite and preset resolution boundaries",
+      "unit and CLI regression coverage"
+    ],
+    "out": [
+      "normal semantic decision logic",
+      "foreign or optional policy semantics",
+      "new public evaluation-bypass options"
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-ins only.",
+    "Production CLI paths must not bypass required evaluations.",
+    "Test-only fixtures must be unreachable from production routing."
+  ],
+  "design_principles": [
+    "Emit PASS only after every configured prerequisite and required evaluation completes with schema-conforming output.",
+    "Prerequisite, execution, schema, and semantic outcomes retain distinct machine-readable classifications."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "RunGateCommand validates prerequisites, invokes required evaluations, and persists gate artifacts."
+      },
+      {
+        "text": "Preset resolution validates configured chains before semantic context resolution."
+      },
+      {
+        "text": "SetReviewEvidenceCommand registers a finalized review artifact for an active flow-level or task-level review target."
+      },
+      {
+        "text": "The flow registry advances the next step only when the gate result is PASS after every configured prerequisite and required evaluation completed with schema-conforming output."
+      },
+      {
+        "text": "RunGateCommand rejects public required-evaluation bypasses before gate execution.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "FinalizedFlowReviewArtifact validates recovery inputs before canonical review evidence registration.",
+        "added_by_task": "T-4"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "preset and agent configuration -> prerequisite validation -> semantic evaluation -> typed gate outcome -> artifact persistence -> registry transition"
+      },
+      {
+        "text": "review provider artifact -> canonical evidence registration -> review transition"
+      },
+      {
+        "text": "Public gate arguments are validated before normal gate dispatch.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "A finalized flow-level PASS provider artifact is validated against phase, null task target, tree, and state digest before canonical registration.",
+        "added_by_task": "T-4"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked draft policy against src/flow/lib/run-gate.js; match: runGateFlow and diff-based gate paths currently convert missing guardrail results to gatePass, so failure normalization must be corrected at this boundary.",
+        "evidence": "src/flow/lib/run-gate.js: runGateFlow returns gatePass when checkGuardrail returns null; executeDiffBasedGate also returns gatePass when grResult is null."
+      },
+      {
+        "text": "[VERIFY] Existing public PASS artifacts and transition ownership remain with RunGateCommand and registry; only incomplete evaluation outcomes become blocking typed failures.",
+        "evidence": "src/flow/lib/run-gate.js constructs gatePass/gateFail artifacts; registry gate post-hook owns flow step transition."
+      },
+      {
+        "text": "[CORRECTION] Test-only evaluation control must not be a public CLI route; production paths always execute configured required evaluations.",
+        "evidence": "Issue #465 requires production guardrails/evaluations cannot be bypassed from the public CLI."
+      },
+      {
+        "text": "[VERIFY] set-review-evidence accepts canonical ReviewEvidence input with phase and task identity, while spec-review.json is a provider artifact; recovery must transform a flow-level provider PASS artifact before registration.",
+        "evidence": "src/flow/lib/set-review-evidence.js and review-evidence-store.js require ReviewEvidenceInput fields including taskId, treeSha, provenance, and disposition."
+      },
+      {
+        "text": "[VERIFY] Existing impact: configured agent PASS/FAIL artifacts, preset configuration, gate result artifacts, and registry transitions remain on their current public surfaces; only unavailable required evaluation becomes a blocking typed outcome and repeated missing-preset warnings are removed.",
+        "evidence": "R1-R6 preserve normal result/evaluations/reasons artifacts and change only prerequisite/evaluation failure handling plus finalized review evidence recovery."
+      },
+      {
+        "text": "Required gate test fixtures remain internal; public CLI bypass attempts return typed failures.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Review recovery reuses an existing finalized artifact and never invokes the provider again.",
+        "added_by_task": "T-4"
+      }
+    ]
+  },
+  "background": "Gate code currently has fallback paths that can produce PASS when a required guardrail result is absent, while unresolved presets can emit repeated warnings during evaluation. A finalized flow-level spec review may also be left unregistered when its post-hook loses the repository-operation lock, even though a PASS provider artifact exists. This change preserves valid PASS/FAIL behavior but blocks incomplete prerequisite and evaluation work before any approval transition, and makes that finalized review artifact recoverable without another provider call.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Validate the full preset chain once before semantic context resolution. A missing preset returns a typed prerequisite failure before evaluation, emits no repeated warning in the same invocation, and leaves the configured maximum of five semantic gate retries unchanged.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "For every required agent evaluation, guardrail evaluation, and schema validation, unset configuration, spawn failure, evaluation failure, invalid output, or schema failure produces a blocking non-PASS outcome. No such outcome may mark a gate done or advance approval.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Persist mechanically distinguishable failure classification: gate artifacts use artifacts.failureKind and artifacts.failureCode; flow error envelopes use errors[0].code. Semantic findings retain artifacts.evaluations and artifacts.reasons.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When configured required agents return schema-conforming PASS or FAIL evaluations, retain their current result semantics, foreign/optional policies, normal gate result/evaluations/reasons artifacts, and PASS registry transitions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Production public CLI routes cannot bypass required evaluations. Any fixture or evaluation substitute used by tests is isolated from production routing.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "When a finalized flow-level review provider artifact remains after post-hook lock failure, register it as canonical evidence for the current phase, null task target, current tree, and current state fingerprint without invoking the provider again. Reject artifacts whose phase, tree, or target state does not match.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Missing preset returns one typed prerequisite failure before evaluation; semantic retry count is unchanged.",
+    "Unset agent, agent spawn failure, guardrail failure, invalid output, and schema failure each produce a non-PASS outcome and leave approval unreachable.",
+    "Artifacts and envelopes expose the R3 fields needed to distinguish prerequisite, agent, guardrail, schema, and semantic outcomes.",
+    "Configured required agents that return schema-conforming PASS or FAIL evaluations retain existing result, evaluations, reasons, foreign/optional behavior, and PASS post-hook transition.",
+    "Unit tests cover R1-R5; CLI behavior tests verify the missing-preset and public-route contracts; spec-local tests cover every R1-R5 header.",
+    "A flow-level spec review PASS artifact created before a post-hook lock failure can be registered without a provider rerun, while mismatched artifacts are rejected."
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "Normalize unavailable evaluation to PASS or warning",
+      "reason": "Rejected because it permits approval without required evidence and violates the fail-closed contract."
+    },
+    {
+      "option": "Expose a public skip option for required evaluation",
+      "reason": "Rejected because production CLI behavior must never bypass required guardrails or evaluations."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "flow-gate",
+    "run-gate",
+    "fail-closed",
+    "prerequisite",
+    "preset-resolution",
+    "guardrail",
+    "agent-evaluation",
+    "schema-validation",
+    "failureKind",
+    "gate-artifact",
+    "review-evidence",
+    "post-hook-recovery"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Validate gate prerequisites",
+      "goal": "Validate preset chains and required gate inputs before semantic evaluation. Return typed prerequisite failures without incrementing the configured maximum of five semantic gate retries.",
+      "acceptance": [
+        "Missing preset is diagnosed once before evaluation.",
+        "Typed prerequisite failures prevent PASS and approval transition."
+      ],
+      "implementation_notes": "Update run-gate prerequisite and preset-resolution call boundaries; preserve normal configuration behavior.",
+      "test_strategy": "Unit and CLI cases for missing preset and retry invariants.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Classify required evaluation failures",
+      "goal": "Make required agent, guardrail, and schema evaluation failures blocking and machine-readable.",
+      "acceptance": [
+        "All R2 failure modes are non-PASS.",
+        "Artifacts and error envelopes expose the R3 classification fields."
+      ],
+      "implementation_notes": "Remove PASS fallback for incomplete required evaluation and centralize repeated classification only when two production call sites need it.",
+      "test_strategy": "Unit fixtures for agent, guardrail, output, and schema failures plus spec-local R2/R3 tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Protect gate public contracts",
+      "goal": "Preserve the current schema-conforming configured-agent PASS/FAIL result semantics, foreign/optional policies, artifacts, and PASS transition while preventing production evaluation bypass.",
+      "acceptance": [
+        "Schema-conforming configured-agent PASS/FAIL and foreign/optional contracts remain unchanged.",
+        "PASS post-hook remains the only approval transition.",
+        "Test controls are unreachable from public production CLI routes."
+      ],
+      "implementation_notes": "Keep existing RunGateCommand and registry ownership of retained public surfaces.",
+      "test_strategy": "CLI regression cases and spec-local R4/R5 tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Recover flow review evidence",
+      "goal": "Register a finalized flow-level review artifact after post-hook persistence failure without rerunning the provider.",
+      "acceptance": [
+        "A matching spec review PASS artifact registers with taskId null.",
+        "Phase, tree, and state-fingerprint mismatches are rejected.",
+        "The recovery path does not expose a production evaluation bypass."
+      ],
+      "implementation_notes": "Adapt only finalized provider artifacts at the review-evidence boundary; retain canonical ReviewEvidence validation and identity generation.",
+      "test_strategy": "Unit tests for matching and mismatched flow-level artifact registration plus spec-local R6 coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-25T14:50:11.533Z",
+    "notes": "Auto-approved after spec and spec-gate PASS; includes user-authorized flow-level review evidence recovery."
+  },
+  "specId": "346-gate-fail-closed"
+}

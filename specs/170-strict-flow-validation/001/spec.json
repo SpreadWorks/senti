@@ -1,0 +1,82 @@
+{
+  "goal": "flow コマンドの引数バリデーションを厳密化し、不正入力の暗黙フォールバックを排除する。\nenum 定数を `src/lib/constants.js` に集約し、実装・エラーメッセージ・docs の一貫性を確保する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "9箇所の flow コマンドにバリデーション追加/強化",
+      "`src/lib/constants.js` の新設と enum 定数の集約",
+      "`src/flow/lib/phases.js` の廃止と import 先変更",
+      "各コマンドファイル内の散在定数の移動"
+    ],
+    "out": [
+      "エラーコード体系の新設",
+      "`flow-state.js` 内部でのバリデーション追加（コマンド層で実施）",
+      "registry.js の help テキスト更新（既に許容値が記載されているため）",
+      "自由テキスト引数（`set note`, `set request`）の長さ制限",
+      "`run prepare-spec --title` のフォーマット検証（slug 生成は別の関心事）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `src/lib/constants.js` が存在し、全 enum 定数が `Object.freeze` で定義されている",
+    "[ ] `src/flow/lib/phases.js` が削除されている",
+    "[ ] `flow set issue 0` → エラー、`flow set issue -1` → エラー、`flow set issue 1` → 成功",
+    "[ ] `flow set summary '[123]'` → エラー、`flow set summary '[\"a\"]'` → 成功",
+    "[ ] `flow run gate --phase invalid` → エラー、`flow run gate --phase draft` → 成功",
+    "[ ] `flow set step approach invalid` → エラー、`flow set step approach done` → 成功",
+    "[ ] `flow set req -1 done` → エラー",
+    "[ ] `flow run review --phase invalid` → エラー",
+    "[ ] `flow run impl-confirm --mode invalid` → エラー",
+    "[ ] 全 enum 検証のエラーメッセージに許容値一覧が含まれている",
+    "[ ] 既存テスト（`npm test`）が全て PASS する",
+    "[ ] 正常入力での既存動作に変更がない"
+  ],
+  "clarifications": [
+    {
+      "q": "スコープは issue 記載の3箇所のみか？",
+      "a": "全箇所（LOW含む計9箇所）を対象とする。調査により追加6箇所を発見。"
+    },
+    {
+      "q": "エラーメッセージの方針は？",
+      "a": "現行形式踏襲。`throw new Error()` でメッセージ内に許容値を含める。"
+    },
+    {
+      "q": "enum 定数の配置先は？",
+      "a": "`src/lib/constants.js` に全定数を集約。`flow-state.js` と同階層で参照しやすく、将来 docs/spec 側からも参照可能。"
+    },
+    {
+      "q": "既存の `phases.js` はどうするか？",
+      "a": "廃止。`constants.js` に移行し、全 import 先を変更する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**enum 定数を各コマンドファイル内に定義（既存パターン踏襲）**",
+      "reason": "既存パターンだが散在しやすく、一貫性が維持しにくい。ユーザーが集約を希望。"
+    },
+    {
+      "option": "**`src/flow/lib/constants.js` に集約**",
+      "reason": "flow 固有の定数だが、`flow-state.js` が `src/lib/` にあるため距離が遠い。将来 docs/spec から参照する可能性も考慮し `src/lib/` を選択。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "170-strict-flow-validation"
+}

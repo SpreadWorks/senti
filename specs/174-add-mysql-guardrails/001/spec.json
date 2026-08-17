@@ -1,0 +1,74 @@
+{
+  "goal": "mysql プリセットを新規作成し、MySQL/InnoDB 固有のベストプラクティスに基づく guardrail を追加する。あわせて webapp プリセットに RDBMS 汎用のデータアクセス guardrail を追加する。これにより、mysql タイプのプロジェクトで sdd-forge を使用するユーザーが spec/impl フェーズでデータベース設計・クエリ品質に関するガイダンスを受けられるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/presets/mysql/` の新規作成（`preset.json`, `guardrail.json`, `NOTICE`）",
+      "`src/presets/webapp/guardrail.json` に RDBMS 汎用 guardrail 3 件を追記",
+      "`src/presets/webapp/NOTICE` を新規作成（出典帰属）"
+    ],
+    "out": [
+      "既存の `database` プリセット guardrail の変更",
+      "mysql プリセット向け docs テンプレート（`templates/`, `data/` 配下）の追加",
+      "laravel / symfony など mysql を利用する他プリセットの変更",
+      "webapp 以外のプリセットへの guardrail 追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`src/presets/mysql/preset.json` が存在し、`parent: \"database\"` を持つこと",
+    "`src/presets/mysql/guardrail.json` が M-1〜M-13 の 13 件を含むこと（ID・phase・title・body が Issue #143 の定義に準拠）",
+    "`src/presets/mysql/NOTICE` が存在し、planetscale/database-skills と jarulraj/sqlcheck を帰属していること",
+    "`src/presets/webapp/guardrail.json` に `no-select-star`, `cursor-pagination-over-offset`, `transaction-scope-minimization` の 3 件が追記されていること",
+    "`src/presets/webapp/NOTICE` が存在し、上記 2 出典を帰属していること",
+    "`npm test` が pass すること"
+  ],
+  "clarifications": [
+    {
+      "q": "mysql プリセットの親プリセットは何にすべきか？",
+      "a": "`database` プリセットを親にする。postgres プリセットと同じ継承パターンであり、既存の database guardrail（migration-required-for-schema-changes 等 5 件）を自動で継承できる。"
+    },
+    {
+      "q": "Issue の \"review\" フェーズを sdd-forge のどのフェーズにマッピングするか？",
+      "a": "`impl` にマッピングする。コードを書く・レビューする段階で確認すべきルールであり、既存の guardrail（database/webapp）が同様に `impl` を使っているパターンと一致する。"
+    },
+    {
+      "q": "NOTICE ファイルのフォーマットは？",
+      "a": "既存プリセット（nextjs 等）の NOTICE フォーマットに合わせる。一貫性のために独自フォーマットを採用しない。"
+    },
+    {
+      "q": "`sickn33/antigravity-awesome-skills` を NOTICE に含めるか？",
+      "a": "含めない。採用した全 guardrail の出典が planetscale/database-skills または jarulraj/sqlcheck であり、同リポジトリから派生したルールは存在しない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**mysql を webapp の子にする案**",
+      "reason": "webapp は Web フレームワーク向けの guardrail を持ち、mysql プリセットとの関心が異なる。database を親にすることで DB 共通 guardrail を継承しつつ MySQL 固有の guardrail を重複なく追加できる。"
+    },
+    {
+      "option": "**database プリセットに MySQL 固有 guardrail を追加する案**",
+      "reason": "database プリセットは DB エンジン非依存の汎用プリセットであり、MySQL 固有技術（InnoDB, utf8mb4 等）の記述は不適切。mysql 専用プリセットとして分離する。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "174-add-mysql-guardrails"
+}

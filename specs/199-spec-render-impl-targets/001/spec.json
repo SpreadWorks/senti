@@ -1,0 +1,86 @@
+{
+  "goal": "spec 198 で spec.json schema に追加された `implementationTargets` フィールドを、spec render が生成する spec.md に Implementation Targets セクションとして出力し、spec.json を primary source とするパイプラインの完結性を取り戻す。",
+  "background": "",
+  "scope": {
+    "in": [
+      "spec.md 出力に Implementation Targets セクションを追加する。"
+    ],
+    "out": [
+      "他の docs/ 側レンダラやテンプレートの変更。",
+      "`implementationTargets` の schema 定義の変更（spec 198 で確定済み）。",
+      "spec.md → spec.json の逆方向変換。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "spec.json に `implementationTargets` が設定されている場合、spec render は spec.md に Implementation Targets セクションを出力し、各エントリを列挙しなければならない。"
+    },
+    {
+      "id": "R2",
+      "desc": "`implementationTargets` が空配列または未定義の場合、spec render は Implementation Targets セクションを出力し、他の optional 列挙セクションと同じプレースホルダを表示しなければならない。"
+    },
+    {
+      "id": "R3",
+      "desc": "spec render が Implementation Targets セクションを出力する際、その挿入位置は Acceptance Criteria の直後かつ Open Questions の直前でなければならない。"
+    },
+    {
+      "id": "R4",
+      "desc": "spec.json の内容が変化しない場合、spec render は連続実行で byte-identical な spec.md を出力しなければならない（決定性の維持）。"
+    },
+    {
+      "id": "R5",
+      "desc": "本改修後も既存の spec render 関連自動テストが全通しなければならない。"
+    }
+  ],
+  "acceptance_criteria": [
+    "spec.json に `implementationTargets` を設定して spec render を実行すると、spec.md に Implementation Targets セクションが出力され、各エントリが項目として読み取れる。",
+    "`implementationTargets` が未定義または空配列のとき、Implementation Targets セクションは出力され、既存セクションと同じプレースホルダのみが表示される。",
+    "Implementation Targets セクションは Acceptance Criteria の直後、Open Questions の直前に位置する。",
+    "既存の spec render 関連自動テストが全通する。"
+  ],
+  "clarifications": [
+    {
+      "q": "Implementation Targets セクションの挿入位置は？",
+      "a": "Acceptance Criteria の直後、Open Questions の直前。実装対象の列挙は受け入れ条件と併読されるため近接配置が読み手のワークフローに沿う。"
+    },
+    {
+      "q": "`implementationTargets` が空配列または未定義のときの挙動は？",
+      "a": "セクションを常に出力し、他の optional 列挙セクションと同じプレースホルダを表示する。spec.md 全体の一貫性を保つ。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "代替案 A",
+      "reason": "空時セクション非表示: 既存 optional 列挙セクションと挙動が乖離し、出力レイアウトの一貫性を損なうため却下。"
+    },
+    {
+      "option": "代替案 B",
+      "reason": "空時 `(none)` 明示: 既存セクションのプレースホルダ規約と出力フォーマットが揃わず ad-hoc になるため却下。"
+    },
+    {
+      "option": "代替案 C",
+      "reason": "セクションを Open Questions の後ろに配置（schema 定義順）: 読み手のワークフロー上、実装対象は受け入れ条件と併読されるため近接配置の方が優れる。却下。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "199-spec-render-impl-targets"
+}

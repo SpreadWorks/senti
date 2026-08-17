@@ -1,0 +1,169 @@
+{
+  "goal": "draft-gate 前に draft approval metadata の設定確認が明示され、QA 解決後の不要な gate 失敗を防ぐ。",
+  "scope": {
+    "in": [
+      "draft-gate 前後の flow step guidance",
+      "approval metadata setup/check を明示する prompt または skill source",
+      "draft-gate next-action guidance の runtime 表示確認",
+      "approval metadata guidance と draft-gate validation contract を固定する spec-local tests"
+    ],
+    "out": [
+      "draft-gate の approval validation を緩めること",
+      "未解決 user decision がある draft を自動承認すること",
+      "draft lifecycle schema または approval data shape の変更",
+      "spec approval step の user_approval metadata 変更"
+    ]
+  },
+  "constraints": [
+    "`DraftApproval.validate()` の approval.approved 必須契約は維持する。",
+    "`src/skills/` の skill source を変更した場合のみ `sdd-forge upgrade` を実行し、生成済み skill artifacts に反映する。",
+    "未解決の user decision が残る draft を自動承認する手順は追加しない。approval metadata を設定するのは unresolved decision がない場合に限定する。"
+  ],
+  "design_principles": [
+    "Fix the procedure that prepares draft-gate inputs rather than weakening draft-gate validation.",
+    "Keep the guidance close to the step that runs draft-gate so users see the required setup immediately before the gate command."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/prompts/plan/draft-gate.md` owns the per-step instructions shown immediately before running the draft gate."
+      },
+      {
+        "text": "`src/flow/prompts/plan/draft-coverage-review.md` describes the PASS path from coverage review into draft-gate."
+      },
+      {
+        "text": "`src/flow/prompts/plan/draft-coverage-repair.md` already owns approval metadata setup for the repair path."
+      },
+      {
+        "text": "`src/flow/lib/draft-lifecycle.js` validates draft approval and rejects draft artifacts whose approval.approved is not true."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "After draft-refine resolves QA, draft coverage review writes detection artifacts. If no unresolved user decision remains, the flow proceeds toward draft-gate, where draft lifecycle validation checks approval metadata before spec writing."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked draft approval validation: draft-gate still requires approval.approved.",
+        "evidence": "`src/flow/lib/draft-lifecycle.js` `DraftApproval.validate()` returns `draft approval is required: set approval.approved = true` when the approval object is missing or not approved."
+      },
+      {
+        "text": "[VERIFY] Checked existing repair path: approval metadata is already set after draft coverage repair when no unresolved user decision remains.",
+        "evidence": "`src/flow/prompts/plan/draft-coverage-repair.md` instructs writing `draft-coverage-repair.json`, then setting `draft.json.approval.approved` and `approval.confirmedAt` before `draft-gate` when no `requires_user_decision` item remains."
+      },
+      {
+        "text": "Add missing guidance to the pre-gate procedure rather than changing validation.",
+        "evidence": "Issue #357 identifies missing approval metadata setup documentation as the cause; draft lifecycle validation is the intended gate contract."
+      },
+      {
+        "text": "[VERIFY] Checked dispatcher architecture: generated skill artifacts do not inline draft-gate prompt text.",
+        "evidence": "`src/skills/sdd-forge.flow/SKILL.md` states it is a thin dispatcher; `src/flow/lib/get-step-instructions.js` loads per-step instructions from prompt files such as `src/flow/prompts/plan/draft-gate.md`."
+      },
+      {
+        "text": "Impact on existing features: only SDD flow prompt guidance changes; draft schema, approval validation, generated skill dispatcher behavior, and spec approval metadata behavior remain unchanged.",
+        "evidence": "Scope excludes draft lifecycle schema changes, validation weakening, unresolved-decision auto-approval, and spec approval metadata changes."
+      }
+    ]
+  },
+  "background": "Issue #357 reports that draft-gate can fail after QA entries are resolved because `draft.json.approval.approved` remains false. The source validation already requires draft approval, and the repair path already documents approval setup. The missing behavior is a clear pre-gate instruction for the normal PASS path so draft-gate is run only after approval metadata has been explicitly set or confirmed.\n\nImpact on existing features: this change affects SDD flow prompt guidance only. Existing draft lifecycle validation, draft schema, generated skill dispatcher behavior, and spec approval metadata behavior remain unchanged.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`draft-gate` step guidance must instruct the operator to confirm `draft.json.approval.approved` is true and `approval.confirmedAt` is set before running `sdd-forge flow run gate --phase draft` when no unresolved user decision remains.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The guidance must preserve the existing validation contract: it must not tell users to bypass `DraftApproval.validate()`, loosen draft-gate approval checks, or approve a draft while a `requires_user_decision` item remains unresolved.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The corrected pre-draft-gate approval setup guidance must be verifiable through `src/flow/prompts/plan/draft-gate.md` and the `sdd-forge flow get next-action` instructions for the `draft-gate` step.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`src/flow/prompts/plan/draft-gate.md` contains a pre-gate approval setup/check instruction that names `approval.approved`, `approval.confirmedAt`, and `sdd-forge flow run gate --phase draft`.",
+    "The guidance explicitly limits automatic approval metadata setup to the case where no unresolved user decision remains.",
+    "The implementation does not modify `src/flow/lib/draft-lifecycle.js` to weaken approval validation.",
+    "`sdd-forge flow get next-action` for the `draft-gate` step includes the corrected approval setup guidance rendered from the prompt source.",
+    "Spec-local tests verify the guidance text and verify that draft lifecycle validation still rejects an unapproved draft while accepting an approved draft."
+  ],
+  "clarifications": [
+    {
+      "q": "Should the fix change draft-gate validation so approval is optional?",
+      "a": "No. The issue is the missing setup instruction before draft-gate, and validation remains the source of truth."
+    },
+    {
+      "q": "Should a draft with unresolved user decisions be auto-approved?",
+      "a": "No. Approval metadata setup is allowed only after unresolved user decisions are absent."
+    },
+    {
+      "q": "Should generated skill artifacts be updated?",
+      "a": "Only when `src/skills/` source changes. Draft-gate per-step guidance is loaded from `src/flow/prompts/plan/draft-gate.md`, so generated skill artifacts are not the runtime location for this prompt text."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Loosen `DraftApproval.validate()` so draft-gate passes without approval metadata",
+      "reason": "Rejected because this bypasses the gate contract and can let unapproved drafts proceed to spec writing."
+    },
+    {
+      "option": "Update only `draft-coverage-repair.md`",
+      "reason": "Rejected because that path already documents approval setup; the reported gap is the pre-gate procedure visible before `draft-gate`, including the PASS path."
+    },
+    {
+      "option": "Require `.agents/skills/sdd-forge.flow/SKILL.md` to contain the draft-gate approval setup text",
+      "reason": "Rejected because generated `sdd-forge.flow` remains a dispatcher; per-step instructions are loaded by next-action from prompt files, so that artifact is not the correct runtime target."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "draft-gate",
+    "draft approval",
+    "approval.approved",
+    "approval.confirmedAt",
+    "DraftApproval",
+    "draft lifecycle",
+    "draft-coverage-review",
+    "draft-coverage-repair",
+    "next-action",
+    "get-step-instructions"
+  ],
+  "implementationTargets": [
+    "src/flow/prompts/plan/draft-gate.md",
+    "src/flow/lib/get-step-instructions.js",
+    "specs/277-approval-before-draft-gate/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add approval setup guidance",
+      "goal": "Update the draft-gate procedure so it explicitly tells operators to set or confirm draft approval metadata before running the gate when no unresolved user decision remains.",
+      "acceptance": [
+        "Pre-gate guidance names `approval.approved` and `approval.confirmedAt`.",
+        "Pre-gate guidance appears before or adjacent to the `sdd-forge flow run gate --phase draft` instruction.",
+        "Guidance says approval metadata setup is allowed only when no unresolved user decision remains.",
+        "`sdd-forge flow get next-action` for draft-gate renders the corrected guidance."
+      ],
+      "implementation_notes": "Update the step prompt that owns draft-gate instructions. Do not require generated skill artifacts to inline prompt text. Do not change draft lifecycle validation.",
+      "test_strategy": "Add a spec-local Node test with `// spec: R1 R2 R3` that checks the prompt guidance text, verifies next-action renders the guidance for draft-gate, and checks `DraftApproval` validation behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-04T14:16:46.325Z",
+    "notes": "User selected option 1 to approve the gate-passed spec."
+  },
+  "specId": "277-approval-before-draft-gate"
+}

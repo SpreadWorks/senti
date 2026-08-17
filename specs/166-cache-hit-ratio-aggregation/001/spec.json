@@ -1,0 +1,132 @@
+{
+  "goal": "Add a standalone `sdd-forge metrics token` subcommand that aggregates token/cache/cost metrics from `specs/*/flow.json` and outputs the same aggregated data in `text`, `json`, and `csv` formats.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Add top-level CLI entry for `sdd-forge metrics`.",
+      "Implement `token` subcommand under `metrics`.",
+      "Support `--format text|json|csv` (`text` default).",
+      "Read metrics only from `specs/*/flow.json`.",
+      "Add cache file `.sdd-forge/output/metrics.json` with freshness check based on `specs/*/flow.json` mtimes.",
+      "Render text output as phase blocks with date rows and metric columns."
+    ],
+    "out": [
+      "`sdd-forge metrics efficiency` subcommand.",
+      "Runtime reading from `.tmp/logs/**`.",
+      "Warning output for data that exists only in `.tmp/logs/**`."
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "P1-R1: When the user runs `sdd-forge metrics token`, the CLI shall execute as an independent top-level command and shall not require `check` subcommands."
+    },
+    {
+      "id": "R2",
+      "desc": "P1-R2: When aggregating runtime data, the command shall read only `specs/*/flow.json` and shall not read `.tmp/logs/**`."
+    },
+    {
+      "id": "R3",
+      "desc": "P1-R3: When `--format` is omitted, output shall default to `text`; when specified as `json` or `csv`, output shall represent the same aggregation values as text output."
+    },
+    {
+      "id": "R4",
+      "desc": "P1-R4: When rendering `text`, output shall be grouped by phase (`PHASE <name>`), rows shall be dates, and columns shall include difficulty, token input, token output, cache read, cache create, call count, and cost."
+    },
+    {
+      "id": "R5",
+      "desc": "P1-R5: When any required source field for a cell is missing in `flow.json`, the command shall render `N/A` for that value and continue successfully."
+    },
+    {
+      "id": "R6",
+      "desc": "P1-R6: When runtime failure occurs (e.g., unreadable `flow.json`, invalid JSON, cache write failure), the command shall print an error and exit with non-zero status."
+    },
+    {
+      "id": "R7",
+      "desc": "P1-R7: When loading source files, the command shall enforce bounded usage: process at most 5000 `specs/*/flow.json` files, and fail with non-zero status if this bound is exceeded."
+    },
+    {
+      "id": "R8",
+      "desc": "P2-R8: When `.sdd-forge/output/metrics.json` is missing or older than any `specs/*/flow.json`, the command shall regenerate cache; otherwise it shall reuse existing cache."
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: `sdd-forge metrics token` runs successfully and supports `--format text|json|csv` (`text` default).",
+    "AC2: For the same input set, `text`, `json`, and `csv` outputs contain equivalent per-date/per-phase metric values.",
+    "AC3: Text output includes per-phase sections and table columns: difficulty, token in, token out, cache read, cache create, call count, cost.",
+    "AC4: Missing fields in source data are rendered as `N/A` without process failure.",
+    "AC5: Cache behavior matches freshness rules: - missing/stale cache regenerates - fresh cache is reused.",
+    "AC6: Runtime failures return non-zero exit code.",
+    "AC7: If matching `flow.json` count exceeds 5000, command fails with non-zero exit code."
+  ],
+  "clarifications": [
+    {
+      "q": "Should #125 include CLI integration scope?",
+      "a": "Yes. Include CLI integration in this spec."
+    },
+    {
+      "q": "Should the command be under `check`?",
+      "a": "No. Implement as standalone top-level `sdd-forge metrics`."
+    },
+    {
+      "q": "Which runtime data source should be used?",
+      "a": "`flow.json` only."
+    },
+    {
+      "q": "Should runtime warn when data exists only in `.tmp/logs`?",
+      "a": "No warning."
+    },
+    {
+      "q": "Which formats are in scope now?",
+      "a": "`text` (default), `json`, and `csv` in the same release."
+    },
+    {
+      "q": "How should cache refresh be decided?",
+      "a": "Regenerate cache when any `specs/*/flow.json` is newer than `.sdd-forge/output/metrics.json`."
+    },
+    {
+      "q": "Should metrics command include efficiency view in this spec?",
+      "a": "No. Only `token` view is implemented now."
+    },
+    {
+      "q": "What text layout is required?",
+      "a": "Per-phase blocks, date rows, columns for difficulty, token input/output, cache read/create, call count, and cost."
+    },
+    {
+      "q": "Should difficulty be shown in token output?",
+      "a": "Yes. Show `difficulty`, `N/A` when unavailable."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Alternative",
+      "reason": "Implement under `sdd-forge check`. - Rejected because board memo 8690 requires `sdd-forge metrics` as an independent top-level command."
+    },
+    {
+      "option": "Alternative",
+      "reason": "Runtime fallback to `.tmp/logs/**`. - Rejected to keep portable, git-tracked source of truth centered on `flow.json`."
+    }
+  ],
+  "open_questions": [
+    "None in this spec. `efficiency` is intentionally deferred to a follow-up specification."
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "166-cache-hit-ratio-aggregation"
+}

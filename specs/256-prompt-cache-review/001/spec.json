@@ -1,0 +1,369 @@
+{
+  "goal": "Restore prompt-cache creation for review-spec and review-draft on providers that report cache_creation_input_tokens by moving current reviewer role, focus/rule, and output-format instructions into system prompts through PromptBuilder. Refactor PromptBuilder's section API and record provider/profile attribution in flow metrics.",
+  "scope": {
+    "in": [
+      "[must] src/lib/prompt-builder.js exposes addUserPrompt(header, content) and addSystemPrompt(header, content); setRole, setRules, setJsonSchema, and setFmtFallback remain overwrite-only.",
+      "[must] Every production PromptBuilder.add(...) call in src/ is migrated; a targeted scanner for PromptBuilder variables finds no `<promptBuilder>.add(...)` calls.",
+      "[must] src/flow/commands/review.js review-spec and review-draft prompts use PromptBuilder and pass systemPrompt/userPrompt to agent calls.",
+      "[must] src/flow/commands/review.js test-review gap-analysis and gap-fix calls pass the pre-loop testDesign value through systemPrompt.",
+      "[must] Flow agent metrics include string fields provider and profileKey; get-status / metrics token JSON aggregate them under providers[provider][profileKey] with exact bucket schemas.",
+      "[must] Tests cover PromptBuilder output, migrated review prompts, absence of PromptBuilder.add in src/, provider/profile metric attribution, and exact numeric metric aggregation."
+    ],
+    "out": [
+      "Public CLI command names and options.",
+      "External npm dependencies.",
+      "Provider token parsing semantics except passing provider/profile identity into metrics.",
+      "Behavioral redesign of docs prompts beyond renaming PromptBuilder.add to addUserPrompt.",
+      "npm publish, npm dist-tag, release tagging."
+    ]
+  },
+  "constraints": [
+    "Node.js built-in modules only; no dependency additions.",
+    "Alpha policy: remove the old PromptBuilder.add API instead of keeping compatibility aliases.",
+    "PromptBuilder remains provider-agnostic; provider-specific CLI behavior stays in agent/provider layers.",
+    "Metric readers must tolerate older flow.json entries without provider/profile by aggregating them under providers.unknown.unknown.",
+    "No public CLI interface changes; exit-code contracts for existing commands remain unchanged."
+  ],
+  "design_principles": [
+    "Make prompt section target explicit at the call site: addUserPrompt for user content, addSystemPrompt for system content.",
+    "Keep docs command migrations behavior-preserving: docs call sites use user prompt sections unless they already passed a systemPrompt.",
+    "Make cache and cost diagnostics provider-aware; cacheCreation=0 is meaningful only with provider/profile context.",
+    "Use exact string and numeric assertions in tests instead of subjective prompt quality checks."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/prompt-builder.js — refactor section storage into system/user append lists and expose addUserPrompt/addSystemPrompt."
+      },
+      {
+        "text": "src/flow/commands/review.js — migrate review-spec, review-draft, and test-review gap prompts to PromptBuilder system/user payloads."
+      },
+      {
+        "text": "src/flow/commands/review.js buildDraftSystemPrompt — keep impl-review reviewer/guardrail perspectives in the system prompt when migrating its PromptBuilder.add usage."
+      },
+      {
+        "text": "src/lib/agent.js / src/lib/provider.js / src/lib/flow-store.js — pass provider/profileKey identity into agent metric entries."
+      },
+      {
+        "text": "src/flow/lib/get-status.js / src/metrics/commands/token.js — aggregate provider/profile metric buckets and preserve existing token/cache/cost totals; metrics token cache version is bumped because row JSON shape changes."
+      },
+      {
+        "text": "src/flow/commands/report.js — consumes buildMetricsSummary totals; report output preserves existing tokenMetrics totals and does not add provider buckets in this spec."
+      },
+      {
+        "text": "src/docs/** and src/flow/** PromptBuilder consumers — rename generic user-section usage from add(...) to addUserPrompt(...)."
+      },
+      {
+        "text": "specs/256-prompt-cache-review/tests/ — focused regression tests for PromptBuilder, review prompt split, call-site migration, and metrics."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Review call site → PromptBuilder.setRole/setRules/addSystemPrompt/addUserPrompt → build() → agent.call(userPrompt, { systemPrompt, jsonSchema, fmtFallback })."
+      },
+      {
+        "text": "Agent.resolve(commandId) → { provider, profile, profileKey } → runWithLogging → flowManager.accumulateAgentMetrics(phase, { usage, provider, profileKey, ... })."
+      },
+      {
+        "text": "flow.json metrics[] → get-status / metrics token aggregation → existing totals plus providers[provider][profileKey] buckets; missing provider/profileKey becomes unknown/unknown."
+      },
+      {
+        "text": "metrics token cache: CACHE_VERSION changes when provider buckets are added so .sdd-forge/output/metrics.json is rebuilt with the new row shape."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] PromptBuilder currently has setRole, setRules, setJsonSchema, setFmtFallback, and generic add(header, content); add only appends userPrompt sections.",
+        "evidence": "src/lib/prompt-builder.js: constructor initializes _sections; add(header, content) pushes to _sections; build() renders _sections into userPrompt."
+      },
+      {
+        "text": "[VERIFY] review-spec and review-draft currently construct one string prompt containing reviewer role/focus/output-format plus artifact/context sections.",
+        "evidence": "src/flow/commands/review.js buildSpecReviewPrompt and buildDraftReviewPrompt return joined string arrays containing role text, Focus bullets, output format, and user artifact sections."
+      },
+      {
+        "text": "[VERIFY] test-review creates testDesign before runReviewLoop, then reuses it in gap analysis/fix prompt construction.",
+        "evidence": "src/flow/commands/review.js runTestReview creates const testDesign before runReviewLoop; detect() calls buildGapAnalysisPrompt(testDesign, testFiles)."
+      },
+      {
+        "text": "[VERIFY] Agent.resolve already knows provider/profile/profileKey, but metrics currently receive model:null and no provider/profileKey.",
+        "evidence": "src/lib/agent.js resolve() returns provider, profile, profileKey; runWithLogging calls accumulateAgentMetrics with model:null only."
+      },
+      {
+        "text": "[VERIFY] flow-store records token/cache/cost totals but has no provider/profileKey fields.",
+        "evidence": "src/lib/flow-store.js accumulateAgentMetrics writes callCount, responseChars, durationMs, model, tokens, cost."
+      },
+      {
+        "text": "Provider bucket shape is nested providers[provider][profileKey] to avoid escaping rules for compound keys. Missing metadata is normalized to provider=unknown and profileKey=unknown.",
+        "evidence": "draft.json qa[6] and gate-draft fixes after provider:profileKey ambiguity."
+      },
+      {
+        "text": "Docs command PromptBuilder migrations are API-only. They must not introduce a systemPrompt where the call site previously used only user prompt content.",
+        "evidence": "draft.json qa[2]; rg showed PromptBuilder.add use in docs commands and template merger."
+      }
+    ]
+  },
+  "background": "Issue #320 reports cacheCreation=0 for review-spec and review-draft after prior PromptBuilder work. The affected review prompts still assemble reviewer role, rules/focus, format guidance, and dynamic artifact/context into a single user prompt. That prevents providers with system-prompt cache creation from seeing stable review instructions through the system prompt path. The same investigation found that flow metrics record token/cache/cost totals but not provider/profile attribution, making future cache regressions harder to diagnose.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "PromptBuilder exposes addUserPrompt(header, content) and addSystemPrompt(header, content). addUserPrompt appends `${header}\\n${content}` to userPrompt in insertion order. addSystemPrompt appends `${header}\\n${content}` to systemPrompt after setRole and setRules output. setRole, setRules, setJsonSchema, and setFmtFallback remain overwrite-only. The old add(header, content) method is removed.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "All production PromptBuilder call sites in src/ use addUserPrompt or addSystemPrompt. A targeted static test scans imports/new PromptBuilder variables and fails on any `<promptBuilderVariable>.add(...)` call, while ignoring unrelated Set.add and Map-like add calls. Docs command migrations preserve current user-prompt-only behavior unless the call site already passed a systemPrompt before this spec. src/flow/commands/review.js buildDraftSystemPrompt keeps `## Additional Guardrail Review Perspectives` in systemPrompt by using addSystemPrompt.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "review-spec prompt construction in src/flow/commands/review.js uses PromptBuilder. The systemPrompt contains `You are a spec completeness reviewer`, the current `Focus on:` bullet section, and `Output a numbered list of proposals`. The userPrompt contains artifact/context sections including `## Spec` and `## Codebase Context` and does not contain those three instruction blocks.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "review-draft prompt construction in src/flow/commands/review.js uses PromptBuilder. The systemPrompt contains `You are a draft QA quality reviewer`, the current `Focus on:` bullet section, and `Output a numbered list of issues`. The userPrompt contains artifact/context sections including `## Request / Issue` and `## Draft QA Entries` and does not contain those three instruction blocks.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "test-review gap-analysis and gap-fix calls pass the single testDesign value created before runReviewLoop through the systemPrompt argument, remove `## Test Design` from their userPrompt content, and keep changing test files/gap data in userPrompt. A test asserts `systemPrompt.includes(testDesign)` and `!userPrompt.includes(\"## Test Design\")` for both calls.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Agent metric entries include string fields provider and profileKey for new agent calls. provider is the resolved Provider class key for built-ins or `user` for UserProvider. profileKey is the resolved profile key returned by Agent.resolve. accumulateAgentMetrics({ provider, profileKey }) persists provided strings and normalizes missing/null/non-string values to `unknown` at the storage boundary. Existing tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation, cost, costIncomplete, callCount, responseChars, durationMs, and model aggregation behavior is unchanged.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "src/flow/lib/get-status.js metricsSummary aggregates provider/profile buckets as nested providers[provider][profileKey] objects whose bucket shape is { callCount, responseChars, durationMs, tokens: { input, output, cacheRead, cacheCreation }, cost, costIncomplete, models }. Entries without provider/profileKey aggregate under providers.unknown.unknown. Numeric totals equal exact source-entry sums; costIncomplete is true when any source entry in the bucket has costIncomplete true.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "src/metrics/commands/token.js JSON rows aggregate provider/profile buckets as nested providers[provider][profileKey] objects whose bucket shape mirrors row field names: { tokenInput, tokenOutput, cacheRead, cacheCreate, callCount, cost, costIncomplete, durationMs }. phaseSummary[phase].providers is required with the same bucket shape summed across phase rows; costIncomplete is true when any source row in the bucket has costIncomplete true. CACHE_VERSION is incremented so cached .sdd-forge/output/metrics.json rows are rebuilt after the row shape change.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "src/flow/commands/report.js remains in scope as a compatibility consumer. buildReportTotals ignores provider buckets and report.json / report text preserve the existing tokenMetrics totals without adding provider/profile output in this spec.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Tests using mocked review-spec and review-draft agent usage with cache_creation_tokens > 0 record cacheCreation > 0 in flow metric entries and in providers[provider][profileKey] buckets. Tests using mocked provider usage with cache_creation_tokens = 0 record cacheCreation = 0 while still recording provider/profileKey, making non-reporting providers visible without requiring a live provider run.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "No public CLI command names, options, or exit-code contracts change. `sdd-forge flow get status` and `sdd-forge metrics token --format json` remain successful with older flow.json files that lack provider/profileKey.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A targeted static test over PromptBuilder variables finds no `<promptBuilderVariable>.add(...)` call and ignores unrelated Set.add calls.",
+    "PromptBuilder tests assert systemPrompt/userPrompt section ordering, jsonSchema pass-through, fmtFallback pass-through, and absence of add().",
+    "review-spec tests assert systemPrompt includes `You are a spec completeness reviewer`, `Focus on:`, and `Output a numbered list of proposals`, while userPrompt includes `## Spec` and `## Codebase Context` and excludes those instruction blocks.",
+    "review-draft tests assert systemPrompt includes `You are a draft QA quality reviewer`, `Focus on:`, and `Output a numbered list of issues`, while userPrompt includes `## Request / Issue` and `## Draft QA Entries` and excludes those instruction blocks.",
+    "test-review prompt tests assert gap-analysis and gap-fix calls receive systemPrompt that includes the exact testDesign fixture string and userPrompt does not include `## Test Design`.",
+    "Metric tests assert new entries carry provider/profileKey, direct/internal missing values normalize to unknown, and older entries aggregate under providers.unknown.unknown.",
+    "Metric aggregation tests assert exact numeric sums and costIncomplete OR behavior for get-status bucket shape and metrics token JSON row / phaseSummary bucket shapes.",
+    "metrics token cache tests assert CACHE_VERSION changed and stale cached rows are rebuilt.",
+    "report tests assert buildReportTotals/report output preserve existing tokenMetrics totals and ignore providers buckets.",
+    "Mocked review-spec and review-draft agent usage with cache_creation_tokens > 0 records cacheCreation > 0 in flow metrics and provider/profile buckets.",
+    "npm test passes.",
+    "`node --test specs/256-prompt-cache-review/tests/*.test.js` passes for spec-local tests because npm test does not discover specs/<id>/tests by default.",
+    "npm run test:agent passes because src/lib/agent.js and src/flow/commands/review.js are modified."
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "Keep PromptBuilder.add as an alias",
+      "reason": "Rejected by alpha policy: deprecated compatibility paths are removed rather than retained."
+    },
+    {
+      "option": "Migrate only review.js",
+      "reason": "Rejected because old and new PromptBuilder section APIs would coexist across src/ and make future prompt changes error-prone."
+    },
+    {
+      "option": "Use a flat provider:profileKey bucket key",
+      "reason": "Rejected because provider or profileKey values could contain a colon; nested providers[provider][profileKey] avoids escaping rules."
+    },
+    {
+      "option": "Assert total cost decreases",
+      "reason": "Rejected because providers account for systemPrompt tokens differently; the testable requirement is exact provider/profile cost attribution, not a universal cost decrease."
+    },
+    {
+      "option": "Expose provider buckets in report.json",
+      "reason": "Rejected for this spec because get-status and metrics token JSON are the diagnostic surfaces; report output remains compatibility-only and preserves existing tokenMetrics totals."
+    },
+    {
+      "option": "Combine review-spec and review-draft prompt builders",
+      "reason": "Rejected because the reviewed artifacts and output formats differ; shared helper extraction can happen only for duplicated mechanics, not for distinct reviewer criteria."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "PromptBuilder",
+    "addUserPrompt",
+    "addSystemPrompt",
+    "review-spec",
+    "review-draft",
+    "testDesign",
+    "systemPrompt",
+    "cacheCreation",
+    "provider",
+    "profileKey",
+    "flow metrics",
+    "metricsSummary",
+    "metrics token",
+    "agent metrics",
+    "prompt caching"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Refactor PromptBuilder API",
+      "goal": "Replace the generic PromptBuilder.add API with explicit addUserPrompt and addSystemPrompt methods while preserving setter behavior and build output fields.",
+      "acceptance": [
+        "src/lib/prompt-builder.js exports PromptBuilder with addUserPrompt and addSystemPrompt.",
+        "PromptBuilder.add is removed.",
+        "build() returns systemPrompt, userPrompt, jsonSchema, and fmtFallback.",
+        "System sections render after role/rules and before userPrompt."
+      ],
+      "implementation_notes": "Keep PromptBuilder provider-agnostic. Use arrays for system/user sections rather than object literals with discriminators.",
+      "test_strategy": "Unit tests under specs/256-prompt-cache-review/tests for section ordering, overwrite setters, jsonSchema/fmtFallback pass-through, and missing add().",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Migrate PromptBuilder call sites",
+      "goal": "Update every production PromptBuilder consumer to the explicit section API without changing docs command prompt behavior.",
+      "acceptance": [
+        "All former user sections call addUserPrompt.",
+        "buildDraftSystemPrompt migrates Additional Guardrail Review Perspectives with addSystemPrompt.",
+        "Targeted static test finds no PromptBuilder variable `.add(...)` call in src/.",
+        "Docs command call sites remain user-prompt-only unless they already passed systemPrompt before this spec."
+      ],
+      "implementation_notes": "Use `rg \"new PromptBuilder|\\.add\\(\" src` to drive the migration. Do not refactor unrelated prompt text.",
+      "test_strategy": "Add a targeted scanner test under specs/256-prompt-cache-review/tests and run it with node --test; existing docs tests continue to pass.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Split review prompts",
+      "goal": "Move review-spec and review-draft reviewer instructions into systemPrompt while keeping artifact/context sections in userPrompt.",
+      "acceptance": [
+        "review-spec systemPrompt contains reviewer, Focus on, and output-format instruction blocks.",
+        "review-spec userPrompt contains Spec and Codebase Context sections and excludes reviewer/Focus/output-format instruction blocks.",
+        "review-draft systemPrompt contains reviewer, Focus on, and output-format instruction blocks.",
+        "review-draft userPrompt contains Request / Issue and Draft QA Entries sections and excludes reviewer/Focus/output-format instruction blocks."
+      ],
+      "implementation_notes": "If helper functions return PromptBuilder.build() objects, update callReviewAgent usage accordingly. Preserve proposal parsing and artifact writing behavior.",
+      "test_strategy": "Unit tests inspect built prompt payloads or mocked callReviewAgent arguments.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Move testDesign to system prompt",
+      "goal": "Pass the pre-loop testDesign value as systemPrompt context for test-review gap-analysis and gap-fix calls.",
+      "acceptance": [
+        "Gap-analysis call receives systemPrompt containing testDesign and userPrompt without `## Test Design`.",
+        "Gap-fix call receives systemPrompt containing testDesign and userPrompt without `## Test Design`.",
+        "testFiles remain in userPrompt for each iteration."
+      ],
+      "implementation_notes": "Do not change test design generation or test-review PASS/FAIL artifact behavior.",
+      "test_strategy": "Mock callReviewAgent and assert systemPrompt.includes(testDesign) for detect and fix paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Add provider metrics",
+      "goal": "Carry provider and profileKey identity from Agent.resolve through flow metric entries.",
+      "acceptance": [
+        "New agent metric entries contain provider and profileKey string fields.",
+        "Built-in Claude/Codex providers produce their provider key.",
+        "UserProvider entries use provider=user.",
+        "Existing token/cache/cost/costIncomplete/model fields remain unchanged.",
+        "Missing provider/profileKey values normalize to unknown at accumulateAgentMetrics."
+      ],
+      "implementation_notes": "Provider identity may be derived from the Provider class key or registry resolution result. Avoid changing provider parse() usage values.",
+      "test_strategy": "Agent/flow-store unit tests with fake usage and fake resolved profiles assert emitted metric entries.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-6",
+      "title": "Aggregate provider metrics",
+      "goal": "Expose provider/profile buckets in status and metrics token JSON while preserving exact numeric totals.",
+      "acceptance": [
+        "get-status metricsSummary includes providers[provider][profileKey] with tokens-shaped buckets including costIncomplete.",
+        "metrics token --format json rows and phaseSummary include providers[provider][profileKey] with row-shaped buckets including costIncomplete.",
+        "Older entries without metadata aggregate under providers.unknown.unknown.",
+        "Numeric totals equal exact source-entry sums.",
+        "CACHE_VERSION is incremented and stale cached metrics rows are rebuilt.",
+        "report output preserves existing tokenMetrics totals and ignores providers buckets."
+      ],
+      "implementation_notes": "Keep existing text output stable unless a minimal provider summary is already expected by tests. JSON output is the required surface. report.js is a compatibility consumer only.",
+      "test_strategy": "Pure aggregation tests for new and older metric entries; include cost sum and costIncomplete fixtures with multiple providers, metrics cache rebuild fixture, and report totals fixture.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    },
+    {
+      "id": "T-7",
+      "title": "Verify review cache metrics",
+      "goal": "Validate that review-spec and review-draft metric paths preserve cacheCreation values from mocked provider usage and attach provider/profile attribution.",
+      "acceptance": [
+        "Mocked review-spec usage with cache_creation_tokens > 0 records cacheCreation > 0.",
+        "Mocked review-draft usage with cache_creation_tokens > 0 records cacheCreation > 0.",
+        "Mocked provider usage with cache_creation_tokens = 0 records cacheCreation = 0 and still records provider/profileKey."
+      ],
+      "implementation_notes": "Use existing review command metric paths with mocked agent/provider usage. Do not treat Codex cacheCreation=0 as failure when provider parse reports no cache_creation_input_tokens.",
+      "test_strategy": "Unit tests use mocked provider usage values for both cache_creation_tokens > 0 and cache_creation_tokens = 0; no live provider run is required for PASS/FAIL.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-10T00:35:11.531Z",
+    "notes": "autoApprove; review-spec remaining proposals accepted by user as non-blocking"
+  },
+  "specId": "256-prompt-cache-review"
+}

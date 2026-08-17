@@ -1,0 +1,57 @@
+{
+  "goal": "issue 起点の SDD フローが finalize された際、実装レポート（report.text）を元の GitHub issue にコメントとして自動投稿する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/run/finalize.js`: report ステップ完了後に gh issue comment を実行するロジック追加"
+    ],
+    "out": [
+      "report.text のフォーマット変更（既存のプレフォーマット済みテキストをそのまま使用）",
+      "gh 未インストール時のフォールバック（インストール案内等）",
+      "PR コメントへの投稿（issue コメントのみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "issue 起点のフローで finalize すると、元 issue にレポートコメントが投稿される",
+    "issue 番号がない場合、コメント投稿はスキップされる",
+    "gh が利用できない場合、コメント投稿はスキップされる",
+    "コメント投稿が失敗しても finalize は成功する（エラーは stderr に出力され、results に記録される）",
+    "コメント本文は report.text そのまま（ヘッダー追加なし）"
+  ],
+  "clarifications": [
+    {
+      "q": "gh が利用できない場合どうするか？",
+      "a": "スキップする（警告なし）。条件は `state.issue` が存在 AND `isGhAvailable()` が true の場合のみ投稿。"
+    },
+    {
+      "q": "merge 失敗時もコメントを投稿するか？",
+      "a": "する。report は commit + retro の結果で merge とは独立。report 生成後（merge の前）に投稿する。"
+    },
+    {
+      "q": "コメントの先頭にヘッダーを付けるか？",
+      "a": "付けない。report.text をそのまま投稿する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "130-post-report-to-issue"
+}

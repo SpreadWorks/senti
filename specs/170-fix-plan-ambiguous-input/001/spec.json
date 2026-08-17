@@ -1,0 +1,71 @@
+{
+  "goal": "flow-plan スキルにおいて、曖昧入力（`#133`, `133` 等）の誤解釈を防止し、draft フェーズを必須化することで要件未確定のまま実装に進むことを防ぐ。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`flow get context` への `--exclude` オプション追加（analysis.json は specs/ を含まないため不要）",
+      "`flow prepare` コマンドの変更",
+      "`flow-auto` スキルの変更",
+      "gate / spec / impl 以降のフロー変更",
+      "`flow prepare --auto` オプション等の新規 CLI オプション追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: 曖昧入力（例: `133 を対応して`）を与えた場合、AI は確認質問を行い、無確認で先に進まない。",
+    "AC2: `#133` を与えた場合、AI は GitHub Issue として解釈し、`flow get issue 133` を実行する。ローカル spec 探索へ誤遷移しない。",
+    "AC3: `spec 133` を与えた場合、AI はローカル spec として解釈する。",
+    "AC4: autoApprove モードで flow-plan に入った場合、解釈確認ステップはスキップされる。",
+    "AC5: `sdd-forge flow get prompt plan.approach` を実行すると、unknown kind エラーが返る。",
+    "AC6: draft フェーズは常に実行され、spec 直行の選択肢は存在しない。"
+  ],
+  "clarifications": [
+    {
+      "q": "draft vs spec 選択を廃止した場合、Step 1 は何になるか？",
+      "a": "「リクエスト解釈確認」ステップに置換する。AI がリクエストを解釈し、要約を提示してユーザーに確認を取る。"
+    },
+    {
+      "q": "autoApprove 時に解釈確認は必要か？",
+      "a": "不要。auto が有効 = flow.json に request/issue が確定済みなのでスキップする。"
+    },
+    {
+      "q": "`--exclude specs/**` オプションは必要か？",
+      "a": "不要。`flow get context --search` は analysis.json を検索するもので、specs/ は通常スキャン対象外。AI の振る舞いは SKILL.md ルールで制御する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**approach プロンプトを残して選択肢を変更する案**",
+      "reason": "draft の進め方選択等に変更する。しかし Issue の意図は「spec 直行の排除」なので、選択肢自体を廃止する方がシンプルで明確。"
+    },
+    {
+      "option": "**SKILL.md ルールのみ変更してプロンプトを残す案**",
+      "reason": "autoApprove 時に [1] 固定で動くので実質 draft 固定になるが、使われない選択肢が残り混乱の元。"
+    },
+    {
+      "option": "**`flow get context",
+      "reason": "exclude` CLI 拡張案**: analysis.json が specs/ を含まないため実効性がなく、不要。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "170-fix-plan-ambiguous-input"
+}

@@ -1,0 +1,57 @@
+{
+  "goal": "Essential 抽出を lang ハンドラに委譲し、JS/PHP/Python それぞれの言語に最適な抽出を実装する。minify.js から言語固有パターンを除去し、ディスパッチャに徹する設計にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/lib/lang/js.js` に `extractEssential(code)` ��追加",
+      "`src/docs/lib/lang/php.js` に `extractEssential(code)` を追加",
+      "`src/docs/lib/lang/py.js` に `extractEssential(code)` を追加",
+      "`src/docs/lib/minify.js` から `extractEssential` 関数を削除し、`handler.extractEssential` へのディスパッチに変更"
+    ],
+    "out": [
+      "`yaml.js` への `extractEssential` 追加（YAML はデータファイルであり Essential 抽出不要）",
+      "新しい言語ハンドラの追加",
+      "enrich のバッチ分割ロジックの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "JS ファイルに対して `minify(code, \"file.js\", { mode: \"essential\" })` が import/export/return/throw 等を残すこと",
+    "PHP ファイルに対して `minify(code, \"file.php\", { mode: \"essential\" })` が require/use/namespace/function/class/return/throw 等を残すこと",
+    "Python ファイルに対して `minify(code, \"file.py\", { mode: \"essential\" })` が import/def/class/return/raise 等を残すこと",
+    "YAML ファイルに対して `minify(code, \"file.yaml\", { mode: \"essential\" })` が通常の minify にフォールバックすること",
+    "lang ハンドラがない拡張子に対して通常の minify にフォールバックすること",
+    "`npm test` が全件 PASS すること"
+  ],
+  "clarifications": [
+    {
+      "q": "handler.extractEssential がない場合はどうなるか？",
+      "a": "通常の minify（コメント削除）にフォールバック。情報は保持される。"
+    },
+    {
+      "q": "先ほどのコミット（minify.js への PHP/Python パターン直書き + 5% フォールバック）はどうなるか？",
+      "a": "削除する。PHP/Python パターンは各 lang ハンドラに移動し、5% フォールバックは lang ハンドラ方式で不要になる。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "118-fix-essential-extraction-multilang"
+}

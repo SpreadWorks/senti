@@ -1,0 +1,40 @@
+{
+  "goal": "preset 作成ガイド (`.sdd-forge/templates/ja/docs/creating_presets.md` と `en/` 版) を spec 191 で導入した preset DI factory 契約に同期させ、ガイドを唯一の参照とする読者 (AI 含む) が現行契約どおりに新規 preset を実装できる状態にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "既存 preset 実装コード (src/presets/**) の変更 — spec 191 で完了済み",
+      "Container 設計の変更 — spec 191 で確定済み",
+      "CLI コマンドインターフェースの変更 — 不変",
+      "日本語 / 英語以外の言語版の追加 — 現行 2 言語のみ対象"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [],
+  "alternatives_considered": [],
+  "open_questions": [
+    "既存落とし穴項目のうち、現行契約でも引き続き該当するが記述が古いものの扱い",
+    "en 版翻訳時に ja 版の用語と乖離する箇所の表記統一"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "194-update-creating-presets-di"
+}

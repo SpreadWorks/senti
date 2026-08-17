@@ -1,0 +1,65 @@
+{
+  "goal": "`sdd-forge` コマンドがバックグラウンドに移行した場合でも、完了するまで次フェーズに進まないことを AI に義務付ける。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/partials/core-principle.md` への MUST ルール追記",
+      "`sdd-forge upgrade` によるプロジェクトへの反映"
+    ],
+    "out": [
+      "プロダクトコード（`src/flow/`, `src/lib/` 等）の変更",
+      "エージェントタイムアウト値の変更",
+      "バックグラウンド移行そのものを防ぐ仕組みの実装"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`src/templates/partials/core-principle.md` に MUST ルールが追記されている",
+    "追記されたルールは「sdd-forge コマンドがバックグラウンドに移行した場合、完了通知を受け取るまで次フェーズに進んではならない」という趣旨を含む",
+    "`src/templates/partials/core-principle.md` と `src/templates/skills/sdd-forge.flow-finalize/SKILL.md` の両方が diff に含まれている"
+  ],
+  "clarifications": [
+    {
+      "q": "タイムアウト値の調整は対策になるか？",
+      "a": "タイムアウトは問題の本質ではない。バックグラウンドに移行した場合も「完了まで待機」が正しい要件。"
+    },
+    {
+      "q": "対象コマンドを個別に列挙するか？",
+      "a": "サブコマンドではなく `sdd-forge` コマンド全体を対象とする。列挙は漏れの原因になる。"
+    },
+    {
+      "q": "変更箇所はどこか？",
+      "a": "`core-principle.md` partial は flow-plan / flow-impl / flow-finalize の各 SKILL.md から include されており、1箇所の追記で全スキルに反映される。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**特定サブコマンドへの個別記述**",
+      "reason": "flow-finalize SKILL.md には類似の記述が既にあるが、他スキルに漏れがある。partial への追記で一元管理する方が保守性が高い。"
+    },
+    {
+      "option": "**バックグラウンド移行の防止（timeout 調整）**",
+      "reason": "ユーザー確認の結果、根本解決ではなく「移行しても待つ」の方針に決定。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "163-prevent-bg-cmd-in-flow"
+}

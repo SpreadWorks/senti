@@ -1,0 +1,156 @@
+{
+  "goal": "flow step が done に遷移した際、同一スコープ内で次の pending step を in_progress へ自動昇格させ、skill / CLI 利用時の手動 step 更新操作を排除する。",
+  "background": "現行の flow-store.updateStepStatus は要求された step の status を差し替えるだけで、後続 step への進行は行わない。gate / review の post-hook は完了 step を done にするだけで、get-next-action は in_progress 不在時に NO_IN_PROGRESS_STEP エラーを返す。この結果、1 本の SDD flow を走らせる間に 7 箇所前後の手動 `flow set step <id> in_progress` が必要になり、auto mode では特に摩擦が大きい（Issue #235）。",
+  "scope": {
+    "in": [
+      "flow-store.updateStepStatus に「done 遷移時、同スコープに in_progress が存在しなければ先頭 pending を in_progress に昇格」するロジックを追加する。",
+      "get-next-action に「in_progress 不在時に先頭 pending を promote してからディスパッチ」するフォールバックを追加する。flow / task 両スコープで動作する。",
+      "src/templates/skills/sdd-forge.flow/SKILL.md から「NO_IN_PROGRESS_STEP 時の手動リカバリ」節を削除する。",
+      "auto-promote 挙動、フォールバック経路、既存 in_progress 時の非干渉を検証するユニットテストを追加する。"
+    ],
+    "out": [
+      "task 完了（completeTask）と flow-level step 進行の連携ルール変更。",
+      "複数 in_progress 許容や step graph 化など、進行モデル再設計。",
+      "finalize 以降の commit/merge/sync/cleanup の step 構造リファクタ。",
+      "SKILL.md 以外のテンプレート（.agents 等）への同等文書変更。"
+    ]
+  },
+  "constraints": [
+    "flow.json の JSON スキーマを変更しない（フィールド追加・削除なし）。",
+    "CLI コマンド・オプションのシグネチャを変更しない。",
+    "alpha 版ポリシーに従い後方互換シム・フラグを追加しない。",
+    "pending → in_progress / skipped など done 以外の遷移では promote を行わない。",
+    "スコープ内に既に in_progress step がある場合は promote しない（単一 in_progress invariant 維持）。",
+    "外部依存なし（Node.js 組み込みのみ）。"
+  ],
+  "design_principles": [
+    "Promotion の責務は state 書き込み点 (updateStepStatus) に集約する。post-hook ごとに分散させない。",
+    "get-next-action の promote は旧 state / 外部編集に対するセーフティネットとして位置付ける。",
+    "先頭 pending を昇格する単純ルールで十分。steps 配列は進行順に整列しており、skipped / done は自然に飛ばされる。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/flow-store.js — updateStepStatus に promote ロジックを追加。done 遷移時に同スコープで in_progress 不在 & 先頭 pending ありなら昇格する。"
+      },
+      {
+        "text": "src/flow/lib/get-next-action.js — resolveTarget が null のとき、flow / task スコープ順で先頭 pending を promote してから再度 resolveTarget する。"
+      },
+      {
+        "text": "src/templates/skills/sdd-forge.flow/SKILL.md — C.1 の NO_IN_PROGRESS_STEP 手動リカバリ手順を削除。CLI 自動化に依存する記述へ変更。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "set-step done → flowManager.updateStepStatus → mutate: step.status='done'; if (!scope.hasInProgress && hasPending) firstPending.status='in_progress'。"
+      },
+      {
+        "text": "flow get next-action → resolveTarget(state); 不在なら flow/task スコープの先頭 pending を promote → 再 load → resolveTarget → 通常ディスパッチ。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "done 遷移時の promote と get-next-action フォールバックで同じ判定ロジックを共有する（in_progress 不在 & 先頭 pending を拾う）。"
+      },
+      {
+        "text": "flow / task スコープの切替は既存 resolveMutationScope / findInProgress の振る舞いに合わせる。"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "updateStepStatus(stepId, 'done') が成功したとき、当該 step を含むスコープの steps 配列に他の in_progress step が存在しなければ、配列順で最初の pending step を in_progress に昇格させる。",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "updateStepStatus が done 以外の status を指定された場合、または同スコープに既に in_progress step が存在する場合は promote を行わず、従来通り指定 step のみ更新する。",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "flow get next-action 実行時、flow scope / task scope のいずれにも in_progress step が存在しない場合、先頭 pending を in_progress に昇格させ、state を再読込してから通常ディスパッチを続行する。昇格先が皆無のときのみ NO_IN_PROGRESS_STEP を返す。",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "src/templates/skills/sdd-forge.flow/SKILL.md の C.1 節から「On NO_IN_PROGRESS_STEP: ... 手動で first pending を in_progress に set してリトライ」相当の手順を削除し、CLI 自動化に依存する旨に置き換える。",
+      "priority": "must",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-5",
+      "desc": "REQ-1 / REQ-2 / REQ-3 の挙動をカバーするユニットテストを追加する（最小 3 ケース: done 遷移 promote、in_progress 在時の非干渉、next-action フォールバック）。",
+      "priority": "must",
+      "status": "pending"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-1: `npm test` が全パスする。既存テストが regression しない。",
+    "AC-2: 新規ユニットテストで REQ-1 / REQ-2 / REQ-3 が検証される。",
+    "AC-3: state fixture を用いた検証で、gate step を done にしたあと手動昇格なしで get-next-action が後続 step の envelope を返すこと。",
+    "AC-4: SKILL.md の C.1 から「NO_IN_PROGRESS_STEP」手動リカバリ記述が削除されていることを確認する。"
+  ],
+  "clarifications": [
+    {
+      "q": "auto-promote は done 遷移時に限定するか？",
+      "a": "限定する。in_progress → pending の逆遷移を意図的に行う余地を残す。初期の first-in_progress 不在は get-next-action フォールバックで吸収する。"
+    },
+    {
+      "q": "複数 in_progress 許容に広げるか？",
+      "a": "広げない。現行の単一 in_progress invariant を維持する。"
+    },
+    {
+      "q": "昇格先は先頭 pending と直後 pending どちらか？",
+      "a": "先頭 pending。steps 配列は進行順のため直後 pending と同等になり、skipped / done を自然にスキップできる。"
+    },
+    {
+      "q": "task スコープでの挙動は？",
+      "a": "task.steps 配列内で同じルールで昇格する。task 完了時の flow-level 進行は既存 completeTask の領域で変更しない。"
+    },
+    {
+      "q": "旧 flow.json との整合は？",
+      "a": "スキーマ変更なし。NO_IN_PROGRESS_STEP 状態で残っていた state は next-action 呼び出し時にフォールバックで復旧する。"
+    },
+    {
+      "q": "post-hook 側で promote する代替案は？",
+      "a": "採用しない。gate / review / finalize の各 post-hook が tryUpdateStepStatus を呼ぶため、updateStepStatus 1 箇所に集約する方が DRY。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "各 post-hook で promote を追記する",
+      "reason": "gate / review / finalize 等に分散して保守コストが上がる。却下。"
+    },
+    {
+      "option": "get-next-action のみで復旧する",
+      "reason": "永続 state が in_progress 不在のまま残り、外部 tooling から見て不整合。却下。"
+    },
+    {
+      "option": "state 書き込み点に集約 + next-action セーフティネット（採用案）",
+      "reason": "責務を 1 箇所に集約しつつ旧 state の復旧経路も確保できる。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/lib/flow-store.js",
+    "src/flow/lib/get-next-action.js",
+    "src/templates/skills/sdd-forge.flow/SKILL.md"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "219-auto-promote-next-step"
+}

@@ -1,0 +1,212 @@
+{
+  "goal": "Add a generic `migration-parity` guardrail to the base preset so migration-related changes must specify behavior parity before implementation.",
+  "scope": {
+    "in": [
+      "Add exactly one `migration-parity` entry to `src/presets/base/guardrail.json`.",
+      "Give the entry title `Migration Parity`, phase `[\"draft\", \"spec\"]`, and category `process`.",
+      "Write guardrail body text that applies to changes that move, split, extract, replace, or externalize existing behavior.",
+      "Include body clauses for existing behavior inventory, affected public surfaces, retained-behavior ownership mapping, retained-behavior acceptance criteria, behavior-level verification, insufficiency of registration/discovery/help/mock-routing-only evidence, and explicit removal impact statements.",
+      "Apply the base guardrail rewrite rubric by including a named violation, diff-verification conditions, and blocking/advisory severity policy in the guardrail body.",
+      "Add spec-local and project regression tests that prove the guardrail metadata, phase filtering, body concepts, generic wording, and representative pre-existing base guardrails.",
+      "Run `senti upgrade` after the base preset source changes."
+    ],
+    "out": [
+      "Do not include workflow plugin-specific background, board item identifiers, or repository-specific migration history in `src/` guardrail text.",
+      "Do not apply `migration-parity` to `task-impl` in this change.",
+      "Do not change guardrail loader, merger, or phase filtering semantics.",
+      "Do not add external dependencies."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers; no external dependencies.",
+    "Changing `src/presets/base/guardrail.json` requires running `senti upgrade` before finalization.",
+    "Guardrail text under `src/` must be generic package content and must not mention workflow plugin, board item ids, Issue #379, this repository's migration history, or local environment paths.",
+    "The guardrail body must contain at least one named violation, a `Diff-verification conditions` section, and both `Blocking when` and `Advisory when` severity-policy clauses.",
+    "Spec-local tests must live under `specs/289-migration-parity-guardrail/tests/` and include `// spec: R<N>` headers."
+  ],
+  "design_principles": [
+    "Represent this as a base process guardrail because it affects how specs are written before migration-like implementation starts.",
+    "Keep the body strict enough for gate/review evaluation but generic enough to apply outside the original workflow plugin migration context.",
+    "Test the guardrail as preset data consumed by the existing guardrail loader; do not add loader code for a data-only rule."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/presets/base/guardrail.json` is the core base preset guardrail source consumed by `src/lib/guardrail.js`."
+      },
+      {
+        "text": "`tests/unit/presets/base/req-diff-verifiability-guardrail.test.js` is an existing base guardrail metadata and phase-filter regression pattern."
+      },
+      {
+        "text": "`src/presets/base/guardrail-rewrite-rubric.md` defines the named violation, diff-verification, and severity-policy style expected for broad guardrails."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "The base preset JSON entry is loaded by the existing guardrail loader and filtered by phase for draft and spec checks."
+      },
+      {
+        "text": "Project regression tests read `src/presets/base/guardrail.json` and use `filterByPhase` to verify draft/spec inclusion and task-impl exclusion."
+      },
+      {
+        "text": "`senti upgrade` deploys changed preset or skill/config artifacts after the source preset changes."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked base guardrail source; result=match with data-only change.",
+        "evidence": "`src/presets/base/guardrail.json` contains cross-cutting guardrails with id/title/body/meta.phase/meta.category entries, including `req-diff-verifiability` and `impact-on-existing-features`."
+      },
+      {
+        "text": "[VERIFY] checked guardrail loader; result=match with no loader change needed.",
+        "evidence": "`src/lib/guardrail.js` loads guardrail JSON, validates phase/category against `src/lib/constants.js`, and filters entries by `meta.phase`."
+      },
+      {
+        "text": "[VERIFY] checked base guardrail tests; result=match with reusable test pattern.",
+        "evidence": "`tests/unit/presets/base/req-diff-verifiability-guardrail.test.js` reads base guardrails, builds an id map, checks metadata, tests `filterByPhase`, and spot-checks pre-existing ids."
+      },
+      {
+        "text": "Use draft/spec phases only.",
+        "evidence": "Issue #379 states `draft/spec` is appropriate and excludes `task-impl` because the rule should validate migration parity before implementation."
+      },
+      {
+        "text": "Include rewrite-rubric structure in the body.",
+        "evidence": "`src/presets/base/guardrail-rewrite-rubric.md` instructs broad guardrails to start checks with named violations, include diff-verification conditions, and define severity policy."
+      }
+    ]
+  },
+  "background": "Issue #379 requests a base guardrail for migration-related changes. Existing base guardrails require impact awareness and diff-verifiable requirements, but none explicitly require an inventory, ownership mapping, and behavior-level verification when existing public behavior is moved or replaced. This change adds that missing process rule as generic base preset data.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`src/presets/base/guardrail.json` must contain exactly one guardrail with id `migration-parity`, title `Migration Parity`, `meta.phase` equal to `[\"draft\", \"spec\"]`, and `meta.category` equal to `process`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The `migration-parity` body must state that changes moving, splitting, extracting, replacing, or externalizing existing behavior require migration parity before implementation; it must require existing public behavior inventory, affected public surface listing, retained-behavior owner mapping or explicit removal decision, acceptance criteria for retained behavior, at least one behavior-level verification per retained public surface, and explicit user-visible impact for intentional removals.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The `migration-parity` body must state that registration, discovery, help output, or mock routing alone is insufficient evidence, and it must include the literal section labels `Violation:`, `Diff-verification conditions:`, `Blocking when:`, and `Advisory when:`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Tests must verify the new guardrail exists, has draft/spec phase inclusion, has task-impl exclusion, uses category `process`, contains the R2 and R3 body concepts, contains no workflow plugin or board item wording, and preserves representative pre-existing base guardrail ids.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "After modifying `src/presets/base/guardrail.json`, `senti upgrade` must be executed and its resulting artifact changes or no-change evidence must be present in the flow artifacts.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: `src/presets/base/guardrail.json` contains exactly one `migration-parity` entry with title `Migration Parity`, phase `[\"draft\", \"spec\"]`, and category `process`.",
+    "AC2: The new body includes the migration trigger verbs `moves`, `splits`, `extracts`, `replaces`, and `externalizes` or their grammatical equivalents.",
+    "AC3: The new body requires inventory, public surface listing, owner/removal mapping, retained-behavior acceptance criteria, behavior-level verification per retained public surface, insufficiency of registration/discovery/help/mock-routing-only evidence, and user-visible removal impact.",
+    "AC4: The new body includes `Violation:`, `Diff-verification conditions:`, `Blocking when:`, and `Advisory when:`.",
+    "AC5: The new body does not include `workflow plugin`, `board item`, `Issue #379`, or `b443`.",
+    "AC6: `filterByPhase(entries, \"draft\")` and `filterByPhase(entries, \"spec\")` include `migration-parity`; `filterByPhase(entries, \"task-impl\")` excludes it.",
+    "AC7: Tests verify representative pre-existing base guardrail ids remain present.",
+    "AC8: `senti upgrade` is run after the preset source edit and the flow contains its upgrade evidence artifact."
+  ],
+  "clarifications": [
+    {
+      "q": "Should the guardrail apply during implementation?",
+      "a": "No. Issue #379 and draft approval exclude `task-impl`; the rule is for draft/spec parity definition before implementation."
+    },
+    {
+      "q": "Does this change require guardrail loader changes?",
+      "a": "No. Existing loader behavior supports a new data entry with valid phase and category metadata."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add the guardrail only to a workflow/plugin preset.",
+      "reason": "Rejected because Issue #379 identifies the rule as generic migration parity guidance for base, not workflow-specific behavior."
+    },
+    {
+      "option": "Use the short proposed body without rewrite-rubric sections.",
+      "reason": "Rejected because base guardrail updates must follow the guardrail rewrite rubric for named violation, diff-verification conditions, and severity policy."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "migration-parity",
+    "base guardrail",
+    "guardrail.json",
+    "filterByPhase",
+    "draft phase",
+    "spec phase",
+    "task-impl exclusion",
+    "guardrail rewrite rubric",
+    "senti upgrade",
+    "preset tests"
+  ],
+  "implementationTargets": [
+    "src/presets/base/guardrail.json",
+    "tests/unit/presets/base/",
+    "specs/289-migration-parity-guardrail/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add migration-parity guardrail",
+      "goal": "Add the new base preset guardrail entry with the requested metadata and rubric-structured body.",
+      "acceptance": [
+        "R1, R2, and R3 are satisfied by `src/presets/base/guardrail.json`."
+      ],
+      "implementation_notes": "Edit only base preset guardrail data unless source verification reveals a required generated copy. Keep the body generic and package-safe.",
+      "test_strategy": "Project and spec-local tests inspect the JSON entry and body text.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Add guardrail tests",
+      "goal": "Add tests that prove the new guardrail metadata, phase filtering, body concepts, generic wording, and base guardrail regression coverage.",
+      "acceptance": [
+        "R4 is satisfied by spec-local coverage and a project regression test."
+      ],
+      "implementation_notes": "Follow the existing base guardrail test pattern that reads `src/presets/base/guardrail.json` and calls `filterByPhase`.",
+      "test_strategy": "Run the new spec-local test and the relevant project unit test file.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Run preset upgrade",
+      "goal": "Run `senti upgrade` after preset source changes and preserve the resulting evidence for gate verification.",
+      "acceptance": [
+        "R5 is satisfied by an upgrade artifact showing success and checked paths."
+      ],
+      "implementation_notes": "Do not publish npm packages. Capture the normal flow upgrade artifact rather than ad-hoc logs when possible.",
+      "test_strategy": "Verify the upgrade command exits successfully and its artifact is present.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-11T16:04:05.850Z",
+    "notes": "auto-approved after spec-gate PASS for Issue #379"
+  },
+  "specId": "289-migration-parity-guardrail"
+}

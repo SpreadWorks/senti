@@ -817,9 +817,13 @@ describe("Flow Version migration classification", () => {
     ]);
     assert.equal(portable.classification.blockers.some((blocker) => blocker.code === "PORTABLE_TARGET_COLLISION"), true);
   });
-  it("blocks a tracked legacy Spec whose review evidence lacks an owner mapping", () => {
-    const target = canonicalLocation({ specId: "484-flow-authority-boundaries" });
-    const source = path.resolve("specs/484-flow-authority-boundaries");
+  it("blocks a legacy Spec whose review evidence lacks an owner mapping", () => {
+    const source = path.join(temporaryRoot(), "legacy");
+    fs.mkdirSync(path.join(source, "review-evidence"), { recursive: true });
+    fs.writeFileSync(path.join(source, "flow.json"), "{}");
+    fs.writeFileSync(path.join(source, "spec.json"), "{}");
+    fs.writeFileSync(path.join(source, "review-evidence", `${REVIEW_DIGEST_A}.json`), "{}");
+    const target = canonicalLocation();
     const definition = buildCurrentFlowDefinition();
     const inspection = new FlowVersionMigrationClassifier({
       target, sourcePolicy: representativeMigrationPolicy(),

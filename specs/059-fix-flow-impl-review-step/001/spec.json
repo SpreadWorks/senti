@@ -1,0 +1,50 @@
+{
+  "goal": "flow-impl スキルの review ステップを、`sdd-forge flow review` コマンドを使った AI レビューに改修する。\n現状の「diff を表示してユーザーに丸投げ」を廃止し、AI がコードを分析して改善提案を行う流れにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`sdd-forge flow review --apply` の実装（廃止方針）",
+      "review コマンド自体のロジック変更（提案生成・検証の仕組みはそのまま）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] flow-impl SKILL.md Step 2 に `sdd-forge flow review` コマンドの実行指示がある",
+    "[ ] 提案あり時のフロー（表示 → 確認 → 修正 → テスト）が記述されている",
+    "[ ] 提案なし時のフロー（メッセージ表示 → finalize 直行）が記述されている",
+    "[ ] review.js から `--apply` 案内行が削除されている",
+    "[ ] 既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "NO_PROPOSALS の場合にユーザー確認は必要か？",
+      "a": "不要。メッセージを表示して finalize に直行する。"
+    },
+    {
+      "q": "提案の適用はコマンド化するか？",
+      "a": "しない。`--apply` は廃止し、AI エージェント側で修正する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "059-fix-flow-impl-review-step"
+}

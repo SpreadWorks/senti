@@ -1,0 +1,73 @@
+{
+  "goal": "scan パイプラインを再設計し、差分更新をファイル単位で正しく動作させる。共通層に責務を集約し、プリセット側はパースロジックのみ提供する構造にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "upgrade コマンドでのプリセット変更検出による analysis 強制再生成（ボード f314）",
+      "text 差分再生成の改善 — prevChapter 方式の検討（ボード a08a）",
+      "CLI コマンドのオプション変更（scan コマンドの既存オプションは維持）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge scan` produces `analysis.json` with `analysis[cat].entries` structure for all categories.",
+    "Re-running `sdd-forge scan` on an unchanged project produces identical `analysis.json` (hash skip works).",
+    "Re-running `sdd-forge scan` after modifying one file only re-parses that file.",
+    "Deleted files are removed from `analysis.json` on re-scan.",
+    "`sdd-forge enrich` correctly reads and writes the new structure.",
+    "`sdd-forge data`, `sdd-forge text`, `sdd-forge forge`, `sdd-forge readme` produce correct output with the new structure.",
+    "All existing tests pass (after updating test fixtures to new structure).",
+    "Empty entries (all non-common fields null) are not included in analysis.json.",
+    "`scan/` directories are removed from all presets.",
+    "**Acceptance test (cakephp2)**: CakePHP2 プリセットの実プロジェクトに対して `sdd-forge scan` → `sdd-forge enrich` → `sdd-forge data` を実行し、analysis.json の構造・エントリ数・summary・後段出力が正しいことを確認する。",
+    "**Acceptance test (node-cli)**: node-cli プリセット（sdd-forge 自身）に対して同様のパイプライン実行を行い、動作・品質を確認する。"
+  ],
+  "clarifications": [
+    {
+      "q": "DataSource の resolve メソッド（list, tree, actions 等）はどうするか？",
+      "a": "DataSource にそのまま残す。変更は `analysis[cat].entries` への読み替えのみ。"
+    },
+    {
+      "q": "Scannable mixin は廃止するか？",
+      "a": "維持する。resolve 専用 DataSource（StructureSource 等）には scan メソッドが不要なため。"
+    },
+    {
+      "q": "summarize メソッドはどうするか？",
+      "a": "廃止。エントリクラスの `static summary` で集計定義を宣言的に記述し、共通層が自動集計する。"
+    },
+    {
+      "q": "サマリークラスは必要か？",
+      "a": "不要。共通層がプレーンオブジェクトを生成する。"
+    },
+    {
+      "q": "scan/ ディレクトリのパーサーはどうするか？",
+      "a": "DataSource の parse メソッドに統合し、scan/ を削除する。"
+    },
+    {
+      "q": "_incrementalMeta はどうするか？",
+      "a": "廃止。差分再生成は別 spec で対応。今回は text は全章再生成。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "090-scan-pipeline-redesign"
+}

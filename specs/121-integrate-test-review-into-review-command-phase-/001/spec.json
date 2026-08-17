@@ -1,0 +1,72 @@
+{
+  "goal": "Add a `--phase test` option to `sdd-forge flow run review` that validates test sufficiency before entering the impl phase. The command generates a test design from spec requirements, compares it against existing test code, identifies gaps, and auto-fixes tests in a retry loop (max 3 attempts).",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/review.js` — Add `--phase test` branch with test-review pipeline",
+      "`src/flow/run/review.js` — Pass `--phase test` option through to the subprocess and parse test-review output",
+      "Agent config key `flow.review.test` (fallback to `flow.review` via existing `resolveCommandSettings` parent lookup)",
+      "Output: `test-review.md` in the spec directory"
+    ],
+    "out": [
+      "Changes to the existing code review flow (`--phase` unset or `--phase code`)",
+      "Test design document as a separate user-facing artifact",
+      "`--plan` option for multi-step test design (future consideration)",
+      "Changes to the `flow/registry.js` hooks (existing `run.review` entry handles both phases)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC-1: `sdd-forge flow run review --phase test` generates `test-review.md` in the spec directory.",
+    "AC-2: `sdd-forge flow run review` (no `--phase`) executes the existing code review unchanged.",
+    "AC-3: When test gaps are found, the retry loop fixes tests and re-evaluates, up to 3 iterations.",
+    "AC-4: When `flow.review.test` is not configured in config.json, the command falls back to `flow.review` or `agent.default`.",
+    "AC-5: `test-review.md` contains: test design summary, gap analysis, final verdict (PASS/FAIL).",
+    "AC-6: After 3 failed retry iterations, the command returns a FAIL result with remaining gaps listed and exits with a non-zero exit code."
+  ],
+  "clarifications": [
+    {
+      "q": "Should test review be a separate command or integrated into existing review?",
+      "a": "Integrated into `flow run review` with `--phase test` option. CLI consistency is maintained."
+    },
+    {
+      "q": "What data does the test review consume?",
+      "a": "spec.md Requirements + test file contents (full text, not diff). Test design is generated internally by AI as an intermediate step."
+    },
+    {
+      "q": "How does the retry loop work?",
+      "a": "1 command invocation. Internally: generate test design → compare with test code → if gaps exist, AI fixes tests → re-compare. Max 3 retry iterations. If still failing after 3, return result to user."
+    },
+    {
+      "q": "Where is the output written?",
+      "a": "`test-review.md` in the spec directory. Coexists with `review.md` (code review)."
+    },
+    {
+      "q": "What agent config key is used?",
+      "a": "`flow.review.test`. Falls back to `flow.review` (parent lookup in `resolveCommandSettings`), then to `agent.default`."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "None"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "121-integrate-test-review-into-review-command-phase-"
+}

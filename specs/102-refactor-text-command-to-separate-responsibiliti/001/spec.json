@@ -1,0 +1,41 @@
+{
+  "goal": "`text` コマンドから `build` の責務（ファイル選定・充填判定・差分判定）を分離し、`text` を「渡されたファイルの `{{text}}` を充填するだけ」のコマンドにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "差分判定（git diff ベースの増分更新）— Issue #29 で言及されているが、別 spec で扱う",
+      "`--regenerate` オプションの廃止 — 本 spec でファイル選定を build 側に移した後、別途検討",
+      "`init` の conflict 処理メッセージの改善（ERROR → WARN）— 既に修正済みの別課題"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "`textFillFromAnalysis` は forge.js 等から呼ばれているが、そちらも対応が必要か？",
+      "a": "はい。`textFillFromAnalysis` のシグネチャを変更し、呼び出し元も更新する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "102-refactor-text-command-to-separate-responsibiliti"
+}

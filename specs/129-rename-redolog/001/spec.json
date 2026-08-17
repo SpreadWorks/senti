@@ -1,0 +1,73 @@
+{
+  "goal": "redolog を issue-log にリネームし、実際の用途（バグ発見・修正・回避策の記録）に合った名前にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "CLI コマンド名: `flow set redo` → `flow set issue-log`",
+      "ソースファイル: `src/flow/set/redo.js` → `src/flow/set/issue-log.js`",
+      "関数名: `loadRedoLog`/`saveRedoLog` → `loadIssueLog`/`saveIssueLog`",
+      "型名: `RedoLog`/`RedoLogEntry` → `IssueLog`/`IssueLogEntry`",
+      "出力ファイル: `redolog.json` → `issue-log.json`",
+      "テンプレート: `redo-recording.md` → `issue-log-recording.md`",
+      "SKILL.md 内の redolog 参照をすべて issue-log に更新",
+      "metric カウンター: `redo` → `issueLog`",
+      "レジストリ: `src/flow/registry.js` のコマンド登録名を更新",
+      "参照元ファイル: `report.js`, `finalize.js` の import/使用箇所を更新",
+      "テスト: `set-redo.test.js` → `set-issue-log.test.js` にリネーム・更新"
+    ],
+    "out": [
+      "過去 spec の既存 `redolog.json` のマイグレーション（そのまま残す）",
+      "旧ファイル名 `redolog.json` の fallback 読み込み（alpha 版ポリシーにより不要）",
+      "issue-log の機能追加・フォーマット変更",
+      "後方互換コード"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow set issue-log --step draft --reason \"test\"` が正常に動作し、`issue-log.json` を出力する",
+    "`sdd-forge flow set redo` を実行すると、`issue-log` への移行を案内するエラーメッセージが表示される",
+    "既存テストがすべてパスする",
+    "ソースコード内に `redolog`/`RedoLog`/`loadRedoLog`/`saveRedoLog` の参照が残っていない（過去 spec とコメントを除く）"
+  ],
+  "clarifications": [
+    {
+      "q": "新名称は何にするか？",
+      "a": "issue-log（「問題記録」。バグ・修正・回避策すべてをカバー）"
+    },
+    {
+      "q": "リネーム範囲は？",
+      "a": "全レイヤー一括（CLI、ソース、出力ファイル、テンプレート、テスト）"
+    },
+    {
+      "q": "既存の redolog.json は？",
+      "a": "そのまま残す。fallback 読み込みは不要（alpha 版ポリシー）"
+    },
+    {
+      "q": "テスト方針は？",
+      "a": "既存テストのリネーム・更新のみ。新規テスト追加なし"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "129-rename-redolog"
+}

@@ -1,0 +1,183 @@
+{
+  "goal": "retry exhausted 後の recovery evidence 判定を、impl-review / impl-gate が実際に修正先として扱う spec.json acknowledgement と一致させる。",
+  "scope": {
+    "in": [
+      "src/flow/lib/retry-recovery.js の phase 別 recovery evidence source",
+      "review impl の recovery evidence source",
+      "gate task-impl の retry exhausted recovery evidence source",
+      "issue-log.json の単純追記だけでは意図しない retry reset を許可しない境界",
+      "spec-local unit tests による recovery eligibility の検証"
+    ],
+    "out": [
+      "retry counter の最大回数、reset grant 数、CLI コマンド名の変更",
+      "draft / spec / test review など Issue #364 が対象にしていない phase の recovery policy 変更",
+      "issue-log-import や workflow board 操作の仕様変更",
+      "guardrail article 本文や acknowledged-exception の成立条件変更",
+      "field-level JSON diff parser の追加"
+    ]
+  },
+  "constraints": [
+    "No external dependencies may be added; implementation and tests must use Node.js built-ins and existing local helpers.",
+    "The retry reset command contract must remain unchanged: `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes`.",
+    "A simple append-only change to issue-log.json must not be sufficient changed evidence for review impl or gate task-impl recovery.",
+    "Recovery evidence source changes must stay phase-scoped; unrelated recovery phases must retain their current source meaning unless explicitly covered by this spec."
+  ],
+  "design_principles": [
+    "Align recovery evidence with the artifacts that prompts instruct users to modify.",
+    "Keep retry recovery fingerprinting file-based to fit the existing EvidenceFingerprint model.",
+    "Prefer adding phase-specific paths over adding special-case reset behavior.",
+    "Preserve issue-log as an audit trail, not as a standalone unlock mechanism."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/retry-recovery.js` owns retry recovery targets, phase evidence sources, fingerprints, eligibility checks, and reset grants."
+      },
+      {
+        "text": "`src/flow/lib/set-retry.js` invokes recovery eligibility before applying an exhausted retry reset grant."
+      },
+      {
+        "text": "`src/flow/prompts/impl/impl-review.md` and `impl-gate.md` instruct operators to record intentional guardrail exception acknowledgements in spec.json."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "On retry exhaustion, run-review or run-gate persists a recovery baseline fingerprint. `flow set retry reset` later builds the current fingerprint from the phase evidence source and grants one re-evaluation only when the source hash changes."
+      },
+      {
+        "text": "After this change, review impl and gate task-impl fingerprints include both implementation files under src and the active spec.json file. issue-log.json remains excluded for these phases."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Current review impl evidence source excludes spec.json.",
+        "evidence": "src/flow/lib/retry-recovery.js resolveRecoveryEvidenceSource returns sourceKind implementation-diff with paths [\"src\"] when kind=review and canonicalPhase=impl."
+      },
+      {
+        "text": "[VERIFY] Current gate task-impl evidence source excludes spec.json.",
+        "evidence": "src/flow/lib/retry-recovery.js resolveRecoveryEvidenceSource returns sourceKind implementation-diff with paths [\"src\"] when kind=gate and canonicalPhase=task-impl."
+      },
+      {
+        "text": "[VERIFY] Prompt guidance names spec.json as a valid repair surface.",
+        "evidence": "src/flow/prompts/impl/impl-review.md and src/flow/prompts/impl/impl-gate.md tell operators to record guardrail ids in spec.json constraints, clarifications, or alternatives_considered for intentional exceptions."
+      },
+      {
+        "text": "Use file-level spec.json evidence rather than field-level acknowledgement parsing.",
+        "evidence": "The existing EvidenceFingerprint model hashes file paths selected by RecoveryEvidenceSource. Adding spec.json as a source path satisfies acknowledgement repair tests without introducing a new JSON diff subsystem.",
+        "consideredAlternatives": "Field-level diff parsing was rejected because it adds parser policy and edge cases outside the issue scope."
+      },
+      {
+        "text": "Keep issue-log.json excluded for review impl and gate task-impl recovery.",
+        "evidence": "Issue #364 requires that a simple append-only issue-log.json change must not allow retry reset for unintended phases."
+      }
+    ]
+  },
+  "background": "Issue #364 identifies a mismatch between retry recovery guidance and recovery eligibility. The impl-review and impl-gate prompts can direct users to fix intentional guardrail exceptions by editing spec.json acknowledgement surfaces, but retry recovery currently fingerprints only src for review impl and gate task-impl. This means the correct prompt-guided fix can be rejected as unchanged evidence after retry exhaustion.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "For review impl retry recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "For gate task-impl retry-exhausted recovery, the phase evidence source must include the active spec.json file in addition to src, so a spec.json acknowledgement change can produce changed evidence without an unrelated src change.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "For review impl and gate task-impl, issue-log.json must not be part of the phase evidence source, so an issue-log-only append does not satisfy changed evidence for those phases.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Spec-local tests under specs/279-retry-recovery-evidence/tests/ must cover R1, R2, and R3 through recovery evidence source and eligibility behavior.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "For kind=review and canonicalPhase=impl, resolveRecoveryEvidenceSource returns paths containing src and the active spec.json path.",
+    "For kind=gate and canonicalPhase=task-impl, resolveRecoveryEvidenceSource returns paths containing src and the active spec.json path.",
+    "A recovery baseline captured before a spec.json acknowledgement change and evaluated after that change reports changed-evidence for review impl.",
+    "A recovery baseline captured before a spec.json acknowledgement change and evaluated after that change reports changed-evidence for gate task-impl.",
+    "Changing only issue-log.json does not make review impl or gate task-impl recovery eligible when src and spec.json are unchanged.",
+    "Existing evidence sources for draft question review, draft coverage review, spec review, test review, and integration gate remain unchanged unless already covered by this spec."
+  ],
+  "clarifications": [
+    {
+      "q": "Should acknowledgement evidence be limited to specific spec.json fields?",
+      "a": "No for this change. The implementation should add the active spec.json file to the phase evidence source and verify acknowledgement-field changes through tests. Field-level parsing is out of scope."
+    },
+    {
+      "q": "Should issue-log.json become a recovery evidence source?",
+      "a": "No for review impl and gate task-impl. issue-log.json is an audit trail here, and a simple append-only change must not unlock retry reset."
+    },
+    {
+      "q": "Does this change alter retry limits or grant count?",
+      "a": "No. The command contract, configured max attempts, and one-attempt recovery grant remain unchanged."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Parse spec.json and only hash acknowledgement fields",
+      "reason": "Rejected because the existing retry recovery model selects file paths and hashes files. Field-level parsing adds policy complexity outside Issue #364."
+    },
+    {
+      "option": "Include issue-log.json as changed evidence for all retry recovery phases",
+      "reason": "Rejected because it would allow retry reset by appending audit text, contradicting the requirement that issue-log-only changes not unlock unintended phases."
+    },
+    {
+      "option": "Keep src-only evidence and update prompts to require source changes",
+      "reason": "Rejected because prompt-guided spec.json acknowledgement is the correct repair surface for intentional guardrail exceptions."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "retry recovery",
+    "retry-recovery",
+    "resolveRecoveryEvidenceSource",
+    "buildRecoveryEligibilityForState",
+    "EvidenceFingerprint",
+    "spec.json",
+    "issue-log.json",
+    "impl-review",
+    "impl-gate",
+    "task-impl",
+    "changed-evidence",
+    "unchanged-evidence"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/retry-recovery.js",
+    "specs/279-retry-recovery-evidence/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Extend recovery evidence",
+      "goal": "Update retry recovery evidence source selection so review impl and gate task-impl include spec.json while continuing to exclude issue-log.json as a standalone unlock path.",
+      "acceptance": [
+        "review impl evidence paths include src and the active spec.json path.",
+        "gate task-impl evidence paths include src and the active spec.json path.",
+        "issue-log.json is not included in review impl or gate task-impl evidence paths.",
+        "spec-local tests verify spec.json acknowledgement changes produce changed evidence and issue-log-only changes do not."
+      ],
+      "implementation_notes": "Prefer changing resolveRecoveryEvidenceSource and reusing buildCurrentRecoveryFingerprint / buildRecoveryEligibilityForState. Keep the existing file-based fingerprint model and avoid adding field-level JSON diff parsing.",
+      "test_strategy": "Add Node.js spec-local tests with a `// spec: R1 R2 R3 R4` header. Use temporary git repos or direct fingerprint baselines to verify review impl and gate task-impl eligibility after spec.json changes and non-eligibility after issue-log-only changes.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-06-05T00:46:48.542Z",
+    "notes": "Auto-approved after spec-gate PASS with autoApprove enabled for Issue #364."
+  },
+  "specId": "279-retry-recovery-evidence"
+}

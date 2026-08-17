@@ -1,0 +1,169 @@
+{
+  "goal": "gate-impl で同一 guardrail × 同一理由の FAIL が繰り返された場合、AI 呼び出しループを打ち切って人間にエスカレーションする。retry 枠の無駄消費を防ぎ、spec 記述では diff から検証不能な REQ のループを早期可視化する。",
+  "scope": {
+    "in": [
+      "gate-impl の FAIL 経路に『同一 guardrail × 同一理由の繰り返し』検出を追加する",
+      "FAIL 時の issue-log entry に後続比較用の構造情報 failedEvaluations を追加する（既存 flat reason は維持）",
+      "検出時は既存の ESCALATE_* 系と同じ envelope 形式で人間エスカレーションを返す"
+    ],
+    "out": [
+      "AI に同一性判定を委ねる方式",
+      "embedding 類似度や編集距離など、正規化文字列一致以外の判定手法",
+      "draft b833（spec-phase diff-verifiability ガード）との統合実装",
+      "AI 判定ブレの吸収（本件の対象外）",
+      "report.js など既存 consumer の表示変更",
+      "no-sensitive-data-in-logs ガードレールへの masking 対応: 新規 failedEvaluations.reason は AI が生成した gate 評価メタデータであり、同内容は既存 entry.reason (flat) に従来から unmasked で永続化されている。本 spec は構造化ビューを追加するのみで log-sensitivity 表面積を増やさないため、masking は本 spec のスコープ外"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみを使用する（外部依存禁止）",
+    "gate-impl 以外の phase（draft / spec / task-spec）には影響を与えない",
+    "既存 issue-log.json を壊さない（追加フィールドのみ）",
+    "retry.max の既定値や ESCALATE_RETRY_EXHAUSTED の発動条件を変更しない"
+  ],
+  "design_principles": [
+    "spec 210 の先行設計（PRE-hook / git-state 完全一致 / retry 非消費）と整合する",
+    "同一性判定は外部依存ゼロの決定論的ロジックに限定する（正規化 + 文字列一致）",
+    "FAIL が 1 件でも前回と同一ペアと一致すれば escalate（N=1）。偶発一致のリスクよりも『早く止める』ことを優先する",
+    "retry 非消費は、POST 検出時の throw により registry の post-hook カウンタ更新が走らないことで実現する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-gate.js: FAIL entry 記録処理に構造情報を追加、および POST 検出ロジックの配置"
+      },
+      {
+        "text": "specs/<spec>/issue-log.json: FAIL entry のスキーマを拡張（追加フィールドのみ）"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "gate-impl が AI 評価を実行し、FAIL 判定を返す"
+      },
+      {
+        "text": "POST 検出が新 FAIL の (guardrail, 正規化理由) ペア群と、直近の同 phase FAIL entry の同種ペア群を突き合わせる"
+      },
+      {
+        "text": "一致ペアが 1 件でもあれば ESCALATE_REPEATED_FAIL を throw。issue-log への FAIL entry 追記と retry カウンタ増分は行われない"
+      },
+      {
+        "text": "一致が無ければ従来どおり FAIL entry を追記し、retry カウンタを +1 する"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "判定方式: 正規化後の文字列一致（trim / 連続空白を単一空白に畳み込み / 小文字化）"
+      },
+      {
+        "text": "閾値: N=1（直近の同 phase FAIL entry と比較）"
+      },
+      {
+        "text": "発動タイミング: POST 検出 → throw"
+      },
+      {
+        "text": "entry 拡張: 既存 flat reason は維持し、構造情報を追加フィールドとして格納"
+      },
+      {
+        "text": "envelope: 既存 ESCALATE_* と同形式（ok: false, errors: [{ code, message, data }]）"
+      }
+    ]
+  },
+  "background": "Issue #211 (cc61) は gate-impl の『AI 判定ブレ』を多数決で吸収する案だったが、実データ分析で前提が崩れた。観測された繰り返し FAIL は AI が一貫して同じ REQ を同じ理由で FAIL させているケース、または段階的に異なる legitimate な問題を発見しているケースであり、多数決は無効または不適だった。spec 210 の NO_PROGRESS_SINCE_LAST_FAIL は『ユーザーが spec / コードを一切変更せず再実行した』ケースを PRE-hook で弾くが、『コードは変えたが AI は同じ REQ を同じ理由で FAIL させ続ける』ケースには働かない。本 spec は後者の穴を塞ぐ相補的な仕組み。",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "priority": "must",
+      "desc": "When gate-impl の AI 評価結果が FAIL を返し、かつ結果に含まれる (guardrail, 正規化理由) ペアのいずれかが同 phase の直近 FAIL entry のペア列にも存在する場合、the system shall ESCALATE_REPEATED_FAIL エラーコードを持つエスカレーション例外を発生させ、通常の FAIL return は行わないこと"
+    },
+    {
+      "id": "REQ-2",
+      "priority": "must",
+      "desc": "When REQ-1 のエスカレーション例外が発生した場合、the system shall その試行について retry カウンタを増分させないこと（registry の POST-hook カウンタ更新が走らないことで保証する）"
+    },
+    {
+      "id": "REQ-3",
+      "priority": "should",
+      "desc": "When REQ-1 のエスカレーション例外が発生した場合、the system shall { ok: false, errors: [{ code: 'ESCALATE_REPEATED_FAIL', message: 人間可読, data: 機械可読 }] } の envelope で結果を返すこと。data には少なくとも当該 phase と一致ペア列（guardrail id と理由）を含めること"
+    },
+    {
+      "id": "REQ-4",
+      "priority": "should",
+      "desc": "When gate-impl が FAIL 判定を issue-log entry に記録する時、the system shall 新規フィールド failedEvaluations: [{ guardrail_id, reason }] を entry に含めること。既存の flat reason 文字列フィールドは従来どおり維持すること"
+    },
+    {
+      "id": "REQ-5",
+      "priority": "should",
+      "desc": "When REQ-1 の繰り返し検出を呼び出すか判定する時、the system shall 対象 phase を gate-impl のみとし、gate-draft / gate-spec / gate-task-spec は対象外とすること"
+    },
+    {
+      "id": "REQ-6",
+      "priority": "should",
+      "desc": "When REQ-1 の (guardrail, 理由) ペア同一性を判定する時、the system shall 前後空白 trim + 連続空白を単一半角空白に畳み込み + 小文字化を施した理由文字列の完全一致のみで判定し、意味的類似・編集距離・embedding 等は用いないこと"
+    }
+  ],
+  "acceptance_criteria": [
+    "gate-impl を 2 回実行し、両回とも同じ guardrail が同じ理由で FAIL を返す fixture で ESCALATE_REPEATED_FAIL が throw される（REQ-1）",
+    "AC-1 と同じ状況で retry カウンタが増分しない（flow state の metrics[phase].gateRetry が 1 のまま 2 回目 throw で変わらない）（REQ-2）",
+    "ESCALATE_REPEATED_FAIL 発生時の envelope が REQ-3 の構造を満たす（ok: false、errors[0].code、data.phase、data.matched）",
+    "gate-impl FAIL 時の issue-log entry に failedEvaluations 配列が含まれ、各要素が guardrail_id と reason を持つ（REQ-4）",
+    "gate-draft / gate-spec / gate-task-spec で同様の反復 FAIL を発生させても ESCALATE_REPEATED_FAIL は発生しない（REQ-5）",
+    "'  Foo Bar  ' と 'foo   bar' が同一と判定され、'foo bar' と 'foo baz' が別と判定される（REQ-6）"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js",
+    "tests/"
+  ],
+  "clarifications": [
+    {
+      "q": "同一性判定方式は？",
+      "a": "正規化後の文字列一致（外部依存禁止方針および spec 210 完全一致の先行事例と整合）"
+    },
+    {
+      "q": "閾値 N は？",
+      "a": "N=1（直近 1 件の FAIL と比較。retry.max=3 環境で 2 回目 FAIL で即検出）"
+    },
+    {
+      "q": "発動タイミングは？",
+      "a": "AI 評価完了後の POST 検出 → throw"
+    },
+    {
+      "q": "issue-log entry の拡張方針は？",
+      "a": "既存 flat reason は維持し、(guardrail, 理由) ペア列を追加フィールドで格納"
+    },
+    {
+      "q": "テスト戦略は？",
+      "a": "単体テストで (a) 正規化ロジック、(b) entry 書き出し時の新フィールド、(c) 検出成立/不成立 条件、(d) escalation 時 retry カウンタ非増加、を網羅。E2E は既存 gate-impl が間接的に通すため追加不要"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "多数決（issue #211 当初案）",
+      "reason": "不採用。実データで AI の判定ブレではなく一貫した FAIL だったため無効"
+    },
+    {
+      "option": "AI に意味的同一性判定を委ねる",
+      "reason": "不採用。AI 呼び出しコスト増、および sdd-forge の決定論的判定方針と不整合"
+    },
+    {
+      "option": "Levenshtein 距離 / embedding 類似度",
+      "reason": "不採用。外部依存禁止方針に反し、自前実装も本 spec のスコープを超える"
+    },
+    {
+      "option": "PRE-hook で『前回 FAIL と同じ guardrail 群なら AI 呼び出し前に打ち切り』",
+      "reason": "不採用。前回 FAIL の guardrail が今回もまた一致するかは AI 評価しないと分からず、PRE で判定すると過検出になる"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "212-gate-impl-repeat-escalate"
+}

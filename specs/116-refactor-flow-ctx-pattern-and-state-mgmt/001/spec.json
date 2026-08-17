@@ -1,0 +1,70 @@
+{
+  "goal": "flow サブシステムのリソース解決とステート管理を統一する。`flow.js` で ctx を解決し全コマンドに渡す ctx パターンを導入し、registry.js を宣言的なコマンド定義に拡張する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/flow.js` — ctx 解決とディスパッチ集約",
+      "`src/flow/registry.js` — helpKey / before / execute / after の宣言的定義に拡張",
+      "`src/flow/get.js`, `src/flow/set.js`, `src/flow/run.js` — 2層目ディスパッチャー廃止（flow.js に集約）",
+      "`src/flow/run/*.js` — `runIfDirect` 削除、`execute(ctx)` シグネチャに変更",
+      "`src/flow/get/*.js` — 同上",
+      "`src/flow/set/*.js` — 同上",
+      "`src/flow/run/review.js` — 子プロセス起動を廃止し `commands/review.js` を直接 import",
+      "`src/flow/run/prepare-spec.js` — `flow prepare` としてトップレベルに分離、config フォールバック廃止",
+      "`src/lib/flow-state.js` — worktree 内で branch 名から spec ID を導出する ctx 解決ロジック",
+      "`src/templates/skills/` — `flow run prepare-spec` → `flow prepare` の更新",
+      "`tests/unit/flow/` — ctx 解決と registry ディスパッチのテスト"
+    ],
+    "out": [
+      "docs サブシステムの変更",
+      "flow.json のスキーマ変更",
+      "skill の指示内容全体の見直し（CLI 変更箇所のみ更新）",
+      "新しい flow コマンドの追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "ctx の構造は？",
+      "a": "`{ root, mainRoot, config, flowState, specId, inWorktree }`。prepare のみ flowState なしで実行。"
+    },
+    {
+      "q": "runIfDirect を廃止して直接実行できなくなるが良いか？",
+      "a": "ctx パターンでは直接実行は不要。テストは `execute(ctx)` に mock ctx を渡す形で行う。"
+    },
+    {
+      "q": "before/after の適用範囲は？",
+      "a": "registry に設定されていれば実行、なければスキップ。run/get/set どのコマンドにも設定可能。用途はステート更新に限定しない汎用フック。"
+    },
+    {
+      "q": "CLI インターフェースの変更は？",
+      "a": "`flow run prepare-spec` → `flow prepare` のみ変更。alpha 版ポリシーで旧パス非保持。skill テンプレートも同時更新。"
+    },
+    {
+      "q": "flow state の更新責務は？",
+      "a": "ハイブリッド方式。コマンドが結果を確定できるもの（gate PASS/FAIL, review 完了等）は before/after で自動更新。AI の判断が必要なもの（draft Q&A, approval 等）は AI が `flow set` で記録。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "116-refactor-flow-ctx-pattern-and-state-mgmt"
+}

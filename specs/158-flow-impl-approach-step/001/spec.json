@@ -1,0 +1,69 @@
+{
+  "goal": "flow-impl の実装着手前に、spec の各要件ごとの設計方針をユーザーが確認・承認できるステップを追加する。アーキテクチャ上の問題（引数過多・既存コード未活用・不適切なデザインパターン等）がコーディング後に発覚することを防ぐ。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-impl/SKILL.md` への手順追記",
+      "方針提示フォーマットの定義（spec 要件ごとの「方針・使う既存コード・設計判断」）",
+      "承認/差し戻しループの定義（リトライ上限3回）",
+      "autoApprove 時の自動承認ルールの定義"
+    ],
+    "out": [
+      "`sdd-forge flow run approach` CLI コマンドの新設",
+      "approach.md ファイルへの保存",
+      "`approach-confirm` step ID の phases.js への追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "flow-impl を起動すると、ステップ1のコーディング開始前に実装方針が提示される",
+    "提示内容は spec の要件番号を参照し、各要件の実装方針・既存コードの活用有無・設計上の判断を含む",
+    "ユーザーが `[2] 変更したい` を選択した場合、AI は修正指示を反映した方針を再提示する",
+    "autoApprove: true の場合、方針提示後に自動承認して即座にコーディングへ進む",
+    "承認前にソースコードの変更が行われない"
+  ],
+  "clarifications": [
+    {
+      "q": "変更対象はどのレイヤー？",
+      "a": "SKILL.md のみ。CLI コマンドは作らない。"
+    },
+    {
+      "q": "方針提示の内容はファイル名列挙でよいか？",
+      "a": "No。spec の各要件ごとに「方針・使う既存コード・なぜその設計か」を提示する。ユーザーが引数過多や既存コード未活用を発見できる粒度が必要。"
+    },
+    {
+      "q": "承認/差し戻しはどう構造化するか？",
+      "a": "SKILL.md の標準選択肢形式（`[1] 進める [2] 変更したい`）で実現。差し戻し後は修正指示を受けて再提示。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "CLI コマンド新設",
+      "reason": "ファイル保存・進捗記録が不要という判断により採用しない"
+    },
+    {
+      "option": "ファイル名列挙形式",
+      "reason": "ユーザーが設計判断を評価できないため不採用"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "158-flow-impl-approach-step"
+}

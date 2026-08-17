@@ -1,0 +1,90 @@
+{
+  "goal": "spec の overview 更新を決定論化する。task 完了時、AI は追加分のみを構造化出力し、CLI が由来 task を記録しつつ機械的に merge する。task 削除時にはその task が追加した entry のみを逆適用で除去できる状態にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "overview エントリを構造化し、由来 task 識別子を保持できるデータ表現を導入する",
+      "AI が overview 更新で出力する内容を差分追加のみに拘束する",
+      "AI 追加分を由来 task と共に spec に反映する一貫した更新経路を提供する",
+      "由来 task 識別子による逆適用の挙動を提供する",
+      "既存サンプル spec を新構造へ移行し、ユーザーに見える既存内容を保存する",
+      "上記挙動を検証するユニットテストを追加する"
+    ],
+    "out": [
+      "task 削除フロー自体（逆適用を呼び出す上位ワークフロー）",
+      "AI を実呼び出しする自動統合テスト",
+      "他フィールド（requirements / clarifications 等）への由来 task 識別子の拡張",
+      "監査ログ等、逆適用以外の目的での由来 task 情報の利用"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "overview エントリが構造化レコードとなり、schema 検証で新形状が妥当、旧 string 形状が拒否される",
+    "AI 出力 schema が additions-only 構造を拘束し、不適合時は非 0 exit で失敗する",
+    "追加 entry には現在進行中の task 識別子が自動付与される",
+    "merge が既存 entry を変更せず append のみ行う",
+    "merge 完了後に派生 spec markdown が再生成され、新 entry を含む出力が決定論的である",
+    "同 task 識別子を持つ entry のみを除去する逆適用が正しく動作し、不一致時は spec を変化させない",
+    "既存テストスイート全体が回帰なく pass する",
+    "T1 のサンプル spec が新 schema で validate 成功し、派生 markdown のユーザー可視内容が保存される",
+    "同一入力の update-overview 二回適用結果がバイト一致する"
+  ],
+  "clarifications": [
+    {
+      "q": "overview エントリは category ごとにフィールド形状を変えるか。",
+      "a": "否。全 category 共通の flat 構造を用いる。category 固有フィールドは意味が薄く、派生 markdown との差分も最小になる。"
+    },
+    {
+      "q": "AI の diff 出力は add 以外の操作（remove / modify）も含めるか。",
+      "a": "否。add-only に限定する。既存の検証＋反映 pattern と整合し、逆適用の前提（由来 task 識別子による除去）を崩さないため。"
+    },
+    {
+      "q": "由来 task 識別子は全エントリに必須か。",
+      "a": "否。optional。初期 entry や旧 spec 移行、外部 import 等の非 task 由来 entry を表現できる必要があるため。"
+    },
+    {
+      "q": "逆適用（task 削除時の entry 除去）は T9 でコマンド化するか。",
+      "a": "否。挙動そのものは独立して利用・検証できる形で提供し、task 削除フロー統合は後続課題とする。"
+    },
+    {
+      "q": "update-overview の AI 呼出から spec 反映までの経路は分離するか。",
+      "a": "否。検証・記録・反映・派生 markdown 再生成までを一貫した挙動として扱う。外部（skill）からは単一のトリガで呼び出せる形を前提とする。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**string[] のまま由来 task を別の parallel 配列で保持する**",
+      "reason": "配列 index が entry と紐づく設計は、merge / filter 時に index 整合性を維持する複雑さが増し、schema 検証の恩恵も弱いため不採用。"
+    },
+    {
+      "option": "**full-file rewrite（AI が overview 全体を書き直す）**",
+      "reason": "決定論性・逆適用性が両立しないため不採用。"
+    },
+    {
+      "option": "**派生 markdown に直接書き込む現行プロンプト案**",
+      "reason": "markdown を正にすると primary data と二重管理になり、cac6 の決定論化方針に反するため廃止。"
+    }
+  ],
+  "open_questions": [
+    "なし（draft 時点で全 Q&A が合意済み）。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "207-overview-structured-merge"
+}

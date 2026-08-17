@@ -1,0 +1,354 @@
+{
+  "goal": "retry exhausted 後でも、前回 FAIL 後に実装差分または evidence artifact が変わった場合に限り、明示 recovery 操作で 1 回だけ再評価へ戻せるようにする。recovery 操作は issue-log と spec-local artifact に監査情報を残し、next-action / status で停止理由と recovery 可否を表示する。",
+  "scope": {
+    "in": [
+      "must: recoverable target phase の retry exhausted 後に、変更済み状態だけを明示 recovery で 1 回再評価できる導線",
+      "must: recovery 操作の reason、kind、phase、changed evidence、permitted re-evaluation count、timestamp の監査記録",
+      "must: next-action / status に retry exhausted、recovery 可否、recovery command、対象 kind / phase を表示すること",
+      "must: 同じ失敗または未変更状態が続く場合に、従来通り停止して retry budget を延命しないこと",
+      "must: tracked だが recoverable ではない gate draft/spec exhaustion は recoveryPossible:false と理由を表示すること",
+      "should: CLI help、flow prompt、skill template の recovery guidance 更新"
+    ],
+    "out": [
+      "maxAttempts の単純な増加",
+      "無制限または自動の再評価",
+      "review / gate の判定内容そのものの改善",
+      "finalize / final-regression 専用 recovery の変更",
+      "Done 済み dc7f や cdb2 review convergence 本体への追記"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。Node.js 組み込みモジュールだけを使用する。",
+    "alpha 版方針に従い、旧 reset command 挙動を保持する互換 layer は追加しない。",
+    "既存 CLI の意味変更を含むため、backward-compatible-cli-interface の migration plan として help / prompt / spec / error message に新しい監査入力、recovery 条件、旧形式が拒否された場合の新形式 command を明記する。",
+    "User-facing input validation: `flow set retry reset <kind> <phase> --reason <text> --yes` は entry point で検証する。kind は `gate` または `review`、gate phase は `task-impl` または `integration`、review phase は `draft` / `draft-questions` / `draft-coverage` / `review-draft-questions` / `review-draft-coverage` / `spec` / `test` / `impl`、reason は trim 後 20 文字以上、--yes は必須。",
+    "Exit code contract: 有効な recovery または non-exhausted reset は ok:true で exit 0。invalid input、reason 不足、--yes 不足、未変更状態、対象 phase 不一致、監査 artifact 書き込み失敗は Envelope.fail で ok:false を返し non-zero exit とする。",
+    "bounded-resource-usage: recovery eligibility の evidence scan は対象 spec directory と現在 flow state に限定し、artifact fingerprint 対象ファイル数と文字列長に上限を設ける。上限超過時は recovery 不可として Envelope.fail を返す。",
+    "Recoverable target phases: gate は `task-impl` / `integration` のみ。review は canonical phase `draft-questions` / `draft-coverage` / `spec` / `test` / `impl`。入力 alias `review-draft-questions` と `review-draft-coverage` は canonical phase に正規化して記録・表示する。",
+    "Unsupported tracked gate phases: gate `draft` / `spec` は retry exhausted 表示対象だが audited recovery grant の対象外。next-action / status は recoveryPossible:false と reason `unsupported-plan-gate-phase` を返し、set-retry は gate draft/spec を invalid phase として拒否する。",
+    "Evidence source mapping: gate task-impl は実装 diff fingerprint、gate integration は実装 diff fingerprint と test-execute-result / test-result-review artifact fingerprint、review draft-questions / draft-coverage は draft.json fingerprint、review spec は spec.json fingerprint、review test は spec-local tests directory fingerprint、review impl は実装 diff fingerprint を使う。",
+    "Evidence fingerprint は recovery artifact、issue-log、runtime logs を除外する。changedEvidence summary は sourceKind、baselineHash、currentHash、changedPaths、truncated を持ち、changedPaths は最大 50 件、各 path は最大 300 文字に制限する。",
+    "Recovery artifact target: `specs/<spec>/retry-recovery.json`。shape は `{ \"version\": 1, \"entries\": [...] }` とし、entry は id、kind、phase、canonicalPhase、reason、changedEvidence、permittedReevaluationCount、attemptsBefore、maxAttempts、counterAfter、recoveryCommand、createdAt を持つ。",
+    "OOP 方針に従い、recovery entry、changed evidence、retry allowance は専用 class で invariant を強制し、単なる object literal の組み合わせにしない。",
+    "src/ 配下にこの spec 固有の Issue 番号や文言を固定値として入れない。表示文は汎用的な retry recovery 表現にする。"
+  ],
+  "design_principles": [
+    "retry reset を retry budget 延命ではなく、監査付き recovery grant として扱う。",
+    "同じ失敗を繰り返している状態と、修正済みで再評価したい状態を evidence 変化で区別する。",
+    "既存の gate / review retry counter と reviewStop 表示を拡張し、別系統の状態管理を増やさない。",
+    "ユーザーが実行すべき次の操作を next-action / status に出し、停止状態の原因を CLI 出力だけに閉じ込めない。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/set-retry.js — retry reset command を監査付き recovery grant として拡張する。"
+      },
+      {
+        "text": "src/flow/lib/run-gate.js — gate retry count、no-progress state、retry exhausted envelope と recovery eligibility の接続点。"
+      },
+      {
+        "text": "src/flow/lib/run-review.js / review-failure.js — review retry exhausted と reviewStop 表示の接続点。"
+      },
+      {
+        "text": "src/flow/commands/review.js — review verdict FAIL 時の phase-specific recovery baseline 永続化の接続点。"
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js / draft-review-routes.js — test artifact と draft review phase alias の evidence source 補助。"
+      },
+      {
+        "text": "src/flow/lib/get-next-action.js / get-status.js — retry exhausted 後の recovery 可否と recovery command を表示する出力面。"
+      },
+      {
+        "text": "src/flow/registry.js と flow prompts/templates — set retry help、dispatcher guidance、recovery command 例を更新する。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "gate/review FAIL → retry metrics + recovery baseline fingerprint → retry exhausted stop view → recovery eligibility check → retry-recovery.json + issue-log → one-attempt allowance metric → re-evaluation"
+      },
+      {
+        "text": "current flow state + last same canonical kind/phase baseline → phase-specific evidence fingerprint → next-action/status recoveryPossible + recoveryCommand"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] set-retry.js is the central reset entry and already validates action/kind/phase.",
+        "evidence": "src/flow/lib/set-retry.js defines VALID_ACTIONS, VALID_KINDS, PHASES_BY_KIND, and appends gateRetry/reviewRetry reset metrics."
+      },
+      {
+        "text": "[VERIFY] gate already stores enough state to reject unchanged re-runs.",
+        "evidence": "src/flow/lib/run-gate.js computeGitState(), findPreviousFailState(), and checkNoProgressSinceLastFail() compare HEAD/worktreeHash for same-phase FAIL entries."
+      },
+      {
+        "text": "[VERIFY] review exhausted state is surfaced through reviewStop views.",
+        "evidence": "src/flow/lib/review-failure.js buildReviewStopView() returns classification, phase, reason, recoveryHint, and recoveryCommand for next-action/status consumers."
+      },
+      {
+        "text": "[CORRECTION] Review recovery needs a persisted baseline before exhaustion.",
+        "evidence": "spec-review finding: reviewRetry metrics do not store the prior evidence fingerprint; review FAIL/stop handling must persist phase-specific baseline entries before set-retry compares changes."
+      },
+      {
+        "text": "[VERIFY] next-action and status are the right display surfaces.",
+        "evidence": "src/flow/lib/get-next-action.js attaches reviewStop fields; src/flow/lib/get-status.js includes reviewStop summary in active flow status."
+      },
+      {
+        "text": "Use existing reset command as the recovery entry rather than adding a separate command.",
+        "evidence": "draft q5 selected extending `flow set retry reset`; set-retry.js already covers gate/review reset phases.",
+        "consideredAlternatives": "Adding `flow run recover` was rejected because it would split one retry recovery concern across two command paths."
+      },
+      {
+        "text": "Grant exactly one re-evaluation after exhaustion by setting current retry count to max-1 for the target kind/phase.",
+        "evidence": "Existing reset-to-zero would allow up to max additional FAIL attempts; Issue #331 requires principle one re-evaluation."
+      },
+      {
+        "text": "Record migration guidance in spec and user-facing help because the existing reset command meaning changes.",
+        "evidence": "backward-compatible-cli-interface guardrail requires a migration plan when command meaning changes."
+      },
+      {
+        "text": "Limit audited gate recovery to task-impl and integration; plan gates display unsupported recovery state.",
+        "evidence": "set-retry.js gate phases are task-impl and integration; run-gate.js also tracks draft/spec retries, so status must define recoveryPossible:false for those phases."
+      },
+      {
+        "text": "Use retry-recovery.json as the single spec-local recovery artifact.",
+        "evidence": "No generic recovery artifact exists; a named versioned file gives tests and implementation an observable audit contract."
+      }
+    ]
+  },
+  "background": "Issue #331 reports that gate / review findings can be fixed after retry budget is exhausted, but the flow still cannot re-evaluate because exhaustion and repeated unchanged failure are represented as the same stop. Existing gate code already tracks retry counts and rejects unchanged gate re-runs with HEAD/worktree state. Existing review code tracks review retry counts and exposes a reviewStop view. Existing `flow set retry reset` can clear retry counters, but it does not require a reason, does not record changed evidence, and resets the counter to zero, which can grant more than one additional evaluation. This spec changes retry reset into an audited recovery grant for exhausted states while keeping unchanged failures stopped.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "status": "done",
+      "desc": "`flow set retry reset <gate|review> <phase> --reason <text> --yes` must validate action, kind, phase, reason length, and --yes at the command entry point before mutating metrics or artifacts."
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "status": "done",
+      "desc": "Recoverable targets must be limited to gate task-impl/integration and review draft-questions/draft-coverage/spec/test/impl; gate draft/spec exhaustion must be displayed with recoveryPossible:false and must remain invalid for set-retry."
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "status": "done",
+      "desc": "Review verdict FAIL and review stop handling must persist a phase-specific recovery baseline fingerprint before or when reviewRetry/reviewStop reaches exhaustion."
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "status": "done",
+      "desc": "When a recoverable target has exhausted its resolved maxAttempts, retry reset must compute recovery eligibility from the target's phase-specific evidence source mapping and the last same canonical kind/phase baseline."
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "status": "done",
+      "desc": "When exhausted and no mapped evidence source changed since the last same canonical kind/phase baseline, retry reset must return Envelope.fail without appending reset metrics, recovery artifacts, or retry allowance metrics."
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "status": "done",
+      "desc": "When exhausted recovery is eligible, retry reset must append `specs/<spec>/retry-recovery.json` entry and an issue-log entry containing reason, kind, phase, canonicalPhase, changedEvidence, permittedReevaluationCount, attemptsBefore, maxAttempts, counterAfter, recoveryCommand, and createdAt."
+    },
+    {
+      "id": "R7",
+      "priority": "must",
+      "status": "done",
+      "desc": "When exhausted recovery is granted, the current retry count for the target canonical kind/phase must become maxAttempts - 1 so exactly one subsequent FAIL re-exhausts the phase; a subsequent PASS must still reset the counter to zero through existing PASS behavior."
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "status": "done",
+      "desc": "`flow get next-action` and `flow get status` must show retry exhausted state with kind, phase, canonicalPhase, attempts, max, recoveryPossible, recoveryReason, changedEvidence summary, and recoveryCommand when the active step is stopped by gate or review retry exhaustion."
+    },
+    {
+      "id": "R9",
+      "priority": "must",
+      "status": "done",
+      "desc": "When the same failure continues after the one permitted re-evaluation, existing retry exhausted or repeated-failure stop behavior must remain in effect and must not automatically grant another recovery."
+    },
+    {
+      "id": "R10",
+      "priority": "should",
+      "status": "done",
+      "desc": "CLI help, flow prompt guidance, and generated skill template text should describe the audited recovery command, required --reason, one re-evaluation limit, and unchanged-state rejection."
+    },
+    {
+      "id": "R11",
+      "priority": "must",
+      "status": "done",
+      "desc": "Spec-local tests must cover exhausted eligible recovery, exhausted unchanged rejection, one-attempt allowance, audit artifact/issue-log creation, and next-action/status recovery display."
+    }
+  ],
+  "acceptance_criteria": [
+    "Given gate or review retry count is below maxAttempts, reset validates --reason and --yes, records an audited reset entry, and preserves existing non-exhausted reset behavior with exit 0.",
+    "Given gate draft/spec retry is exhausted, next-action/status reports recoveryPossible:false with reason unsupported-plan-gate-phase and set-retry rejects gate draft/spec.",
+    "Given review verdict FAIL reaches exhaustion, the flow persists a canonical phase baseline fingerprint for later recovery comparison.",
+    "Given retry count is exhausted and mapped evidence changed since the last same canonical kind/phase baseline, reset exits 0, writes retry-recovery.json, writes an issue-log entry, and leaves current retry count at maxAttempts - 1.",
+    "Given retry count is exhausted and mapped evidence is unchanged, reset exits non-zero with a machine-readable error and does not mutate retry metrics or recovery artifacts.",
+    "After an eligible recovery grant, one subsequent FAIL for the same kind/phase returns the flow to exhausted state without granting another automatic retry.",
+    "`flow get next-action` and `flow get status` include recoveryPossible and recoveryCommand when exhausted recovery is possible, and include a reason when recovery is not possible.",
+    "`retry-recovery.json` validates as version 1 with entries containing id, kind, phase, canonicalPhase, reason, changedEvidence, permittedReevaluationCount, attemptsBefore, maxAttempts, counterAfter, recoveryCommand, and createdAt.",
+    "New spec-local tests under specs/260-post-retry-recovery/tests/ include `// spec: R<N>` headers for every testable requirement.",
+    "If src/templates or src/presets content changes, `sdd-forge upgrade` is run and generated skill/config diffs are included."
+  ],
+  "clarifications": [
+    {
+      "q": "Why not increase maxAttempts?",
+      "a": "Increasing maxAttempts extends all retry loops. This spec grants exactly one audited re-evaluation only after changed diff/evidence proves the stopped state is no longer the same failure."
+    },
+    {
+      "q": "How is one re-evaluation enforced?",
+      "a": "The recovery grant must make the post-command retry count equal maxAttempts - 1 for the target kind/phase. The next FAIL reaches maxAttempts again; PASS clears the count through existing PASS reset behavior."
+    },
+    {
+      "q": "What is the migration plan for existing reset command users?",
+      "a": "The old unaudited form is not kept as a compatibility path. Help, prompts, spec, and error messages must show `--reason` and explain that exhausted recovery requires changed diff/evidence. Invalid old-form calls fail with a message containing the new command shape."
+    },
+    {
+      "q": "What constitutes success and failure for the modified command?",
+      "a": "Success is a valid reset or eligible exhausted recovery with audit records written. Failure is invalid input, missing --yes, missing/short reason, unchanged exhausted state, unsupported phase, or artifact write failure; these return ok:false and non-zero exit."
+    },
+    {
+      "q": "Which phases can use audited recovery?",
+      "a": "gate task-impl/integration and review draft-questions/draft-coverage/spec/test/impl. gate draft/spec are tracked for exhaustion but not recoverable by this command; status surfaces recoveryPossible:false."
+    },
+    {
+      "q": "Where is the recovery audit artifact written?",
+      "a": "`specs/<spec>/retry-recovery.json` with version 1 and append-only entries. issue-log references the same recovery command and reason for human audit."
+    },
+    {
+      "q": "How was the non-trivial design direction confirmed before implementation?",
+      "a": "The SDD approval step confirmed this design before implementation at 2026-05-18T14:52:49.499Z. Data flow is gate/review FAIL -> phase fingerprint baseline -> exhausted stop view -> explicit retry reset eligibility -> retry-recovery.json plus issue-log -> one-attempt allowance. Layer boundaries are: set-retry owns command validation and recovery grants, run-gate/run-review own baseline capture, retry-recovery owns domain objects and artifact persistence, get-next-action/get-status own display, prompts/templates own operator guidance, and spec-local tests own behavioral coverage."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Increase maxAttempts for gate/review phases",
+      "reason": "Rejected because it prolongs unchanged failure loops and does not record why an extra evaluation is allowed."
+    },
+    {
+      "option": "Keep reset-to-zero behavior and add only issue-log text",
+      "reason": "Rejected because reset-to-zero can grant more than one re-evaluation, contradicting Issue #331's one re-evaluation constraint."
+    },
+    {
+      "option": "Add a new `flow run recover` command",
+      "reason": "Rejected because existing `flow set retry reset` is already the reset/recovery entry for gate and review counters."
+    },
+    {
+      "option": "Require users to provide changed evidence manually",
+      "reason": "Rejected because the flow can compute diff/evidence fingerprints from local artifacts, and manual evidence text alone would not distinguish unchanged re-runs."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "retry recovery",
+    "retry exhausted",
+    "set-retry",
+    "gateRetry",
+    "reviewRetry",
+    "next-action",
+    "get-status",
+    "reviewStop",
+    "issue-log",
+    "recovery artifact",
+    "retry-recovery.json",
+    "maxAttempts",
+    "NO_PROGRESS_SINCE_LAST_FAIL"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/set-retry.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/review-failure.js",
+    "src/flow/commands/review.js",
+    "src/flow/lib/draft-review-routes.js",
+    "src/flow/lib/test-artifacts.js",
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/get-status.js",
+    "src/flow/registry.js",
+    "src/flow/prompts/impl/review.md",
+    "src/flow/prompts/impl/gate-impl.md",
+    "src/flow/prompts/plan/review-test.md",
+    "src/templates/skills/sdd-forge.flow/SKILL.md"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-18T14:52:49.499Z",
+    "notes": "autoApprove: spec gate passed and approval choice [1] was selected automatically"
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add audited retry recovery grant",
+      "goal": "Extend retry reset into an audited recovery grant that validates --reason, computes changed evidence, writes recovery audit records, and grants exactly one re-evaluation for exhausted phases.",
+      "acceptance": [
+        "Invalid kind, unsupported phase, missing --yes, or short --reason returns ok:false without mutation.",
+        "Eligible exhausted recovery writes retry-recovery.json and issue-log entries.",
+        "Eligible exhausted recovery leaves current retry count at maxAttempts - 1."
+      ],
+      "implementation_notes": "Owns set-retry command behavior, recovery entry/evidence/allowance classes, artifact persistence, metrics mutation, canonical phase normalization, and gate draft/spec unsupported recovery rejection. Keep existing non-exhausted reset usable but audited.",
+      "test_strategy": "Unit tests for input validation, eligible recovery, unchanged rejection, artifact shape, issue-log entry, and retry count after grant.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Surface retry recovery state",
+      "goal": "Expose retry exhausted and recovery possible/impossible state through next-action and status so the user can see the stop reason and recovery command.",
+      "acceptance": [
+        "next-action includes recoveryPossible, recoveryReason, recoveryCommand, kind, phase, canonicalPhase, attempts, max, and changedEvidence for exhausted active retry phases.",
+        "status includes the same recovery summary for active exhausted states.",
+        "Unsupported plan gates and unchanged exhausted states explain why recovery is not available."
+      ],
+      "implementation_notes": "Owns get-next-action/get-status view composition plus any helper shared with gate/review stop views. Reuse existing reviewStop shape where possible.",
+      "test_strategy": "Unit tests for next-action/status output across eligible and ineligible exhausted states.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Update recovery guidance",
+      "goal": "Update CLI help, flow prompts, and generated skill template guidance so recovery instructions match the audited command and one-attempt policy.",
+      "acceptance": [
+        "set retry help shows --reason and unchanged-state rejection.",
+        "review/gate prompt guidance tells agents to stop on exhaustion and use audited recovery only when changed evidence exists.",
+        "If template files change, sdd-forge upgrade is run."
+      ],
+      "implementation_notes": "Owns registry help text and prompt/template wording only. Do not change recovery logic in this task.",
+      "test_strategy": "Snapshot or text assertions for help/prompt output where existing tests cover those surfaces; otherwise verify via targeted command output.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Add spec recovery tests",
+      "goal": "Add spec-local tests that prove the recovery behavior satisfies every testable requirement and protects unchanged exhausted states.",
+      "acceptance": [
+        "Tests include `// spec: R<N>` headers for R1 through R11 where automated verification applies.",
+        "Tests cover gate and review retry recovery paths or shared helpers that both paths use.",
+        "Tests cover next-action/status recovery display."
+      ],
+      "implementation_notes": "Owns specs/260-post-retry-recovery/tests/ and any minimal shared fixtures needed by those tests.",
+      "test_strategy": "Run spec-local tests through the flow test-execute step, then run project regression as required by the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    }
+  ],
+  "specId": "260-post-retry-recovery"
+}

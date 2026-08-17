@@ -1,0 +1,103 @@
+{
+  "goal": "AI が draft フェーズで提示する選択肢の「推奨案」を常に [1] に配置するルールを、共通スタイルガイド partial に明記する。",
+  "scope": {
+    "in": [
+      "src/templates/partials/ai-question-style.md § 3「選択肢提示」に推奨案の配置位置ルールを追記する",
+      "追記内容: (a) 推奨案がある場合は [1] に配置、(b) 同率トップは 1 件を [1] に配置し残りは本文側で補足、(c) 推奨案が無い場合は配置ルール不発動",
+      "SKILL.md への反映は既存の partial include 経由で自動で行う（直接編集しない）"
+    ],
+    "out": [
+      "CLI 固定プロンプト (src/flow/lib/get-prompt.js) の並び順保証ロジック追加",
+      "draft フェーズ以外 (impl / review / finalize 等) の選択肢スタイル変更",
+      "他 skill ファイル (flow-auto / flow-status / flow-sync 等) の個別調整",
+      "SKILL.md の直接編集"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止。テンプレート partial 1 ファイルへの追記のみ",
+    "alpha 版ポリシーに従い、後方互換の記述は追加しない",
+    "変更は src/templates/partials/ai-question-style.md 1 箇所に閉じる"
+  ],
+  "design_principles": [
+    "ルール追記は既存の箇条書き構造 (§ 3 選択肢提示) を踏襲し、同節内に 1 項目追加する",
+    "ルール本文は条件付き (「推奨案がある場合」) で記述し、既存ルール「推奨案があれば明示」と整合させる",
+    "実装コードは 1–3 行差分程度の最小粒度"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/templates/partials/ai-question-style.md — § 3 に推奨案の [1] 配置ルールを追記"
+      },
+      {
+        "text": "src/templates/skills/sdd-forge.flow/SKILL.md — partial include により自動反映 (直接編集なし)"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "partial 更新 → sdd-forge upgrade → プロジェクトの .claude/skills/sdd-forge.flow/SKILL.md に反映"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "対象は AI 生成 choice のみ。CLI 固定プロンプトは issue #217 本文と整合させて対象外とする"
+      },
+      {
+        "text": "推奨案が無い場合は配置ルールを発動させない。過剰制約を避けるため"
+      }
+    ]
+  },
+  "background": "Issue #217: 現状は AI 生成 choice の並び順が不定で、ユーザーが推奨案を即座に判別しづらい。既存 partial § 3 に推奨案の明示義務はあるが位置規定がない。既存の良い例は結果的に [1] に推奨が置かれているが暗黙ルールに留まっている。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When the AI presents a choice block in any SDD flow phase and a recommended option exists, the style guide partial (ai-question-style.md) shall require the recommended option to be placed at choice id [1]."
+    },
+    {
+      "id": "R2",
+      "desc": "When multiple options are tied as top recommendations, the style guide shall require one of them to be placed at [1]; the remaining tied candidates may be noted in the prose surrounding the choice block."
+    },
+    {
+      "id": "R3",
+      "desc": "When no recommendation exists for a choice block, the style guide shall not mandate any specific placement order (the [1] rule applies only conditionally on the presence of a recommendation)."
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1 (R1): src/templates/partials/ai-question-style.md § 3 に推奨案を [1] に配置することを要求する bullet が含まれる。",
+    "AC2 (R2): 同節は同率トップの扱いを明記し、1 件を [1] に置くことを求める。",
+    "AC3 (R3): ルールは推奨案がある場合にのみ発動する条件付き表現で記述される。",
+    "AC4: tests/unit/templates/ai-question-style.test.js (新規) が partial 内の R1 / R2 / R3 マーカーの存在を検証する。"
+  ],
+  "clarifications": [
+    {
+      "q": "SKILL.md も直接編集するか？",
+      "a": "しない。partial include で自動反映される。直接編集すると重複管理になる。"
+    },
+    {
+      "q": "既存の「良い例」記述も差し替えるか？",
+      "a": "しない。既に [1] 配置済みで新ルールと整合している。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "案 A: partial に bullet 追記",
+      "reason": "採用。変更範囲最小、SKILL.md は partial include 経由で自動反映される。"
+    },
+    {
+      "option": "案 B: CLI の get-prompt.js も含めて全プロンプトで recommended=true を [1] に強制する validator を追加",
+      "reason": "不採用。issue の scope 外。CLI プロンプトの recommended: true は現状すべて [1] にあり、追加 validator は過剰。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "212-draft-recommended-first"
+}

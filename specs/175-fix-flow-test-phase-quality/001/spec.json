@@ -1,0 +1,73 @@
+{
+  "goal": "flow テストフェーズに存在する3点のバグを修正し、AI が適切な選択肢をユーザーに提示してからテスト方針を決定するよう改善する。また、gate-impl がテスト実行要件を diff から誤判定しないよう、テスト実行証跡を提供する新コマンドを追加する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "テスト実行エンジン自体の変更",
+      "テストフェーズ以外の flow ステップへの変更",
+      "gate-impl の構造的なリファクタリング"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "P1: plan.test-mode 設問の変更（既存テスト実行の選択肢が欠如しているため即影響あり）"
+    },
+    {
+      "id": "R2",
+      "desc": "P2: flow-plan test フェーズの CRITICAL STOP 追加（AI の自動判断を防ぐ安全装置）"
+    },
+    {
+      "id": "R3",
+      "desc": "P3: gate-impl のテスト実行要件検証改善（新コマンド作成を伴う最も影響範囲が広い変更）"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: `sdd-forge flow get prompt plan.test-mode` を実行したとき、description が「テストを実行するか選択してください。」を含み、choices が [実行する, 実行しない, その他] を含むこと",
+    "AC2: flow-plan SKILL.md のテストフェーズ冒頭に CRITICAL STOP マーカーが存在すること",
+    "AC3: `sdd-forge flow get test-result` を実行したとき、`ok: true` と `key: \"test-result\"` を含む JSON が返されること",
+    "AC4: `sdd-forge flow get test-result` をログファイルが存在しない状態で実行したとき、エラーにならず `log: null` を含む結果が返されること",
+    "AC5: gate-impl がテスト実行証跡ありで実行されたとき、証跡の内容がプロンプトに含まれること"
+  ],
+  "clarifications": [
+    {
+      "q": "gate-impl のテスト実行要件を判定する際、AI ヒューリスティックと専用コマンドのどちらを使うか？",
+      "a": "専用コマンド `sdd-forge flow get test-result` を作成し、その戻り値で判定する。AI ヒューリスティックへの依存を排除する"
+    },
+    {
+      "q": "テストログの保存先はどこか？",
+      "a": "設定の `agent.workDir`（デフォルト `.tmp`）配下。既存のエージェントログと同じディレクトリ配下に統一する"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**AI に SKIP 判断させる案（不採用）**",
+      "reason": "プロンプトに「実行証跡が必要な要件は SKIP せよ」と追加する案。AI が要件テキストから推測するためヒューリスティックであり、判定が不安定。専用コマンドにより機械的に取得する案を採用した"
+    },
+    {
+      "option": "**spec に `[execution]` タグを付ける案（不採用）**",
+      "reason": "spec 記述側に変更が必要。既存 spec の改修が必要になるため、新コマンド追加のみで対処できる案を採用した"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "175-fix-flow-test-phase-quality"
+}

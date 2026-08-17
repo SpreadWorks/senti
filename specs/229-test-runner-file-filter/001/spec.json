@@ -1,0 +1,180 @@
+{
+  "goal": "テストランナーに --file, --pattern, positional 引数によるテストファイル直接指定機能を追加する",
+  "scope": {
+    "in": [
+      "--file <path> フラグの追加（複数回指定可）",
+      "--pattern <glob> フラグの追加（glob マッチ）",
+      "末尾 positional 引数によるファイル/ディレクトリ指定",
+      "ファイル指定モードとディレクトリ検索モードの相互排他バリデーション"
+    ],
+    "out": [
+      "既存ディレクトリベース検索ロジックのリファクタリング",
+      "テストラベル集計・カテゴリ分類ロジックの変更",
+      "--watch, --parallel 等の別機能追加"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみ使用",
+    "既存フラグのみ使用時の動作に変更を加えない"
+  ],
+  "design_principles": [
+    "ファイル指定は発見方法の追加に留め、実行パイプラインは既存と同一",
+    "既存の --agent 排他パターンに倣いモード間の混在を禁止"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "tests/run.js — 引数パースとファイル収集"
+      },
+      {
+        "text": "tests/helpers/test-runner-search-dirs.js — フラグバリデーション"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "引数パース → バリデーション → ファイル収集 → カテゴリ分類 → 実行 → ラベル集計"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "D1: --file は .test.js フィルタ不適用、--pattern と positional ディレクトリ展開は適用"
+      },
+      {
+        "text": "D2: ファイル指定系フラグ同士は併用可（union）"
+      }
+    ]
+  },
+  "background": "現在のテストランナーはディレクトリベースのフィルタリングのみ対応。個別テストファイル指定の手段がなく、node --test に切り替えるとラベル集計が適用されない。",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "--file <path> を指定した場合、そのファイルをテスト対象に追加する。複数回指定した場合、すべてのファイルを union で実行する。指定ファイルが存在しない場合はエラーメッセージを表示して exit(1) する。",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "--pattern <glob> を指定した場合、glob に一致するファイルをテスト対象とする。一致ファイルが 0 件の場合はエラーメッセージを表示して exit(1) する。",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "フラグ以外の末尾引数をファイルまたはディレクトリとして解釈する。ファイルの場合はそのまま追加、ディレクトリの場合は再帰的に .test.js ファイルを収集する。再帰の深さ上限は 20 とし、超過した場合はそのサブツリーをスキップする。",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "--file/--pattern/positional（ファイル指定モード）と --preset/--scope/--agent/--all（ディレクトリ検索モード）を同時に指定した場合、エラーメッセージを表示して exit(1) する。",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "should",
+      "desc": "ファイル指定モードで収集されたファイルは、既存と同じカテゴリ分類・ラベル集計パイプラインを通して実行する。",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: --file で指定ファイルのみが実行される",
+    "AC2: --file を複数回指定すると両ファイルが実行される",
+    "AC3: --pattern でパターンに一致するファイルが実行される",
+    "AC4: positional ディレクトリ指定でディレクトリ内の .test.js が再帰的に実行される",
+    "AC5: ファイル指定モードとディレクトリ検索モードの同時使用でエラーが出力される",
+    "AC6: --file で存在しないファイルを指定するとエラーが出力される",
+    "AC7: --pattern で一致ファイル 0 件だとエラーが出力される",
+    "AC8: ファイル指定モードでもラベル集計が表示される",
+    "AC9: フラグなし・既存フラグのみの場合、動作に変更がない"
+  ],
+  "clarifications": [
+    {
+      "q": "glob 展開にはどの仕組みを使うか？",
+      "a": "Node.js 組み込みの fs.globSync（Node 22+）を使用。プロジェクトは既に import.meta.dirname 等の Node 22 機能を使用しており互換性問題なし。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "positional 引数のみ（--file/--pattern なし）",
+      "reason": "フラグ値との区別が曖昧。明示的フラグの方が堅牢。"
+    },
+    {
+      "option": "既存フラグとの併用許可",
+      "reason": "組み合わせの意味が不明瞭。排他を選択。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "tests/run.js",
+    "tests/helpers/test-runner-search-dirs.js"
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/run.js",
+      "reason": "test runner infrastructure, not a test case — adding --file/--pattern/positional argument parsing and file collection logic per spec scope"
+    },
+    {
+      "path": "tests/helpers/test-runner-search-dirs.js",
+      "reason": "test runner helper, not a test case — extending validateFlags with file-specification exclusivity rules per spec scope"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "skipped",
+      "key": "T-pending-spec"
+    },
+    {
+      "id": "T-1",
+      "title": "Extend flag validation for file-specification exclusivity",
+      "goal": "validateFlags にファイル指定モード（--file, --pattern, positional）とディレクトリ検索モード（--preset, --scope, --agent, --all）の相互排他チェックを追加する。",
+      "acceptance": [
+        "ファイル指定フラグとディレクトリ検索フラグの併用時にエラーオブジェクトが返る",
+        "ファイル指定フラグ同士の併用時にエラーが返らない",
+        "既存の --agent 排他ルールが維持される",
+        "フラグなし・既存フラグのみの場合に動作変更がない"
+      ],
+      "implementation_notes": "tests/helpers/test-runner-search-dirs.js の validateFlags を拡張。新パラメータ（file, pattern, positional の有無）を受け取り、既存の排他ルールと同じパターンで検証する。",
+      "test_strategy": "unit テスト: 各フラグ組み合わせでの validateFlags の戻り値を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement file collection from --file, --pattern, and positional args",
+      "goal": "tests/run.js に --file, --pattern, positional 引数のパースとファイル収集ロジックを追加し、収集結果を既存の実行パイプラインに接続する。",
+      "acceptance": [
+        "--file で指定したファイルがテスト対象に追加される",
+        "--file で存在しないファイルを指定するとエラーで終了する",
+        "--pattern で glob に一致するファイルがテスト対象になる",
+        "--pattern で一致 0 件だとエラーで終了する",
+        "positional ファイル引数がそのまま追加される",
+        "positional ディレクトリ引数で再帰的に .test.js が収集される",
+        "ファイル指定系の結果が union される",
+        "収集結果が既存のカテゴリ分類・ラベル集計を通る"
+      ],
+      "implementation_notes": "tests/run.js の引数パース部分に --file, --pattern, positional の抽出を追加。ファイル収集関数を新設し、結果を findTestFiles の代わりに使用する。glob 展開には fs.globSync を使用。",
+      "test_strategy": "unit テスト: ファイル収集関数の入出力を仮ディレクトリで検証。エラーケース（存在しないファイル、0 件 glob）も検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending",
+      "key": "T-2"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T09:15:52.690Z",
+    "notes": "autoApprove"
+  },
+  "specId": "229-test-runner-file-filter"
+}

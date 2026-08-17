@@ -1,0 +1,46 @@
+{
+  "goal": "flow-plan スキルテンプレートの draft フェーズ手順から、存在しない `sdd-forge flow run scan` コマンドを削除する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-plan/SKILL.md` — draft フェーズの手順 2 を削除"
+    ],
+    "out": [
+      "`sdd-forge docs scan` コマンド自体の変更",
+      "`flow run` のサブコマンド追加",
+      "他のスキルテンプレート"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "SKILL.md に `flow run scan` への参照が含まれないこと",
+    "ソーステンプレート `src/templates/skills/sdd-forge.flow-plan/SKILL.md` が変更されていること"
+  ],
+  "clarifications": [
+    {
+      "q": "手順番号がずれるが問題ないか？",
+      "a": "問題ない。手順 2 を削除し、後続の番号を繰り上げる。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "140-fix-skill-scan-cmd"
+}

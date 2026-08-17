@@ -1,0 +1,63 @@
+{
+  "goal": "analysis.json のハッシュフィールドを使った差分比較により、変更されたファイルだけを scan → enrich → text する仕組みを追加する。ドキュメント生成の実行時間と AI トークン消費を削減する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "**scan**: analysis.json 存在時にハッシュ比較で変更・新規ファイルだけ再スキャン。削除ファイルは自動除外",
+      "**enrich**: scan の差分化により変更エントリーの enrichment が消えるため、既存レジューム機能で自動的に変更分だけ処理",
+      "**text**: 変更エントリーの `chapter` フィールドから影響章を特定し、ディレクティブをクリアして再生成",
+      "**build**: パイプライン全体をデフォルト差分化"
+    ],
+    "out": [
+      "`--full` フラグの追加（analysis.json 削除で代用）",
+      "data コマンドの差分化（data は高速なため不要）",
+      "init / readme / agents の差分化"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] analysis.json が存在する状態で scan を実行すると、変更ファイルだけがスキャンされる",
+    "[ ] 変更がないファイルの既存エントリー（enrichment 含む）が保持される",
+    "[ ] 削除されたファイルのエントリーが analysis.json から除外される",
+    "[ ] enrich が変更エントリーだけを AI に投げる",
+    "[ ] text が影響章だけを再生成する",
+    "[ ] analysis.json が存在しない場合はフルスキャンが実行される",
+    "[ ] `sdd-forge docs build` が差分モードで動作する",
+    "[ ] 既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "git diff で比較するのか？",
+      "a": "git に依存せずファイルハッシュ（MD5）比較を使う。uncommitted な変更も拾え、git リポジトリでないプロジェクトでも動作する。"
+    },
+    {
+      "q": "削除されたファイルを残さないと差分がとれなくならないか？",
+      "a": "ならない。差分比較に必要なのは既存 analysis.json 内のハッシュと現在のファイルハッシュの比較のみ。削除済みファイルの情報は不要。"
+    },
+    {
+      "q": "`--full` フラグは必要か？",
+      "a": "不要。analysis.json を削除すればフル実行と同等。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "062-incremental-scan-by-hash"
+}

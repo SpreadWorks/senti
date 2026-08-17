@@ -1,0 +1,277 @@
+{
+  "goal": "plan phase のレビューステップ（review-draft, review-spec）を改修し、draft review では auto-fix を廃止して追加質問方式に変更、spec review では impl review と同じ propose→validate パターンに統一し AI 呼び出し回数を最悪 10 回から 2 回に削減する",
+  "scope": {
+    "in": [
+      "`src/flow/commands/review.js` — runDraftReview, buildDraftReviewPrompt, buildDraftFixPrompt, runSpecReview, buildSpecReviewPrompt, buildSpecFixPrompt",
+      "`src/flow/lib/run-review.js` — PHASE_REVIEW_PARSERS, parseDraftReviewOutput",
+      "`src/flow/definition.js` — createPlanReviewNode, review-draft/review-spec ノード定義",
+      "`src/flow/prompts/plan/` — review-draft.md, review-spec.md",
+      "エージェント commandId リネーム: `flow.draft.review` → `flow.draft.review.propose`, `flow.impl.review.draft` → `flow.impl.review.propose`",
+      "`.sdd-forge/config.json` — agent.providers の commandId キー",
+      "skill プロンプト — proposals 出力を消費する instructions"
+    ],
+    "out": [
+      "impl review パイプライン本体（propose→final の既存動作。commandId リネームのみ）",
+      "test review パイプライン",
+      "gate 系の処理",
+      "flow definition の impl/finalize 側のノード定義"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みモジュールのみ）",
+    "alpha 版ポリシー: 後方互換コードは不要",
+    "既存の CLI コマンドインターフェース（`sdd-forge flow run review --phase <phase>`）は変更しない"
+  ],
+  "design_principles": [
+    "draft review: 不足の検出は AI が行うが、回答はユーザーから得る（auto-fix で AI が回答を捏造しない）",
+    "spec review: impl review で実績のある propose→validate 2 ステップパターンに統一",
+    "エージェント命名: 全レビューフェーズで propose/final に統一し、draft との語義衝突を解消"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "review.js — draft review pipeline: runDraftReview を改修。auto-fix を廃止し不足検出レポートのみ出力する方式に変更"
+      },
+      {
+        "text": "review.js — spec review pipeline: runSpecReview を propose→validate 2 ステップに変更。auto-fix 廃止。入力を spec.json フィールド選択 + markdown 整形 + minify に変更"
+      },
+      {
+        "text": "run-review.js — output parsers: PHASE_REVIEW_PARSERS と parseDraftReviewOutput をリネーム後の commandId に合わせて更新"
+      },
+      {
+        "text": "commandId rename: flow.impl.review.draft → flow.impl.review.propose、flow.draft.review → flow.draft.review.propose、flow.spec.review → flow.spec.review.propose"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "draft review: draft.json + request/issue + context → propose agent → 不足検出レポート（draft-review.md）→ skill 側 AI が追加質問 → ユーザー回答 → draft.json 更新"
+      },
+      {
+        "text": "spec review: spec.json フィールド選択 + minify + context → propose agent → proposals → validate agent → verdicts → spec-review.md → skill 側 AI が反映"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "draft review の auto-fix を廃止し、不足検出レポートのみ出力する方式に変更。回答の生成はユーザー（autoApprove 時は AI）が行う",
+        "evidence": "現行の auto-fix は AI がユーザーの QA 回答を捏造して draft.json を書き換えており、interactive QA の目的と矛盾する"
+      },
+      {
+        "text": "spec review を propose→validate 2 ステップに統一し、auto-fix を廃止。APPROVED proposals は spec-review.md にレポート出力し、反映は skill 側 AI が行う",
+        "evidence": "impl review の propose→final パターンが実績あり。auto-fix 廃止で AI 呼び出し回数が最悪 10 回→2 回に削減"
+      },
+      {
+        "text": "spec review の入力を spec.md 全文から spec.json フィールド選択 + markdown 整形 + minify に変更",
+        "evidence": "Issue の実データ検証で spec.md 比 60% 削減。minify で追加削減"
+      },
+      {
+        "text": "エージェント commandId を draft→propose にリネーム",
+        "evidence": "draft という語が QA ドラフト（draft.json）と review の propose フェーズで衝突している"
+      }
+    ]
+  },
+  "background": "plan phase のレビューステップに 2 つの問題がある。(1) draft review は QA 不足を AI が自動で回答を捏造して埋めており、interactive QA の目的と矛盾する。(2) spec review は 1 イテレーションで 3 回の AI 呼び出しが直列に走り（detect + validate + fix）、最大 3 イテレーション + verification で最悪 10 回の AI 呼び出し。毎回 spec.md 全文を送るためトークン消費が過大。",
+  "requirements": [
+    {
+      "id": "R-01",
+      "desc": "draft review（runDraftReview）から auto-fix を廃止する。buildDraftFixPrompt と draft.json 自動書き換えを削除し、不足検出結果のみを draft-review.md に番号付きリストとして出力する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R-02",
+      "desc": "spec review（runSpecReview）を propose→validate 2 ステップに変更する。detect/validate/fix 3 ステップの runReviewLoop 呼び出しを廃止し、propose agent で proposals 生成 → validate agent で APPROVED/REJECTED 判定の 2 回の AI 呼び出しで完結させる",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R-03",
+      "desc": "spec review の auto-fix を廃止する。buildSpecFixPrompt と spec.md 自動書き換えを削除し、APPROVED proposals を spec-review.md に番号付きリスト（タイトル、対象セクション名、変更内容）として出力する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R-04",
+      "desc": "spec review の入力を spec.md 全文から spec.json フィールド選択（goal, background, scope, constraints, design_principles, overview, requirements の id+desc+priority）に変更し、markdown 形式に整形した上で minify して propose agent に送る。1 回あたりの入力バイト数が spec.md 全文より小さいこと",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R-05",
+      "desc": "エージェント commandId をリネームする: flow.impl.review.draft → flow.impl.review.propose、flow.draft.review → flow.draft.review.propose、flow.spec.review → flow.spec.review.propose。review.js 内の全参照箇所を一括変更する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R-06",
+      "desc": "run-review.js の PHASE_REVIEW_PARSERS と parseDraftReviewOutput をリネーム後の commandId・出力ヘッダーに合わせて更新する。パーサーの regex パターンがリネーム後の stderr 出力と一致すること",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R-07",
+      "desc": ".sdd-forge/config.json の agent.providers セクションの commandId キーをリネーム後の値に変更する",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R-08",
+      "desc": "review-draft.md が「不足検出レポート出力 → skill 側 AI が追加質問」の流れを記述し、review-spec.md が「propose→validate → APPROVED proposals レポート出力 → skill 側 AI が反映」の流れを記述していること",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "clarifications": [],
+  "acceptance_criteria": [
+    "draft review 実行時に draft.json が自動書き換えされない（auto-fix 廃止）",
+    "spec review の AI 呼び出し回数が propose + validate の 2 回で完結する",
+    "spec review 実行時に spec.md が自動書き換えされない（auto-fix 廃止）",
+    "spec review の 1 回あたり入力トークン量が spec.md 全文より小さい",
+    "旧 commandId（flow.impl.review.draft, flow.draft.review, flow.spec.review）が src/ 配下に存在しない",
+    "既存テスト（npm test）が全件 PASS"
+  ],
+  "alternatives_considered": [
+    {
+      "option": "auto-fix を残す",
+      "reason": "Issue の方針と矛盾。AI がユーザー回答を捏造する問題が解消されない"
+    },
+    {
+      "option": "spec.json を JSON のまま AI に送る",
+      "reason": "markdown 整形の方が AI の読解に適している"
+    },
+    {
+      "option": "REJECTED proposals を再 propose する retry 方式",
+      "reason": "propose の入力条件が変わらないため同じ結果になる可能性が高く、トークン浪費"
+    },
+    {
+      "option": "既存 commandId を残して alias を追加",
+      "reason": "alpha ポリシーに反する"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Rename review agent commandIds from draft to propose",
+      "goal": "review.js 内の全エージェント commandId を draft→propose にリネームし、commandId の語義衝突を解消する",
+      "acceptance": [
+        "旧 commandId（flow.impl.review.draft, flow.draft.review）が src/flow/commands/review.js に存在しない",
+        "flow.spec.review が flow.spec.review.propose にリネームされている",
+        "review.js 内の ensureAgent, callReviewAgent の第3引数が全て新 commandId を使用している"
+      ],
+      "implementation_notes": "review.js の ensureAgent/callReviewAgent 呼び出し箇所（約 15 箇所）を一括置換。flow.impl.review.draft → flow.impl.review.propose、flow.draft.review → flow.draft.review.propose、flow.spec.review → flow.spec.review.propose。flow.impl.review.final と flow.test.review はスコープ外（変更なし）",
+      "test_strategy": "grep で旧 commandId が残っていないことを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Update run-review.js parsers for renamed commandIds",
+      "goal": "PHASE_REVIEW_PARSERS と parseDraftReviewOutput をリネーム後の commandId・出力ヘッダーに合わせて更新する",
+      "acceptance": [
+        "PHASE_REVIEW_PARSERS の draft キーが更新されている",
+        "parseDraftReviewOutput の関数名がリネームされている",
+        "パーサーの regex パターンがリネーム後の stderr 出力と一致する"
+      ],
+      "implementation_notes": "run-review.js: PHASE_REVIEW_PARSERS の draft エントリ更新、parseDraftReviewOutput リネーム、export 文更新。review.js 側の import/呼び出し箇所も合わせて更新",
+      "test_strategy": "既存のパーサーテストを実行し PASS",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Update config.json commandId keys",
+      "goal": ".sdd-forge/config.json の agent.providers セクションの commandId キーをリネーム後の値に変更する",
+      "acceptance": [
+        "config.json に旧 commandId キー（flow.impl.review.draft, flow.draft.review, flow.spec.review）が存在しない",
+        "新 commandId キー（flow.impl.review.propose, flow.draft.review.propose, flow.spec.review.propose）が設定されている"
+      ],
+      "implementation_notes": "config.json の agent.providers 内のキーを置換",
+      "test_strategy": "config.json をパースし旧キーの不在・新キーの存在を確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    },
+    {
+      "id": "T-4",
+      "title": "Rewrite draft review to detection-only mode",
+      "goal": "runDraftReview から auto-fix を廃止し、不足検出レポートのみを出力する方式に変更する",
+      "acceptance": [
+        "draft review 実行時に draft.json が変更されない",
+        "draft-review.md に不足検出結果が番号付きリストで出力される",
+        "検出結果は既存の parseProposals フォーマット（タイトル + QA 番号 + Issue + Suggestion）を使用する"
+      ],
+      "implementation_notes": "runDraftReview から fix コールバック（buildDraftFixPrompt + draft.json 書き換え）を削除。runReviewLoop の fix を no-op にするか、detect のみ実行する方式に変更。draft-review.md への出力フォーマットは既存の formatDraftReviewMd を活用",
+      "test_strategy": "draft review を dry-run 実行し draft.json 不変を確認。draft-review.md の出力内容を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-4"
+    },
+    {
+      "id": "T-5",
+      "title": "Rewrite spec review to propose-validate pattern",
+      "goal": "runSpecReview を detect/validate/fix 3 ステップから propose→validate 2 ステップに変更し、auto-fix を廃止する",
+      "acceptance": [
+        "spec review の AI 呼び出しが propose + validate の 2 回で完結する",
+        "spec.md が自動書き換えされない",
+        "APPROVED proposals が spec-review.md に番号付きリスト（タイトル、対象セクション名、変更内容）として出力される",
+        "REJECTED proposals も verdict と reason 付きでレポートに含まれる"
+      ],
+      "implementation_notes": "runSpecReview を書き換え: (1) propose agent で proposals 生成（既存の buildSpecReviewPrompt ベース）、(2) validate agent で APPROVED/REJECTED 判定（既存の mergeVerdicts ベース）。buildSpecFixPrompt と spec.md 書き換え処理を削除。runReviewLoop の使用を廃止し、直列 2 回呼び出しに変更",
+      "test_strategy": "spec review 実行後の stderr ログで AI 呼び出し回数を確認。spec.md 不変を確認。spec-review.md の出力内容を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-5"
+    },
+    {
+      "id": "T-6",
+      "title": "Reduce spec review input tokens via field selection and minify",
+      "goal": "spec review の入力を spec.md 全文から spec.json フィールド選択 + markdown 整形 + minify に変更し、入力トークン量を削減する",
+      "acceptance": [
+        "spec review の propose agent 入力が spec.json から抽出したフィールド（goal, background, scope, constraints, design_principles, overview, requirements の id+desc+priority）を含む",
+        "入力が markdown 形式に整形されている",
+        "入力が minify されている",
+        "入力バイト数が spec.md 全文のバイト数より小さい"
+      ],
+      "implementation_notes": "spec.json から必要フィールドを抽出する関数を新設。抽出結果を markdown 形式に整形し、src/docs/lib/minify.js の minify を適用。buildSpecReviewPrompt の specText 引数を整形済み文字列に置換",
+      "test_strategy": "フィールド抽出→markdown 整形→minify の関数を単体テストし、出力バイト数 < spec.md バイト数を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-6"
+    },
+    {
+      "id": "T-7",
+      "title": "Update skill instruction prompts for new review pipelines",
+      "goal": "review-draft.md と review-spec.md の skill instructions プロンプトを新パイプラインに合わせて更新する",
+      "acceptance": [
+        "review-draft.md が「不足検出レポート → skill 側 AI が追加質問」の流れを記述している",
+        "review-spec.md が「propose→validate → APPROVED proposals のレポート → skill 側 AI が反映」の流れを記述している"
+      ],
+      "implementation_notes": "src/flow/prompts/plan/review-draft.md: auto-fix の記述を削除し、検出レポートの読み取り + 追加質問フローを記述。review-spec.md: detect/validate/fix の記述を propose→validate に書き換え、auto-fix の記述を削除し、APPROVED proposals の反映手順を記述",
+      "test_strategy": "プロンプトファイルの内容を目視確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-7"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-30T00:42:13.725Z"
+  },
+  "specId": "246-plan-review-overhaul"
+}

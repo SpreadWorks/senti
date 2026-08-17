@@ -1,0 +1,65 @@
+{
+  "goal": "Improve the text output of `formatText()` in `src/flow/commands/report.js` by removing a section that is always meaningless at report generation time, clarifying ambiguous metric labels, reducing clutter in the Issue Log, and ensuring the Tests section is always present.",
+  "background": "",
+  "scope": {
+    "in": [
+      "`formatText()` function in `src/flow/commands/report.js`",
+      "No changes to `generateReport()`, `aggregateMetrics()`, `saveReport()`, or the `data` object structure"
+    ],
+    "out": [
+      "Changes to `report.json` structure",
+      "Changes to `generateReport()` data logic",
+      "Changes to callers of `generateReport()` (finalize, issue comment)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: Text output does not contain the string `Documents`.",
+    "AC2: Metrics line contains `docs read`, `src read`, and `issue-log` (not `docs`, `src`, or `issues` as standalone labels).",
+    "AC3: Issue log entries appear as `[step] reason` with no `->` suffix.",
+    "AC4: Text output always contains the string `Tests`, even when no test data exists.",
+    "AC5: Existing `generateReport()` behavior (data structure, other text sections) is unchanged."
+  ],
+  "clarifications": [
+    {
+      "q": "Does removing the Documents section affect `report.json`?",
+      "a": "No. `data.sync` remains in the data object; only the text rendering is removed."
+    },
+    {
+      "q": "Should Issue Log still be hidden when there are no entries?",
+      "a": "Yes. The `if (data.issueLog.count > 0)` guard is retained."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**Documents section**",
+      "reason": "Show \"n/a\" instead of removing — Rejected. Always-skipped content adds noise with no benefit."
+    },
+    {
+      "option": "**Issue Log**",
+      "reason": "Add `--verbose` flag for full resolution display — Rejected. `report.json` already provides full data; text output is for quick human review."
+    }
+  ],
+  "open_questions": [
+    "(none)"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "154-improve-report-formattext"
+}

@@ -1,0 +1,65 @@
+{
+  "goal": "`flow resume` コマンドを復活させ、コンパクション後や worktree 外からフローを発見・復帰できるようにする。\n同時に、`get-resolve-context` と共通のフロー探索ロジックを共通ヘルパーに抽出して重複を排除する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "共通フロー探索ヘルパー関数の作成（`flow-state.js` に追加）",
+      "`flow resume` コマンドの実装（`src/flow/lib/run-resume.js`）",
+      "`registry.js` へのコマンド登録（トップレベル、`prepare` と対称）",
+      "`flow.js` ディスパッチャへの resume ルーティング追加",
+      "`get-resolve-context.js` のリファクタ（共通ヘルパーを使用）",
+      "`src/templates/skills/sdd-forge.flow-resume/SKILL.md` の更新",
+      "`sdd-forge upgrade` でプロジェクト側スキルに反映"
+    ],
+    "out": [
+      "`get-resolve-context` の出力構造の変更",
+      "新しい `flow get/set` サブコマンドの追加",
+      "複数フロー同時実行時の選択 UI"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow resume` がフロー進行中に実行でき、request, phase, progress, goal, scope, requirements, notes, recommendedSkill を含む JSON envelope を返す",
+    "フローが存在しない場合、エラーメッセージを含む JSON envelope を返す",
+    "`get-resolve-context` の出力が共通ヘルパー導入前と変わらない",
+    "`sdd-forge flow --help` に resume が表示される",
+    "SKILL.md テンプレートが `sdd-forge flow resume` を呼ぶ設計になっている"
+  ],
+  "clarifications": [
+    {
+      "q": "resume と get-resolve-context の関係は？",
+      "a": "共通ヘルパーにフロー探索ロジックを抽出し、両方から使う。resume は独立したトップレベルコマンド。"
+    },
+    {
+      "q": "scanAllFlows（3段目フォールバック）の扱いは？",
+      "a": "共通ヘルパーに含め、resume と get-resolve-context の両方で使えるようにする。"
+    },
+    {
+      "q": "出力フォーマットは？",
+      "a": "JSON envelope 形式で、get-resolve-context と同構造のデータを返す。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`scanAllFlows` が複数フローを見つけた場合の挙動 → 現行 get-resolve-context と同様にエラーとする。複数フロー選択UIはスコープ外。"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "133-restore-flow-resume"
+}

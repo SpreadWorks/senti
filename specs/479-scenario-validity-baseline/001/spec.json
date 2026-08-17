@@ -1,0 +1,209 @@
+{
+  "goal": "Make scenario-validity attribute production-target changes to the current flow by using validated immutable flow baseline authority instead of a moving base-branch tip.",
+  "scope": {
+    "in": [
+      "Scenario-validity baseline authority validation.",
+      "Current-flow change attribution and focused unit regression coverage.",
+      "Existing preflight artifact and transition parity."
+    ],
+    "out": [
+      "Production-target allowlist changes.",
+      "Repair-fingerprint baseline changes.",
+      "Finalize-time rebase or merge strategy changes."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules only.",
+    "Fail closed with a typed error when baseline authority is missing, inconsistent, ambiguous, or unresolvable.",
+    "Retain the current scenario-validity production-target allowlist and artifact paths."
+  ],
+  "design_principles": [
+    "Treat persisted, authority-backed flow state as the source of attribution truth.",
+    "Never infer a baseline from a moving branch name when immutable authority is unavailable."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-scenario-validity.js resolves and uses the preflight baseline."
+      },
+      {
+        "text": "src/flow/lib/repair-state-identity.js provides immutable baseline and authority-validation conventions."
+      },
+      {
+        "text": "tests/unit/flow/run-scenario-validity.test.js covers the public preflight contract."
+      },
+      {
+        "text": "RepairStateError and resolveRepairBaselineAuthority enforce immutable baseline authority for scenario-validity.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "RunScenarioValidityCommand accepts a scenario-test execution boundary while retaining the default process runner.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Flow state repairBaseline -> authority validation -> immutable Git ref -> scoped diff plus working-tree status -> preflight decision -> existing artifacts and step transition."
+      },
+      {
+        "text": "flow.json repairBaseline -> namespace and ref resolution -> commit identity check -> preflight diff baseline.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Validated immutable baseline ref -> git diff for committed production paths; status scan retains index, worktree, and untracked paths.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Scenario test process records -> version-1 result and raw log -> pass-to-test-review or typed block outcome.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] The prepared flow already persists repairBaseline and run-scenario-validity already prefers repairBaseline.ref when present; validation will make absent or invalid authority fail closed.",
+        "evidence": "src/flow/lib/run-prepare-spec.js stores repairBaseline; src/flow/lib/run-scenario-validity.js reads repairBaseline.ref before baseBranch.",
+        "consideredAlternatives": "Using the current base branch was rejected because later upstream commits become false feature changes."
+      },
+      {
+        "text": "Migration parity inventory and ownership: flow run scenario-validity remains owned by RunScenarioValidityCommand; its scoped allowlist and all internal helper APIs remain owned by run-scenario-validity; no hooks or config keys change; result artifact and raw log remain produced by the command; pass/block side effects and pass-to-test-review remain owned by existing post hooks. No public surface is removed; only baseline resolution changes to validated authority.",
+        "evidence": "Issue #479 acceptance criteria; src/flow/lib/run-scenario-validity.js constructs artifacts and outcomes; flow registry post hooks control transitions.",
+        "consideredAlternatives": "No command, API, hook, config entry, artifact, or side effect is removed."
+      },
+      {
+        "text": "Scenario-validity fails closed when it cannot prove that the immutable baseline belongs to the active flow.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Scenario-validity compares committed changes to the immutable flow baseline, never to the moving base branch name.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Artifact contract tests simulate only the external process boundary; baseline validation, path filtering, and artifact persistence remain real command behavior.",
+        "added_by_task": "T-3"
+      }
+    ]
+  },
+  "background": "The current diff can compare a feature worktree with a base branch that advanced after the flow was created. Upstream-only commits then appear as implementation changes, forcing an unnecessary rebase. Prepared flows already carry immutable baseline metadata, which provides the authority needed to distinguish current-flow changes from later base-branch advancement.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Validate repairBaseline authority before scenario-validity computes its preflight diff: its flow identity, ref, and commit identity must agree with persisted authority; missing, mismatched, ambiguous, or unresolvable authority returns a typed fail-closed error.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Compute scenario-validity's committed diff from the validated immutable baseline while retaining detection of staged, unstaged, and untracked production-target changes from the existing allowlist.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Preserve the scenario-validity public contract: valid runs write the version-1 result artifact and raw log, retain pass/block semantics, and advance pass results to test review.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Add unit coverage for advanced-base exclusion, committed/staged/unstaged/untracked current-flow changes, invalid baseline authority, and retained artifact/transition behavior.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "An advanced main branch with no current-flow production-target changes produces no preflight invalid paths.",
+    "Each committed, staged, unstaged, and untracked current-flow change under src/, tests/, package.json, or .senti/config.json is still blocked.",
+    "Missing, inconsistent, ambiguous, and multiple-merge-base authority fail with explicit typed errors.",
+    "A valid baseline run still produces scenario-validity-result.json and tests/.raw/scenario-validity.log with existing pass/block and pass-to-test-review behavior."
+  ],
+  "clarifications": [
+    {
+      "q": "Which baseline is authoritative?",
+      "a": "Only a repairBaseline whose persisted flow identity, immutable ref, commit identity, and publication authority agree."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Compare against the current base branch tip.",
+      "reason": "Rejected because upstream commits after flow creation are misattributed to the feature."
+    },
+    {
+      "option": "Infer a merge base when immutable authority is unavailable.",
+      "reason": "Rejected because Issue #479 requires fail-closed behavior rather than guessing."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "scenario-validity",
+    "repairBaseline",
+    "immutable-baseline",
+    "baseline-authority",
+    "run-scenario-validity",
+    "preflight-diff",
+    "merge-base",
+    "flow-state",
+    "upstream-advance",
+    "typed-error"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-scenario-validity.js",
+    "src/flow/lib/repair-state-identity.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Validate preflight baseline authority",
+      "goal": "Resolve and validate immutable baseline authority before the scenario-validity preflight diff. Return typed failures for authority states that cannot prove current-flow attribution.",
+      "acceptance": [
+        "Validated authority identifies one immutable baseline ref and commit.",
+        "Invalid authority produces an explicit typed failure without a fallback to baseBranch."
+      ],
+      "implementation_notes": "Reuse the existing immutable-baseline and publication validation conventions where possible.",
+      "test_strategy": "Unit tests for missing, mismatched, unresolvable, and ambiguous authority.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-1"
+    },
+    {
+      "id": "T-2",
+      "title": "Diff from validated baseline",
+      "goal": "Use the validated baseline for scenario-validity committed-change attribution while retaining existing working-tree detection and path filtering.",
+      "acceptance": [
+        "Later upstream-only commits are excluded.",
+        "Current-flow committed and working-tree production-target changes remain invalid."
+      ],
+      "implementation_notes": "Keep the existing allowlist and preflight artifact schema unchanged.",
+      "test_strategy": "Unit tests covering advanced base state plus committed, staged, unstaged, and untracked changes.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-2"
+    },
+    {
+      "id": "T-3",
+      "title": "Verify preflight contract parity",
+      "goal": "Extend regression coverage for the retained scenario-validity artifacts, result values, and pass transition after immutable-baseline attribution.",
+      "acceptance": [
+        "Valid runs preserve result and raw-log output paths.",
+        "Pass and block behavior retain their existing observable transition contract."
+      ],
+      "implementation_notes": "Keep tests in the existing scenario-validity unit suite and add spec-local requirement tests during the test step.",
+      "test_strategy": "Unit contract tests plus spec-local tests with R1-R4 headers.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "key": "T-3"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-28T02:23:03.379Z",
+    "notes": "Auto-approved after preflight acceptance and passed draft/spec gates."
+  },
+  "specId": "479-scenario-validity-baseline"
+}

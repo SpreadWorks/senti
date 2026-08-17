@@ -1,0 +1,49 @@
+{
+  "goal": "flow-finalize SKILL.md の worktree モード指示を修正し、finalize 実行時の3つの問題（バックグラウンド実行、NO_FLOW エラー、cwd 消失）を解消する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-finalize/SKILL.md` の Worktree Mode セクションを修正"
+    ],
+    "out": [
+      "プロダクトコード（`src/flow/run/finalize.js` 等）の変更",
+      "finalize コマンド自体の cwd 制御改善"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "SKILL.md から「change the working directory to the main repository path」の指示が削除されている",
+    "SKILL.md に worktree 内から実行し、完了後に cd で戻る手順が記述されている",
+    "SKILL.md にフォアグラウンド実行の指示が記述されている",
+    "既存テストがパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "メインリポジトリから実行すべきか？",
+      "a": "いいえ。現在の指示「MUST: メインリポジトリから実行せよ」がNO_FLOWエラーの原因。worktree 内から実行し、完了後に cd でメインリポジトリに戻る手順に変更する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "112-fix-finalize-worktree-cwd"
+}

@@ -1,0 +1,52 @@
+{
+  "goal": "finalize パイプラインに retro ステップを追加し、cleanup より前に実行することで、retro が .active-flow と feature branch の diff にアクセスできるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "retro.js 自体のロジック変更",
+      "retro の AI エージェント呼び出し部分の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `sdd-forge flow run finalize --mode all` 実行時に retro が merge の後、sync の前に実行される",
+    "AC2: `sdd-forge flow run finalize --mode select --steps 3` で retro のみ実行できる",
+    "AC3: retro が失敗しても、後続の sync/cleanup/record は実行される",
+    "AC4: retro の結果が finalize の出力 JSON に含まれる（status: done/failed/skipped/dry-run）",
+    "AC5: 既存の `--steps 1,2` (commit + merge) が引き続き動作する",
+    "AC6: `--steps 1,2,4,5,6` のように retro をスキップして finalize できる",
+    "AC7: retro が失敗した場合、結果 JSON の `steps.retro.status` が `\"failed\"` となり失敗理由が `message` に含まれる。finalize コマンド全体の終了コードは既存のステップ（commit/merge/sync/cleanup）の成否で決まり、retro の成否は影響しない（既存の finalize と同じパターン: 各ステップの結果を JSON で返し、呼び出し元が判断する）"
+  ],
+  "clarifications": [
+    {
+      "q": "retro はパイプラインのどの位置に入るべきか？",
+      "a": "merge の後、sync の前。merge 完了後に diff が取れ、cleanup 前なので .active-flow が存在する。"
+    },
+    {
+      "q": "retro が失敗した場合、パイプラインを止めるか？",
+      "a": "止めない。retro は記録用であり、失敗しても sync/cleanup/record は続行する。結果に `status: \"failed\"` を記録するのみ。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [],
+  "tasks": [
+    {
+      "added_round": 0,
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "id": "T-legacy",
+      "origin": "plan",
+      "parent": null,
+      "title": "Legacy flow (migrated)",
+      "key": "T-legacy"
+    }
+  ],
+  "specId": "120-fix-retro-execution-order-in-finalize"
+}
