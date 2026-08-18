@@ -150,7 +150,14 @@ export class CanonicalFlowRuntime {
     return this.store(specId).catalog();
   }
 
-  apply(specId, activity, { taskSpec, specRecord, artifactWrites, artifactRemovals, testSourceBaseline } = {}) {
+  apply(specId, activity, {
+    taskSpec,
+    specRecord,
+    artifactWrites,
+    artifactRemovals,
+    testSourceBaseline,
+    sourceWorkerUpgrade,
+  } = {}) {
     return this.store(specId).apply({
       activity: FlowActivity.canonical(activity),
       ...(taskSpec !== undefined && { taskSpec }),
@@ -158,6 +165,7 @@ export class CanonicalFlowRuntime {
       ...(artifactWrites !== undefined && { artifactWrites }),
       ...(artifactRemovals !== undefined && { artifactRemovals }),
       ...(testSourceBaseline !== undefined && { testSourceBaseline }),
+      ...(sourceWorkerUpgrade !== undefined && { sourceWorkerUpgrade }),
     });
   }
 
@@ -278,7 +286,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline } = {}) {
+  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline, sourceWorkerUpgrade = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -297,6 +305,7 @@ export class CanonicalFlowRuntime {
       artifactWrites,
       artifactRemovals,
       testSourceBaseline,
+      sourceWorkerUpgrade,
     });
   }
 
@@ -353,7 +362,7 @@ export class CanonicalFlowRuntime {
   }
 
   /** Atomically record a material implementation repair and restart test execution. */
-  repairImplementation({ specId, activityId, attempt, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+  repairImplementation({ specId, activityId, attempt, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, sourceWorkerUpgrade = undefined } = {}) {
     const state = this.#state(specId);
     const now = new Date().toISOString();
     return this.#applyAttemptTransition(specId, state, {
@@ -369,10 +378,11 @@ export class CanonicalFlowRuntime {
       usage,
       references,
       artifactWrites,
+      sourceWorkerUpgrade,
     });
   }
 
-  triageImplementationNoRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+  triageImplementationNoRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined, sourceWorkerUpgrade = undefined } = {}) {
     const state = this.#state(specId);
     const now = new Date().toISOString();
     return this.#applyAttemptTransition(specId, state, {
@@ -384,10 +394,11 @@ export class CanonicalFlowRuntime {
       timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
       references,
       artifactWrites,
+      sourceWorkerUpgrade,
     });
   }
 
-  triageImplementationForRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+  triageImplementationForRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined, sourceWorkerUpgrade = undefined } = {}) {
     const state = this.#state(specId);
     const now = new Date().toISOString();
     return this.#applyAttemptTransition(specId, state, {
@@ -399,6 +410,7 @@ export class CanonicalFlowRuntime {
       timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
       references,
       artifactWrites,
+      sourceWorkerUpgrade,
     });
   }
 
@@ -861,6 +873,7 @@ export class CanonicalFlowRuntime {
     artifactWrites = undefined,
     artifactRemovals = undefined,
     testSourceBaseline = undefined,
+    sourceWorkerUpgrade = undefined,
     nonblocking = null,
   }) {
     const target = requiredText(nodeId, "transition nodeId");
@@ -898,7 +911,13 @@ export class CanonicalFlowRuntime {
         status,
         nonblocking,
       },
-    }), { specRecord, artifactWrites, artifactRemovals, testSourceBaseline });
+    }), {
+      specRecord,
+      artifactWrites,
+      artifactRemovals,
+      testSourceBaseline,
+      sourceWorkerUpgrade,
+    });
   }
 
   #activity(state, {

@@ -18,6 +18,7 @@ import { AgentFailure } from "../../lib/agent-failure.js";
 import { DeferredAgentInvocationMetric } from "../../lib/agent-invocation-metric.js";
 import { flowCommands } from "../../lib/command-registry.js";
 import { dispatch } from "../../lib/dispatcher.js";
+import { FlowHandoffAuthorityLease } from "../../lib/flow-handoff-authority-lease.js";
 import {
   ProcessOwnedLock,
   RealDirectoryAuthority,
@@ -42,6 +43,7 @@ import {
   WorkerArtifactRetryExhaustedError,
   WorkerArtifactMutationAuthoritySnapshot,
   WorkerArtifactHandoffRequest,
+  workerArtifactHandoffPolicy,
 } from "./worker-artifact-handoff.js";
 import {
   AutoApprovedFlowDispatchAuthorization,
@@ -63,6 +65,11 @@ const DISPATCH_LOCK_KIND = "flow-dispatch";
 const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
   "repair-plan-gate",
   "repair-test-review",
+]);
+const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([
+  "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
+  "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
+  "FLOW_SOURCE_HANDOFF_CANONICAL_PATH_VIOLATION",
 ]);
 const SPEC_WORKER_STEPS = new Set(["spec", "spec-repair"]);
 
@@ -746,6 +753,26 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
   };
 }
 
+function quarantineRejectedWorkerHandoff(coordinator, request, error) {
+  if (!NON_REPLAYABLE_HANDOFF_ERROR_CODES.has(error.code)) return error;
+  try {
+    coordinator.quarantine({ request, error });
+    return error;
+  } catch (cause) {
+    return new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_QUARANTINE_REQUIRED",
+      `sealed worker artifact handoff could not be quarantined: ${cause.message}`,
+      {
+        cause,
+        retryable: false,
+        recoveryPossible: false,
+        data: { stepId: request.stepId, handoffDirectory: request.directory },
+      },
+    );
+  }
+}
+
 function blockedBoundary({ nextAction, dispatchCount, message }) {
   return new FlowDispatchBoundary({
     kind: "blocked",
@@ -923,81 +950,127 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async runWorkerAttempt(ctx, invocation) {
     const action = new FlowDispatchAction(invocation.action.nextAction);
-    let handoffRequest;
+    let handoffRequest = null;
+    let handoffAuthority = null;
+    let handoffPolicy = null;
+    let handoffAuthorityAcquired = false;
     try {
+      const state = readFlowState(ctx);
+      handoffPolicy = workerArtifactHandoffPolicy(action.nextAction.step);
+      if (handoffPolicy !== null) {
+        handoffAuthority = new FlowHandoffAuthorityLease({
+          mainRoot: ctx.mainRoot || ctx.root,
+          executionRoot: ctx.executionRoot || ctx.root,
+        });
+        // The authority is acquired before parent input capture. External
+        // upgrades therefore cannot alter immutable handoff inputs between
+        // request construction and its mutation snapshot.
+        handoffAuthority.acquire({ wait: true });
+        handoffAuthorityAcquired = true;
+      }
       handoffRequest = this.handoffCoordinator.createRequest({
         ctx,
-        state: readFlowState(ctx),
+        state,
         invocation,
       });
     } catch (error) {
+      handoffAuthority?.release();
+      if (handoffPolicy !== null && !handoffAuthorityAcquired && !(error instanceof WorkerArtifactHandoffError)) {
+        return {
+          error: new WorkerArtifactHandoffError(
+            "recovery-required",
+            "FLOW_ARTIFACT_HANDOFF_AUTHORITY_LOCK_REQUIRED",
+            `worker artifact handoff authority cannot be acquired: ${error.message}`,
+            {
+              cause: error,
+              retryable: false,
+              recoveryPossible: false,
+              data: { stepId: action.nextAction.step },
+            },
+          ),
+          handoffRequest: null,
+          agentError: null,
+        };
+      }
       if (!(error instanceof WorkerArtifactHandoffError)) throw error;
       return { error, handoffRequest: null, agentError: null };
     }
 
-    let workerArtifactAuthority = null;
     try {
-      workerArtifactAuthority = handoffRequest
-        ? WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest)
+      let workerArtifactAuthority = null;
+      try {
+        workerArtifactAuthority = handoffRequest === null
+          ? null
+          : WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest);
+      } catch (error) {
+        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        return { error, handoffRequest, agentError: null };
+      }
+
+      const work = new FlowDispatchWork(invocation, handoffRequest);
+      const deferredMetric = handoffRequest
+        ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
         : null;
-    } catch (error) {
-      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
-      return { error, handoffRequest, agentError: null };
-    }
+      let agentError = null;
+      try {
+        const agent = this.agent || (this.agent = this.container.get("agent"));
+        const workerOptions = specWorkerAgentOptions(
+          action.nextAction.step,
+          action.nextAction.output_schema,
+        );
+        const { promptGuidance, ...agentOptions } = workerOptions;
+        await agent.call(work.prompt(promptGuidance), {
+          commandId: "flow.dispatch",
+          executionWorkDir: ctx.executionRoot || ctx.root,
+          cacheMode: "bypass",
+          retryCount: 0,
+          waitForProcessTree: true,
+          executionEnvironment: work.executionEnvironment(),
+          deferredMetric,
+          ...agentOptions,
+        });
+      } catch (error) {
+        agentError = error;
+      }
 
-    const work = new FlowDispatchWork(invocation, handoffRequest);
-    const deferredMetric = handoffRequest
-      ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
-      : null;
-    let agentError = null;
-    try {
-      const agent = this.agent || (this.agent = this.container.get("agent"));
-      const workerOptions = specWorkerAgentOptions(
-        action.nextAction.step,
-        action.nextAction.output_schema,
-      );
-      const { promptGuidance, ...agentOptions } = workerOptions;
-      await agent.call(work.prompt(promptGuidance), {
-        commandId: "flow.dispatch",
-        executionWorkDir: ctx.executionRoot || ctx.root,
-        cacheMode: "bypass",
-        retryCount: 0,
-        waitForProcessTree: true,
-        executionEnvironment: work.executionEnvironment(),
-        deferredMetric,
-        ...agentOptions,
-      });
-    } catch (error) {
-      agentError = error;
-    }
+      if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
 
-    if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
-
-    let mutationError = null;
-    try {
-      if (handoffRequest?.policy.kind !== "source") workerArtifactAuthority.assertUnchanged();
-    } catch (error) {
-      mutationError = error;
-    }
-    if (mutationError) {
+      let mutationError = null;
+      try {
+        if (handoffRequest.policy.kind !== "source") workerArtifactAuthority.assertUnchanged();
+      } catch (error) {
+        mutationError = error;
+      }
+      if (mutationError) {
+        await deferredMetric.flush();
+        if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
+        return {
+          error: quarantineRejectedWorkerHandoff(this.handoffCoordinator, handoffRequest, mutationError),
+          handoffRequest,
+          agentError,
+        };
+      }
+      try {
+        this.handoffCoordinator.reconcile({
+          ctx,
+          request: handoffRequest,
+          mutationAuthority: workerArtifactAuthority,
+        });
+        agentError = null;
+      } catch (error) {
+        await deferredMetric.flush();
+        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        return {
+          error: quarantineRejectedWorkerHandoff(this.handoffCoordinator, handoffRequest, error),
+          handoffRequest,
+          agentError,
+        };
+      }
       await deferredMetric.flush();
-      if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
-      return { error: mutationError, handoffRequest, agentError };
+      return { error: null, handoffRequest, agentError };
+    } finally {
+      handoffAuthority?.release();
     }
-    try {
-      this.handoffCoordinator.reconcile({
-        ctx,
-        request: handoffRequest,
-        mutationAuthority: workerArtifactAuthority,
-      });
-      agentError = null;
-    } catch (error) {
-      await deferredMetric.flush();
-      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
-      return { error, handoffRequest, agentError };
-    }
-    await deferredMetric.flush();
-    return { error: null, handoffRequest, agentError };
   }
 
   async execute(ctx) {

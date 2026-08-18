@@ -21,6 +21,8 @@ import {
   WorkerArtifactHandoffError,
   WorkerArtifactMutationAuthoritySnapshot,
   SourceWorkerEffect,
+  assertWorkerUpgradeAllowed,
+  stageWorkerUpgradeResult,
   workerArtifactHandoffPolicy,
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
@@ -234,6 +236,239 @@ function rewriteSubmission(request, mutate) {
 }
 
 describe("worker artifact handoff", () => {
+  it("seals source-worker upgrade evidence and publishes it only with the parent confirmation", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const effect = new SourceWorkerEffect({
+        version: 1,
+        stepId: "implement",
+        completionStatus: "done",
+        requirements: [],
+        files: [{ requirementId: "R1", paths: ["product.js"] }],
+        issues: [],
+        overview: null,
+        triage: null,
+        repair: null,
+      });
+      const upgrade = {
+        version: 1,
+        command: "sennel upgrade",
+        dryRun: false,
+        exitCode: 0,
+        result: "success-no-change",
+        summary: { skills: { updated: 0, unchanged: 1, removed: 0 } },
+        failureReason: null,
+        checkedPaths: [],
+      };
+      fs.writeFileSync(request.payloadPath("effects.json"), json(effect.toJSON()));
+      assert.equal(assertWorkerUpgradeAllowed({ requestPath: request.requestPath }).stepId, "implement");
+      stageWorkerUpgradeResult({ requestPath: request.requestPath, artifact: upgrade });
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "upgrade.result",
+        consumerNodeId: "impl-gate",
+        optional: true,
+      }), null, "the worker may not publish canonical evidence before sealing and confirmation");
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const upgraded = true;\n");
+      seal(request);
+
+      value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
+
+      assert.deepEqual(readCatalogJson(value, "upgrade.result", "impl-gate"), upgrade);
+      assert.equal(value.flowManager.activityLedger(value.specId).at(-1).nodeId, "implement");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("allows an artifact-worker upgrade dry-run but rejects materialization before checkout mutation", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      assert.equal(assertWorkerUpgradeAllowed({ requestPath: request.requestPath, dryRun: true }), null);
+      assert.throws(
+        () => assertWorkerUpgradeAllowed({ requestPath: request.requestPath, dryRun: false }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_WORKER_UPGRADE_SOURCE_AUTHORITY_REQUIRED",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects directly staged dry-run upgrade evidence before a source handoff can publish it", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const effect = new SourceWorkerEffect({
+        version: 1,
+        stepId: "implement",
+        completionStatus: "done",
+        requirements: [],
+        files: [{ requirementId: "R1", paths: ["product.js"] }],
+        issues: [],
+        overview: null,
+        triage: null,
+        repair: null,
+      });
+      fs.writeFileSync(request.payloadPath("effects.json"), json(effect.toJSON()));
+      fs.writeFileSync(request.payloadPath("upgrade.result"), json({
+        version: 1,
+        command: "sennel upgrade --dry-run",
+        dryRun: true,
+        exitCode: 0,
+        result: "success-no-change",
+        summary: { skills: { updated: 0, unchanged: 1, removed: 0 } },
+        failureReason: null,
+        checkedPaths: [],
+      }));
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const upgraded = true;\n");
+      seal(request);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_WORKER_UPGRADE_RESULT_INVALID",
+      );
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "upgrade.result",
+        consumerNodeId: "impl-gate",
+        optional: true,
+      }), null);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("quarantines an unsafe sealed artifact handoff before recovery can replay it", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "sealed but unsafe" }));
+      seal(request);
+      value.coordinator.quarantine({
+        request,
+        error: new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
+          "repository changed outside the handoff authority",
+        ),
+      });
+
+      assert.throws(
+        () => value.coordinator.recoverPending({ ctx: value.ctx }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_QUARANTINED"
+          && error.classification === "invalid"
+          && error.recoveryPossible === false,
+      );
+      assert.equal(fs.existsSync(request.quarantinePath), true);
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-questions-review",
+        optional: true,
+      }), null, "recovery must not publish a quarantined canonical artifact");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("blocks recovery when quarantine persistence is obstructed", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "reject without a receipt" }));
+      seal(request);
+      fs.mkdirSync(request.quarantinePath);
+      assert.throws(
+        () => value.coordinator.quarantine({
+          request,
+          error: new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
+            "unsafe mutation rejected by the parent",
+          ),
+        }),
+      );
+      assert.throws(
+        () => value.coordinator.recoverPending({ ctx: value.ctx }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_QUARANTINE_INVALID"
+          && error.recoveryPossible === false,
+      );
+      assert.equal(fs.lstatSync(request.quarantinePath).isDirectory(), true);
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-questions-review",
+        optional: true,
+      }), null);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("discards a parent-validated artifact handoff after a pre-commit interruption", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "accepted before crash" }));
+      seal(request);
+      const crashing = new WorkerArtifactHandoffCoordinator({
+        faultInjector({ phase }) {
+          if (phase === "before-worker-handoff-publication") throw new Error("simulated pre-commit crash");
+        },
+      });
+      assert.throws(
+        () => crashing.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      );
+
+      const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
+      assert.equal(recovered.completed, true);
+      assert.equal(recovered.cleanedHandoffs, 1);
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-questions-review",
+        optional: true,
+      }), null, "recovery must not publish an artifact without a committed parent confirmation");
+      assert.equal(fs.existsSync(request.directory), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("accepts only a sealed typed source effect with task overview additions", () => {
     const effect = SourceWorkerEffect.fromDocument({
       version: 1,
@@ -1071,6 +1306,62 @@ describe("worker artifact handoff", () => {
         fs.rmSync(ownerTemp, { force: true });
         for (const entry of currentLocks.reverse()) entry.lock.release();
       }
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("isolates the current canonical Version from pre-existing and newly-created Flow Versions in a worktree", () => {
+    const value = fixture("draft", { worktree: true });
+    try {
+      const otherSpecId = "501-unrelated-flow";
+      const otherManager = new FlowManager({
+        root: value.mainRoot,
+        mainRoot: value.mainRoot,
+        inWorktree: false,
+        specId: otherSpecId,
+      });
+      new CanonicalFlowFixture({
+        flowManager: otherManager,
+        specId: otherSpecId,
+        runId: "run-unrelated-flow",
+        request: "Publish unrelated Flow state.",
+        execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+      }).create().activate("draft");
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+
+      otherManager.updateStepStatus({ specId: otherSpecId, stepId: "draft", requestedStatus: "done" });
+      assert.doesNotThrow(() => authority.assertUnchanged(), "an existing unrelated Version is outside this handoff scope");
+
+      const laterSpecId = "502-later-unrelated-flow";
+      const laterManager = new FlowManager({
+        root: value.mainRoot,
+        mainRoot: value.mainRoot,
+        inWorktree: false,
+        specId: laterSpecId,
+      });
+      new CanonicalFlowFixture({
+        flowManager: laterManager,
+        specId: laterSpecId,
+        runId: "run-later-unrelated-flow",
+        request: "Create a later unrelated Flow.",
+        execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+      }).create();
+      assert.doesNotThrow(() => authority.assertUnchanged(), "a Version created after capture is outside this handoff scope");
+
+      const illicitPath = path.join(canonicalSpecDir(value), "draft.json");
+      fs.writeFileSync(illicitPath, json({ goal: "current Version mutation" }));
+      assert.throws(
+        () => authority.assertUnchanged(),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+          && error.data.authorities.includes("canonical"),
+      );
     } finally {
       removeTmpDir(value.mainRoot);
     }

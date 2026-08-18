@@ -48,6 +48,7 @@ export class FlowRepositoryRuntimeArtifactRegistry {
       ".tmp/",
       `${PRODUCT.managedPath(".active-flow")}.`,
       PRODUCT.managedPath(".flow-dispatch-"),
+      PRODUCT.managedPath(".flow-handoff-"),
       `${PRODUCT.managedPath("agent-cache")}/`,
       `${PRODUCT.managedPath("agent-work")}/`,
       `${PRODUCT.managedPath("output")}/`,

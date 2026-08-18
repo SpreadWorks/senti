@@ -14,9 +14,14 @@ import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRuntimeLockLocation, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
 import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactActivityEvidence, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
-import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
+import {
+  artifactPublicationClaimForStep,
+  requiresWorkerSourceHandoff,
+  sourceWorkerUpgradePublicationClaimForStep,
+} from "./flow-artifact-authority.js";
 import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
 import { DefinitionFailureOwnership } from "./definition-failure-ownership.js";
+import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 
 /**
  * The production Flow Version 1 record.  This is deliberately independent
@@ -85,6 +90,12 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "accept_final_regression_failure",
 ]);
 const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"]);
+const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
+  "confirm_attempt",
+  "repair_implementation",
+  "triage_implementation_for_repair",
+  "triage_implementation_no_repair",
+]);
 const FLOW_CREATION_TRANSITION_OPERATION = "create_flow";
 const FLOW_CREATION_ACTIVITY_TYPE = "flow_created";
 const LIFECYCLE_TRANSITION_OPERATIONS = new Set(["park_flow", "resume_flow", "finalize_flow"]);
@@ -191,6 +202,57 @@ export class CanonicalFlowArtifactWrite {
     const target = location.resolve(this.artifact.relativePath);
     fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
     return new AtomicFile(target, { phaseNamespace: "canonical-flow-artifact" }).write(this.bytes);
+  }
+}
+
+/**
+ * The dispatcher-owned publication of source-worker upgrade evidence.  The
+ * bytes originate in a sealed handoff payload, but the only Store route that
+ * accepts this value is a source Attempt confirmation.
+ */
+export class CanonicalSourceWorkerUpgradeResult {
+  constructor({ bytes } = {}) {
+    if (!Buffer.isBuffer(bytes)) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade result bytes must be a Buffer");
+    }
+    let document;
+    try {
+      document = JSON.parse(bytes.toString("utf8"));
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`source worker upgrade result must be JSON: ${cause.message}`);
+    }
+    const validation = validateUpgradeResultArtifact(document);
+    if (!validation.ok) {
+      throw new CurrentFlowStateInvariantError(`source worker upgrade result is invalid: ${validation.reason}`);
+    }
+    if (document.dryRun === true) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade result must record a materialized upgrade");
+    }
+    this.artifact = resolvedArtifact("upgrade.result");
+    this.mediaType = "application/json";
+    this.bytes = Buffer.from(bytes);
+    Object.freeze(this);
+  }
+
+  publication(activity) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade publication requires a typed FlowActivity");
+    }
+    // `upgrade.result` remains system-owned in the contract. The specialized
+    // parent claim below authorizes this exact mixed-source transaction.
+    return this.artifact.publication({
+      mediaType: this.mediaType,
+      activityId: FlowActivityId.from(activity.id),
+    });
+  }
+
+  write(location) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade write requires a FlowVersionLocation");
+    }
+    const target = location.resolve(this.artifact.relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
+    return new AtomicFile(target, { phaseNamespace: "source-worker-upgrade-result" }).write(this.bytes);
   }
 }
 
@@ -5603,6 +5665,11 @@ export class CurrentFlowVersionStore {
     const activity = FlowActivity.canonical(input?.activity);
     const activityId = FlowActivityId.from(activity.id);
     const artifactWrites = this.#artifactWrites(input?.artifactWrites, activity);
+    const sourceWorkerUpgrade = this.#sourceWorkerUpgrade(
+      input?.sourceWorkerUpgrade,
+      activity,
+      artifactWrites,
+    );
     const artifactRemovals = this.#artifactRemovals(input?.artifactRemovals, activity);
     const testSourceBaseline = this.#testSourceBaseline(
       input?.testSourceBaseline,
@@ -5680,7 +5747,11 @@ export class CurrentFlowVersionStore {
       ? this.catalogStore.publishManySystem(options)
       : this.catalogStore.publishMany({
           ...options,
-          publicationClaim: artifactPublicationClaimForStep(FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString()),
+          publicationClaim: sourceWorkerUpgrade
+            ? sourceWorkerUpgradePublicationClaimForStep(
+                FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString(),
+              )
+            : artifactPublicationClaimForStep(FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString()),
         });
     return publication.result;
   }
@@ -5764,7 +5835,11 @@ export class CurrentFlowVersionStore {
     if (!Array.isArray(value)) {
       throw new CurrentFlowStateInvariantError("canonical artifactWrites must be an array");
     }
-    const writes = value.map((entry) => CanonicalFlowArtifactWrite.from(entry));
+    const writes = value.map((entry) => (
+      entry instanceof CanonicalSourceWorkerUpgradeResult
+        ? entry
+        : CanonicalFlowArtifactWrite.from(entry)
+    ));
     const paths = new Set(writes.map((entry) => entry.artifact.relativePath));
     if (paths.size !== writes.length) {
       throw new CurrentFlowStateInvariantError("canonical artifactWrites must not duplicate a path");
@@ -5780,6 +5855,26 @@ export class CurrentFlowVersionStore {
     // Activity that cannot be cataloged.
     for (const write of writes) write.publication(activity);
     return Object.freeze(writes);
+  }
+  #sourceWorkerUpgrade(value, activity, writes) {
+    const upgrades = writes.filter((write) => write instanceof CanonicalSourceWorkerUpgradeResult);
+    if (value === undefined) {
+      if (upgrades.length > 0) {
+        throw new CurrentFlowStateInvariantError("source worker upgrade evidence requires the sealed source handoff transaction");
+      }
+      return false;
+    }
+    if (value !== true || upgrades.length !== 1) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade transaction requires exactly one typed upgrade result");
+    }
+    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+    if (!requiresWorkerSourceHandoff(updater)) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade evidence requires a source handoff Step");
+    }
+    if (!SOURCE_WORKER_COMPLETION_OPERATIONS.has(activity.transition.operation)) {
+      throw new CurrentFlowStateInvariantError("source worker upgrade evidence requires a source completion Activity");
+    }
+    return true;
   }
   #artifactRemovals(value, activity) {
     if (value === undefined) return Object.freeze([]);

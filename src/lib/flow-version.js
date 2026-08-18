@@ -5,7 +5,10 @@ import { AtomicJsonFile } from "./atomic-json-file.js";
 import { AtomicFile } from "./atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
-import { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
+import {
+  ArtifactPublicationClaim,
+  requiresWorkerSourceHandoff,
+} from "../flow/lib/flow-artifact-authority.js";
 import {
   FLOW_ARTIFACT_CONTRACTS,
   FlowArtifactActivityEvidence,
@@ -35,6 +38,12 @@ const TASK_ARTIFACT_SEGMENT_BY_LOGICAL_KEY = new Map([
 // invalid Version artifact instead of silently accepting a second layout.
 const VERSION_TRANSIENT_FILES = new Set();
 const STEP_OWNED_ARTIFACT_KINDS = new Set(["review-evidence"]);
+const SOURCE_COMPLETION_OPERATIONS = new Set([
+  "confirm_attempt",
+  "repair_implementation",
+  "triage_implementation_for_repair",
+  "triage_implementation_no_repair",
+]);
 // Every typed Task transition updates the single state authority and appends
 // its Activity.  Those flow-wide records are intentionally associated with
 // the Task Activity for journal ordering, but are not Task-owned deliverables.
@@ -817,7 +826,7 @@ export class FlowArtifactDescriptor {
 
 /** Catalog-side view of the Activity fields that establish artifact updater provenance. */
 export class FlowArtifactActivityAssociation {
-  constructor({ id, nodeId, nodeKey, confirmationOrder } = {}) {
+  constructor({ id, nodeId, nodeKey, confirmationOrder, operation = null } = {}) {
     this.id = identifier(id, "cataloged Flow Activity id");
     this.nodeId = nodeId == null ? null : text(nodeId, "cataloged Flow Activity nodeId");
     this.nodeKey = nodeKey == null ? null : identifier(nodeKey, "cataloged Flow Activity nodeKey");
@@ -826,6 +835,7 @@ export class FlowArtifactActivityAssociation {
       throw new Error("cataloged Flow Activity confirmationOrder must be a positive safe integer");
     }
     this.confirmationOrder = confirmationOrder;
+    this.operation = operation == null ? null : text(operation, "cataloged Flow Activity operation");
     Object.freeze(this);
   }
   get updaterStep() {
@@ -849,6 +859,18 @@ export class FlowArtifactActivityAssociation {
         throw new Error(`cataloged Activity evidence updater does not match its typed owner: ${artifact.relativePath}`);
       }
       return this;
+    }
+    // A source worker may seal optional upgrade evidence, but only its parent
+    // may publish the system-owned result in that exact completion Activity.
+    // The regular upgrade command remains associated with its dedicated Flow
+    // root publication Activity. No other system Activity may claim it.
+    if (artifact.logicalKey === "upgrade.result" && artifact.slot.publicationStep === "system") {
+      const sourceCompletion = this.operation !== null
+        && SOURCE_COMPLETION_OPERATIONS.has(this.operation)
+        && requiresWorkerSourceHandoff(this.updaterStep);
+      const externalUpgrade = this.operation === "publish_upgrade_result" && this.nodeId === "flow";
+      if (sourceCompletion || externalUpgrade) return this;
+      throw new Error("system upgrade.result may be associated only with a source completion or publish_upgrade_result Activity");
     }
     let updaterStep;
     try {
@@ -883,7 +905,15 @@ export class FlowArtifactActivityAssociation {
     }
     return this;
   }
-  toJSON() { return { id: this.id, nodeId: this.nodeId, nodeKey: this.nodeKey, confirmationOrder: this.confirmationOrder }; }
+  toJSON() {
+    return {
+      id: this.id,
+      nodeId: this.nodeId,
+      nodeKey: this.nodeKey,
+      confirmationOrder: this.confirmationOrder,
+      operation: this.operation,
+    };
+  }
 }
 
 export class FlowArtifactActivityIndex {
@@ -907,7 +937,13 @@ export class FlowArtifactActivityIndex {
     for (const line of lines) {
       let value;
       try { value = JSON.parse(line); } catch (error) { throw new Error(`activities.jsonl contains malformed JSON: ${error.message}`); }
-      activities.push(new FlowArtifactActivityAssociation(value));
+      activities.push(new FlowArtifactActivityAssociation({
+        id: value?.id,
+        nodeId: value?.nodeId,
+        nodeKey: value?.nodeKey,
+        confirmationOrder: value?.confirmationOrder,
+        operation: value?.transition?.operation ?? null,
+      }));
     }
     return new FlowArtifactActivityIndex(activities);
   }
@@ -1123,7 +1159,10 @@ export class FlowArtifactCatalogStore {
           FlowArtifactReviewEvidence.fromCanonicalPath(contract, artifact.relativePath).assertAuthoritySlot(artifact.authoritySlot);
         }
         contract?.assertAuthoritySlot(artifact.relativePath, artifact.authoritySlot);
-        publicationClaim.assertSlot(artifact.authoritySlot, { contractBound: contract !== null });
+        publicationClaim.assertSlot(artifact.authoritySlot, {
+          contractBound: contract !== null,
+          logicalKey: artifact.logicalKey,
+        });
       }
     }
     if (precondition !== null && typeof precondition !== "function") throw new Error("catalog publication precondition must be a function");
@@ -1161,7 +1200,10 @@ export class FlowArtifactCatalogStore {
             contract.assertPublicationRole({ exists: true, publicationStep: prior.slot.publicationStep });
           }
           if (system) this.#assertSystemSlots([prior.slot]);
-          else publicationClaim.assertSlot(prior.slot, { contractBound: prior.logicalKey !== null });
+          else publicationClaim.assertSlot(prior.slot, {
+            contractBound: prior.logicalKey !== null,
+            logicalKey: prior.logicalKey,
+          });
         }
         const contentPublications = artifacts.flatMap((artifact) => {
           const contract = artifact.logicalKey === null ? null : FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey);

@@ -509,6 +509,30 @@ describe("Flow artifact catalog authority slots", () => {
     assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
       id: "activity-task-impl", nodeId: "T-1-impl", nodeKey: "task.task-impl", confirmationOrder: 1,
     }).assertRelatedArtifact(flowStateDescriptor));
+
+    const upgrade = FLOW_ARTIFACT_CONTRACTS.resolve("upgrade.result");
+    const upgradeDescriptor = new FlowArtifactDescriptor({
+      logicalKey: upgrade.logicalKey,
+      authoritySlot: upgrade.authoritySlotFor("system"),
+      relativePath: upgrade.relativePath,
+      hash: "c".repeat(64),
+      size: 1,
+      mediaType: "application/json",
+      retention: "permanent",
+      activityId: "activity-upgrade",
+    });
+    assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
+      id: "activity-upgrade", nodeId: "implement", nodeKey: "flow.implement", confirmationOrder: 1,
+      operation: "confirm_attempt",
+    }).assertRelatedArtifact(upgradeDescriptor));
+    assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
+      id: "activity-upgrade", nodeId: "flow", nodeKey: "flow", confirmationOrder: 1,
+      operation: "publish_upgrade_result",
+    }).assertRelatedArtifact(upgradeDescriptor));
+    assert.throws(() => new FlowArtifactActivityAssociation({
+      id: "activity-upgrade", nodeId: "impl-gate", nodeKey: "flow.impl-gate", confirmationOrder: 1,
+      operation: "confirm_attempt",
+    }).assertRelatedArtifact(upgradeDescriptor), /source completion or publish_upgrade_result/);
   });
 
   it("does not create a missing Version root on authoritative reads", () => {

@@ -41,9 +41,10 @@ import {
 import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime-artifacts.js";
 import { validateAdditions } from "./overview-merge.js";
 import { AcceptanceRepairFindingSet } from "./acceptance-review-artifacts.js";
+import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
-export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
+export const WORKER_ARTIFACT_HANDOFF_VERSION = 3;
 export const WORKER_ARTIFACT_HANDOFF_ROOT = PRODUCT.managedPath("handoffs");
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -198,16 +199,22 @@ function ensureRealDirectory(directory, boundary) {
 }
 
 export class WorkerArtifactHandoffError extends Error {
-  constructor(classification, code, message, { cause = null, data = {}, retryable = false } = {}) {
+  constructor(classification, code, message, {
+    cause = null,
+    data = {},
+    retryable = false,
+    recoveryPossible = classification === "recovery-required",
+  } = {}) {
     if (!["missing", "invalid", "stale", "conflict", "recovery-required"].includes(classification)) {
       throw new Error(`invalid worker artifact handoff classification: ${classification}`);
     }
     if (typeof retryable !== "boolean") throw new Error("worker artifact handoff retryable must be boolean");
+    if (typeof recoveryPossible !== "boolean") throw new Error("worker artifact handoff recoveryPossible must be boolean");
     super(message, cause ? { cause } : undefined);
     this.name = "WorkerArtifactHandoffError";
     this.classification = classification;
     this.code = requiredString(code, "worker artifact handoff error code");
-    this.recoveryPossible = classification === "recovery-required";
+    this.recoveryPossible = recoveryPossible;
     this.retryable = retryable;
     this.data = Object.freeze({ ...data });
   }
@@ -438,26 +445,38 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "implement",
     inputs: ["spec.json"],
-    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    payloads: [
+      { logicalName: "effects.json", targetRelativePath: "effects.json" },
+      { logicalName: "upgrade.result", targetRelativePath: "upgrade-result.json", required: false },
+    ],
     kind: "source",
   }),
   new WorkerArtifactHandoffPolicy({
     stepId: "impl-triage",
     inputs: ["spec.json", "impl-review.json"],
     acceptanceRepairInputs: ["spec.json", "acceptance-review.json"],
-    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    payloads: [
+      { logicalName: "effects.json", targetRelativePath: "effects.json" },
+      { logicalName: "upgrade.result", targetRelativePath: "upgrade-result.json", required: false },
+    ],
     kind: "source",
   }),
   new WorkerArtifactHandoffPolicy({
     stepId: "impl-repair",
     inputs: ["spec.json", "impl-review.json", "impl-triage.json"],
-    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    payloads: [
+      { logicalName: "effects.json", targetRelativePath: "effects.json" },
+      { logicalName: "upgrade.result", targetRelativePath: "upgrade-result.json", required: false },
+    ],
     kind: "source",
   }),
   new WorkerArtifactHandoffPolicy({
     stepId: "task-impl",
     inputs: [],
-    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    payloads: [
+      { logicalName: "effects.json", targetRelativePath: "effects.json" },
+      { logicalName: "upgrade.result", targetRelativePath: "upgrade-result.json", required: false },
+    ],
     kind: "source",
   }),
 ]);
@@ -1281,15 +1300,25 @@ export class WorkerArtifactMutationAuthoritySnapshot {
     }
     const roots = new Map();
     try {
+      const isolatedCanonicalScope = request.policy.kind === "source"
+        || fs.realpathSync(request.executionRoot) !== fs.realpathSync(request.mainRoot);
+      const canonicalRoot = isolatedCanonicalScope
+        ? request.canonicalDirectory
+        : request.mainRoot;
       for (const [authority, root] of [
         ["execution", request.executionRoot],
-        ["canonical", request.mainRoot],
+        // Source and worktree handoffs isolate canonical authority to their
+        // active Version. Direct artifact handoffs retain the full checkout
+        // snapshot because they do not have source authority.
+        ["canonical", canonicalRoot],
       ]) {
         const resolved = fs.realpathSync(path.resolve(root));
-        const existing = roots.get(resolved) || { authorities: [], ignoredDirectories: [], runtimeLocks: [] };
+        const existing = roots.get(resolved) || {
+          authorities: [], ignoredDirectories: [], runtimeLocks: [],
+        };
         existing.authorities.push(authority);
         for (const lock of request.runtimeLocks) {
-          if (fs.realpathSync(lock.repositoryRoot) === resolved) existing.runtimeLocks.push(lock);
+          if (isWithin(resolved, fs.realpathSync(lock.directory))) existing.runtimeLocks.push(lock);
         }
         const relativeHandoff = path.relative(resolved, path.resolve(request.directory))
           .split(path.sep)
@@ -1584,6 +1613,7 @@ export class WorkerArtifactHandoffRequest {
     if (typeof canonicalLocation?.runtimeLock !== "function") {
       throw new Error("canonical worker handoff requires Version runtime lock locations");
     }
+    this.canonicalDirectory = canonicalLocation.directory;
     this.runtimeLocks = Object.freeze([
       canonicalLocation.runtimeLock("runtime.lock.artifact-catalog"),
       canonicalLocation.runtimeLock("runtime.lock.current-flow-state"),
@@ -1598,6 +1628,7 @@ export class WorkerArtifactHandoffRequest {
     this.payloadDirectory = path.join(this.directory, "payload");
     this.requestPath = path.join(this.directory, "request.json");
     this.submissionPath = path.join(this.directory, "handoff.json");
+    this.quarantinePath = path.join(this.directory, "quarantine.json");
     if (!isWithin(this.handoffRoot, this.directory)) throw new Error("handoff directory escapes its runtime authority");
     Object.freeze(this);
   }
@@ -1740,7 +1771,7 @@ export class WorkerArtifactHandoffRequest {
     if (!payload) throw new Error(`unknown handoff payload: ${logicalName}`);
     return payload.rule.kind === "tree"
       ? path.join(this.payloadDirectory, payload.rule.targetRelativePath)
-      : path.join(this.payloadDirectory, payload.rule.logicalName);
+      : path.join(this.payloadDirectory, payload.rule.targetRelativePath);
   }
 
   toJSON() {
@@ -2052,6 +2083,7 @@ export class WorkerArtifactHandoffSubmission {
       const { rule } = payload;
       const source = request.payloadPath(rule.logicalName);
       if (rule.kind === "file") {
+        if (!fs.existsSync(source) && !rule.required) continue;
         validateFilePayloadAtCliBoundary(request, rule, source);
         const snapshot = readRegularFile(source, `handoff payload ${rule.logicalName}`);
         const relativePath = path.relative(request.payloadDirectory, source).split(path.sep).join("/");
@@ -2105,6 +2137,10 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
     // output outside the sealed handoff protocol and gives the parent a
     // retryable producer error before any publication journal can exist.
     const { document } = boundedJson(source, `handoff payload ${rule.logicalName}`);
+    if (rule.logicalName === "upgrade.result") {
+      const validation = validateUpgradeResultArtifact(document);
+      if (!validation.ok) throw new Error(`upgrade result is invalid: ${validation.reason}`);
+    }
     if (
       rule.logicalName === "spec.json"
       && ["spec", "spec-repair"].includes(request.stepId)
@@ -2296,7 +2332,7 @@ function requestFromStored(filePath) {
       if (!rule) throw new Error(`unknown handoff payload: ${logicalName}`);
       return rule.kind === "tree"
         ? path.join(payloadDirectory, rule.targetRelativePath)
-        : path.join(payloadDirectory, rule.logicalName);
+        : path.join(payloadDirectory, rule.targetRelativePath);
     },
   };
   if (
@@ -2348,6 +2384,64 @@ function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored
     throw new Error("canonical handoff request does not reproduce its persisted identity");
   }
   return request;
+}
+
+/**
+ * Validate the inherited handoff boundary before an invoked CLI command can
+ * mutate the execution checkout. Artifact-producing workers never receive
+ * source authority; their dry-run may observe the upgrade, but a materialized
+ * upgrade is rejected before it can touch the checkout.
+ */
+export function assertWorkerUpgradeAllowed({ requestPath, dryRun = false } = {}) {
+  try {
+    const request = requestFromStored(requiredString(requestPath, "worker upgrade handoff request"));
+    if (request.policy.kind === "source") return request;
+    if (dryRun === true) return null;
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_WORKER_UPGRADE_SOURCE_AUTHORITY_REQUIRED",
+      "materialized upgrade requires a source-worker handoff authority",
+      { retryable: false, data: { stepId: request.stepId } },
+    );
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_WORKER_UPGRADE_HANDOFF_INVALID",
+      `worker upgrade handoff is invalid: ${cause.message}`,
+      { cause, retryable: false },
+    );
+  }
+}
+
+/**
+ * Stage the validated output of a source-worker `sennel upgrade` invocation
+ * under the existing handoff payload authority. The worker never writes the
+ * Version Store; sealing binds these bytes to the parent-owned publication.
+ */
+export function stageWorkerUpgradeResult({ requestPath, artifact } = {}) {
+  const request = assertWorkerUpgradeAllowed({ requestPath, dryRun: false });
+  if (fs.existsSync(request.submissionPath)) {
+    throw new WorkerArtifactHandoffError(
+      "stale",
+      "FLOW_WORKER_UPGRADE_HANDOFF_SEALED",
+      "worker upgrade cannot stage evidence after the handoff has been sealed",
+      { retryable: false, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+    );
+  }
+  const validation = validateUpgradeResultArtifact(artifact);
+  if (!validation.ok) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_WORKER_UPGRADE_RESULT_INVALID",
+      `worker upgrade result is invalid: ${validation.reason}`,
+      { retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+  const target = request.payloadPath("upgrade.result");
+  new AtomicFile(target, { phaseNamespace: "worker-upgrade-result" })
+    .write(Buffer.from(`${JSON.stringify(artifact, null, 2)}\n`, "utf8"));
+  return Object.freeze({ staged: true, path: target, stepId: request.stepId });
 }
 
 export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () => new Date() } = {}) {
@@ -2603,10 +2697,13 @@ function validateSubmission(request, submission) {
   }
   for (const { rule } of request.payloads) {
     const entries = byLogicalName.get(rule.logicalName) || [];
-    if (rule.kind === "file" && entries.length !== 1) {
+    if (rule.kind === "file" && rule.required && entries.length !== 1) {
       throw new WorkerArtifactHandoffError("missing", "FLOW_ARTIFACT_HANDOFF_MISSING", `handoff requires exactly one ${rule.logicalName} payload`);
     }
-    if (rule.kind === "file" && entries[0].targetRelativePath !== rule.targetRelativePath) {
+    if (rule.kind === "file" && entries.length > 1) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `handoff duplicates optional ${rule.logicalName} payload`);
+    }
+    if (rule.kind === "file" && entries.length === 1 && entries[0].targetRelativePath !== rule.targetRelativePath) {
       throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `handoff target is invalid for ${rule.logicalName}`);
     }
     if (rule.kind === "tree" && entries.some((entry) => (
@@ -2623,6 +2720,40 @@ function payloadDocument(request, submission, logicalName) {
   if (!entry) throw new Error(`handoff payload is missing: ${logicalName}`);
   const source = path.join(request.payloadDirectory, ...entry.relativePath.split("/"));
   return boundedJson(source, `handoff payload ${logicalName}`).document;
+}
+
+function optionalUpgradeResultBytes(request, submission) {
+  const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === "upgrade.result");
+  if (!entry) return null;
+  const source = path.join(request.payloadDirectory, ...entry.relativePath.split("/"));
+  const snapshot = readRegularFile(source, "sealed handoff payload upgrade.result", MAX_JSON_BYTES);
+  let document;
+  try {
+    document = JSON.parse(snapshot.bytes.toString("utf8"));
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `sealed handoff payload upgrade.result is malformed JSON: ${cause.message}`,
+      { cause },
+    );
+  }
+  const validation = validateUpgradeResultArtifact(document);
+  if (!validation.ok) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_WORKER_UPGRADE_RESULT_INVALID",
+      `sealed handoff payload upgrade.result is invalid: ${validation.reason}`,
+    );
+  }
+  if (document.dryRun === true) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_WORKER_UPGRADE_RESULT_INVALID",
+      "sealed handoff payload upgrade.result must record a materialized upgrade",
+    );
+  }
+  return Buffer.from(snapshot.bytes);
 }
 
 function canonicalDraftReviewPayload(request, submission, artifactName) {
@@ -2851,6 +2982,95 @@ function readSubmission(request) {
     return new WorkerArtifactHandoffSubmission(document);
   } catch (cause) {
     throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `sealed worker artifact handoff is invalid: ${cause.message}`, { cause });
+  }
+}
+
+/** Durable fail-closed receipt for a sealed handoff rejected by its parent. */
+class WorkerArtifactHandoffQuarantineReceipt {
+  constructor(input = {}) {
+    exactObjectKeys(input, [
+      "version", "runId", "specId", "stepId", "actionDigest", "dispatchInvocationId",
+      "requestDigest", "handoffDigest", "classification", "code", "message", "quarantinedAt",
+    ], "worker artifact handoff quarantine");
+    if (input.version !== 1) throw new Error("worker artifact handoff quarantine version must be 1");
+    this.version = 1;
+    this.runId = requiredString(input.runId, "handoff quarantine runId");
+    this.specId = requiredString(input.specId, "handoff quarantine specId");
+    this.stepId = requiredString(input.stepId, "handoff quarantine stepId");
+    this.actionDigest = requiredDigest(input.actionDigest, "handoff quarantine actionDigest");
+    this.dispatchInvocationId = requiredString(input.dispatchInvocationId, "handoff quarantine dispatchInvocationId");
+    this.requestDigest = requiredDigest(input.requestDigest, "handoff quarantine requestDigest");
+    this.handoffDigest = requiredDigest(input.handoffDigest, "handoff quarantine handoffDigest");
+    this.classification = requiredString(input.classification, "handoff quarantine classification");
+    this.code = requiredString(input.code, "handoff quarantine code");
+    this.message = requiredString(input.message, "handoff quarantine message");
+    this.quarantinedAt = requiredString(input.quarantinedAt, "handoff quarantine timestamp");
+    if (!Number.isFinite(Date.parse(this.quarantinedAt))) throw new Error("handoff quarantine timestamp must be ISO-8601");
+    Object.freeze(this);
+  }
+
+  static create(request, submission, error, now) {
+    return new WorkerArtifactHandoffQuarantineReceipt({
+      version: 1,
+      runId: request.runId,
+      specId: request.specId,
+      stepId: request.stepId,
+      actionDigest: request.actionDigest,
+      dispatchInvocationId: request.dispatchInvocationId,
+      requestDigest: request.requestDigest,
+      handoffDigest: submission.handoffDigest,
+      classification: error.classification,
+      code: error.code,
+      message: error.message,
+      quarantinedAt: now().toISOString(),
+    });
+  }
+
+  assertMatches(request, submission) {
+    if (
+      this.runId !== request.runId
+      || this.specId !== request.specId
+      || this.stepId !== request.stepId
+      || this.actionDigest !== request.actionDigest
+      || this.dispatchInvocationId !== request.dispatchInvocationId
+      || this.requestDigest !== request.requestDigest
+      || this.handoffDigest !== submission.handoffDigest
+    ) {
+      throw new Error("handoff quarantine receipt does not match its sealed request");
+    }
+    return this;
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      runId: this.runId,
+      specId: this.specId,
+      stepId: this.stepId,
+      actionDigest: this.actionDigest,
+      dispatchInvocationId: this.dispatchInvocationId,
+      requestDigest: this.requestDigest,
+      handoffDigest: this.handoffDigest,
+      classification: this.classification,
+      code: this.code,
+      message: this.message,
+      quarantinedAt: this.quarantinedAt,
+    };
+  }
+}
+
+function readHandoffQuarantine(request, submission) {
+  if (!fs.existsSync(request.quarantinePath)) return null;
+  try {
+    const { document } = boundedJson(request.quarantinePath, "worker artifact handoff quarantine");
+    return new WorkerArtifactHandoffQuarantineReceipt(document).assertMatches(request, submission);
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_QUARANTINE_INVALID",
+      `worker artifact handoff quarantine cannot be trusted: ${cause.message}`,
+      { cause, retryable: false, recoveryPossible: false, data: { handoffDirectory: request.directory } },
+    );
   }
 }
 
@@ -3190,6 +3410,29 @@ export class WorkerArtifactHandoffCoordinator {
     return request?.prepare() || null;
   }
 
+  /**
+   * Persist the parent decision that a sealed handoff is unsafe to replay.
+   * This receipt is only a durable deny marker, never positive publication
+   * authority: a matching receipt blocks recovery, and a malformed or forged
+   * marker blocks it fail-closed as well.
+   */
+  quarantine({ request, error }) {
+    if (!(request instanceof WorkerArtifactHandoffRequest)) {
+      throw new Error("worker artifact handoff quarantine requires a typed request");
+    }
+    if (!(error instanceof WorkerArtifactHandoffError)) {
+      throw new Error("worker artifact handoff quarantine requires a typed error");
+    }
+    if (!fs.existsSync(request.submissionPath)) return null;
+    const submission = readSubmission(request);
+    const existing = readHandoffQuarantine(request, submission);
+    if (existing !== null) return existing;
+    const receipt = WorkerArtifactHandoffQuarantineReceipt.create(request, submission, error, this.now);
+    new AtomicFile(request.quarantinePath, { phaseNamespace: "worker-handoff-quarantine" })
+      .write(`${JSON.stringify(receipt.toJSON(), null, 2)}\n`);
+    return receipt;
+  }
+
   recoverPending({ ctx }) {
     const state = typeof ctx.flowManager.load === "function"
       ? ctx.flowManager.load(ctx.specId)
@@ -3259,6 +3502,24 @@ export class WorkerArtifactHandoffCoordinator {
         canonicalLocation,
         flowManager: ctx.flowManager,
       });
+      const quarantine = readHandoffQuarantine(request, submission);
+      if (quarantine !== null) {
+        throw new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_ARTIFACT_HANDOFF_QUARANTINED",
+          `sealed worker artifact handoff is quarantined after ${quarantine.code}: ${quarantine.message}`,
+          {
+            retryable: false,
+            recoveryPossible: false,
+            data: {
+              stepId: request.stepId,
+              handoffDirectory: request.directory,
+              quarantinePath: request.quarantinePath,
+              quarantineCode: quarantine.code,
+            },
+          },
+        );
+      }
       if (canonicalHandoffIsCommitted(state, request, submission, ctx.flowManager)) {
         cleanupCompletedHandoff(request.handoffRoot, canonicalHandoffReceipt(request, submission, this.now), this.faultInjector);
         cleaned += 1;
@@ -3272,17 +3533,11 @@ export class WorkerArtifactHandoffCoordinator {
           { data: { stepId: request.stepId, handoffDirectory: request.directory } },
         );
       }
-      const requestIsActive = state.currentNodeId === request.stepId
-        || (request.taskId !== null && state.currentNodeId === `${request.taskId}-impl`);
-      if (requestIsActive) {
-        return this.#reconcileCanonical({ ctx, request, state });
-      }
-      throw new WorkerArtifactHandoffError(
-        "recovery-required",
-        "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-        "sealed canonical worker handoff has no matching active Attempt or committed result",
-        { data: { stepId: request.stepId, handoffDirectory: request.directory } },
-      );
+      // A parent restart has lost the in-memory validation authority. Never
+      // replay an artifact payload; discard it so a fresh dispatcher attempt
+      // captures a new immutable baseline.
+      if (cleanupTransientExecutionHandoffDirectory(handoffRoot, request.directory)) cleaned += 1;
+      continue;
     }
     for (const transientDirectory of [
       ...runtimeEntries.consumedDirectories,
@@ -3384,6 +3639,19 @@ export class WorkerArtifactHandoffCoordinator {
     if (request.policy.kind === "source") {
       return this.#reconcileSource({ ctx, request, submission, mutationAuthority });
     }
+    const quarantine = readHandoffQuarantine(request, submission);
+    if (quarantine !== null) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_QUARANTINED",
+        `sealed worker artifact handoff is quarantined after ${quarantine.code}: ${quarantine.message}`,
+        {
+          retryable: false,
+          recoveryPossible: false,
+          data: { stepId: request.stepId, handoffDirectory: request.directory },
+        },
+      );
+    }
     let publications;
     try {
       publications = canonicalHandoffPublications(request, submission);
@@ -3398,6 +3666,7 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     try {
+      this.faultInjector({ phase: "before-worker-handoff-publication", stepId: request.stepId });
       ctx.flowManager.confirmCurrentAttempt({
         specId: request.specId,
         result: canonicalHandoffResult(request, submission, this.now),
@@ -3444,6 +3713,7 @@ export class WorkerArtifactHandoffCoordinator {
       payloadDocument(request, submission, "effects.json"),
       request.stepId,
     );
+    const upgradeResult = optionalUpgradeResultBytes(request, submission);
     if (!(mutationAuthority instanceof WorkerArtifactMutationAuthoritySnapshot)) {
       throw new WorkerArtifactHandoffError(
         "recovery-required",
@@ -3464,6 +3734,7 @@ export class WorkerArtifactHandoffCoordinator {
         effect,
         handoffDigest: submission.handoffDigest,
         result: canonicalHandoffResult(request, submission, this.now, { status: effect.completionStatus }),
+        ...(upgradeResult === null ? {} : { upgradeResult }),
       });
     } catch (cause) {
       throw new WorkerArtifactHandoffError(

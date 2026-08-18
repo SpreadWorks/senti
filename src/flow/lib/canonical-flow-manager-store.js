@@ -35,6 +35,7 @@ import {
   FlowExecution,
   CurrentFlowSpecRecord,
   CanonicalSourceWorkerSpecCompletion,
+  CanonicalSourceWorkerUpgradeResult,
   CurrentFlowNonBlockingPolicy,
   CurrentFlowState,
   CurrentFlowStateInvariantError,
@@ -54,6 +55,7 @@ import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
 import { captureRetryRecoveryBaseline, retryBaselineArtifact, retryReceiptArtifact, retryEvidenceRouteForNode, RetryRecoveryReceipt } from "./retry-recovery.js";
+import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const TERMINAL_STATUSES = new Set(["done", "skipped"]);
@@ -1352,6 +1354,22 @@ export class CanonicalFlowManagerStore {
     if (artifact?.logicalKey !== "upgrade.result") {
       throw new CurrentFlowStateInvariantError("canonical upgrade publication requires upgrade.result");
     }
+    if (artifact.mediaType !== "application/json" || !Buffer.isBuffer(artifact.bytes)) {
+      throw new CurrentFlowStateInvariantError("canonical upgrade publication requires JSON Buffer bytes");
+    }
+    let document;
+    try {
+      document = JSON.parse(artifact.bytes.toString("utf8"));
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`canonical upgrade result must be JSON: ${cause.message}`);
+    }
+    const validation = validateUpgradeResultArtifact(document);
+    if (!validation.ok) {
+      throw new CurrentFlowStateInvariantError(`canonical upgrade result is invalid: ${validation.reason}`);
+    }
+    if (document.dryRun === true) {
+      throw new CurrentFlowStateInvariantError("canonical upgrade result must record a materialized upgrade");
+    }
     return this.runtime.publishUpgradeResult({
       specId: resolved,
       activityId: activityId("upgrade-result-published"),
@@ -1791,7 +1809,7 @@ export class CanonicalFlowManagerStore {
    * Commit a sealed source-worker effect and its Attempt confirmation in one
    * Version Store transaction. Workers never receive this surface.
    */
-  confirmSourceWorkerHandoff({ specId = null, effect, handoffDigest, result } = {}) {
+  confirmSourceWorkerHandoff({ specId = null, effect, handoffDigest, result, upgradeResult = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     if (!(effect instanceof SourceWorkerEffect)) {
@@ -1813,6 +1831,10 @@ export class CanonicalFlowManagerStore {
       spec = new CanonicalOverviewUpdate({ taskId, additions: effect.overview.additions }).applyTo(spec).document;
     }
     const artifactWrites = [];
+    const sourceWorkerUpgrade = upgradeResult === null
+      ? null
+      : new CanonicalSourceWorkerUpgradeResult({ bytes: upgradeResult });
+    if (sourceWorkerUpgrade !== null) artifactWrites.push(sourceWorkerUpgrade);
     if (effect.triage !== null) {
       artifactWrites.push({
         logicalKey: "impl.triage",
@@ -1862,6 +1884,7 @@ export class CanonicalFlowManagerStore {
           artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
         },
         artifactWrites,
+        ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
       });
     }
     if (effect.triage !== null && effect.triage.dispositions.every((entry) => entry.disposition === "reject")) {
@@ -1877,6 +1900,7 @@ export class CanonicalFlowManagerStore {
           artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
         },
         artifactWrites,
+        ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
       });
     }
     if (effect.triage !== null) {
@@ -1892,6 +1916,7 @@ export class CanonicalFlowManagerStore {
           artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
         },
         artifactWrites,
+        ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
       });
     }
     const sourceSpecChanged = effect.requirements.length > 0 || effect.overview !== null;
@@ -1902,6 +1927,7 @@ export class CanonicalFlowManagerStore {
       status: effect.completionStatus,
       ...(sourceSpecChanged ? { specRecord: new CanonicalSourceWorkerSpecCompletion(spec) } : {}),
       artifactWrites,
+      ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
     });
   }
 

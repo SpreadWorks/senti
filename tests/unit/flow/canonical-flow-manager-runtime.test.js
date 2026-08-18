@@ -410,6 +410,31 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.deepEqual(JSON.parse(resolved.bytes.toString("utf8")), payload);
   });
 
+  it("rejects malformed system-owned upgrade evidence before catalog publication", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-upgrade-result-malformed"));
+    manager.addActiveFlow(created.specId, "direct");
+
+    assert.throws(
+      () => manager.publishUpgradeResult({
+        specId: created.specId,
+        artifact: {
+          logicalKey: "upgrade.result",
+          mediaType: "application/json",
+          bytes: Buffer.from("{ malformed JSON", "utf8"),
+        },
+      }),
+      /canonical upgrade result must be JSON/,
+    );
+    assert.equal(manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "upgrade.result",
+      consumerNodeId: "impl-gate",
+      optional: true,
+    }), null);
+  });
+
   it("validates cataloged upgrade evidence by logical key", () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
@@ -450,6 +475,40 @@ describe("FlowManager canonical Version-1 runtime", () => {
       consumerNodeId: "impl-gate",
       currentRequiredPaths: requiredPaths,
     }).ok, true);
+  });
+
+  it("rejects dry-run upgrade evidence even when its checked paths match", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-upgrade-dry-run-evidence"));
+    manager.addActiveFlow(created.specId, "direct");
+    const requiredPaths = ["src/skills/sennel.flow/SKILL.md"];
+    assert.throws(
+      () => manager.publishUpgradeResult({
+        specId: created.specId,
+        artifact: {
+          logicalKey: "upgrade.result",
+          mediaType: "application/json",
+          bytes: Buffer.from(`${JSON.stringify({
+            version: 1,
+            command: "sennel upgrade --dry-run",
+            dryRun: true,
+            exitCode: 0,
+            result: "success-updated",
+            summary: {},
+            failureReason: null,
+            checkedPaths: requiredPaths,
+          })}\n`, "utf8"),
+        },
+      }),
+      /must record a materialized upgrade/,
+    );
+    assert.equal(manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "upgrade.result",
+      consumerNodeId: "impl-gate",
+      optional: true,
+    }), null);
   });
 
   it("routes normal manager step transitions and Task addition through the Activity Store", () => {

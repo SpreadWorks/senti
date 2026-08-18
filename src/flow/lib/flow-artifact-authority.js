@@ -35,6 +35,28 @@ export class ArtifactPublicationClaim {
   }
 }
 
+/**
+ * A source worker may carry an optional upgrade result in its sealed handoff.
+ * The parent still publishes that system-owned artifact, as part of the
+ * source Attempt transaction.  This deliberately delegates only that one
+ * logical artifact while retaining the ordinary source Step claim for every
+ * state and effect artifact in the same publication.
+ */
+class SourceWorkerUpgradePublicationClaim extends ArtifactPublicationClaim {
+  assertSlot(slot, { contractBound = false, logicalKey = null } = {}) {
+    if (logicalKey === "upgrade.result") {
+      if (!(slot instanceof ArtifactAuthoritySlot)) {
+        throw new Error("ArtifactAuthoritySlot is required for publication authority");
+      }
+      if (slot.publicationStep !== "system" || slot.authority.toString() !== "canonical-flow-artifacts") {
+        throw new Error("source worker upgrade evidence requires the system upgrade.result slot");
+      }
+      return slot;
+    }
+    return super.assertSlot(slot, { contractBound });
+  }
+}
+
 const PRODUCERS = new Set(["cli", "worker", "user"]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
 const CATEGORIES = new Set(["preparation", "command", "artifact", "source", "user"]);
@@ -275,6 +297,17 @@ export function artifactPublicationClaimForStep(stepId) {
   const entry = flowArtifactAuthorityForStep(stepId);
   if (!entry) throw new Error(`unknown Flow artifact authority step: ${stepId}`);
   return new ArtifactPublicationClaim({
+    producer: entry.producer, stepId: entry.stepId, authority: entry.writableAuthority,
+  }, CLAIM_MINT);
+}
+
+/** Issue the parent-only mixed claim used for a sealed source-worker upgrade. */
+export function sourceWorkerUpgradePublicationClaimForStep(stepId) {
+  const entry = flowArtifactAuthorityForStep(stepId);
+  if (!entry?.sourceHandoff) {
+    throw new Error(`source worker upgrade publication requires a source handoff Step: ${stepId}`);
+  }
+  return new SourceWorkerUpgradePublicationClaim({
     producer: entry.producer, stepId: entry.stepId, authority: entry.writableAuthority,
   }, CLAIM_MINT);
 }
