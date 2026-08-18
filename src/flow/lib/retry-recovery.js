@@ -156,6 +156,7 @@ export function captureRetryRecoveryBaseline({ flowState, flowManager, execution
       projectDigest = targetDigest;
     } catch (error) {
       if (error?.code === "REPAIR_BASELINE_UNRESOLVABLE"
+        || error?.code === "CANONICAL_DRAFT_SOURCE_UNAVAILABLE"
         || /canonical artifact is absent|source artifact/i.test(error.message)) return null;
       throw error;
     }

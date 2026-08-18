@@ -42,6 +42,22 @@ describe("canonical plan-gate repair values", () => {
     assert.deepEqual(record().observations[0].where.toJSON(), { file: "spec.json" });
   });
 
+  it("preserves a process observation without a file location", () => {
+    const value = PlanGateRepairRecord.create({
+      state: { runId: "run-plan-repair", specId: "001-test", issue: 7 },
+      phase: "draft",
+      issueLogEntry: {
+        ...SOURCE,
+        observations: [{ ...SOURCE.observations[0], where: null }],
+      },
+      requestedAt: "2026-08-05T00:01:00.000Z",
+    });
+
+    assert.equal(value.observations[0].where, null);
+    assert.equal(value.toJSON().observations[0].where, null);
+    assert.equal(PlanGateRepairRecord.from(value.toJSON()).observations[0].where, null);
+  });
+
   it("uses fixed definition-authorized rewind routes", () => {
     assert.deepEqual(planGateRepairRouteForPhase("draft").resetStepIds, [
       "draft-refine",

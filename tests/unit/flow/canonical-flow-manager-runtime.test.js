@@ -1791,7 +1791,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       const created = manager.createFresh(request(`001-actual-${reviewPhase}-writer`));
       assert.equal(manager.specLocation(created.specId).directory.startsWith(path.join(repository, "specs")), true);
       manager.addActiveFlow(created.specId, "direct");
-      const draft = Buffer.from('{"goal":"Run writer boundary","qa":[]}\n', "utf8");
+      const draft = Buffer.from('{"goal":"Run writer boundary","qa":[],"approval":{"approved":true}}\n', "utf8");
       advanceTo(manager, created.specId, "draft");
       manager.confirmCurrentAttempt({
         specId: created.specId,
@@ -3304,6 +3304,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
         observed: "The required behavior is absent from the draft.",
         severity: "blocking",
         refs: ["R-1"],
+      }, {
+        kind: "violation",
+        failureMode: "process-evidence-missing",
+        requirementRef: "process:gate-structure",
+        where: null,
+        observed: "The draft approval marker has not been finalized.",
+        severity: "blocking",
+        refs: ["process:diff-verifiable"],
       }],
       timestamp: "2026-08-13T00:00:00.000Z",
     };

@@ -90,13 +90,21 @@ function phase(value) {
  * writes the payload and confirms the producer Attempt in the same Version
  * transaction, so that Activity is both publication and finalization proof.
  */
+export class CanonicalDraftReviewSourceError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "CanonicalDraftReviewSourceError";
+    this.code = "CANONICAL_DRAFT_SOURCE_UNAVAILABLE";
+  }
+}
+
 class CanonicalDraftSourceProducerActivity {
   constructor({ descriptor, activity, reviewPhase, allowedSteps } = {}) {
     if (descriptor === null || typeof descriptor !== "object" || Array.isArray(descriptor)) {
-      throw new Error("canonical draft source requires a catalog descriptor");
+      throw new CanonicalDraftReviewSourceError("canonical draft source requires a catalog descriptor");
     }
     if (activity === null || typeof activity !== "object" || Array.isArray(activity)) {
-      throw new Error(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
+      throw new CanonicalDraftReviewSourceError(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
     }
     if (
       activity.id !== descriptor.activityId
@@ -114,7 +122,7 @@ class CanonicalDraftSourceProducerActivity {
       || activity.result?.outcome !== "passed"
       || !isIsoTimestamp(activity.result?.confirmedAt)
     ) {
-      throw new Error(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
+      throw new CanonicalDraftReviewSourceError(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
     }
     this.nodeId = activity.nodeId;
     this.finalizedAt = activity.result.confirmedAt;

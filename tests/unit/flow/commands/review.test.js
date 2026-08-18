@@ -1008,6 +1008,7 @@ describe("draft review artifact phases", () => {
         draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [],
         stage,
+        draft: retryPhase === "draft-coverage" ? { approval: { approved: true } } : null,
       });
       const advisory = buildDraftReviewArtifact({
         raw: "A review finding was recorded.",
@@ -1015,6 +1016,7 @@ describe("draft review artifact phases", () => {
         draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [proposal],
         stage,
+        draft: retryPhase === "draft-coverage" ? { approval: { approved: true } } : null,
       });
 
       assert.equal(pass.phase, retryPhase);
@@ -1041,6 +1043,25 @@ describe("draft review artifact phases", () => {
       }),
       /draft artifact revision version must be 1/,
     );
+  });
+
+  it("routes an unfinalized draft approval through coverage repair", () => {
+    const artifact = buildDraftReviewArtifact({
+      raw: "NO_PROPOSALS",
+      draftPath: "draft.json",
+      draftRevision: draftReviewRevision("draft-refine"),
+      proposals: [],
+      stage: {
+        retryPhase: "draft-coverage",
+        artifactPhase: "draft-coverage-review",
+        findingClassification: "blocking",
+      },
+      draft: { approval: { approved: false } },
+    });
+
+    assert.equal(artifact.verdict, "ADVISORY");
+    assert.equal(artifact.repairTargets.length, 1);
+    assert.equal(artifact.repairTargets[0].target, "approval");
   });
 });
 

@@ -88,7 +88,7 @@ export class PlanGateRepairObservation {
       "plan gate repair observation requirementRef",
       500,
     );
-    this.where = new PlanGateRepairLocation(input.where);
+    this.where = input.where == null ? null : new PlanGateRepairLocation(input.where);
     this.observed = requiredString(input.observed, "plan gate repair observation observed");
     this.severity = requiredString(input.severity, "plan gate repair observation severity", 100);
     if (this.severity !== "blocking") {
@@ -106,7 +106,7 @@ export class PlanGateRepairObservation {
       kind: this.kind,
       failureMode: this.failureMode,
       requirementRef: this.requirementRef,
-      where: this.where.toJSON(),
+      where: this.where?.toJSON() ?? null,
       observed: this.observed,
       severity: this.severity,
       refs: [...this.refs],
