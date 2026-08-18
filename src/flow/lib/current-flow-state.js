@@ -19,7 +19,10 @@ import {
   requiresWorkerSourceHandoff,
   sourceWorkerUpgradePublicationClaimForStep,
 } from "./flow-artifact-authority.js";
-import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
+import {
+  isPlanGateRepairEligibleFailure,
+  planGateRepairRouteForTargetStep,
+} from "./plan-gate-repair.js";
 import { DefinitionFailureOwnership } from "./definition-failure-ownership.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 
@@ -1557,6 +1560,20 @@ export class CurrentAttemptIdentity {
       && attempt.nodeId === this.nodeId
       && attempt.sequence === this.sequence
       && attempt.failure === null;
+  }
+
+  matchesFailed(state) {
+    if (!(state instanceof CurrentFlowState)) return false;
+    const nodeId = state.current?.at(-1) ?? null;
+    const attempt = state.attempt;
+    const node = nodeId === null ? null : state.findNode(nodeId);
+    return nodeId === this.nodeId
+      && node?.status === "in_progress"
+      && attempt !== null
+      && attempt.id === this.id
+      && attempt.nodeId === this.nodeId
+      && attempt.sequence === this.sequence
+      && attempt.failure !== null;
   }
 
   toJSON() {
@@ -3624,6 +3641,9 @@ export class CurrentFlowState {
     if (this.current === null || this.attempt === null || this.current.at(-1) !== route.gateStepId) {
       throw new CurrentFlowStateInvariantError("plan gate repair requires its mapped active gate Attempt");
     }
+    if (!isPlanGateRepairEligibleFailure(this, route)) {
+      throw new CurrentFlowStateInvariantError("plan gate repair requires its mapped blocked semantic gate failure");
+    }
     for (const stepId of route.resetStepIds) {
       const node = this.findNode(stepId);
       if (node === null) throw new CurrentFlowStateInvariantError(`plan gate repair route node is missing: ${stepId}`);
@@ -4448,6 +4468,10 @@ export class ActivityTransition {
         && state.current?.at(-1) !== target.id) {
         throw new CurrentFlowStateInvariantError("artifact publication Activity must target the active current leaf");
       }
+      if (this.operation === "publish_artifacts" && activity.attemptId !== null
+        && (activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence)) {
+        throw new CurrentFlowStateInvariantError("artifact publication Activity Attempt does not match the active producer Attempt");
+      }
       return state;
     }
     if (this.operation === "continue_nonblocking") {
@@ -4719,7 +4743,8 @@ export class FlowActivity {
       || this.transition.operation === "add_task"
       || LIFECYCLE_TRANSITION_OPERATIONS.has(this.transition.operation)
       || POLICY_TRANSITION_OPERATIONS.has(this.transition.operation)
-      || ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || (ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.transition.operation)
+        && this.transition.operation !== "publish_artifacts")
       || OUTBOX_TRANSITION_OPERATIONS.has(this.transition.operation)
       || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(this.transition.operation)
       || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(this.transition.operation)
@@ -4728,6 +4753,10 @@ export class FlowActivity {
     ) {
       if (this.attemptId !== null || this.sequence !== null) {
         throw new CurrentFlowStateInvariantError("Task, Flow lifecycle/policy/outbox/dispatch approval, artifact publication, and observation Activities must not carry Attempt identity or sequence");
+      }
+    } else if (this.transition.operation === "publish_artifacts") {
+      if ((this.attemptId === null) !== (this.sequence === null)) {
+        throw new CurrentFlowStateInvariantError("producer artifact publication Activity Attempt identity and sequence must both be present or absent");
       }
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");

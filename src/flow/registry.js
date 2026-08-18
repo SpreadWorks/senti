@@ -1749,6 +1749,26 @@ export const FLOW_COMMANDS = {
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
+    "settle-failure": {
+      helpKey: "flow.run.settle-failure",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-settle-failure.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: sennel flow run settle-failure ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Execute the definition-owned record or rewind transition for the current failed Attempt.",
+        "The command derives the transition, failed result, and rewind target from canonical state; it accepts no route or result input.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
     "repair-test-review": {
       helpKey: "flow.run.repair-test-review",
       runtimeLog: { stepMetadata: false },
@@ -1874,6 +1894,34 @@ export const FLOW_COMMANDS = {
             event: "scenario-validity:post",
             result,
           });
+          return;
+        }
+        if (
+          result?.result === "block"
+          && ctx.flowState?.policy?.nonblocking?.enabled !== true
+        ) {
+          // RunScenarioValidityCommand already published its cataloged result
+          // and immutable blocking evidence.  Record the matching canonical
+          // failure here so every plan gate reaches next-action through the
+          // same typed lifecycle decision, without duplicating that artifact
+          // publication in the registry hook.
+          ctx.flowManager.failCurrentAttempt({
+            specId: ctx.specId ?? ctx.flowState.specId,
+            failure: {
+              category: "semantic",
+              code: "SCENARIO_VALIDITY_REJECTED",
+              message: "Scenario validity rejected the current test evidence.",
+              retryable: false,
+              retryKind: null,
+            },
+            result: {
+              outcome: "failed",
+              summary: "Scenario validity rejected the current test evidence.",
+              confirmedAt: new Date().toISOString(),
+              artifactRefs: [],
+            },
+          });
+          ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
         }
       },
       async nonblockingPost(ctx, result) {

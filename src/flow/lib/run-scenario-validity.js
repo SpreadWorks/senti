@@ -13,6 +13,10 @@ import {
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
+import {
+  scenarioValidityBlockingEntries,
+  scenarioValidityRepairObservations,
+} from "./plan-gate-repair.js";
 const SCENARIO_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
 
@@ -348,9 +352,7 @@ export class CanonicalScenarioValidityRepairEvidence {
     this.specId = state.specId;
     this.testRevisionDigest = testSourceRevision.digest;
     this.timestamp = timestamp;
-    this.blocking = Object.freeze(summary
-      .map((entry, index) => Object.freeze({ entry, index }))
-      .filter(({ entry }) => entry.classification !== "expected_fail"));
+    this.blocking = scenarioValidityBlockingEntries(summary);
     Object.freeze(this);
   }
 
@@ -370,18 +372,7 @@ export class CanonicalScenarioValidityRepairEvidence {
       resolution: "Rewind to the governed test handoff and replace the invalid test premise.",
       sourceArtifact: "scenario.validity",
       testRevisionDigest: this.testRevisionDigest,
-      observations: this.blocking.slice(0, 64).map(({ entry, index }) => ({
-        kind: "violation",
-        failureMode: entry.classification,
-        requirementRef: entry.id,
-        where: {
-          file: entry.evidence.test_file,
-          locator: entry.evidence.test_name,
-        },
-        observed: `Scenario validity classified ${entry.id} as ${entry.classification} before implementation.`,
-        severity: "blocking",
-        refs: [`scenario.validity#summary.${index}`],
-      })),
+      observations: scenarioValidityRepairObservations(this.blocking),
       timestamp: this.timestamp,
     };
   }

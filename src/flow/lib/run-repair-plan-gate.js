@@ -1,60 +1,9 @@
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCommand } from "./base-command.js";
-import { PlanGateRepairRecord } from "./plan-gate-repair.js";
-import { findActiveNode } from "../definition.js";
-import { CanonicalGateInputStore } from "./canonical-gate-artifacts.js";
-import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
-
-function phaseForActiveGate(stepId) {
-  if (stepId === "draft-gate") return "draft";
-  if (stepId === "spec-gate") return "spec";
-  if (stepId === "scenario-validity") return "test";
-  return null;
-}
-
-function latestCanonicalRepairableGateEntry(issueLog, phase) {
-  const entries = issueLog?.entries;
-  if (!Array.isArray(entries)) throw new Error("canonical gate issue-log must contain entries");
-  return [...entries].reverse().find((entry) => (
-    entry?.phase === phase
-    && typeof entry?.issueLogId === "string"
-    && Array.isArray(entry?.observations)
-    && entry.observations.some((observation) => observation?.severity === "blocking")
-  )) || null;
-}
-
-function canonicalGateIssueLog(ctx, state, nodeId) {
-  return new CanonicalGateInputStore({
-    flowManager: ctx.flowManager,
-    state,
-    nodeId,
-  }).issueLog();
-}
-
-function canonicalScenarioValidityTestRepair(ctx, state, source) {
-  if (source?.sourceArtifact !== "scenario.validity") return null;
-  const revision = CanonicalTestSourceRevision.fromCatalog({
-    state,
-    catalog: ctx.flowManager.artifactCatalog(state.specId),
-    activities: ctx.flowManager.activityLedger(state.specId),
-  });
-  return source.testRevisionDigest === revision.digest ? source : null;
-}
-
-export function inspectScenarioValidityTestRepair({ flowManager, state }) {
-  if (findActiveNode(state)?.stepId !== "scenario-validity") return null;
-  try {
-    const inputs = new CanonicalGateInputStore({
-      flowManager,
-      state,
-      nodeId: "scenario-validity",
-    });
-    const source = latestCanonicalRepairableGateEntry(inputs.issueLog(), "test");
-    return canonicalScenarioValidityTestRepair({ flowManager }, state, source);
-  } catch {
-    return null;
-  }
-}
+import {
+  inspectCanonicalPlanGateRepair,
+  planGateRepairRouteForGateStep,
+} from "./plan-gate-repair.js";
 
 export default class RunRepairPlanGateCommand extends FlowCommand {
   constructor() {
@@ -62,8 +11,17 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
   }
 
   execute(ctx) {
-    const state = ctx.flowState;
-    if (state?.schemaRevision !== 3) {
+    const projectedState = ctx.flowState;
+    if (projectedState?.schemaRevision !== 3 || typeof ctx.flowManager?.canonicalState !== "function") {
+      return Envelope.fail(
+        "run",
+        "repair-plan-gate",
+        "CANONICAL_FLOW_REQUIRED",
+        "plan gate repair requires a Version-1 Flow",
+      );
+    }
+    const state = ctx.flowManager.canonicalState(ctx.specId ?? projectedState.specId);
+    if (state === null) {
       return Envelope.fail(
         "run",
         "repair-plan-gate",
@@ -75,9 +33,9 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
   }
 
   #executeCanonical(ctx, state) {
-    const active = findActiveNode(state);
-    const phase = phaseForActiveGate(active?.stepId);
-    if (!phase) {
+    const activeStepId = state.current === null ? null : state.current.at(-1);
+    const route = planGateRepairRouteForGateStep(activeStepId);
+    if (!route) {
       return Envelope.fail(
         "run",
         "repair-plan-gate",
@@ -85,12 +43,10 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         "plan gate repair requires draft-gate, spec-gate, or scenario-validity to be in progress",
       );
     }
-    let issueLog;
-    let source;
+    const { phase } = route;
+    let evidence;
     try {
-      issueLog = canonicalGateIssueLog(ctx, state, active.stepId);
-      source = latestCanonicalRepairableGateEntry(issueLog, phase);
-      if (phase === "test") source = canonicalScenarioValidityTestRepair(ctx, state, source);
+      evidence = inspectCanonicalPlanGateRepair({ flowManager: ctx.flowManager, state });
     } catch (error) {
       return Envelope.fail(
         "run",
@@ -99,7 +55,7 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         `canonical ${phase} gate evidence is unavailable: ${error.message}`,
       );
     }
-    if (!source) {
+    if (evidence === null) {
       return Envelope.fail(
         "run",
         "repair-plan-gate",
@@ -109,11 +65,11 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
     }
     let record;
     try {
-      record = PlanGateRepairRecord.create({ state, phase, issueLogEntry: source });
+      record = evidence.createRecord(state);
       ctx.flowManager.repairPlanGate({
         specId: state.specId,
         record,
-        issueLog,
+        issueLog: evidence.issueLog,
       });
     } catch (error) {
       return Envelope.fail(

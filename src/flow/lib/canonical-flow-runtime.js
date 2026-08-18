@@ -269,8 +269,10 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  recordFailure({ specId, activityId, result, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+  recordFailure({ specId, activityId, result, timing = null, provider = null, model = null, effort = null, usage = null, references, expectedAttempt = null } = {}) {
     const state = this.#state(specId);
+    const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
+    if (expected !== null && !expected.matchesFailed(state)) return null;
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
       nodeId: this.#currentNodeId(state),
@@ -309,8 +311,10 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  rewind({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+  rewind({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, expectedAttempt = null } = {}) {
     const state = this.#state(specId);
+    const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
+    if (expected !== null && !expected.matchesFailed(state)) return null;
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
       nodeId,
@@ -545,15 +549,21 @@ export class CanonicalFlowRuntime {
    * The Version Store atomically appends this Activity, writes the bytes, and
    * replaces their catalog descriptors under the active leaf's ownership.
    */
-  publishArtifacts({ specId, activityId, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined } = {}) {
+  publishArtifacts({ specId, activityId, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined, expectedAttempt = null } = {}) {
     const state = this.#state(specId);
     const target = requiredText(nodeId, "artifact publication nodeId");
+    const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
+    if (expected !== null && !expected.matches(state)) {
+      throw new CurrentFlowStateInvariantError("canonical producer Attempt changed before artifact publication");
+    }
     if (!Array.isArray(artifactWrites) || artifactWrites.length === 0) {
       throw new CurrentFlowStateInvariantError("artifact publication requires one or more artifact writes");
     }
     return this.apply(specId, this.#activity(state, {
       id: activityId,
       nodeId: target,
+      attemptId: expected?.id ?? null,
+      sequence: expected?.sequence ?? null,
       transition: {
         operation: "publish_artifacts",
         nodeId: target,

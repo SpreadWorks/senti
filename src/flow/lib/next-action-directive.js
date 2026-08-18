@@ -8,21 +8,12 @@
  */
 
 import {
-  MoveToAcceptance,
-  RegisterAlternativeEvidence,
-  RetryReview,
-  StopAsBlocker,
-} from "./review-convergence.js";
-import {
-  AwaitingDecisionOutcome,
-  ExternalBlockedOutcome,
-  RetryOutcome,
-} from "./step-outcome.js";
-import {
   FlowContinuation,
   UserActionPrompt,
 } from "./user-action-prompt.js";
 import { guardedCommand } from "./guarded-command.js";
+import { CurrentNextActionDescriptor } from "./current-flow-state.js";
+import { PlanGateRepairRoute } from "./plan-gate-repair.js";
 
 const ACTION_ID = /^[A-Z][A-Z0-9_]{2,79}$/;
 const MAX_TEXT_LENGTH = 4000;
@@ -54,22 +45,6 @@ function requireActionId(value, field = "actionId") {
     throw new Error(`${field} must be a stable uppercase action token`);
   }
   return actionId;
-}
-
-function refreshCommand(state, binding) {
-  return guardedCommand("sennel flow get next-action", state, binding);
-}
-
-function planGateRepairDirective(state, binding, phase, reason) {
-  if (!["draft", "spec"].includes(phase)) return null;
-  return new RepairEvidenceDirective({
-    actionId: "REPAIR_PLAN_GATE_EVIDENCE",
-    evidenceKind: "gate",
-    phase,
-    instruction: "Run the guarded plan-gate repair transition. It freezes the canonical blocking observations and rewinds to the mapped worker-artifact handoff step; do not edit canonical spec artifacts directly.",
-    reason,
-    nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
-  });
 }
 
 export class NextActionDirective {
@@ -256,99 +231,22 @@ export class IdleDirective extends NextActionDirective {
   }
 }
 
-function reviewDirective({ state, binding, phase, operation, nextAction }) {
-  if (operation instanceof MoveToAcceptance) {
-    return new ExecuteCommandDirective({
-      actionId: "COMPLETE_REVIEW_LIFECYCLE",
-      nextAction,
-      instruction: "Complete the current canonical review outcome without invoking the reviewer again, persist any exhausted semantic findings for acceptance disposition, then refresh next-action.",
-      reason: "The canonical review outcome is ready for its normal lifecycle transition.",
-    });
-  }
-  if (operation instanceof RetryReview) {
-    if (!operation.requiresChangedEvidence) {
-      return new ExecuteCommandDirective({
-        actionId: "RETRY_REVIEW",
-        nextAction,
-        instruction: "Retry the current review with its remaining tooling budget.",
-        reason: operation.blocker.reason,
-      });
-    }
-    return new RepairEvidenceDirective({
-      actionId: "REPAIR_REVIEW_EVIDENCE",
-      evidenceKind: "review",
-      phase,
-      instruction: "Repair the persisted blocking review findings in the current review target, then refresh next-action. Do not reset or spend another review attempt until the target identity changes.",
-      reason: operation.blocker.reason,
-      nextAction: refreshCommand(state, binding),
-    });
-  }
-  if (operation instanceof RegisterAlternativeEvidence) {
-    return new RepairEvidenceDirective({
-      actionId: "REGISTER_REVIEW_EVIDENCE",
-      evidenceKind: "review",
-      phase,
-      instruction: "Recover the finalized canonical review evidence for this target and register it through the guarded review-evidence command, then refresh next-action.",
-      reason: operation.blocker.reason,
-      nextAction: refreshCommand(state, binding),
-    });
-  }
-  if (operation instanceof StopAsBlocker) {
-    return new BlockedDirective({
-      code: "REVIEW_RECOVERY_UNAVAILABLE",
-      reason: operation.blocker.reason,
-      resumeInstruction: operation.blocker.reason,
-    });
-  }
-  throw new Error("unknown review permitted operation");
-}
-
-function gateDirective({ state, binding, phase, recovery }) {
-  if (!recovery) return null;
-  if (recovery.recoveryPossible === true && recovery.recoveryCommand) {
-    return new ExecuteCommandDirective({
-      actionId: "RECOVER_GATE_RETRY",
-      nextAction: guardedCommand(recovery.recoveryCommand, state, binding),
-      instruction: "Apply the persisted one-attempt gate recovery and continue the normal Flow.",
-      reason: recovery.recoveryReason,
-    });
-  }
-  if (recovery.recoveryReason === "unchanged-evidence") {
-    const planRepair = planGateRepairDirective(
-      state,
-      binding,
-      phase,
-      recovery.recoveryReason,
-    );
-    if (planRepair) return planRepair;
-    return new RepairEvidenceDirective({
-      actionId: "REPAIR_GATE_EVIDENCE",
-      evidenceKind: "gate",
-      phase,
-      instruction: "Repair the persisted gate findings in the mapped source evidence, then refresh next-action. Do not spend another gate attempt until the evidence fingerprint changes.",
-      reason: recovery.recoveryReason,
-      nextAction: refreshCommand(state, binding),
-    });
-  }
-  return new BlockedDirective({
-    code: "GATE_RECOVERY_UNAVAILABLE",
-    reason: recovery.recoveryReason,
-    resumeInstruction: recovery.reason || recovery.recoveryReason,
-  });
-}
-
+/**
+ * The canonical runtime has one typed source for lifecycle decisions:
+ * CurrentNextActionDescriptor.  This resolver translates that descriptor
+ * into the sole public routing contract.  It intentionally does not inspect
+ * legacy review/gate projections, so a V1 Flow cannot select a second route
+ * from stale compatibility state.
+ */
 export class NextActionDirectiveResolver {
   constructor({
     state,
     binding = null,
-    action = null,
-    nextAction = null,
-    reviewPhase = null,
-    reviewTargetChanged = false,
-    gatePhase = null,
-    stepAttempt = null,
-    reviewOperation = null,
-    gateRecovery = null,
+    action,
+    descriptor,
+    recoveryCommand = null,
+    planGateRepairRoute = null,
+    planGateRepairReason = null,
   } = {}) {
     if (!state || typeof state !== "object" || Array.isArray(state)) {
       throw new Error("directive resolver state is required");
@@ -358,85 +256,68 @@ export class NextActionDirectiveResolver {
       throw new Error("directive resolver binding.guardCommand is required");
     }
     this.binding = binding;
-    this.action = action;
-    this.nextAction = nextAction;
-    this.reviewPhase = reviewPhase;
-    this.reviewTargetChanged = reviewTargetChanged === true;
-    this.gatePhase = gatePhase;
-    this.stepAttempt = stepAttempt;
-    this.reviewOperation = reviewOperation;
-    this.gateRecovery = gateRecovery;
+    this.action = requireString(action, "directive resolver action", 200);
+    if (!(descriptor instanceof CurrentNextActionDescriptor)) {
+      throw new Error("directive resolver requires a typed current next-action descriptor");
+    }
+    this.descriptor = descriptor;
+    this.recoveryCommand = recoveryCommand == null
+      ? null
+      : requireString(recoveryCommand, "directive resolver recovery command");
+    if (planGateRepairRoute !== null) {
+      if (!(planGateRepairRoute instanceof PlanGateRepairRoute)) {
+        throw new Error("directive resolver requires a typed plan gate repair route");
+      }
+      if (typeof planGateRepairReason !== "string" || planGateRepairReason.trim() === "") {
+        throw new Error("directive resolver plan gate repair reason is required");
+      }
+    }
+    this.planGateRepairRoute = planGateRepairRoute;
+    this.planGateRepairReason = planGateRepairReason;
   }
 
   resolve() {
-    const review = this.reviewOperation
-      ? reviewDirective({
-          state: this.state,
-          binding: this.binding,
-          phase: this.reviewPhase,
-          operation: this.reviewOperation,
-          nextAction: this.nextAction,
-        })
-      : null;
-    if (review) return review;
-
-    if (this.stepAttempt?.outcome instanceof AwaitingDecisionOutcome) {
-      return new AwaitUserDecisionDirective({
-        prompt: this.stepAttempt.outcome.prompt,
-        reason: this.stepAttempt.outcome.reason,
+    if (this.planGateRepairRoute !== null) {
+      return new RepairEvidenceDirective({
+        actionId: "REPAIR_PLAN_GATE_EVIDENCE",
+        evidenceKind: "gate",
+        phase: this.planGateRepairRoute.phase,
+        instruction: "Run the guarded plan-gate repair transition. It freezes the canonical blocking observations and rewinds to the mapped worker-artifact handoff step; do not edit canonical spec artifacts directly.",
+        reason: this.planGateRepairReason,
+        nextAction: guardedCommand("sennel flow run repair-plan-gate", this.state, this.binding),
       });
     }
-
-    if (this.stepAttempt?.outcome instanceof RetryOutcome) {
-      const planRepair = planGateRepairDirective(
-        this.state,
-        this.binding,
-        this.gatePhase,
-        "The draft/spec gate recorded blocking observations that require a new governed artifact revision before another attempt.",
-      );
-      if (planRepair) return planRepair;
+    if (["start", "recover", "resume", "retry"].includes(this.descriptor.operation)) {
+      return new ExecuteStepDirective({ action: this.action });
     }
-
-    if (this.stepAttempt?.outcome instanceof ExternalBlockedOutcome) {
-      if (this.stepAttempt.outcome.recoveryCommand) {
-        return new ExecuteCommandDirective({
-          actionId: "RECOVER_EXTERNAL_BLOCK",
-          nextAction: guardedCommand(
-            this.stepAttempt.outcome.recoveryCommand,
-            this.state,
-            this.binding,
-          ),
-          instruction: this.stepAttempt.outcome.recoveryHint,
-          reason: this.stepAttempt.outcome.reason,
-        });
-      }
-      const gate = gateDirective({
-        state: this.state,
-        binding: this.binding,
-        phase: this.gatePhase,
-        recovery: this.gateRecovery,
-      });
-      if (gate) return gate;
-      if (
-        this.reviewOperation instanceof MoveToAcceptance
-        || this.reviewTargetChanged
-      ) {
-        return new ExecuteStepDirective({
-          action: this.action,
-          nextAction: this.nextAction,
-        });
-      }
-      return new BlockedDirective({
-        code: "STEP_EXTERNAL_BLOCKED",
-        reason: this.stepAttempt.outcome.reason,
-        resumeInstruction: this.stepAttempt.outcome.resumeInstruction,
+    if (this.recoveryCommand !== null) {
+      return new ExecuteCommandDirective({
+        actionId: "RECOVER_EXHAUSTED_TOOLING_RETRY",
+        nextAction: this.recoveryCommand,
+        instruction: "Apply the single audited tooling recovery after parent-derived evidence changed, then refresh next-action.",
+        reason: this.descriptor.failureDisposition?.reason
+          ?? "The exhausted tooling Attempt has changed canonical evidence.",
       });
     }
-
-    return new ExecuteStepDirective({
-      action: this.action,
-      nextAction: this.nextAction,
-    });
+    const disposition = this.descriptor.failureDisposition ?? null;
+    const operation = disposition?.operation ?? this.descriptor.operation;
+    if (["record", "rewind"].includes(operation)) {
+      return new ExecuteCommandDirective({
+        actionId: "SETTLE_CANONICAL_FAILURE",
+        nextAction: guardedCommand("sennel flow run settle-failure", this.state, this.binding),
+        instruction: operation === "record"
+          ? "Record the exact failed Attempt through its definition-owned terminal transition, then refresh next-action."
+          : "Rewind only through the definition-owned failed Attempt transition, then refresh next-action.",
+        reason: disposition?.reason
+          ?? "The current canonical Attempt has a definition-owned terminal transition.",
+      });
+    }
+    const code = operation === "blocked"
+      ? "CANONICAL_ATTEMPT_BLOCKED"
+      : "CANONICAL_ATTEMPT_RECOVERY_REQUIRED";
+    const reason = disposition?.reason
+      ?? "The current canonical Attempt requires an explicit lifecycle recovery.";
+    return new BlockedDirective({ code, reason, resumeInstruction: reason });
   }
 }
 

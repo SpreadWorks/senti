@@ -1095,16 +1095,30 @@ export class CanonicalFlowManagerStore {
     const specId = this.#resolveSpecId(opts.specId);
     if (specId === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(specId);
+    const expected = opts.expectedFailedAttempt == null
+      ? null
+      : CurrentAttemptIdentity.from(opts.expectedFailedAttempt);
+    if (expected !== null && !expected.matchesFailed(state)) {
+      throw new CurrentFlowStateInvariantError("canonical failed Attempt changed before rewind");
+    }
     const target = requiredText(nodeId, "canonical recovery nodeId");
     const recovery = state.recoveryTarget(state.definition.pathFor(state.root, target)).assertLegal();
+    if (expected !== null && recovery.operation !== "rewind") {
+      throw new CurrentFlowStateInvariantError("canonical failed Attempt has no definition-owned rewind target");
+    }
     const attempt = commandContextAttempt(state, target);
     if (recovery.operation === "rewind") {
-      return this.runtime.rewind({
+      const rewound = this.runtime.rewind({
         specId,
         activityId: activityId("attempt-rewound"),
         nodeId: target,
         attempt,
+        expectedAttempt: expected,
       });
+      if (rewound === null) {
+        throw new CurrentFlowStateInvariantError("canonical failed Attempt changed before rewind");
+      }
+      return rewound;
     }
     if (recovery.operation === "recover") {
       return this.runtime.recover({
@@ -1976,6 +1990,54 @@ export class CanonicalFlowManagerStore {
   }
 
   /**
+   * Settle the exact definition-owned terminal disposition of the active
+   * failed Attempt.  The caller supplies neither a result nor a target: both
+   * are derived from the failed Activity and typed failure policy, so a CLI
+   * continuation cannot turn a stale display decision into another route.
+   */
+  settleCurrentFailure({ specId = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    const descriptor = state.nextAction();
+    const expected = state.attempt === null ? null : CurrentAttemptIdentity.from(state.attempt);
+    if (descriptor?.operation === "record") {
+      const failedAttempt = state.attempt.failure;
+      const expectedOutcome = descriptor.failureDisposition.outcome;
+      const failure = [...this.activityLedger(resolved)].reverse().find((activity) => (
+        activity.transition.operation === "fail_attempt"
+        && activity.nodeId === state.current.at(-1)
+        && activity.attemptId === state.attempt.id
+        && activity.sequence === state.attempt.sequence
+        && activity.failure?.category === failedAttempt.category
+        && activity.failure?.code === failedAttempt.code
+        && activity.failure?.message === failedAttempt.message
+        && activity.failure?.retryable === failedAttempt.retryable
+        && activity.failure?.retryKind === failedAttempt.retryKind
+        && activity.result?.outcome === expectedOutcome
+      )) ?? null;
+      if (failure?.result == null) {
+        throw new CurrentFlowStateInvariantError("canonical failed Attempt result is unavailable for recording");
+      }
+      const recorded = this.runtime.recordFailure({
+        specId: resolved,
+        activityId: activityId("attempt-failure-recorded"),
+        result: failure.result,
+        expectedAttempt: expected,
+      });
+      if (recorded === null) {
+        throw new CurrentFlowStateInvariantError("canonical failed Attempt changed before failure recording");
+      }
+      return recorded;
+    }
+    if (descriptor?.operation === "rewind") {
+      const target = descriptor.failureDisposition.targetPath.at(-1);
+      return this.rewindTo(target, { specId: resolved, expectedFailedAttempt: expected });
+    }
+    throw new CurrentFlowStateInvariantError("canonical failure disposition has no settle transition");
+  }
+
+  /**
    * Record a command-bound tooling failure only when the exact Attempt that
    * started that command is still active.  A producer may have already
    * confirmed, failed, retried, or replaced that Attempt while lifecycle
@@ -2079,6 +2141,7 @@ export class CanonicalFlowManagerStore {
       activityId: activityId("attempt-result-published"),
       nodeId,
       artifactWrites,
+      expectedAttempt: CurrentAttemptIdentity.from(state.attempt),
     });
   }
 

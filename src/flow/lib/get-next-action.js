@@ -18,11 +18,11 @@ import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
   AwaitUserDecisionDirective,
-  BlockedDirective,
   CompletedDirective,
   ExecuteCommandDirective,
   ExecuteStepDirective,
   IdleDirective,
+  NextActionDirectiveResolver,
   RepairEvidenceDirective,
 } from "./next-action-directive.js";
 import { TaskNode } from "./current-flow-state.js";
@@ -47,7 +47,10 @@ import {
   flowArtifactAuthorityForStep,
   requiresWorkerArtifactHandoff,
 } from "./flow-artifact-authority.js";
-import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
+import {
+  canonicalPlanGateRepairForTarget,
+  inspectCanonicalPlanGateRepair,
+} from "./plan-gate-repair.js";
 import {
   canonicalTestReviewRepairForTarget,
   inspectCanonicalTestReviewRepair,
@@ -301,28 +304,6 @@ function retryRecoveryCommandFor({ ctx, state, descriptor, target, binding }) {
   );
 }
 
-function canonicalFailureDirective(descriptor, action, recoveryCommand = null) {
-  if (["start", "recover", "resume", "retry"].includes(descriptor.operation)) {
-    return new ExecuteStepDirective({ action });
-  }
-  if (recoveryCommand !== null) {
-    return new ExecuteCommandDirective({
-      actionId: "RECOVER_EXHAUSTED_TOOLING_RETRY",
-      nextAction: recoveryCommand,
-      instruction: "Apply the single audited tooling recovery after parent-derived evidence changed, then refresh next-action.",
-      reason: descriptor.failureDisposition?.reason ?? "The exhausted tooling Attempt has changed canonical evidence.",
-    });
-  }
-  const disposition = descriptor.failureDisposition?.decision ?? null;
-  const reason = disposition?.reason
-    ?? "The current canonical Attempt requires an explicit lifecycle recovery.";
-  return new BlockedDirective({
-    code: "CANONICAL_ATTEMPT_RECOVERY_REQUIRED",
-    reason,
-    resumeInstruction: reason,
-  });
-}
-
 function acceptanceDecisionMessages({ root, config }) {
   return new FlowDecisionMessages({ root, config, decision: "acceptanceDecision", names: [
     "question",
@@ -442,6 +423,19 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
     config: ctx.config,
   });
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
+  const planGateRepair = inspectCanonicalPlanGateRepair({
+    flowManager: ctx.flowManager,
+    state: typedState,
+  });
+  const lifecycleDirective = new NextActionDirectiveResolver({
+    state,
+    binding,
+    action: derived.action,
+    descriptor,
+    recoveryCommand,
+    planGateRepairRoute: planGateRepair?.route ?? null,
+    planGateRepairReason: planGateRepair?.reason ?? null,
+  }).resolve();
   const result = {
     taskId: target.taskId,
     step: target.stepId,
@@ -454,7 +448,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
-    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action, recoveryCommand)).toJSON(),
+    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective).toJSON(),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;

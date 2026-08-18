@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { CanonicalGateInputStore } from "./canonical-gate-artifacts.js";
+import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_TEXT_LENGTH = 4000;
@@ -166,6 +168,12 @@ const ROUTES = Object.freeze([
 
 const ROUTE_BY_PHASE = new Map(ROUTES.map((route) => [route.phase, route]));
 const ROUTE_BY_TARGET = new Map(ROUTES.map((route) => [route.targetStepId, route]));
+const ROUTE_BY_GATE = new Map(ROUTES.map((route) => [route.gateStepId, route]));
+const EVIDENCE_BY_PHASE = new Map([
+  ["draft", Object.freeze({ logicalKey: "draft.gate", failureCode: "GATE_REJECTED" })],
+  ["spec", Object.freeze({ logicalKey: "spec.gate", failureCode: "GATE_REJECTED" })],
+  ["test", Object.freeze({ logicalKey: "scenario.validity", failureCode: "SCENARIO_VALIDITY_REJECTED" })],
+]);
 
 export function planGateRepairRouteForPhase(phase) {
   return ROUTE_BY_PHASE.get(phase) || null;
@@ -173,6 +181,196 @@ export function planGateRepairRouteForPhase(phase) {
 
 export function planGateRepairRouteForTargetStep(stepId) {
   return ROUTE_BY_TARGET.get(stepId) || null;
+}
+
+/** Resolve repair eligibility from the active producer gate, never a target worker. */
+export function planGateRepairRouteForGateStep(stepId) {
+  return ROUTE_BY_GATE.get(stepId) || null;
+}
+
+function planGateRepairResultLogicalKey(route) {
+  if (!(route instanceof PlanGateRepairRoute)) {
+    throw new Error("plan gate repair result requires a typed route");
+  }
+  return EVIDENCE_BY_PHASE.get(route.phase)?.logicalKey ?? null;
+}
+
+export function isPlanGateRepairEligibleFailure(state, route) {
+  if (!(route instanceof PlanGateRepairRoute)) {
+    throw new Error("plan gate repair eligibility requires a typed route");
+  }
+  if (state.current === null || state.current.at(-1) !== route.gateStepId || state.attempt === null) return false;
+  const expected = EVIDENCE_BY_PHASE.get(route.phase);
+  const failure = state.attempt.failure;
+  if (
+    expected === undefined
+    || failure?.category !== "semantic"
+    || failure.code !== expected.failureCode
+  ) return false;
+  return state.failureDisposition().operation === "blocked";
+}
+
+function matchingCurrentGateResult({ state, route, gateResult, catalog, activities }) {
+  const logicalKey = planGateRepairResultLogicalKey(route);
+  const descriptor = catalog.artifacts.find((artifact) => artifact.logicalKey === logicalKey && artifact.memberId === null);
+  if (descriptor === undefined) return false;
+  const published = activities.find((activity) => activity.id === descriptor.activityId) ?? null;
+  const failed = activities.find((activity) => (
+    activity.transition.operation === "fail_attempt"
+    && activity.nodeId === route.gateStepId
+    && activity.attemptId === state.attempt.id
+    && activity.sequence === state.attempt.sequence
+    && activity.failure?.category === state.attempt.failure.category
+    && activity.failure?.code === state.attempt.failure.code
+  )) ?? null;
+  return gateResult !== null
+    && gateResult.attempt === state.attempt.sequence
+    && published !== null
+    && published.nodeId === route.gateStepId
+    && published.attemptId === state.attempt.id
+    && published.sequence === state.attempt.sequence
+    && failed !== null
+    && published.confirmationOrder <= failed.confirmationOrder;
+}
+
+function matchingGateIssueLogEntry(entry, route, payload) {
+  const observations = payload?.artifacts?.nextAction?.diagnosis?.observations ?? [];
+  return typeof entry?.issueLogId === "string"
+    && entry.issueLogId !== ""
+    && entry.step === route.gateStepId
+    && entry.phase === route.phase
+    && entry.trigger === "gate post hook (auto)"
+    && stableStringify(entry.observations ?? []) === stableStringify(observations)
+    && entry.observations?.some((observation) => observation?.severity === "blocking") === true;
+}
+
+export function scenarioValidityBlockingEntries(summary) {
+  if (!Array.isArray(summary)) throw new Error("scenario-validity summary must be an array");
+  return Object.freeze(summary
+    .map((entry, index) => ({ entry, index }))
+    .map((value) => Object.freeze(value))
+    .filter(({ entry }) => entry.classification !== "expected_fail"));
+}
+
+export function scenarioValidityRepairObservations(blocking) {
+  if (!Array.isArray(blocking)) throw new Error("scenario-validity blocking entries must be an array");
+  return blocking
+    .slice(0, MAX_OBSERVATIONS)
+    .map(({ entry, index }) => ({
+      kind: "violation",
+      failureMode: entry.classification,
+      requirementRef: entry.id,
+      where: {
+        file: entry.evidence.test_file,
+        locator: entry.evidence.test_name,
+      },
+      observed: `Scenario validity classified ${entry.id} as ${entry.classification} before implementation.`,
+      severity: "blocking",
+      refs: [`scenario.validity#summary.${index}`],
+    }));
+}
+
+function matchingScenarioIssueLogEntry(entry, route, payload) {
+  let observations;
+  try {
+    observations = scenarioValidityRepairObservations(scenarioValidityBlockingEntries(payload.summary));
+  } catch {
+    return false;
+  }
+  if (observations.length === 0) return false;
+  return typeof entry?.issueLogId === "string"
+    && entry.issueLogId !== ""
+    && entry.step === route.gateStepId
+    && entry.phase === route.phase
+    && entry.trigger === "scenario-validity found a test-design blocker before implementation"
+    && entry.sourceArtifact === "scenario.validity"
+    && stableStringify(entry.observations) === stableStringify(observations);
+}
+
+/**
+ * Resolve the single durable source entry for a currently failed plan gate.
+ *
+ * Eligibility is deliberately derived from existing Version-1 provenance:
+ * the active failed Attempt, its result-history sequence, the result
+ * artifact's catalog Activity, and the latest matching issue-log entry derived from
+ * that result.  Neither the directive planner nor the repair command may
+ * turn an older issue-log observation into recovery authority for a fresh
+ * Attempt at the same gate.
+ */
+function latestPlanGateRepairIssueLogEntry({ state, issueLog, gateResult, catalog, activities } = {}) {
+  if (state.current === null) return null;
+  const activeStepId = state.current.at(-1);
+  const route = planGateRepairRouteForGateStep(activeStepId);
+  if (route === null) return null;
+  if (!isPlanGateRepairEligibleFailure(state, route)) return null;
+  if (!matchingCurrentGateResult({ state, route, gateResult, catalog, activities })) return null;
+  return [...issueLog.entries].reverse().find((entry) => (
+    route.phase === "test"
+      ? matchingScenarioIssueLogEntry(entry, route, gateResult.payload)
+      : matchingGateIssueLogEntry(entry, route, gateResult.payload)
+  )) ?? null;
+}
+
+/**
+ * The one inspection boundary shared by next-action and the mutation command.
+ * It resolves all read-side facts from the producer's current failed Attempt;
+ * callers receive no repair authority when any part of that provenance is
+ * stale, malformed, or belongs to a replacement Attempt.
+ */
+class CanonicalPlanGateRepairEvidence {
+  constructor({ route, issueLog, source } = {}) {
+    if (!(route instanceof PlanGateRepairRoute)) {
+      throw new Error("canonical plan gate repair evidence requires a typed route");
+    }
+    issueLogDocument(issueLog);
+    if (typeof source?.issueLogId !== "string" || source.issueLogId === "") {
+      throw new Error("canonical plan gate repair evidence requires an identified issue-log entry");
+    }
+    this.route = route;
+    this.issueLog = issueLog;
+    this.source = source;
+    Object.freeze(this);
+  }
+
+  get reason() {
+    return this.source.reason
+      || `The ${this.route.phase} gate recorded blocking observations that require a governed artifact revision.`;
+  }
+
+  createRecord(state) {
+    return PlanGateRepairRecord.create({
+      state,
+      phase: this.route.phase,
+      issueLogEntry: this.source,
+    });
+  }
+}
+
+export function inspectCanonicalPlanGateRepair({ flowManager, state } = {}) {
+  if (state.current === null) return null;
+  const route = planGateRepairRouteForGateStep(state.current.at(-1));
+  if (route === null || !isPlanGateRepairEligibleFailure(state, route)) return null;
+  const inputs = new CanonicalGateInputStore({
+    flowManager,
+    state,
+    nodeId: route.gateStepId,
+  });
+  const issueLog = inputs.issueLog();
+  const catalog = flowManager.artifactCatalog(state.specId);
+  const activities = flowManager.activityLedger(state.specId);
+  const source = latestPlanGateRepairIssueLogEntry({
+    state,
+    issueLog,
+    gateResult: inputs.activeAttemptResult(planGateRepairResultLogicalKey(route), { optional: true }),
+    catalog,
+    activities,
+  });
+  if (source === null) return null;
+  if (route.phase === "test") {
+    const revision = CanonicalTestSourceRevision.fromCatalog({ state, catalog, activities });
+    if (source.testRevisionDigest !== revision.digest) return null;
+  }
+  return new CanonicalPlanGateRepairEvidence({ route, issueLog, source });
 }
 
 export class PlanGateRepairRecord {

@@ -455,6 +455,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  settleCurrentFailure(input = {}) {
+    return this._store.settleCurrentFailure({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   failCurrentAttemptIfCurrent(input = {}) {
     return this._store.failCurrentAttemptIfCurrent({
       ...input,

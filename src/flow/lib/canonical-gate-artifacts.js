@@ -144,6 +144,24 @@ export class CanonicalGateInputStore {
     const history = CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey, bytes: resolved.bytes });
     return Object.freeze({ attempt: history.current.attempt, payload: history.current.payload });
   }
+
+  /**
+   * Read the active gate producer's own result history. This is intentionally
+   * distinct from a consumer read: recovery verifies the failed producer
+   * Attempt without expanding the result artifact's downstream allowlist.
+   */
+  activeAttemptResult(logicalKey, { parameters = {}, optional = false } = {}) {
+    const resolved = this.flowManager.readProducerArtifact({
+      specId: this.state.specId,
+      nodeId: this.nodeId,
+      logicalKey,
+      parameters,
+      optional,
+    });
+    if (resolved === null) return null;
+    const history = CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey, bytes: resolved.bytes });
+    return Object.freeze({ attempt: history.current.attempt, payload: history.current.payload });
+  }
 }
 
 /**
