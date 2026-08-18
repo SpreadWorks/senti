@@ -2,10 +2,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
-import {
-  FLOW_ARTIFACT_AUTHORITY_MATRIX,
-  WORKER_ARTIFACT_HANDOFF_STEPS,
-} from "../flow/lib/flow-artifact-authority.js";
+import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../flow/lib/flow-artifact-authority.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const ROOT_ARTIFACT_KEYS = new Set([
@@ -1387,7 +1384,7 @@ const FLOW_ARTIFACT_PLACEMENTS = new Map([
   ...["upgrade.result", "completion.overrides", "retry.recovery", "flow.findings", "nonblocking.handoffs"].map((key) => [key, new FlowArtifactPlacement("step-shared")]),
   ...[
     "scenario.validity.raw-log", "test.execute.raw-log", "final.regression.raw-log",
-    "retry.recovery.transaction", "impl.repair.transaction", "test.requirement.summary", "worker.handoff", "review.work.unit",
+    "retry.recovery.transaction", "impl.repair.transaction", "test.requirement.summary", "review.work.unit",
     "finalize.cleanup.runtime-log", "finalize.cleanup.journal", "runtime.step-metadata",
     "runtime.lock.issue-log", "runtime.lock.current-flow-state", "runtime.lock.artifact-catalog",
     "runtime.lock.retry-recovery", "runtime.lock.flow-state-writer", "runtime.lock.flow-state-writer-owner", "runtime.lock.impl-repair",
@@ -1510,7 +1507,6 @@ const FLOW_FINDING_SOURCE_ACTORS = Object.freeze([
 const NONBLOCKING_HANDOFF_SOURCE_ACTORS = Object.freeze([
   "scenario-validity", "test-result-review", "retro",
 ]);
-const WORKER_HANDOFF_STEP_ACTORS = WORKER_ARTIFACT_HANDOFF_STEPS;
 export const FLOW_ARTIFACT_NO_ARTIFACT_STEPS = Object.freeze([
   new FlowArtifactNoArtifactClassification("branch", "selects execution checkout"),
   new FlowArtifactNoArtifactClassification("finalize-commit", "delegates repository commit"),
@@ -1641,11 +1637,6 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   contract("retry.recovery.transaction", ".runtime/retry-recovery/transaction.json", "retry-recovery-transaction", "canonical-flow-artifacts", "system", own("system", ["system"], ["system"]), "transient", "singleton", false),
   contract("impl.repair.transaction", ".runtime/impl/repair/transaction.json", "impl-repair-transaction", "execution-checkout", "impl-repair", own("impl-repair", ["impl-repair"], ["impl-repair"]), "transient", "singleton", false),
   contract("test.requirement.summary", ".runtime/test-execute/requirement-summary.json", "test-requirement-summary", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-execute"]), "transient", "singleton", false),
-  contract("worker.handoff", ".runtime/worker-handoffs/:{handoffPath}", "worker-handoff", "dispatcher-handoff", "system", own(
-    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
-    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
-    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
-  ), "transient", "collection", false),
   // Provider output is an untrusted, disposable work unit for every review
   // leaf. The immutable evidence and attempts[] result are promoted later by
   // the owning review Activity; this runtime surface is never authority.
@@ -1754,7 +1745,6 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("retry.recovery.transaction", [".retry-recovery.transaction.json"], ".runtime/retry-recovery/transaction.json", "system", "system"),
   target("impl.repair.transaction", ["impl-repair-transaction.json"], ".runtime/impl/repair/transaction.json", "impl-repair", "impl-repair"),
   target("test.requirement.summary", ["tests/.raw/requirement-summary.json"], ".runtime/test-execute/requirement-summary.json", "test-execute", "test-execute"),
-  patternTarget("worker.handoff", [".sennel/handoffs/:{handoffPath}"], ".runtime/worker-handoffs/:{handoffPath}", "system", "draft"),
   patternTarget("review.work.unit", ["review-history/work-units/:{workUnitPath}"], ".runtime/review-work-units/:{workUnitPath}", "impl-review", "impl-review"),
   newTarget("runtime.step-metadata", ".runtime/step-metadata/:{stepId}.json", "system", "system"),
   target("finalize.cleanup.agent-metrics", ["agent-metrics.json"], "steps/finalize-cleanup/agent-metrics.json", "finalize-cleanup", "finalize-cleanup"),
@@ -1803,7 +1793,7 @@ export const FLOW_ARTIFACT_NORMAL_FLOW_FILES = Object.freeze([
   known("repair.fingerprint", "switch", "repair-fingerprint.json"), knownPattern("repair.delta", "switch", "repair-deltas/:{deltaId}.json"), known("repair.migration", "switch", "repair-state-migration.json"), known("impl.repair.transaction", "switch", "impl-repair-transaction.json"), knownNew("task.review", "steps/impl/:{taskId}/review/result.json"),
   known("task.gate.source", "switch", "task-impl-gate-source.json"), known("task.gate", "switch", "task-impl-gate-result.json"), knownPattern("review.evidence", "switch", "review-evidence/:{digest}.json"), knownPattern("tests.source", "switch", new FlowArtifactLegacyPattern("tests/:{testPath}", { excludedPrefixes: ["tests/.raw/"] })),
   knownNew("activity.evidence", "steps/:{ownerPath}/activity-evidence/:{digest}.json"),
-  known("flow.findings", "switch", "flow-findings.json"), known("nonblocking.handoffs", "switch", "nonblocking-handoffs.json"), known("scenario.validity.raw-log", "switch", "tests/.raw/scenario-validity.log"), known("test.execute.raw-log", "switch", "tests/.raw/test-execution.log"), knownPattern("final.regression.raw-log", "switch", "tests/.raw/final-regression-attempt-:{attempt}.log"), known("retry.recovery.transaction", "switch", ".retry-recovery.transaction.json"), known("test.requirement.summary", "switch", "tests/.raw/requirement-summary.json"), knownPattern("worker.handoff", "switch", ".sennel/handoffs/:{handoffPath}"), knownPattern("review.work.unit", "switch", "review-history/work-units/:{workUnitPath}"), knownNew("runtime.step-metadata", ".runtime/step-metadata/:{stepId}.json"),
+  known("flow.findings", "switch", "flow-findings.json"), known("nonblocking.handoffs", "switch", "nonblocking-handoffs.json"), known("scenario.validity.raw-log", "switch", "tests/.raw/scenario-validity.log"), known("test.execute.raw-log", "switch", "tests/.raw/test-execution.log"), knownPattern("final.regression.raw-log", "switch", "tests/.raw/final-regression-attempt-:{attempt}.log"), known("retry.recovery.transaction", "switch", ".retry-recovery.transaction.json"), known("test.requirement.summary", "switch", "tests/.raw/requirement-summary.json"), knownPattern("review.work.unit", "switch", "review-history/work-units/:{workUnitPath}"), knownNew("runtime.step-metadata", ".runtime/step-metadata/:{stepId}.json"),
   known("finalize.cleanup.agent-metrics", "switch", "agent-metrics.json"), known("finalize.cleanup.notes", "switch", "notes.json"), known("finalize.cleanup.plugin-artifacts", "switch", "plugin-artifacts.json"), known("finalize.cleanup.runtime-log", "switch", "runtime-log.json"), known("finalize.cleanup.journal", "switch", "finalize-cleanup.json"),
   known("runtime.lock.issue-log", "switch", ".issue-log.lock"), known("runtime.lock.current-flow-state", "switch", ".current-flow-state.lock"), known("runtime.lock.artifact-catalog", "switch", ".artifact-catalog.lock"), known("runtime.lock.retry-recovery", "switch", ".retry-recovery.lock"), known("runtime.lock.flow-state-writer", "switch", ".flow.json.writer.lock"), knownPattern("runtime.lock.flow-state-writer-owner", "switch", ".flow.json.writer.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.impl-repair", "switch", ".impl-repair.lock/:{lockPath}"),
   knownPattern("runtime.lock.issue-log-owner", "switch", "..issue-log.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.current-flow-state-owner", "switch", "..current-flow-state.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.artifact-catalog-owner", "switch", "..artifact-catalog.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.retry-recovery-owner", "switch", "..retry-recovery.lock.:{ownerToken}.owner.tmp"),

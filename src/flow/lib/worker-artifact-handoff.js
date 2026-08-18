@@ -11,7 +11,7 @@ import {
   captureRegularFile,
   sameFileIdentity,
 } from "../../lib/regular-file-snapshot.js";
-import { FlowVersion, FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
+import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
 import { findActiveNode, getFlowNode } from "../definition.js";
 import { findStepById } from "./step-tree.js";
@@ -38,6 +38,7 @@ import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
+export const WORKER_ARTIFACT_HANDOFF_ROOT = PRODUCT.managedPath("handoffs");
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
@@ -650,11 +651,15 @@ function canonicalPayloadBaseline({ flowManager, state, rule }) {
     .catalogSnapshot({ flowManager, specId: state.specId });
 }
 
-function canonicalHandoffRoot(canonicalLocation) {
-  if (!canonicalLocation || typeof canonicalLocation.directory !== "string" || !path.isAbsolute(canonicalLocation.directory)) {
-    throw new Error("canonical worker handoff requires a Version Store location");
+function executionHandoffRoot(executionRoot, specId) {
+  if (typeof executionRoot !== "string" || !path.isAbsolute(executionRoot)) {
+    throw new Error("worker handoff requires an absolute execution root");
   }
-  return path.resolve(canonicalLocation.directory, ".runtime", "worker-handoffs");
+  return path.resolve(
+    executionRoot,
+    WORKER_ARTIFACT_HANDOFF_ROOT,
+    digest(requiredString(specId, "handoff specId")).slice(0, 24),
+  );
 }
 
 function handoffActionDirectory(handoffRoot, runId, dispatchInvocationId, actionDigest) {
@@ -682,11 +687,9 @@ function isWorkerRuntimePath(relativePath, runtimeLocks = []) {
 }
 
 /**
- * Resolve the one worker-owned runtime subtree relative to a repository
- * authority root.  Version-1 handoffs live below the Flow Version's
- * `.runtime/`, so treating every `.runtime` directory as disposable would
- * let one worker hide a mutation to another Flow.  Only this exact guarded
- * handoff directory is excluded from the repository snapshot.
+ * Resolve the one worker-owned transient subtree relative to a repository
+ * authority root. Only this exact guarded handoff directory is excluded from
+ * the repository snapshot.
  */
 function authorityIgnoredDirectories(directories = []) {
   if (!Array.isArray(directories)) throw new Error("worker authority ignored directories must be an array");
@@ -1221,7 +1224,7 @@ export class WorkerArtifactHandoffRequest {
     this.contextSnapshot = contextSnapshot;
     this.payloads = Object.freeze(payloads);
     this.generatedAt = requiredString(generatedAt, "handoff generatedAt");
-    this.handoffRoot = canonicalHandoffRoot(canonicalLocation);
+    this.handoffRoot = executionHandoffRoot(this.executionRoot, this.specId);
     if (typeof canonicalLocation?.runtimeLock !== "function") {
       throw new Error("canonical worker handoff requires Version runtime lock locations");
     }
@@ -1417,13 +1420,9 @@ export class WorkerArtifactHandoffRequest {
   }
 
   prepare() {
-    // The handoff is an uncommitted work unit, not a Flow artifact.  Version
-    // 1 therefore keeps it under the Flow's `.runtime/` authority.  The
-    // stable request payload itself remains unchanged for the worker.
-    ensureRealDirectory(
-      this.handoffRoot,
-      path.dirname(this.handoffRoot),
-    );
+    // The handoff is an uncommitted work unit, not a Flow artifact. Keep it
+    // inside the execution checkout that the worker is allowed to mutate.
+    ensureRealDirectory(this.handoffRoot, this.executionRoot);
     ensureRealDirectory(this.directory, this.handoffRoot);
     ensureRealDirectory(this.payloadDirectory, this.handoffRoot);
     for (const payload of this.payloads) {
@@ -1787,16 +1786,14 @@ function requestFromStored(filePath) {
   const invocationDirectory = path.dirname(actionDirectory);
   const runDirectory = path.dirname(invocationDirectory);
   const handoffRoot = path.dirname(runDirectory);
-  const canonicalRuntimeDirectory = path.dirname(handoffRoot);
-  const canonicalVersionDirectory = path.dirname(canonicalRuntimeDirectory);
-  const canonicalSpecDirectory = path.dirname(canonicalVersionDirectory);
-  const canonical = path.basename(handoffRoot) === "worker-handoffs"
-    && path.basename(canonicalRuntimeDirectory) === ".runtime"
-    && path.basename(canonicalVersionDirectory) === new FlowVersion(1).pathSegment;
-  if (path.basename(resolvedRequestPath) !== "request.json" || !canonical) {
+  const sharedHandoffRoot = path.dirname(handoffRoot);
+  const managedDirectory = path.dirname(sharedHandoffRoot);
+  const executionRoot = path.dirname(managedDirectory);
+  const executionAuthority = path.basename(sharedHandoffRoot) === "handoffs"
+    && path.basename(managedDirectory) === PRODUCT.managedDirName;
+  if (path.basename(resolvedRequestPath) !== "request.json" || !executionAuthority) {
     throw new Error("handoff request path is outside its dedicated runtime authority");
   }
-  const executionRoot = canonicalVersionDirectory;
   const { document } = boundedJson(resolvedRequestPath, "worker artifact handoff request");
   const policy = workerArtifactHandoffPolicy(document.stepId);
   if (!policy) throw new Error(`unsupported worker artifact handoff step: ${document.stepId}`);
@@ -1804,8 +1801,8 @@ function requestFromStored(filePath) {
   const invocationId = requiredString(document.dispatchInvocationId, "handoff request dispatchInvocationId");
   const actionDigest = requiredDigest(document.actionDigest, "handoff request actionDigest");
   const specId = requiredString(document.specId, "handoff request specId");
-  if (path.basename(canonicalSpecDirectory) !== specId) {
-    throw new Error("canonical handoff request path does not match its Spec identity");
+  if (path.basename(handoffRoot) !== digest(specId).slice(0, 24)) {
+    throw new Error("handoff request path does not match its Spec identity");
   }
   if (
     path.basename(runDirectory) !== digest(runId).slice(0, 24)
@@ -1898,7 +1895,7 @@ function requestFromStored(filePath) {
   return Object.freeze(request);
 }
 
-function restoreCanonicalHandoffRequest({ mainRoot, executionRoot, state, stored, canonicalLocation, flowManager }) {
+function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored, canonicalLocation, flowManager }) {
   if (state?.schemaRevision !== 3) {
     throw new Error("canonical handoff restore requires a Version-1 Flow state");
   }
@@ -2404,6 +2401,30 @@ function readSubmission(request) {
   }
 }
 
+function pruneEmptyHandoffAncestors(handoffRoot, startDirectory) {
+  const sharedHandoffRoot = path.dirname(path.resolve(handoffRoot));
+  let current = path.resolve(startDirectory);
+  while (current !== sharedHandoffRoot) {
+    if (!isWithin(sharedHandoffRoot, current)) {
+      throw new Error(`handoff cleanup ancestor escapes its authority: ${current}`);
+    }
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (cause) {
+      if (cause.code !== "ENOENT") throw cause;
+      current = path.dirname(current);
+      continue;
+    }
+    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(current) !== current) {
+      throw new Error(`handoff cleanup ancestor is not a real directory: ${current}`);
+    }
+    if (fs.readdirSync(current).length > 0) break;
+    fs.rmdirSync(current);
+    current = path.dirname(current);
+  }
+}
+
 function cleanupCompletedHandoff(handoffRoot, receiptValue, faultInjector = () => {}) {
   const receipt = receiptValue instanceof WorkerArtifactHandoffReceipt
     ? receiptValue
@@ -2439,9 +2460,13 @@ function cleanupCompletedHandoff(handoffRoot, receiptValue, faultInjector = () =
     let cleaned = false;
     if (realDirectory(consumedDirectory)) {
       fs.rmSync(consumedDirectory, { recursive: true });
+      pruneEmptyHandoffAncestors(handoffRoot, path.dirname(consumedDirectory));
       cleaned = true;
     }
-    if (!realDirectory(directory)) return cleaned;
+    if (!realDirectory(directory)) {
+      pruneEmptyHandoffAncestors(handoffRoot, path.dirname(directory));
+      return cleaned;
+    }
     let stored = null;
     try {
       stored = requestFromStored(path.join(directory, "request.json"));
@@ -2462,6 +2487,7 @@ function cleanupCompletedHandoff(handoffRoot, receiptValue, faultInjector = () =
     fs.renameSync(directory, consumedDirectory);
     faultInjector({ phase: "after-worker-handoff-cleanup-rename", stepId: receipt.stepId });
     fs.rmSync(consumedDirectory, { recursive: true });
+    pruneEmptyHandoffAncestors(handoffRoot, path.dirname(consumedDirectory));
     faultInjector({ phase: "after-worker-handoff-cleanup", stepId: receipt.stepId });
     return true;
   } catch (cause) {
@@ -2599,7 +2625,7 @@ function canonicalHandoffIsCommitted(state, request, submission) {
   return receipt?.id === submission.handoffDigest;
 }
 
-function canonicalHandoffRuntimeEntries(handoffRoot) {
+function executionHandoffRuntimeEntries(handoffRoot) {
   if (!fs.existsSync(handoffRoot)) {
     return Object.freeze({
       requestPaths: Object.freeze([]),
@@ -2613,7 +2639,7 @@ function canonicalHandoffRuntimeEntries(handoffRoot) {
     throw new WorkerArtifactHandoffError(
       "recovery-required",
       "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-      "canonical worker handoff runtime authority is invalid",
+      "execution worker handoff runtime authority is invalid",
       { data: { handoffRoot: root } },
     );
   }
@@ -2626,7 +2652,7 @@ function canonicalHandoffRuntimeEntries(handoffRoot) {
       throw new WorkerArtifactHandoffError(
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-        "canonical worker handoff runtime contains an invalid directory",
+        "execution worker handoff runtime contains an invalid directory",
         { data: { handoffDirectory: directory } },
       );
     }
@@ -2652,7 +2678,7 @@ function canonicalHandoffRuntimeEntries(handoffRoot) {
       descend(candidate, remaining - 1);
     }
   };
-  // worker-handoffs/<run>/<invocation>/<action>/request.json
+  // <spec>/<run>/<invocation>/<action>/request.json
   descend(root, 3);
   return Object.freeze({
     requestPaths: Object.freeze(requestPaths.sort()),
@@ -2661,7 +2687,10 @@ function canonicalHandoffRuntimeEntries(handoffRoot) {
   });
 }
 
-function cleanupTransientCanonicalHandoffDirectory(directory) {
+function cleanupTransientExecutionHandoffDirectory(handoffRoot, directory) {
+  if (!isWithin(handoffRoot, directory)) {
+    throw new Error(`execution worker handoff cleanup target escapes its Spec authority: ${directory}`);
+  }
   let stat;
   try {
     stat = fs.lstatSync(directory);
@@ -2670,9 +2699,10 @@ function cleanupTransientCanonicalHandoffDirectory(directory) {
     throw cause;
   }
   if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== directory) {
-    throw new Error(`canonical worker handoff cleanup target is not a real directory: ${directory}`);
+    throw new Error(`execution worker handoff cleanup target is not a real directory: ${directory}`);
   }
   fs.rmSync(directory, { recursive: true });
+  pruneEmptyHandoffAncestors(handoffRoot, path.dirname(directory));
   return true;
 }
 
@@ -2712,9 +2742,9 @@ export class WorkerArtifactHandoffCoordinator {
     const mainRoot = ctx.mainRoot || ctx.root;
     const executionRoot = ctx.executionRoot || ctx.root;
     const canonicalLocation = ctx.flowManager.specLocation(state.specId);
-    const handoffRoot = canonicalHandoffRoot(canonicalLocation);
+    const handoffRoot = executionHandoffRoot(executionRoot, state.specId);
     let cleaned = 0;
-    const runtimeEntries = canonicalHandoffRuntimeEntries(handoffRoot);
+    const runtimeEntries = executionHandoffRuntimeEntries(handoffRoot);
     for (const requestPath of runtimeEntries.requestPaths) {
       let stored;
       try {
@@ -2723,7 +2753,7 @@ export class WorkerArtifactHandoffCoordinator {
         throw new WorkerArtifactHandoffError(
           "recovery-required",
           "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-          `canonical worker handoff request cannot be restored: ${cause.message}`,
+          `execution worker handoff request cannot be restored: ${cause.message}`,
           { cause, data: { requestPath } },
         );
       }
@@ -2731,7 +2761,7 @@ export class WorkerArtifactHandoffCoordinator {
         throw new WorkerArtifactHandoffError(
           "recovery-required",
           "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-          "canonical worker handoff runtime belongs to a different Flow identity",
+          "execution worker handoff runtime belongs to a different Flow identity",
           { data: { requestPath, specId: stored.specId, runId: stored.runId } },
         );
       }
@@ -2742,11 +2772,12 @@ export class WorkerArtifactHandoffCoordinator {
         if (cause instanceof WorkerArtifactHandoffError && cause.classification === "missing") {
           // No sealed payload exists.  The next dispatcher attempt owns a
           // fresh request; this incomplete work unit is not persisted truth.
+          if (cleanupTransientExecutionHandoffDirectory(handoffRoot, stored.directory)) cleaned += 1;
           continue;
         }
         throw cause;
       }
-      const request = restoreCanonicalHandoffRequest({
+      const request = restoreExecutionHandoffRequest({
         mainRoot,
         executionRoot,
         state,
@@ -2774,12 +2805,12 @@ export class WorkerArtifactHandoffCoordinator {
       ...runtimeEntries.orphanedDirectories,
     ]) {
       try {
-        if (cleanupTransientCanonicalHandoffDirectory(transientDirectory)) cleaned += 1;
+        if (cleanupTransientExecutionHandoffDirectory(handoffRoot, transientDirectory)) cleaned += 1;
       } catch (cause) {
         throw new WorkerArtifactHandoffError(
           "recovery-required",
           "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-          `canonical worker handoff cleanup requires recovery: ${cause.message}`,
+          `execution worker handoff cleanup requires recovery: ${cause.message}`,
           { cause, data: { handoffDirectory: transientDirectory } },
         );
       }

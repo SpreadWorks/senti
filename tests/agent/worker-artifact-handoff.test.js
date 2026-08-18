@@ -77,7 +77,7 @@ function realCodexAgent({ mainRoot, executionRoot, flowManager }) {
         retryCount: 0,
       },
     },
-    paths: { root: mainRoot, agentWorkDir: path.join(executionRoot, ".tmp") },
+    paths: { root: executionRoot, agentWorkDir: path.join(executionRoot, ".tmp") },
     registry: new ProviderRegistry(),
     logger: new Logger({ logDir: path.join(executionRoot, ".tmp", "logs"), enabled: false }),
     flowManager,

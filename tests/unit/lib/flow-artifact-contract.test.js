@@ -81,7 +81,7 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("repair.delta"), "steps/impl/repair/deltas/:{deltaId}.json");
     assert.equal(paths.get("retry.recovery.transaction"), ".runtime/retry-recovery/transaction.json");
     assert.equal(paths.get("test.requirement.summary"), ".runtime/test-execute/requirement-summary.json");
-    assert.equal(paths.get("worker.handoff"), ".runtime/worker-handoffs/:{handoffPath}");
+    assert.equal(paths.has("worker.handoff"), false);
     assert.equal(paths.get("flow.findings"), "steps/flow-findings.json");
     assert.equal(paths.get("nonblocking.handoffs"), "steps/nonblocking-handoffs.json");
     assert.equal(paths.get("scenario.validity.raw-log"), "steps/scenario-validity/output.log");
@@ -172,11 +172,8 @@ describe("Flow artifact contract registry", () => {
     assert.deepEqual(handoffs.ownership.consumers, ["scenario-validity", "test-result-review", "retro", "acceptance-review"]);
   });
 
-  it("covers every dispatcher-owned worker handoff route", () => {
-    const handoff = FLOW_ARTIFACT_CONTRACTS.require("worker.handoff");
-    for (const role of ["producers", "updaters", "consumers"]) {
-      assert.deepEqual(handoff.ownership[role], ["system", ...WORKER_ARTIFACT_HANDOFF_STEPS], role);
-    }
+  it("keeps dispatcher-owned worker handoffs outside the durable artifact inventory", () => {
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.inventory().some((entry) => entry.logicalKey.toString() === "worker.handoff"), false);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("draft").ownership.consumers, [
       "draft-questions-review", "draft-questions-triage", "draft-questions-repair", "draft-refine",
       "draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair", "draft-gate", "spec",
@@ -267,7 +264,6 @@ describe("Flow artifact contract registry", () => {
       ["tests/scenarios/flow.test.js", "tests.source"],
       ["tests/.raw/test-execution.log", "test.execute.raw-log"],
       ["tests/.raw/final-regression-attempt-001.log", "final.regression.raw-log"],
-      [".sennel/handoffs/run/invocation/request.json", "worker.handoff"],
       ["review-history/work-units/impl-review/unit.json", "review.work.unit"],
       ["review-history/impl-review-attempt-001.json", "legacy.review.history"],
       ["plugin-artifacts/example-plugin/output.json", "plugin.lifecycle.artifact"],
@@ -380,7 +376,7 @@ describe("Flow artifact contract registry", () => {
     assert.equal(fileMap.authoritySlot.authority.toString(), "execution-checkout");
     assert.deepEqual(fileMap.ownership.producers, ["implement", "task-impl"]);
     assert.equal(fileMap.ownership.consumers.includes("report"), true);
-    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("worker.handoff").authoritySlot.authority.toString(), "dispatcher-handoff");
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.inventory().some((entry) => entry.logicalKey.toString() === "worker.handoff"), false);
     assert.throws(() => new FlowArtifactContract({
       logicalKey: "flow.state", canonicalPath: "flow.json", placement: "step-owner", retention: "permanent",
       ownership: new FlowArtifactOwnership({ producers: ["system"], updaters: ["system"], consumers: ["system"] }),

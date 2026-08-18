@@ -981,6 +981,7 @@ describe("migrate specs --to 1", () => {
     const classifier = new LegacyRuntimeResidueClassifier();
     const table = [
       ["tests/.raw/test-execution.log", "LEGACY_RAW_LOG_RESIDUE"],
+      [".sennel/handoffs/run/request.json", "LEGACY_WORKER_HANDOFF_RESIDUE"],
       [".runtime/retry-recovery/transaction.json", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
       ["tmp/session.tmp", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
       ["cache/compiled.cache", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
@@ -1007,6 +1008,7 @@ describe("migrate specs --to 1", () => {
     const base = `specs/${id}`;
     const residues = [
       [".retry-recovery.transaction.json", "retry transaction\n", 0o640, "LEGACY_TRANSACTION_JOURNAL_RESIDUE"],
+      [".sennel/handoffs/run/request.json", "handoff request\n", 0o600, "LEGACY_WORKER_HANDOFF_RESIDUE"],
       [".issue-log.lock", "legacy lock\n", 0o600, "LEGACY_LOCK_RESIDUE"],
       [".flow.json.writer.worker.owner.tmp", "owner marker\n", 0o644, "LEGACY_TEMPORARY_FILE_RESIDUE"],
       ["review-history/work-units/impl.json", "work unit\n", 0o640, "LEGACY_WORK_UNIT_RESIDUE"],

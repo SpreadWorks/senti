@@ -2536,7 +2536,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(fs.readFileSync(path.join(location.directory, artifact.relativePath), "utf8"), '{"goal":"durable without completion"}\n');
   });
 
-  it("confirms a sealed normal worker handoff through the same V1 Store and catalog", async () => {
+  it("confirms a sealed normal worker handoff from the execution handoff directory", async () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request());
@@ -2583,7 +2583,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
       usage: { input_tokens: 3, output_tokens: 4, cache_read_tokens: 0, cache_creation_tokens: 0 },
     });
     const location = manager.specLocation(created.specId);
-    assert.equal(handoff.requestPath.startsWith(path.join(location.directory, ".runtime", "worker-handoffs")), true);
+    assert.equal(handoff.requestPath.startsWith(path.join(repository, ".sennel", "handoffs")), true);
+    assert.equal(fs.existsSync(path.join(location.directory, ".runtime", "worker-handoffs")), false);
     fs.writeFileSync(handoff.payloadPath("draft.json"), '{"goal":"sealed canonical handoff"}\n');
     sealWorkerArtifactHandoff({ requestPath: handoff.requestPath, invocationId: "canonical-handoff" });
 

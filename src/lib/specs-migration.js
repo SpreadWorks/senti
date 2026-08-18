@@ -13,6 +13,7 @@ import path from "node:path";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { fsyncDirectory } from "./atomic-file.js";
 import { ArtifactAuthoritySlot } from "./artifact-authority.js";
+import { PRODUCT } from "./product.js";
 import {
   FlowArtifactCatalog,
   FlowArtifactCatalogStore,
@@ -722,6 +723,10 @@ export class LegacyRuntimeResidueClassifier {
     if (normalized.startsWith("tests/.raw/")) {
       return new LegacyRuntimeResidueClassification("LEGACY_RAW_LOG_RESIDUE");
     }
+    const legacyWorkerHandoffRoot = PRODUCT.managedPath("handoffs");
+    if (normalized === legacyWorkerHandoffRoot || normalized.startsWith(`${legacyWorkerHandoffRoot}/`)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_WORKER_HANDOFF_RESIDUE");
+    }
     if (segments.some((segment) => [".runtime", ".tmp", "tmp", ".cache", "cache"].includes(segment)) || basename.endsWith(".cache")) {
       return new LegacyRuntimeResidueClassification("LEGACY_RUNTIME_WORKSPACE_RESIDUE");
     }
@@ -830,9 +835,6 @@ function resolvedSwitchArtifact(target, sourcePath, source, bytes) {
   if (target.logicalKey === "final.regression.raw-log") {
     const attempt = sourcePath.match(/attempt-(\d{3})\.log$/)?.[1];
     return FLOW_ARTIFACT_CONTRACTS.resolve(target.logicalKey, { attempt });
-  }
-  if (target.logicalKey === "worker.handoff") {
-    return FLOW_ARTIFACT_CONTRACTS.resolve(target.logicalKey, { handoffPath: sourcePath.slice(".sennel/handoffs/".length) });
   }
   if (target.logicalKey === "review.work.unit") {
     return FLOW_ARTIFACT_CONTRACTS.resolve(target.logicalKey, { workUnitPath: sourcePath.slice("review-history/work-units/".length) });

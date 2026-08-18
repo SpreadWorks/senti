@@ -96,6 +96,15 @@ function canonicalSpecDir(value) {
   return value.flowManager.specLocation(value.specId).directory;
 }
 
+function identityDigest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function executionHandoffRoot(value) {
+  const specDigest = identityDigest(value.specId).slice(0, 24);
+  return path.join(value.executionRoot, ".sennel", "handoffs", specDigest);
+}
+
 function publishDraftBeforeTarget(value, draft) {
   value.flow.activate("draft");
   value.flowManager.publishArtifacts({
@@ -362,6 +371,11 @@ describe("worker artifact handoff", () => {
         state: value.flowManager.load(),
         invocation: value.invocation,
       });
+      assert.equal(request.directory.startsWith(executionHandoffRoot(value)), true);
+      assert.equal(
+        fs.existsSync(path.join(canonicalSpecDir(value), ".runtime", "worker-handoffs")),
+        false,
+      );
       fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "sealed draft" }));
       seal(request);
 
@@ -407,7 +421,7 @@ describe("worker artifact handoff", () => {
       assert.ok(request);
       assert.equal(request.executionRoot, value.mainRoot);
       assert.equal(
-        request.directory.startsWith(path.join(canonicalSpecDir(value), ".runtime", "worker-handoffs")),
+        request.directory.startsWith(executionHandoffRoot(value)),
         true,
       );
       fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "local handoff" }));
@@ -1596,7 +1610,7 @@ describe("worker artifact handoff", () => {
     try {
       const state = value.flowManager.load();
       fs.mkdirSync(outside);
-      const handoffRoot = path.join(canonicalSpecDir(value), ".runtime", "worker-handoffs");
+      const handoffRoot = path.join(value.executionRoot, ".sennel", "handoffs");
       fs.mkdirSync(path.dirname(handoffRoot), { recursive: true });
       fs.symlinkSync(outside, handoffRoot);
       assert.throws(
@@ -1645,6 +1659,108 @@ describe("worker artifact handoff", () => {
           && error.code === "FLOW_ARTIFACT_HANDOFF_STALE",
       );
       assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), { goal: "concurrent" });
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("discards an unsealed work unit from the current Run during recovery", () => {
+    const value = fixture();
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+
+      const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
+
+      assert.equal(recovered.completed, true);
+      assert.equal(recovered.cleanedHandoffs, 1);
+      assert.equal(fs.existsSync(request.directory), false);
+      assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
+      assert.equal(fs.existsSync(path.join(value.executionRoot, ".sennel", "handoffs")), true);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("preserves an unsealed work unit owned by another Run", () => {
+    const value = fixture();
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const otherRunId = "another-run-worker-handoff";
+      const document = JSON.parse(fs.readFileSync(request.requestPath, "utf8"));
+      document.runId = otherRunId;
+      fs.writeFileSync(request.requestPath, `${JSON.stringify(document, null, 2)}\n`);
+      const currentRunDirectory = path.dirname(path.dirname(request.directory));
+      const otherRunDirectory = path.join(request.handoffRoot, identityDigest(otherRunId).slice(0, 24));
+      fs.renameSync(currentRunDirectory, otherRunDirectory);
+      const otherRequestPath = path.join(
+        otherRunDirectory,
+        path.basename(path.dirname(request.directory)),
+        path.basename(request.directory),
+        "request.json",
+      );
+
+      assert.throws(
+        () => value.coordinator.recoverPending({ ctx: value.ctx }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED"
+          && error.data.runId === otherRunId,
+      );
+      assert.equal(fs.existsSync(otherRequestPath), true);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("does not scan another Spec handoff namespace during recovery", () => {
+    const value = fixture();
+    try {
+      const foreignRoot = path.join(
+        value.executionRoot,
+        ".sennel",
+        "handoffs",
+        identityDigest("501-foreign-worker-handoff").slice(0, 24),
+      );
+      fs.mkdirSync(foreignRoot, { recursive: true });
+      const marker = path.join(foreignRoot, "preserve.txt");
+      fs.writeFileSync(marker, "foreign handoff\n");
+
+      assert.equal(value.coordinator.recoverPending({ ctx: value.ctx }), null);
+      assert.equal(fs.readFileSync(marker, "utf8"), "foreign handoff\n");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("prunes only the completed Spec namespace after publication", () => {
+    const value = fixture();
+    try {
+      const foreignRoot = path.join(
+        value.executionRoot,
+        ".sennel",
+        "handoffs",
+        identityDigest("501-foreign-worker-handoff").slice(0, 24),
+      );
+      fs.mkdirSync(foreignRoot, { recursive: true });
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "prune current namespace" }));
+      seal(request);
+
+      value.coordinator.reconcile({ ctx: value.ctx, request });
+
+      assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
+      assert.equal(fs.existsSync(foreignRoot), true);
     } finally {
       removeTmpDir(value.mainRoot);
     }
