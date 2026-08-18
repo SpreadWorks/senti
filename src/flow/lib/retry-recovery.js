@@ -6,11 +6,38 @@
  * recovery document.
  */
 
+import crypto from "node:crypto";
+
 import { RetryTargetRoute } from "./retry-target-route.js";
-import { TaskNode } from "./current-flow-state.js";
+import { CanonicalFlowArtifactWrite } from "./current-flow-state.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
+import { buildRepairFingerprint } from "./repair-fingerprint.js";
+import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
+import { ReviewTargetAuthority } from "./review-target-authority.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
+
+const BASELINE_PHASES = new Map([
+  ["draft-questions-review", "draft-questions"], ["draft-coverage-review", "draft-coverage"],
+  ["spec-review", "spec"], ["test-review", "test"], ["impl-review", "impl"], ["task-review", "impl"],
+  ["draft-gate", "draft"], ["spec-gate", "spec"], ["impl-gate", "integration"], ["task-gate", "task-impl"],
+]);
+const BASELINE_MODULES = Object.freeze({
+  review: Object.freeze(["run-review.js", "review-target-authority.js", "canonical-review-artifacts.js", "review-work-unit.js", "../commands/review.js"]),
+  gate: Object.freeze(["run-gate.js", "canonical-gate-artifacts.js"]),
+});
+
+function taskStepForStateNode(state, nodeId) {
+  const projected = TaskStepIdentity.fromStateNode(state, nodeId);
+  if (projected !== null) return projected;
+  if (typeof state?.findNode !== "function" || !Array.isArray(state.current)) return null;
+  const task = state.current
+    .map((id) => state.findNode(id))
+    .find((node) => node?.kind === "task") ?? null;
+  return TaskStepIdentity.fromTaskNode(task, nodeId);
+}
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -26,6 +53,236 @@ function requiredPositiveInteger(value, field) {
   return value;
 }
 
+function nullableDigest(value, field) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value.trim().toLowerCase())) {
+    throw new Error(`${field} has invalid digest semantics`);
+  }
+  return value.trim().toLowerCase();
+}
+
+function requiredDigest(value, field) {
+  const digest = nullableDigest(value, field);
+  if (digest === null) throw new Error(`${field} is required`);
+  return digest;
+}
+
+class RetryEvidenceRoute {
+  constructor({ kind, phase, taskId = null } = {}) {
+    if (!["review", "gate"].includes(kind)) throw new Error("retry evidence route kind is invalid");
+    this.kind = requiredText(kind, "retry evidence route kind");
+    this.phase = requiredText(phase, "retry evidence route phase");
+    this.taskId = taskId == null ? null : requiredText(taskId, "retry evidence route taskId");
+    if (this.phase === "task-impl" || (this.kind === "review" && this.phase === "impl" && this.taskId !== null)) {
+      if (this.taskId === null) throw new Error("task retry evidence route requires taskId");
+    }
+    Object.freeze(this);
+  }
+  equals(other) { return other instanceof RetryEvidenceRoute && this.kind === other.kind && this.phase === other.phase && this.taskId === other.taskId; }
+  toJSON() { return { kind: this.kind, phase: this.phase, taskId: this.taskId }; }
+}
+
+export class RetryRecoveryBaseline {
+  constructor(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("retry recovery baseline must be an object");
+    const expected = ["route", "attemptId", "attempt", "runId", "specId", "issue", "projectDigest", "runtimeDigest", "targetDigest"];
+    if (Object.keys(value).sort().join("\0") !== expected.sort().join("\0")) throw new Error("retry recovery baseline schema is invalid");
+    this.route = value.route instanceof RetryEvidenceRoute ? value.route : new RetryEvidenceRoute(value.route);
+    this.attemptId = requiredText(value.attemptId, "retry baseline attemptId");
+    this.attempt = requiredPositiveInteger(value.attempt, "retry baseline attempt");
+    this.runId = requiredText(value.runId, "retry baseline runId");
+    this.specId = requiredText(value.specId, "retry baseline specId");
+    this.issue = value.issue == null ? null : requiredPositiveInteger(value.issue, "retry baseline issue");
+    this.projectDigest = nullableDigest(value.projectDigest, "retry baseline projectDigest");
+    this.runtimeDigest = nullableDigest(value.runtimeDigest, "retry baseline runtimeDigest");
+    this.targetDigest = nullableDigest(value.targetDigest, "retry baseline targetDigest");
+    if (!this.projectDigest && !this.runtimeDigest && !this.targetDigest) throw new Error("retry baseline requires evidence");
+    Object.freeze(this);
+  }
+  get digest() { return crypto.createHash("sha256").update(JSON.stringify(this.toJSON())).digest("hex"); }
+  equals(other) { return other instanceof RetryRecoveryBaseline && JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON()); }
+  toJSON() { return { route: this.route.toJSON(), attemptId: this.attemptId, attempt: this.attempt, runId: this.runId, specId: this.specId, issue: this.issue, projectDigest: this.projectDigest, runtimeDigest: this.runtimeDigest, targetDigest: this.targetDigest }; }
+}
+
+export class RetryRecoveryReceipt {
+  constructor(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("retry recovery receipt must be an object");
+    const expected = ["previous", "current", "reason", "reevaluationCount"];
+    if (Object.keys(value).sort().join("\0") !== expected.sort().join("\0")) throw new Error("retry recovery receipt schema is invalid");
+    this.previous = value.previous instanceof RetryRecoveryBaseline ? value.previous : new RetryRecoveryBaseline(value.previous);
+    this.current = value.current instanceof RetryRecoveryBaseline ? value.current : new RetryRecoveryBaseline(value.current);
+    this.reason = requiredText(value.reason, "retry recovery receipt reason");
+    if (value.reevaluationCount !== 1) throw new Error("retry recovery receipt permits exactly one reevaluation");
+    this.reevaluationCount = 1;
+    if (this.previous.route.equals(this.current.route) === false) throw new Error("retry recovery receipt route mismatch");
+    if (
+      this.previous.runId !== this.current.runId
+      || this.previous.specId !== this.current.specId
+      || this.previous.issue !== this.current.issue
+      || this.current.attempt !== this.previous.attempt + 1
+      || this.current.attemptId === this.previous.attemptId
+    ) throw new Error("retry recovery receipt Attempt identity is invalid");
+    if (this.previous.digest === this.current.digest) throw new Error("retry recovery receipt evidence is unchanged");
+    Object.freeze(this);
+  }
+  toJSON() { return { previous: this.previous.toJSON(), current: this.current.toJSON(), reason: this.reason, reevaluationCount: this.reevaluationCount }; }
+}
+
+function runtimeDigest(route) {
+  const hash = crypto.createHash("sha256");
+  const modules = route.kind === "review" && route.phase.startsWith("draft-")
+    ? [...BASELINE_MODULES.review, "draft-review-routes.js"]
+    : BASELINE_MODULES[route.kind];
+  for (const name of modules) {
+    const fingerprint = new RuntimeModuleIdentity({ key: name, moduleUrl: new URL(`./${name}`, import.meta.url) }).fingerprint();
+    fingerprint.update(hash);
+  }
+  return hash.digest("hex");
+}
+
+export function captureRetryRecoveryBaseline({ flowState, flowManager, executionRoot, artifactRoot, nodeId, attempt = null, specPath = null } = {}) {
+  const route = retryEvidenceRouteForNode(flowState, nodeId);
+  if (route === null) return null;
+  const { kind, phase, taskId } = route;
+  const location = flowStateSpecLocation(flowState);
+  if (location === null && (typeof specPath !== "string" || specPath.trim() === "")) throw new Error("retry baseline requires manager-bound Flow state");
+  const relativeSpecPath = location?.relativeSpecFile ?? specPath;
+  let targetDigest;
+  let projectDigest;
+  if (kind === "review") {
+    try {
+      targetDigest = new ReviewTargetAuthority({ executionRoot, artifactRoot, flowState, flowManager, specPath: relativeSpecPath })
+        .captureTargetStateForPhase(phase).digest;
+      projectDigest = targetDigest;
+    } catch (error) {
+      if (error?.code === "REPAIR_BASELINE_UNRESOLVABLE"
+        || /canonical artifact is absent|source artifact/i.test(error.message)) return null;
+      throw error;
+    }
+  } else {
+    let fingerprint;
+    try {
+      fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot, specPath: relativeSpecPath, state: flowState });
+    } catch (error) {
+      if (error?.code === "REPAIR_BASELINE_UNRESOLVABLE") return null;
+      throw error;
+    }
+    projectDigest = fingerprint.hash;
+    const sourceKey = nodeId === "draft-gate" ? "draft.gate.source" : nodeId === "spec-gate" ? "spec.gate.source" : nodeId === "impl-gate" ? "impl.gate.source" : "task.gate.source";
+    const source = flowManager.readArtifact({ specId: flowState.specId, logicalKey: sourceKey, parameters: taskId ? { taskId } : {}, consumerNodeId: nodeId, optional: true });
+    if (source === null) return null;
+    targetDigest = crypto.createHash("sha256").update(fingerprint.hash).update("\0").update(source.bytes).digest("hex");
+  }
+  const identity = attempt ?? flowState.attempt;
+  if (!identity) throw new Error("retry baseline requires the started Attempt identity");
+  return new RetryRecoveryBaseline({ route, attemptId: identity.id, attempt: identity.sequence, runId: flowState.runId, specId: flowState.specId, issue: flowState.issue ?? null, projectDigest, runtimeDigest: runtimeDigest(route), targetDigest });
+}
+
+/** Resolve the only retry evidence route that may own an executable leaf. */
+export function retryEvidenceRouteForNode(flowState, nodeId) {
+  const taskStep = taskStepForStateNode(flowState, nodeId);
+  const dynamicTask = taskStep !== null
+    && typeof flowState?.currentTaskId === "string"
+    && taskStep.taskId === flowState.currentTaskId
+    && ["review", "gate"].includes(taskStep.role);
+  const phase = BASELINE_PHASES.get(nodeId) || (dynamicTask ? (nodeId.endsWith("-gate") ? "task-impl" : "impl") : null);
+  if (!phase) return null;
+  return new RetryEvidenceRoute({
+    kind: taskStep?.role === "gate" || nodeId.endsWith("-gate") ? "gate" : "review",
+    phase,
+    taskId: dynamicTask ? taskStep.taskId : null,
+  });
+}
+
+export function retryBaselineArtifact(baseline) {
+  if (!(baseline instanceof RetryRecoveryBaseline)) throw new Error("retry baseline artifact requires a typed baseline");
+  return new CanonicalFlowArtifactWrite({ logicalKey: "retry.recovery.baseline", parameters: { routeId: `${baseline.route.kind}-${baseline.route.phase}${baseline.route.taskId ? `-${baseline.route.taskId}` : ""}`, attemptId: baseline.attemptId }, mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(baseline.toJSON(), null, 2)}\n`, "utf8") });
+}
+
+export function retryReceiptArtifact(receipt) {
+  if (!(receipt instanceof RetryRecoveryReceipt)) throw new Error("retry receipt artifact requires a typed receipt");
+  const route = receipt.current.route;
+  return new CanonicalFlowArtifactWrite({ logicalKey: "retry.recovery.receipt", parameters: { routeId: `${route.kind}-${route.phase}${route.taskId ? `-${route.taskId}` : ""}`, attemptId: receipt.current.attemptId }, mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(receipt.toJSON(), null, 2)}\n`, "utf8") });
+}
+
+/** Changed review/gate evidence required for an exhausted recovery. */
+export class RetryRecoveryEvidence {
+  constructor(value = {}) {
+    if (!value || typeof value !== "object" || Array.isArray(value)
+      || Object.keys(value).sort().join(",") !== "digest,previousDigest,projectDigest,runtimeDigest,targetDigest") {
+      throw new Error("changed evidence must contain only digest, previousDigest, projectDigest, runtimeDigest, and targetDigest");
+    }
+    this.digest = requiredDigest(value.digest, "changed evidence digest");
+    this.previousDigest = requiredDigest(value.previousDigest, "previous evidence digest");
+    this.projectDigest = requiredDigest(value.projectDigest, "changed evidence projectDigest");
+    this.runtimeDigest = requiredDigest(value.runtimeDigest, "changed evidence runtimeDigest");
+    this.targetDigest = requiredDigest(value.targetDigest, "changed evidence targetDigest");
+    if (this.digest === this.previousDigest) {
+      throw new Error("changed evidence must differ from the previous evidence");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      digest: this.digest,
+      previousDigest: this.previousDigest,
+      projectDigest: this.projectDigest,
+      runtimeDigest: this.runtimeDigest,
+      targetDigest: this.targetDigest,
+    };
+  }
+
+  equals(other) {
+    return other instanceof RetryRecoveryEvidence
+      && JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON());
+  }
+}
+
+export class RetryRecoveryTarget {
+  constructor(value = {}) {
+    this.runId = requiredText(value.runId, "retry target runId");
+    this.specId = requiredText(value.specId, "retry target specId");
+    this.issue = value.issue == null ? null : requiredPositiveInteger(value.issue, "retry target issue");
+    Object.freeze(this);
+  }
+
+  equals(other) {
+    return other instanceof RetryRecoveryTarget
+      && this.runId === other.runId
+      && this.specId === other.specId
+      && this.issue === other.issue;
+  }
+
+  toJSON() { return { runId: this.runId, specId: this.specId, issue: this.issue }; }
+}
+
+function routeId(route) {
+  return `${route.kind}-${route.phase}${route.taskId ? `-${route.taskId}` : ""}`;
+}
+
+export function readRetryBaseline(flowManager, state, route) {
+  const source = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "retry.recovery.baseline",
+    parameters: { routeId: routeId(route), attemptId: state.attempt.id },
+    consumerNodeId: state.attempt.nodeId,
+    optional: true,
+  });
+  if (source === null) return null;
+  let baseline;
+  try { baseline = new RetryRecoveryBaseline(JSON.parse(source.bytes.toString("utf8"))); } catch (error) { throw new Error(`retry baseline is invalid: ${error.message}`); }
+  if (
+    !baseline.route.equals(route)
+    || baseline.attemptId !== state.attempt.id
+    || baseline.attempt !== state.attempt.sequence
+    || baseline.runId !== state.runId
+    || baseline.specId !== state.specId
+    || baseline.issue !== (state.issue ?? null)
+  ) throw new Error("retry baseline identity does not match the active Attempt and Flow");
+  return baseline;
+}
+
 function canonicalState(state) {
   if (state?.schemaRevision !== 3) {
     throw new Error("retry recovery requires a Version-1 Flow");
@@ -35,16 +292,12 @@ function canonicalState(state) {
 
 function routeFor(request, state) {
   const nodeId = state.attempt?.nodeId ?? null;
-  const currentTask = Array.isArray(state.current)
-    ? state.current
-      .slice(0, -1)
-      .map((id) => state.findNode(id))
-      .find((node) => node instanceof TaskNode) ?? null
-    : null;
+  const taskStep = taskStepForStateNode(state, nodeId);
+  const currentTask = taskStep === null ? null : state.findNode(taskStep.taskId);
   const taskScoped = typeof nodeId === "string"
     && currentTask !== null
-    && ((request.kind === "review" && request.phase === "impl" && nodeId === `${currentTask.id}-review`)
-      || (request.kind === "gate" && request.phase === "task-impl" && nodeId === `${currentTask.id}-gate`));
+    && ((request.kind === "review" && request.phase === "impl" && taskStep.role === "review")
+      || (request.kind === "gate" && request.phase === "task-impl" && taskStep.role === "gate"));
   const route = RetryTargetRoute.forRecovery(request.kind, request.phase, {
     currentTaskId: taskScoped ? "active-task" : null,
   });
@@ -54,11 +307,12 @@ function routeFor(request, state) {
   return route;
 }
 
-function matchesRoute(route, nodeId) {
+function matchesRoute(route, nodeId, state = null) {
   if (route.stepId === nodeId) return true;
   if (typeof nodeId !== "string") return false;
-  if (route.stepId === "task-review") return nodeId.endsWith("-review");
-  return route.stepId === "task-gate" && nodeId.endsWith("-gate");
+  const taskStep = taskStepForStateNode(state, nodeId);
+  if (route.stepId === "task-review") return taskStep?.role === "review";
+  return route.stepId === "task-gate" && taskStep?.role === "gate";
 }
 
 /** Exact command input accepted by the retired-named retry CLI. */
@@ -74,6 +328,10 @@ export class RetryRecoveryInput {
       throw new Error(`retry reason must be ${RECOVERY_REASON_MIN_LENGTH}-${RECOVERY_REASON_MAX_LENGTH} characters`);
     }
     if (input.yes !== true) throw new Error("retry reset requires --yes");
+    this.changedEvidence = input.changedEvidence == null
+      ? null
+      : new RetryRecoveryEvidence(input.changedEvidence);
+    this.target = input.target == null ? null : new RetryRecoveryTarget(input.target);
     Object.freeze(this);
   }
 }
@@ -83,8 +341,8 @@ export class CanonicalRetryRecoveryGrant {
   constructor({ request, previousAttempt, nextAttempt, activity }) {
     if (!(request instanceof RetryRecoveryInput)) throw new Error("retry grant requires RetryRecoveryInput");
     if (previousAttempt?.id == null || nextAttempt?.id == null) throw new Error("retry grant requires Attempt identities");
-    if (activity?.transition?.operation !== "retry_attempt") {
-      throw new Error("retry grant requires a retry_attempt Activity");
+    if (!(activity?.transition?.operation === "retry_attempt" || activity?.transition?.operation === "retry_recovery_attempt")) {
+      throw new Error("retry grant requires a retry_attempt or retry_recovery_attempt Activity");
     }
     this.kind = request.kind;
     this.phase = request.phase;
@@ -116,8 +374,8 @@ export class CanonicalRetryRecoveryGrant {
  */
 export class CanonicalRetryRecovery {
   constructor({ flowManager, state, request }) {
-    if (!flowManager || typeof flowManager.retryCurrentAttempt !== "function") {
-      throw new Error("canonical retry recovery requires FlowManager.retryCurrentAttempt");
+    if (!flowManager || typeof flowManager.retryCurrentAttempt !== "function" || typeof flowManager.retryExhaustedAttempt !== "function") {
+      throw new Error("canonical retry recovery requires retry and exhausted-recovery FlowManager operations");
     }
     this.flowManager = flowManager;
     this.state = canonicalState(state);
@@ -127,13 +385,67 @@ export class CanonicalRetryRecovery {
 
   apply() {
     const before = this.flowManager.canonicalState(this.state.specId);
+    if (before?.attempt?.failure === null || before?.attempt?.failure === undefined) {
+      throw new Error("retry recovery requires a failed active Attempt");
+    }
     const route = routeFor(this.request, before);
-    if (!matchesRoute(route, before.attempt?.nodeId)) {
+    if (!matchesRoute(route, before.attempt?.nodeId, before)) {
       throw new Error(`retry recovery target is not active: ${this.request.kind}/${this.request.phase}`);
     }
     const previousAttempt = before.attempt;
     const start = this.flowManager.activityLedger(this.state.specId).length;
-    this.flowManager.retryCurrentAttempt({ specId: this.state.specId });
+    const disposition = before.failureDisposition();
+    const target = new RetryRecoveryTarget({
+      runId: before.runId,
+      specId: before.specId,
+      issue: before.issue ?? null,
+    });
+    if (this.request.target !== null && !this.request.target.equals(target)) {
+      throw new Error("retry recovery target does not match the active Flow identity");
+    }
+    if (disposition.operation === "retry") {
+      this.flowManager.retryCurrentAttempt({ specId: this.state.specId });
+    } else {
+      const failure = previousAttempt.failure;
+      const toolingFailure = failure?.retryKind === "tooling"
+        || failure?.category === "tooling"
+        || failure?.category === "provider";
+      if (!toolingFailure || disposition.remaining !== 0 || failure?.category === "semantic" || disposition.operation === "blocked") {
+        throw new Error("exhausted recovery is authorized only for tooling failures with no definition budget remaining");
+      }
+      if (this.request.changedEvidence === null) {
+        throw new Error("exhausted retry recovery requires changed evidence");
+      }
+      const targetRoute = routeFor(this.request, before);
+      const routeValue = new RetryEvidenceRoute({ kind: targetRoute.kind, phase: targetRoute.phase, taskId: targetRoute.scope === "task" ? before.currentTaskId : null });
+      const baseline = readRetryBaseline(this.flowManager, before, routeValue);
+      if (baseline === null) {
+        throw new Error("exhausted retry recovery requires a durable parent-derived baseline");
+      }
+      if (this.request.changedEvidence.previousDigest !== baseline.digest) {
+        throw new Error("changed evidence does not bind the failed Attempt baseline");
+      }
+      const changed = ["projectDigest", "runtimeDigest", "targetDigest"].some((field) => (
+        this.request.changedEvidence[field] !== null
+        && this.request.changedEvidence[field] !== baseline[field]
+      ));
+      if (!changed) {
+        throw new Error("changed evidence is unchanged from the failed Attempt baseline");
+      }
+      const currentBaseline = new RetryRecoveryBaseline({
+        route: baseline.route,
+        attemptId: crypto.randomUUID(),
+        attempt: previousAttempt.sequence + 1,
+        runId: baseline.runId,
+        specId: baseline.specId,
+        issue: baseline.issue,
+        projectDigest: this.request.changedEvidence.projectDigest,
+        runtimeDigest: this.request.changedEvidence.runtimeDigest,
+        targetDigest: this.request.changedEvidence.targetDigest,
+      });
+      const receipt = new RetryRecoveryReceipt({ previous: baseline, current: currentBaseline, reason: this.request.reason, reevaluationCount: 1 });
+      this.flowManager.retryExhaustedAttempt({ specId: this.state.specId, receipt });
+    }
     const after = this.flowManager.canonicalState(this.state.specId);
     const activity = this.flowManager.activityLedger(this.state.specId)[start];
     return new CanonicalRetryRecoveryGrant({
@@ -151,16 +463,16 @@ export function resolveRecoveryMaxAttempts({ resolvedMax } = {}) {
 }
 
 export class RetryRecoveryView {
-  constructor({ kind, phase, attempts, max, recoveryReason }) {
+  constructor({ kind, phase, attempts, max, recoveryReason, recoveryPossible = false, recoveryCommand = null }) {
     this.kind = requiredText(kind, "retry view kind");
     this.phase = requiredText(phase, "retry view phase");
     this.canonicalPhase = this.phase;
     this.attempts = Number.isSafeInteger(attempts) && attempts >= 0 ? attempts : 0;
     this.max = Number.isSafeInteger(max) && max >= 0 ? max : 0;
-    this.recoveryPossible = false;
+    this.recoveryPossible = recoveryPossible === true;
     this.recoveryReason = requiredText(recoveryReason, "retry view reason");
     this.changedEvidence = null;
-    this.recoveryCommand = null;
+    this.recoveryCommand = recoveryCommand == null ? null : requiredText(recoveryCommand, "retry recovery command");
     Object.freeze(this);
   }
 
@@ -183,14 +495,17 @@ export class RetryRecoveryView {
  * V1 exposes exhausted retries as definition-owned terminal decisions.  It
  * deliberately does not inspect project files for a side-channel reset.
  */
-export function buildStateRetryRecoveryView({ flowState, kind, phase, attempts, max } = {}) {
+export function buildStateRetryRecoveryView({ flowState, kind, phase, attempts, max, baselineAvailable = false, currentChanged = false } = {}) {
   canonicalState(flowState);
   if (attempts < max) return null;
+  const recoveryPossible = baselineAvailable === true && currentChanged === true && flowState?.attempt?.failure?.category !== "semantic";
   return new RetryRecoveryView({
     kind,
     phase,
     attempts,
     max,
+    recoveryPossible,
+    recoveryCommand: recoveryPossible ? `sennel flow set retry reset ${kind} ${phase} --reason "Parent-derived canonical evidence changed." --yes` : null,
     recoveryReason: "definition-owned-retry-budget-exhausted",
   }).toJSON();
 }

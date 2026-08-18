@@ -16,6 +16,7 @@ import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtif
 import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactActivityEvidence, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
 import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
 import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
+import { DefinitionFailureOwnership } from "./definition-failure-ownership.js";
 
 /**
  * The production Flow Version 1 record.  This is deliberately independent
@@ -39,6 +40,7 @@ const ATTEMPT_TYPES = new Set([
   "task_added",
   "attempt_started",
   "attempt_retried",
+  "attempt_recovered",
   "attempt_updated",
   "attempt_failed",
   "failure_recorded",
@@ -64,6 +66,7 @@ const ATTEMPT_TYPES = new Set([
 const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "start_attempt",
   "retry_attempt",
+  "retry_recovery_attempt",
   "update_attempt",
   "rewind",
   "rewind_test_evidence",
@@ -1456,6 +1459,49 @@ export class CurrentAttempt {
   }
 }
 
+/**
+ * Immutable identity of one currently executing Attempt.
+ *
+ * Commands that may run lifecycle hooks after their producer has changed the
+ * Flow bind this value before execution.  A later Store mutation may then
+ * prove that it still addresses precisely the Attempt it observed, rather
+ * than accidentally recording a failure against a retry or replacement.
+ */
+export class CurrentAttemptIdentity {
+  constructor({ id, nodeId, sequence } = {}) {
+    this.id = requireString(id, "current Attempt identity.id");
+    this.nodeId = requireString(nodeId, "current Attempt identity.nodeId");
+    this.sequence = requirePositiveInteger(sequence, "current Attempt identity.sequence");
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    if (value instanceof CurrentAttemptIdentity) return value;
+    if (value instanceof CurrentAttempt) {
+      return new CurrentAttemptIdentity({ id: value.id, nodeId: value.nodeId, sequence: value.sequence });
+    }
+    return new CurrentAttemptIdentity(value);
+  }
+
+  matches(state) {
+    if (!(state instanceof CurrentFlowState)) return false;
+    const nodeId = state.current?.at(-1) ?? null;
+    const attempt = state.attempt;
+    const node = nodeId === null ? null : state.findNode(nodeId);
+    return nodeId === this.nodeId
+      && node?.status === "in_progress"
+      && attempt !== null
+      && attempt.id === this.id
+      && attempt.nodeId === this.nodeId
+      && attempt.sequence === this.sequence
+      && attempt.failure === null;
+  }
+
+  toJSON() {
+    return { id: this.id, nodeId: this.nodeId, sequence: this.sequence };
+  }
+}
+
 export class CurrentFlowNode {
   constructor(value) {
     requireExactFields(value, NODE_FIELDS, "node");
@@ -1573,6 +1619,7 @@ export class DefinitionAction {
     sideEffects = null,
     failurePolicy = null,
     executionCommand = null,
+    failureOwnership = null,
     artifactAuthority = {},
   }) {
     if (action !== null) requireString(action, "definition.action.action");
@@ -1599,6 +1646,19 @@ export class DefinitionAction {
       : DefinitionFailurePolicy.from(failurePolicy);
     if (executionCommand !== null) requireString(executionCommand, "definition.action.executionCommand");
     this.executionCommand = executionCommand;
+    try {
+      this.failureOwnership = failureOwnership === null
+        ? null
+        : DefinitionFailureOwnership.from(failureOwnership);
+    } catch (error) {
+      throw new CurrentFlowStateInvariantError(`definition.action.failureOwnership is invalid: ${error.message}`);
+    }
+    if (executionCommand !== null && failureOwnership === null) {
+      throw new CurrentFlowStateInvariantError("definition.action.executionCommand requires failureOwnership");
+    }
+    if (executionCommand === null && failureOwnership !== null) {
+      throw new CurrentFlowStateInvariantError("definition.action.failureOwnership requires executionCommand");
+    }
     this.artifactAuthority = artifactAuthority instanceof ArtifactAuthorityPolicy
       ? artifactAuthority
       : new ArtifactAuthorityPolicy(artifactAuthority);
@@ -1617,6 +1677,7 @@ export class DefinitionAction {
       sideEffects: this.sideEffects === null ? null : [...this.sideEffects],
       failurePolicy: this.failurePolicy?.toJSON() ?? null,
       executionCommand: this.executionCommand,
+      failureOwnership: this.failureOwnership?.toJSON() ?? null,
       artifactAuthority: this.artifactAuthority.toJSON(),
     };
   }
@@ -2992,6 +3053,28 @@ export class CurrentFlowState {
     return this.#replaceRoot(this.root, this.current, replacement);
   }
 
+  /** Start the single audited reevaluation granted by a durable receipt. */
+  retryExhaustedAttempt({ attempt }) {
+    this.#assertExecutionActive();
+    if (this.current === null || this.attempt?.failure === null) {
+      throw new CurrentFlowStateInvariantError("exhausted retry requires a failed active Attempt");
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    const next = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    const contract = this.definition.contractForNode(leaf);
+    if (next.nodeId !== leaf.id || next.sequence !== this.attempt.sequence + 1 || next.failure !== null) {
+      throw new CurrentFlowStateInvariantError("exhausted retry Attempt identity is invalid");
+    }
+    const toolingRecovery = this.attempt.failure.retryKind === "tooling"
+      || this.attempt.failure.category === "tooling"
+      || this.attempt.failure.category === "provider";
+    if (!toolingRecovery || next.consumption.tooling !== (contract.toolingRetryLimit ?? 0)) {
+      throw new CurrentFlowStateInvariantError("exhausted retry recovery requires a fully consumed tooling budget");
+    }
+    this.#assertAttemptContractForLeaf(leaf, next);
+    return this.#replaceRoot(replaceNode(this.root, leaf.id, leaf.with({ attemptSequence: next.sequence })), this.current, next);
+  }
+
   confirmCurrentAttempt({ result, status = "done" }) {
     this.#assertExecutionActive();
     if (this.current == null) throw new CurrentFlowStateInvariantError("confirmCurrentAttempt requires an active Attempt");
@@ -4129,7 +4212,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -4408,6 +4491,12 @@ export class ActivityTransition {
       }
       return state.recover({ path: currentPath, attempt: this.attempt });
     }
+    if (this.operation === "retry_recovery_attempt") {
+      if (state.current == null || state.current.at(-1) !== targetId) {
+        throw new CurrentFlowStateInvariantError("exhausted retry target is not the active current leaf");
+      }
+      return state.retryExhaustedAttempt({ attempt: this.attempt });
+    }
     if (this.operation === "retry_attempt") {
       if (state.current == null || state.current.at(-1) !== targetId) {
         throw new CurrentFlowStateInvariantError("retry_attempt Activity must target the active current leaf");
@@ -4500,6 +4589,7 @@ export class FlowActivity {
       add_task: "task_added",
       start_attempt: "attempt_started",
       retry_attempt: "attempt_retried",
+      retry_recovery_attempt: "attempt_recovered",
       update_attempt: "attempt_updated",
       fail_attempt: "attempt_failed",
       record_failure: "failure_recorded",
@@ -4580,7 +4670,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -4768,7 +4858,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);

@@ -267,6 +267,9 @@ describe("normal no-diff canonical review", () => {
       flowManager,
       state: fixture.state(),
       phase: "impl",
+      executionRoot: noDiffRoot,
+      treeSha: "a".repeat(40),
+      targetStateDigest: "b".repeat(64),
     });
     const outputDirectory = workUnit.prepare().directory;
     const specSource = workUnit.materializeSpecRecord();

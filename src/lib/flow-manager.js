@@ -455,6 +455,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  failCurrentAttemptIfCurrent(input = {}) {
+    return this._store.failCurrentAttemptIfCurrent({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   publishCurrentAttemptResult(input = {}) {
     return this._store.publishCurrentAttemptResult({
       ...input,
@@ -651,6 +657,12 @@ export class FlowManager {
     });
   }
   retryCurrentAttempt(opts) { return this._store.retryCurrentAttempt(withSpecIdDefault(opts, this._boundSpecId)); }
+  retryExhaustedAttempt(input = {}) {
+    return this._store.retryExhaustedAttempt({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   acceptFinalRegressionFailure(input = {}) {
     return this._store.acceptFinalRegressionFailure({
       ...input,

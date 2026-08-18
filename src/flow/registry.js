@@ -47,6 +47,7 @@ import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
 import { attachedCanonicalCommandResultPublications } from "./lib/canonical-command-result.js";
 import { CanonicalFlowArtifactWrite } from "./lib/current-flow-state.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
+import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -1116,11 +1117,11 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow set retry reset <gate|review> <phase> --reason <text> --yes",
         "",
-        "Reset an exhausted retry counter as an audited recovery for <phase>.",
+        "Request the next retry action for <phase>; normal retries use the canonical failure disposition.",
         `  gate   phases: ${RETRY_HELP_GATE_PHASES.join(" | ")}`,
         `  review phases: ${RETRY_HELP_REVIEW_PHASES.join(" | ")}`,
-        "Audited exhausted recovery requires changed evidence and grants one re-evaluation.",
-        "Unchanged evidence is rejected. --reason and --yes are required.",
+        "When the canonical budget is exhausted, the parent derives and audits the previous/current evidence and grants one tooling re-evaluation.",
+        "Unchanged/replayed evidence is rejected. --reason and --yes are required.",
       ].join("\n"),
     },
     "acceptance-decision": {
@@ -1265,6 +1266,7 @@ export const FLOW_COMMANDS = {
     },
     gate: {
       helpKey: "flow.run.gate",
+      failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       requiresFlow: false,
       responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
       runtimeLog: { stepId: gateRuntimeLogStepId },
@@ -1385,6 +1387,7 @@ export const FLOW_COMMANDS = {
     },
     review: {
       helpKey: "flow.run.review",
+      failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       draftReviewPostHookBoundary: DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY,
       responsibilities: DRAFT_REVIEW_REVIEW_RESPONSIBILITIES,
       runtimeLog: { stepId: reviewRuntimeLogStepId },
@@ -1456,6 +1459,8 @@ export const FLOW_COMMANDS = {
             currentStepId: activeImplReviewStepId(ctx.flowState),
             dryRun: ctx.dryRun,
           }, result);
+          const { attachedCanonicalReviewWorkUnit } = await import("./lib/canonical-review-artifacts.js");
+          attachedCanonicalReviewWorkUnit(result)?.cleanup();
         } catch (error) {
           throw error;
         }
@@ -1527,6 +1532,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-commit": {
       helpKey: "flow.run.finalize-commit",
+      failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       runtimeLog: { stepId: "finalize-commit" },
       command: () => import("./lib/run-finalize-commit.js"),
       args: {
@@ -1563,6 +1569,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-merge": {
       helpKey: "flow.run.finalize-merge",
+      failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       // Its failure handler commits the complete Flow metadata transaction.
       // Do not append a second runtime-log state mutation after that commit.
       runtimeLog: { stepMetadata: false },
@@ -1594,6 +1601,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-sync": {
       helpKey: "flow.run.finalize-sync",
+      failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       runtimeLog: { stepId: "finalize-sync", authority: "main-repository" },
       command: () => import("./lib/run-finalize-sync.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
@@ -1624,6 +1632,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
+      failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       runtimeLog: { stepMetadata: false, authority: "main-repository" },
       explicitTargetResolution: true,
       command: () => import("./lib/run-finalize-cleanup.js"),
@@ -1824,6 +1833,7 @@ export const FLOW_COMMANDS = {
     },
     "test-execute": {
       helpKey: "flow.run.test-execute",
+      failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       runtimeLog: { stepId: "test-execute" },
       command: () => import("./lib/run-test-execute.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
@@ -1845,6 +1855,7 @@ export const FLOW_COMMANDS = {
     },
     "scenario-validity": {
       helpKey: "flow.run.scenario-validity",
+      failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       runtimeLog: { stepId: "scenario-validity" },
       internal: true,
       requiresFlow: true,
@@ -1872,6 +1883,7 @@ export const FLOW_COMMANDS = {
     },
     "test-result-review": {
       helpKey: "flow.run.test-result-review",
+      failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       runtimeLog: { stepId: "test-result-review" },
       command: () => import("./lib/run-test-result-review.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
@@ -1901,6 +1913,7 @@ export const FLOW_COMMANDS = {
     // retro is a mainline impl-phase step that aggregates test-execute results.
     retro: {
       helpKey: "flow.run.retro",
+      failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       runtimeLog: { stepId: "retro" },
       command: () => import("./lib/run-retro.js"),
       args: { flags: withTargetGuardFlags(["--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
@@ -1932,6 +1945,7 @@ export const FLOW_COMMANDS = {
     },
     "final-regression": {
       helpKey: "flow.run.final-regression",
+      failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       runtimeLog: { stepId: "final-regression" },
       command: () => import("./lib/run-final-regression.js"),
       args: {
@@ -1978,6 +1992,7 @@ export const FLOW_COMMANDS = {
     },
     "acceptance-review": {
       helpKey: "flow.run.acceptance-review",
+      failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       runtimeLog: { stepId: "acceptance-review" },
       command: () => import("./lib/run-acceptance-review.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
@@ -2053,6 +2068,7 @@ export const FLOW_COMMANDS = {
     // report generates a work report from the current flow state.
     report: {
       helpKey: "flow.run.report",
+      failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       runtimeLog: { stepId: "report" },
       command: () => import("./lib/run-report.js"),
       args: { flags: withTargetGuardFlags(["--dry-run"]), options: [...FLOW_RUN_OPTIONS] },

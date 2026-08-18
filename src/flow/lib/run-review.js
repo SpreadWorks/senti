@@ -57,6 +57,7 @@ import {
   CanonicalReviewWorkUnit,
   canonicalReviewNodeId,
 } from "./canonical-review-artifacts.js";
+import { REVIEW_WORK_UNIT_MANIFEST_ENV, ReviewWorkUnit } from "./review-work-unit.js";
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 
 const IMPL_REVIEW_PHASE = "impl";
@@ -1143,6 +1144,23 @@ export class RunReviewCommand extends FlowCommand {
     if (currentNodeId !== expectedNodeId) {
       throw new Error(`canonical review requires active ${expectedNodeId}, found ${currentNodeId ?? "none"}`);
     }
+    if (state.attempt?.failure !== null && state.attempt?.failure !== undefined) {
+      const disposition = state.failureDisposition();
+      return Envelope.fail(
+        "run",
+        "review",
+        "REVIEW_RETRY_REQUIRED",
+        "the current review Attempt has failed; refresh next-action and follow its definition-owned retry or recovery route",
+        {
+          phase: persistedPhase,
+          operation: disposition?.operation ?? "blocked",
+          retryKind: disposition?.retryKind ?? null,
+          remaining: disposition?.remaining ?? 0,
+          nextActionRequired: true,
+          failureDisposition: disposition?.toJSON?.() ?? null,
+        },
+      );
+    }
     if (dryRun) {
       return Envelope.fail(
         "run",
@@ -1159,53 +1177,78 @@ export class RunReviewCommand extends FlowCommand {
       state: ctx.flowState,
       phase: persistedPhase,
       taskId,
+      executionRoot,
+      treeSha,
+      targetStateDigest,
     });
-    const surface = workUnit.prepare();
-    const specSource = workUnit.materializeSpecRecord();
-    const fileMapSource = workUnit.materializeFileMap();
-    const draftSource = workUnit.materializeDraft();
-    const testSources = workUnit.materializeTestSources(surface.directory);
-    const taskSpec = workUnit.materializeTaskSpec();
-    const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
-    const args = [];
-    if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
-    if (taskSpec !== null) args.push("--task-spec", taskSpec.logicalPath);
-    if (ctx.skipConfirm) args.push("--skip-confirm");
-    const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
-    const env = {
-      ...process.env,
-      [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
-      [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
-      ...(fileMapSource === null ? {} : {
-        [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),
-      }),
-      ...(draftSource === null ? {} : {
-        [PRODUCT.env("REVIEW_DRAFT_SOURCE")]: JSON.stringify(draftSource),
-      }),
-      ...(testSources === null ? {} : {
-        [PRODUCT.env("REVIEW_TEST_SOURCE_DIR")]: testSources.directory,
-        [PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION")]: JSON.stringify(testSources.revision),
-      }),
-      ...(taskSpec === null ? {} : {
-        [PRODUCT.env("REVIEW_TASK_SPEC_SOURCE")]: JSON.stringify({
-          logicalPath: taskSpec.logicalPath,
-          sourcePath: taskSpec.sourcePath,
-        }),
-      }),
-    };
-
-    let res;
+    let sealedWorkUnit;
     try {
-      res = await runCmdWithRetry(
-        () => this.runCommand("node", [scriptPath, ...args], { cwd: executionRoot, timeout: timeoutMs, env }),
-        { phase: persistedPhase, retryCount: 0 },
-      );
+      // Reconstruct the parent-owned input contract before inspecting any
+      // worker state. A recovered manifest must match this exact declaration.
+      workUnit.declareCanonicalInputs();
+      sealedWorkUnit = workUnit.workUnit.recoverSealed();
     } catch (error) {
       return this.#canonicalFailure(ctx, persistedPhase, error);
     }
-    if (!res.ok) {
-      const reason = [res.stderr, res.stdout].filter(Boolean).join("\n") || "review subprocess failed";
-      return this.#canonicalFailure(ctx, persistedPhase, new Error(reason));
+    if (sealedWorkUnit === null) {
+      const prepared = workUnit.prepare();
+      const specSource = workUnit.materializeSpecRecord();
+      const fileMapSource = workUnit.materializeFileMap();
+      const draftSource = workUnit.materializeDraft();
+      const testSources = workUnit.materializeTestSources(prepared.directory);
+      const taskSpec = workUnit.materializeTaskSpec();
+      const surface = workUnit.finalize();
+      const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
+      const args = [];
+      if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
+      if (taskSpec !== null) args.push("--task-spec", taskSpec.logicalPath);
+      if (ctx.skipConfirm) args.push("--skip-confirm");
+      const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
+      const env = {
+        ...process.env,
+        [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
+        [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
+        [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
+        ...(fileMapSource === null ? {} : {
+          [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),
+        }),
+        ...(draftSource === null ? {} : {
+          [PRODUCT.env("REVIEW_DRAFT_SOURCE")]: JSON.stringify(draftSource),
+        }),
+        ...(testSources === null ? {} : {
+          [PRODUCT.env("REVIEW_TEST_SOURCE_DIR")]: testSources.directory,
+          [PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION")]: JSON.stringify(testSources.revision),
+        }),
+        ...(taskSpec === null ? {} : {
+          [PRODUCT.env("REVIEW_TASK_SPEC_SOURCE")]: JSON.stringify({
+            logicalPath: taskSpec.logicalPath,
+            sourcePath: taskSpec.sourcePath,
+          }),
+        }),
+      };
+
+      let res;
+      try {
+        res = await runCmdWithRetry(
+          () => this.runCommand("node", [scriptPath, ...args], { cwd: executionRoot, timeout: timeoutMs, env }),
+          { phase: persistedPhase, retryCount: 0 },
+        );
+      } catch (error) {
+        return this.#canonicalFailure(ctx, persistedPhase, error);
+      }
+      if (!res.ok) {
+        const reason = [res.stderr, res.stdout].filter(Boolean).join("\n") || "review subprocess failed";
+        return this.#canonicalFailure(ctx, persistedPhase, new Error(reason));
+      }
+      try {
+        sealedWorkUnit = ReviewWorkUnit.fromEnvironment(
+          { [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath },
+          { expectedManifest: surface.manifest, expectedDirectory: surface.directory },
+        );
+        sealedWorkUnit.readSealedOutput();
+      } catch (error) {
+        return this.#canonicalFailure(ctx, persistedPhase, error);
+      }
     }
     const currentTreeSha = this.resolveTreeSha(ctx);
     const currentTargetStateDigest = this.resolveTargetStateDigest(ctx, persistedPhase);
@@ -1219,36 +1262,16 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
 
-    const stdout = String(res.stdout || "").trim();
-    const stderr = String(res.stderr || "").trim();
-    let result;
     try {
-      if (phase === "draft") result = parseProposalReviewOutput(res, stdout, stderr);
-      else if (persistedPhase === "test") result = parseTestReviewOutput(res, stdout, stderr);
-      else if (persistedPhase === "spec") result = parseSpecReviewOutput(res, stdout, stderr);
-      else result = parseImplReviewOutput(res, stdout, stderr);
-    } catch (error) {
-      return this.#canonicalFailure(ctx, persistedPhase, error);
-    }
-    if (result?.artifacts?.toolingOutcome) {
-      return this.#canonicalFailure(
-        ctx,
-        persistedPhase,
-        new Error(result.artifacts.toolingOutcome.reason || "review tooling failed"),
-      );
-    }
-    try {
-      result.changed = [];
-      result.artifacts ||= {};
-      result.artifacts.phase = persistedPhase;
-      if (taskId !== null) result.artifacts.taskId = taskId;
-      new CanonicalReviewPromotion({
-        workUnitDirectory: surface.directory,
+      const promotion = new CanonicalReviewPromotion({
+        workUnit: sealedWorkUnit,
         phase: persistedPhase,
         taskId,
         treeSha,
         targetStateDigest,
-      }).promote(result);
+      });
+      const result = promotion.resultFromSealedArtifact();
+      promotion.promote(result);
       return result;
     } catch (error) {
       return this.#canonicalFailure(ctx, persistedPhase, error);

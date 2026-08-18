@@ -52,6 +52,7 @@ import {
   canonicalTestReviewRepairForTarget,
   inspectCanonicalTestReviewRepair,
 } from "./test-review-repair.js";
+import { captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -272,9 +273,45 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
   return context;
 }
 
-function canonicalFailureDirective(descriptor, action) {
+function retryRecoveryCommandFor({ ctx, state, descriptor, target, binding }) {
+  const disposition = descriptor.failureDisposition;
+  const failure = state?.attempt?.failure;
+  const toolingFailure = failure?.retryKind === "tooling"
+    || failure?.category === "tooling"
+    || failure?.category === "provider";
+  if (disposition?.operation !== "record" || disposition.remaining !== 0 || !toolingFailure || failure?.category === "semantic") return null;
+  const route = retryEvidenceRouteForNode(state, target.nodeId);
+  if (route === null || !ctx.flowManager) return null;
+  const baseline = readRetryBaseline(ctx.flowManager, state, route);
+  if (baseline === null) return null;
+  const current = captureRetryRecoveryBaseline({
+    flowState: state,
+    flowManager: ctx.flowManager,
+    executionRoot: ctx.executionRoot || ctx.root,
+    artifactRoot: ctx.mainRoot || ctx.root,
+    nodeId: target.nodeId,
+  });
+  if (current === null) return null;
+  const changed = ["projectDigest", "runtimeDigest", "targetDigest"].some((field) => current[field] !== baseline[field]);
+  if (!changed) return null;
+  return guardedCommand(
+    `sennel flow set retry reset ${route.kind} ${route.phase} --reason "${disposition.reason.replaceAll('"', "'")}" --yes`,
+    state,
+    binding,
+  );
+}
+
+function canonicalFailureDirective(descriptor, action, recoveryCommand = null) {
   if (["start", "recover", "resume", "retry"].includes(descriptor.operation)) {
     return new ExecuteStepDirective({ action });
+  }
+  if (recoveryCommand !== null) {
+    return new ExecuteCommandDirective({
+      actionId: "RECOVER_EXHAUSTED_TOOLING_RETRY",
+      nextAction: recoveryCommand,
+      instruction: "Apply the single audited tooling recovery after parent-derived evidence changed, then refresh next-action.",
+      reason: descriptor.failureDisposition?.reason ?? "The exhausted tooling Attempt has changed canonical evidence.",
+    });
   }
   const disposition = descriptor.failureDisposition?.decision ?? null;
   const reason = disposition?.reason
@@ -404,6 +441,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
     target,
     config: ctx.config,
   });
+  const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
   const result = {
     taskId: target.taskId,
     step: target.stepId,
@@ -416,7 +454,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
-    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action)).toJSON(),
+    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action, recoveryCommand)).toJSON(),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;

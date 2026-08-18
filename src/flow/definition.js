@@ -24,6 +24,7 @@ import {
 } from "./lib/step-tree.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
+import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
 
 const MAX_DEPTH = 3;
 
@@ -704,6 +705,14 @@ export class FlowExecutionCommand {
   }
 }
 
+/** The one authority permitted to terminally handle a parent command failure. */
+export const DEFINITION_FAILURE_OWNERS = Object.freeze([
+  DefinitionFailureOwnership.dispatcherPrimary(),
+  DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
+  DefinitionFailureOwnership.commandExclusive(),
+  DefinitionFailureOwnership.lifecycleOutbox(),
+]);
+
 class FlowNode {
   constructor({
     id,
@@ -725,6 +734,7 @@ class FlowNode {
     failureTargetId = null,
     definitionLifecycleOwned = false,
     executionCommand = null,
+    failureOwnership = null,
   }) {
     this.id = id;
     this.label = label;
@@ -758,6 +768,15 @@ class FlowNode {
       throw new Error(`only definition lifecycle-owned steps may declare executionCommand: ${this.id}`);
     }
     this.executionCommand = executionCommand;
+    this.failureOwnership = failureOwnership === null
+      ? null
+      : DefinitionFailureOwnership.from(failureOwnership);
+    if (this.definitionLifecycleOwned && !(this.failureOwnership instanceof DefinitionFailureOwnership)) {
+      throw new Error(`definition lifecycle-owned step must declare failureOwnership: ${this.id}`);
+    }
+    if (!this.definitionLifecycleOwned && this.failureOwnership !== null) {
+      throw new Error(`only definition lifecycle-owned steps may declare failureOwnership: ${this.id}`);
+    }
     if (failurePolicy === null && failureTargetId !== null) {
       throw new Error(`failureTargetId requires a failurePolicy: ${this.id}`);
     }
@@ -827,6 +846,7 @@ function createPlanReviewNode({ id, label, contextKinds, executionCommand }) {
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
     executionCommand,
+    failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
   });
 }
 
@@ -921,6 +941,7 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "block",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("gate"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "spec",
@@ -966,6 +987,7 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "block",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("gate"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "approval",
@@ -996,6 +1018,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 3,
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("scenario-validity"),
+        failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       }),
       createPlanReviewNode({
         id: "test-review",
@@ -1029,6 +1052,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 3,
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("test-execute"),
+        failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       }),
       new FlowNode({
         id: "test-result-review",
@@ -1040,6 +1064,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 3,
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("test-result-review"),
+        failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       }),
       new FlowNode({
         id: "impl-review",
@@ -1053,6 +1078,7 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "retry",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("review", "--phase", "impl"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "impl-triage",
@@ -1085,6 +1111,7 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "block",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("gate"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "retro",
@@ -1096,6 +1123,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 2,
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("retro"),
+        failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
       }),
       new FlowNode({
         id: "acceptance-review",
@@ -1110,6 +1138,7 @@ const FLOW_DEFINITION = Object.freeze([
         failureTargetId: "spec",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("acceptance-review"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "acceptance-decision",
@@ -1134,6 +1163,7 @@ const FLOW_DEFINITION = Object.freeze([
         failurePolicy: "retry",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("final-regression"),
+        failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
       }),
       new FlowNode({
         id: "report",
@@ -1145,6 +1175,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 2,
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("report"),
+        failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
       }),
       new FlowNode({
         id: "finalize",
@@ -1161,6 +1192,7 @@ const FLOW_DEFINITION = Object.freeze([
             autoApproveChoiceId: "1",
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-commit"),
+            failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
           }),
           new FlowNode({
             id: "finalize-merge",
@@ -1171,6 +1203,7 @@ const FLOW_DEFINITION = Object.freeze([
             outputSchemaRef: "next-action/finalize.schema.json",
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-merge"),
+            failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
           }),
           new FlowNode({
             id: "finalize-sync",
@@ -1185,6 +1218,7 @@ const FLOW_DEFINITION = Object.freeze([
             skippable: true,
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-sync"),
+            failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
           }),
           new FlowNode({
             id: "finalize-cleanup",
@@ -1195,6 +1229,7 @@ const FLOW_DEFINITION = Object.freeze([
             outputSchemaRef: "next-action/finalize.schema.json",
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-cleanup"),
+            failureOwnership: DefinitionFailureOwnership.lifecycleOutbox(),
           }),
         ],
       }),
@@ -1225,6 +1260,7 @@ const TASK_DEFINITION = Object.freeze([
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
     executionCommand: new FlowExecutionCommand("review", "--phase", "impl"),
+    failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
   }),
   new FlowNode({
     id: "task-gate",
@@ -1238,6 +1274,7 @@ const TASK_DEFINITION = Object.freeze([
     failurePolicy: "block",
     definitionLifecycleOwned: true,
     executionCommand: new FlowExecutionCommand("gate"),
+    failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
   }),
 ]);
 
@@ -1386,6 +1423,7 @@ export function buildCurrentFlowDefinition() {
       targetNodeId: node.failureTargetId ?? null,
     }),
     executionCommand: node.executionCommand?.toString() ?? null,
+    failureOwnership: node.failureOwnership,
     artifactAuthority: { sourceScopes },
   });
   const adapt = (node, kind = "step", sourceScopes = ["all_tasks", "flow"]) => new CurrentFlowDefinitionNode({

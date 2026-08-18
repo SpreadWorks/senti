@@ -55,6 +55,7 @@ import {
 import { buildFlowCommandHookContext } from "./flow-context.js";
 import { resolveDispatcherOwnedFlowAction } from "../definition.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
+import { reconcileCompletedReviewWorkUnits } from "./review-work-unit.js";
 
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
@@ -1069,6 +1070,11 @@ export default class RunDispatchCommand extends FlowCommand {
     let suppliedApproval = ctx.approve || null;
     try {
       this.handoffCoordinator.recoverPending({ ctx });
+      reconcileCompletedReviewWorkUnits({
+        flowManager: ctx.flowManager,
+        specId: ctx.specId ?? ctx.flowState?.specId,
+        executionRoot: ctx.executionRoot || ctx.root,
+      });
     } catch (error) {
       if (!(error instanceof WorkerArtifactHandoffError)) throw error;
       return this.failure(

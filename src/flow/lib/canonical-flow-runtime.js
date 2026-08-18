@@ -10,6 +10,7 @@ import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "../../lib/flow-workspace.j
 import { FlowVersion } from "../../lib/flow-version.js";
 import {
   ActivityTransition,
+  CurrentAttemptIdentity,
   CurrentFlowDefinition,
   CurrentFlowState,
   CurrentFlowStateInvariantError,
@@ -21,6 +22,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   add_task: "task_added",
   start_attempt: "attempt_started",
   retry_attempt: "attempt_retried",
+  retry_recovery_attempt: "attempt_recovered",
   update_attempt: "attempt_updated",
   fail_attempt: "attempt_failed",
   record_failure: "failure_recorded",
@@ -193,7 +195,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  retryAttempt({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+  retryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -206,6 +208,18 @@ export class CanonicalFlowRuntime {
       effort,
       usage,
       references,
+      artifactWrites,
+    });
+  }
+
+  retryRecoveryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "retry_recovery_attempt",
+      attempt: requiredAttempt(attempt, "retryRecoveryAttempt"),
+      timing, provider, model, effort, usage, references, artifactWrites,
     });
   }
 
@@ -225,8 +239,10 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  failAttempt({ specId, activityId, failure, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, artifactRemovals = undefined } = {}) {
+  failAttempt({ specId, activityId, failure, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, artifactRemovals = undefined, expectedAttempt = null } = {}) {
     const state = this.#state(specId);
+    const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
+    if (expected !== null && !expected.matches(state)) return null;
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
       nodeId: this.#currentNodeId(state),
@@ -850,12 +866,12 @@ export class CanonicalFlowRuntime {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : null;
     const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"]).has(operation)
       ? state.attempt
-      : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(operation)
+      : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : state.attempt;
     if (activityAttempt === null) {

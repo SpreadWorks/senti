@@ -69,7 +69,11 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("activity.evidence"), "steps/:{ownerPath}/activity-evidence/:{digest}.json");
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
-      ["flow.activities", "artifact.catalog", "acceptance.decision", "task.review", "activity.evidence", "runtime.step-metadata"],
+      [
+        "flow.activities", "artifact.catalog", "acceptance.decision",
+        "retry.recovery.baseline", "retry.recovery.receipt",
+        "task.review", "activity.evidence", "runtime.step-metadata",
+      ],
     );
     assert.equal(paths.get("draft.gate.source"), "steps/draft-gate/source.json");
     assert.equal(paths.get("spec.gate.source"), "steps/spec-gate/source.json");
@@ -80,6 +84,8 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("repair.fingerprint"), "steps/impl/repair/fingerprint.json");
     assert.equal(paths.get("repair.delta"), "steps/impl/repair/deltas/:{deltaId}.json");
     assert.equal(paths.get("retry.recovery.transaction"), ".runtime/retry-recovery/transaction.json");
+    assert.equal(paths.get("retry.recovery.baseline"), "artifacts/retry-recovery/baselines/:{routeId}/:{attemptId}.json");
+    assert.equal(paths.get("retry.recovery.receipt"), "artifacts/retry-recovery/receipts/:{routeId}/:{attemptId}.json");
     assert.equal(paths.get("test.requirement.summary"), ".runtime/test-execute/requirement-summary.json");
     assert.equal(paths.has("worker.handoff"), false);
     assert.equal(paths.get("flow.findings"), "steps/flow-findings.json");

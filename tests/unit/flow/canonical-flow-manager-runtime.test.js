@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
 
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { container } from "../../../src/lib/container.js";
 import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
@@ -20,6 +22,12 @@ import {
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import RunReportCommand from "../../../src/flow/lib/run-report.js";
 import RunReviewCommand from "../../../src/flow/lib/run-review.js";
+import FlowReviewCommand from "../../../src/flow/commands/review.js";
+import {
+  reconcileCompletedReviewWorkUnits,
+  ReviewWorkUnit,
+} from "../../../src/flow/lib/review-work-unit.js";
+import { attachedCanonicalReviewWorkUnit } from "../../../src/flow/lib/canonical-review-artifacts.js";
 import SetReviewEvidenceCommand from "../../../src/flow/lib/set-review-evidence.js";
 import RunRecoverReviewPassCommand from "../../../src/flow/lib/run-recover-review-pass.js";
 import RunUpdateOverviewCommand from "../../../src/flow/lib/run-update-overview.js";
@@ -339,6 +347,7 @@ async function beginAcceptanceRiskDecision({ manager, created, repository }) {
 }
 
 afterEach(() => {
+  container.reset();
   for (const directory of roots.splice(0)) removeTmpDir(directory);
 });
 
@@ -1635,6 +1644,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           blockingFindings: [],
           nonBlockingImprovements: [],
         }, null, 2) + "\n");
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
         return {
           ok: true,
           status: 0,
@@ -1660,7 +1670,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(invocation.command, "node");
     assert.deepEqual(invocation.args.slice(-2), ["--phase", "spec"]);
     assert.equal(invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR.startsWith(
-      path.join(manager.specLocation(created.specId).directory, ".runtime", "review-work-units"),
+      path.join(repository, ".sennel", "review-work-units"),
     ), true);
     assert.equal(result.artifacts.phase, "spec");
     assert.equal(result.artifacts.evidenceDigest.length, 64);
@@ -1669,8 +1679,6 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     await FLOW_COMMANDS.run.review.post(ctx, result);
     const transientWorkUnit = invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR;
-    assert.equal(fs.existsSync(transientWorkUnit), true);
-    fs.rmSync(transientWorkUnit, { recursive: true, force: true });
     assert.equal(fs.existsSync(transientWorkUnit), false);
 
     const location = manager.specLocation(created.specId);
@@ -1693,6 +1701,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
   it("materializes draft review input from the catalog without exposing the Version root", async () => {
     const repository = root();
+    const executionRoot = path.join(repository, "execution");
+    fs.mkdirSync(executionRoot, { recursive: true });
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-draft-review"));
     manager.addActiveFlow(created.specId, "direct");
@@ -1717,7 +1727,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         assert.deepEqual(fs.readFileSync(source.sourcePath), draft);
         assert.equal(source.revision.digest, crypto.createHash("sha256").update(draft).digest("hex"));
         assert.equal(path.dirname(source.sourcePath), options.env.SENNEL_REVIEW_OUTPUT_DIR);
-        fs.writeFileSync(path.join(options.env.SENNEL_REVIEW_OUTPUT_DIR, "draft-questions-review.json"), JSON.stringify({
+        fs.writeFileSync(path.join(options.env.SENNEL_REVIEW_OUTPUT_DIR, "draft-review-questions.json"), JSON.stringify({
           version: 2,
           phase: "draft-questions",
           sourceDraft: "draft.json",
@@ -1729,6 +1739,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           advisoryFindings: [],
           repairTargets: [],
         }, null, 2) + "\n");
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
         return {
           ok: true,
           status: 0,
@@ -1742,7 +1753,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ctx = {
       root: repository,
       mainRoot: repository,
-      executionRoot: repository,
+      executionRoot,
       specId: created.specId,
       phase: "draft",
       flowManager: manager,
@@ -1755,11 +1766,246 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.deepEqual(invocation.args.slice(-2), ["--phase", "draft"]);
     assert.equal(result.artifacts.phase, "draft-questions");
     assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "draft.questions.review");
+    assert.equal(
+      invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR.startsWith(path.join(executionRoot, ".sennel", "review-work-units")),
+      true,
+    );
+    assert.equal(path.resolve(invocation.options.cwd), executionRoot);
     const location = manager.specLocation(created.specId);
     assert.equal(fs.existsSync(path.join(location.directory, "draft.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-review.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-triage.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-repair.json")), false);
+  });
+
+  for (const reviewPhase of ["draft-questions", "draft-coverage"]) {
+    it(`runs the actual ${reviewPhase} writer in a sibling execution checkout before canonical promotion`, async () => {
+      const fixtureRoot = root();
+      const repository = path.join(fixtureRoot, "main");
+      const executionRoot = path.join(fixtureRoot, "execution");
+      fs.mkdirSync(repository, { recursive: true });
+      initGitRepo(repository);
+      commitAll(repository, "review writer fixture");
+      execFileSync("git", ["worktree", "add", "-q", "-b", `writer-${reviewPhase}`, executionRoot], { cwd: repository });
+      const manager = new FlowManager({ root: executionRoot, mainRoot: repository, inWorktree: true });
+      const created = manager.createFresh(request(`001-actual-${reviewPhase}-writer`));
+      assert.equal(manager.specLocation(created.specId).directory.startsWith(path.join(repository, "specs")), true);
+      manager.addActiveFlow(created.specId, "direct");
+      const draft = Buffer.from('{"goal":"Run writer boundary","qa":[]}\n', "utf8");
+      advanceTo(manager, created.specId, "draft");
+      manager.confirmCurrentAttempt({
+        specId: created.specId,
+        artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
+      });
+      let agentCalls = 0;
+      let outputDirectory = null;
+      let childCwd = null;
+      const runActualDraftWriter = async (_command, _args, options) => {
+          outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+          childCwd = options.cwd;
+          const keys = Object.keys(options.env).filter((key) => key.startsWith("SENNEL_REVIEW_"));
+          const previous = new Map(keys.map((key) => [key, process.env[key]]));
+          try {
+            for (const key of keys) process.env[key] = options.env[key];
+            container.reset();
+            container.register("root", executionRoot);
+            container.register("mainRoot", repository);
+            container.register("flowManager", manager);
+            container.register("config", { flow: { review: {} } });
+            container.register("agent", {
+              resolve: () => ({ provider: "writer-fixture" }),
+              call: async () => { agentCalls += 1; return "NO_PROPOSALS"; },
+            });
+            await new FlowReviewCommand().execute({ _rawArgs: ["--phase", "draft"] });
+          } finally {
+            for (const [key, value] of previous) {
+              if (value === undefined) delete process.env[key];
+              else process.env[key] = value;
+            }
+            container.reset();
+          }
+          return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+      };
+      if (reviewPhase === "draft-coverage") {
+        manager.updateStepStatus(
+          { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+          { specId: created.specId },
+        );
+        const questions = new RunReviewCommand({
+          resolveTreeSha: () => "a".repeat(40),
+          resolveTargetStateDigest: () => "b".repeat(64),
+          runCommand: runActualDraftWriter,
+        });
+        const questionsCtx = {
+          root: repository, mainRoot: repository, executionRoot, specId: created.specId,
+          phase: "draft", flowManager: manager, flowState: manager.load(created.specId), config: {},
+        };
+        const questionsResult = await questions.execute(questionsCtx);
+        await FLOW_COMMANDS.run.review.post(questionsCtx, questionsResult);
+        manager.updateStepStatus(
+          { stepId: "draft-refine", requestedStatus: "in_progress" },
+          { specId: created.specId },
+        );
+        manager.confirmCurrentAttempt({
+          specId: created.specId,
+          artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
+        });
+        manager.updateStepStatus(
+          { stepId: "draft-coverage-review", requestedStatus: "in_progress" },
+          { specId: created.specId },
+        );
+      } else {
+        manager.updateStepStatus(
+          { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+          { specId: created.specId },
+        );
+      }
+      const review = new RunReviewCommand({
+        resolveTreeSha: () => "a".repeat(40),
+        resolveTargetStateDigest: () => "b".repeat(64),
+        runCommand: runActualDraftWriter,
+      });
+      const ctx = {
+        root: repository, mainRoot: repository, executionRoot, specId: created.specId,
+        phase: "draft", flowManager: manager, flowState: manager.load(created.specId), config: {},
+      };
+      const result = await review.execute(ctx);
+      assert.equal(agentCalls, reviewPhase === "draft-coverage" ? 2 : 1);
+      assert.equal(result.artifacts.phase, reviewPhase);
+      assert.equal(result.artifacts.verdict, "PASS");
+      assert.equal(fs.existsSync(path.join(outputDirectory, reviewPhase === "draft-questions"
+        ? "draft-review-questions.json"
+        : "draft-review-coverage.json")), true);
+      assert.equal(outputDirectory.startsWith(path.join(executionRoot, ".sennel", "review-work-units")), true);
+      assert.equal(path.resolve(childCwd), executionRoot);
+      assert.equal(fs.existsSync(path.join(repository, ".sennel", "review-work-units")), false);
+      await FLOW_COMMANDS.run.review.post(ctx, result);
+      assert.equal(fs.existsSync(outputDirectory), false);
+      assert.equal(manager.activityLedger(created.specId).some((activity) => activity.type === "result_confirmed"), true);
+    });
+  }
+
+  for (const [verdict, expectedNext] of [["PASS", "draft-refine"], ["ADVISORY", "draft-questions-triage"]]) {
+    it(`replays a sealed draft-questions ${verdict} result without rerunning the worker`, async () => {
+      const repository = root();
+      const executionRoot = path.join(repository, "execution");
+      fs.mkdirSync(executionRoot, { recursive: true });
+      const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      const created = manager.createFresh(request(`001-canonical-draft-replay-${verdict.toLowerCase()}`));
+      manager.addActiveFlow(created.specId, "direct");
+      const draft = Buffer.from(`${JSON.stringify({ goal: "Replay sealed draft review", qa: [] }, null, 2)}\n`, "utf8");
+      advanceTo(manager, created.specId, "draft");
+      manager.confirmCurrentAttempt({
+        specId: created.specId,
+        artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
+      });
+      manager.updateStepStatus(
+        { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+        { specId: created.specId },
+      );
+
+      let workerRuns = 0;
+      let outputDirectory = null;
+      const command = new RunReviewCommand({
+        resolveTreeSha: () => "a".repeat(40),
+        resolveTargetStateDigest: () => "b".repeat(64),
+        runCommand(_command, _args, options) {
+          workerRuns += 1;
+          outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+          const source = JSON.parse(options.env.SENNEL_REVIEW_DRAFT_SOURCE);
+          fs.writeFileSync(path.join(options.env.SENNEL_REVIEW_OUTPUT_DIR, "draft-review-questions.json"), `${JSON.stringify({
+            version: 2,
+            phase: "draft-questions",
+            sourceDraft: "draft.json",
+            sourceDraftRevision: source.revision,
+            generatedAt: "2026-08-14T00:00:00.000Z",
+            verdict,
+            summary: "Replay-safe review output.",
+            blockingFindings: [],
+            advisoryFindings: verdict === "ADVISORY" ? [{ id: "draft-advice", summary: "Optional cleanup." }] : [],
+            repairTargets: [],
+          }, null, 2)}\n`);
+          ReviewWorkUnit.fromEnvironment(options.env).seal();
+          return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+        },
+      });
+      const ctx = {
+        root: repository,
+        mainRoot: repository,
+        executionRoot,
+        specId: created.specId,
+        phase: "draft",
+        flowManager: manager,
+        flowState: manager.load(created.specId),
+        config: {},
+      };
+
+      const beforeCrash = await command.execute(ctx);
+      assert.equal(beforeCrash.next, expectedNext);
+      assert.equal(workerRuns, 1);
+      const recovered = await command.execute({ ...ctx, flowState: manager.load(created.specId) });
+      assert.equal(workerRuns, 1, "a sealed work unit must not invoke the Agent again");
+      assert.equal(recovered.artifacts.verdict, verdict);
+      assert.equal(recovered.next, expectedNext);
+      await FLOW_COMMANDS.run.review.post({ ...ctx, flowState: manager.load(created.specId) }, recovered);
+      assert.equal(fs.existsSync(outputDirectory), false, "publication confirmation cleans the sealed worker surface");
+    });
+  }
+
+  it("reconciles a sealed worker surface after Store confirmation succeeds but cleanup crashes", async () => {
+    const repository = root();
+    const executionRoot = path.join(repository, "execution");
+    fs.mkdirSync(executionRoot, { recursive: true });
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-canonical-review-cleanup-reconcile"));
+    manager.addActiveFlow(created.specId, "direct");
+    const draft = Buffer.from('{"goal":"Reconcile cleanup","qa":[]}\n', "utf8");
+    advanceTo(manager, created.specId, "draft");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
+    });
+    manager.updateStepStatus(
+      { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
+    let outputDirectory = null;
+    const review = new RunReviewCommand({
+      resolveTreeSha: () => "a".repeat(40),
+      resolveTargetStateDigest: () => "b".repeat(64),
+      runCommand(_command, _args, options) {
+        outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+        const source = JSON.parse(options.env.SENNEL_REVIEW_DRAFT_SOURCE);
+        fs.writeFileSync(path.join(outputDirectory, "draft-review-questions.json"), `${JSON.stringify({
+          verdict: "PASS", sourceDraft: "draft.json", sourceDraftRevision: source.revision,
+          blockingFindings: [], advisoryFindings: [], repairTargets: [],
+        })}\n`);
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
+        return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+      },
+    });
+    const ctx = {
+      root: repository, mainRoot: repository, executionRoot, specId: created.specId,
+      phase: "draft", flowManager: manager, flowState: manager.load(created.specId), config: {},
+    };
+    const result = await review.execute(ctx);
+    const sealed = attachedCanonicalReviewWorkUnit(result);
+    sealed.cleanup = () => { throw new Error("simulated cleanup crash"); };
+    await assert.rejects(() => FLOW_COMMANDS.run.review.post(ctx, result), /simulated cleanup crash/);
+    assert.equal(
+      manager.activityLedger(created.specId).some((activity) => (
+        activity.type === "result_confirmed" && activity.attemptId === sealed.manifestDocument.attemptId
+      )),
+      true,
+      "Store confirmation precedes local cleanup",
+    );
+    assert.equal(fs.existsSync(outputDirectory), true);
+    assert.equal(reconcileCompletedReviewWorkUnits({
+      flowManager: manager,
+      specId: created.specId,
+      executionRoot,
+    }), 1);
+    assert.equal(fs.existsSync(outputDirectory), false);
   });
 
   it("materializes the shared file.map for impl review from its catalog authority", async () => {
@@ -1800,6 +2046,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           blockingFindings: [],
           nonBlockingImprovements: [],
         }, null, 2)}\n`);
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
         return {
           ok: true,
           status: 0,

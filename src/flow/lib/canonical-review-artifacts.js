@@ -28,10 +28,12 @@ import {
 import { DraftReviewEvidenceSet } from "./draft-review-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
-import { draftReviewSourceStepIds } from "./draft-review-routes.js";
+import { draftReviewRouteForRetryPhase, draftReviewSourceStepIds } from "./draft-review-routes.js";
+import { ReviewWorkUnit, ReviewWorkUnitOutput, ReviewWorkUnitOutputReceipt } from "./review-work-unit.js";
 import { renderTaskMarkdown } from "../../spec/commands/render.js";
 
 const PHASES = new Set(["draft-questions", "draft-coverage", "spec", "test", "impl"]);
+const ATTACHED_REVIEW_WORK_UNIT = Symbol("canonical-review-work-unit");
 
 function isIsoTimestamp(value) {
   return typeof value === "string" && value.trim() !== "" && Number.isFinite(Date.parse(value));
@@ -49,7 +51,6 @@ function requiredFlowManager(value) {
     !value
     || typeof value.readArtifact !== "function"
     || typeof value.activityLedger !== "function"
-    || typeof value.writeRuntimeArtifact !== "function"
   ) {
     throw new Error("canonical review source requires the FlowManager catalog surface");
   }
@@ -140,10 +141,8 @@ function logicalKeyFor({ phase: reviewPhase, taskId = null }) {
   return taskId === null ? "impl.review" : "task.review";
 }
 
-function artifactFilename(reviewPhase) {
-  if (reviewPhase === "draft-questions") return "draft-questions-review.json";
-  if (reviewPhase === "draft-coverage") return "draft-coverage-review.json";
-  return `${reviewPhase}-review.json`;
+function reviewOutputFor({ phase: reviewPhase, taskId = null }) {
+  return ReviewWorkUnitOutput.forReview({ phase: reviewPhase, taskId });
 }
 
 function normalizedVerdict(value) {
@@ -211,12 +210,11 @@ function reviewFinding(input, reviewPhase, bucket, index, sourceName, usedIds, u
   });
 }
 
-function evidenceFor({ artifact, phase: reviewPhase, taskId, treeSha, targetStateDigest, capturedAt }) {
+function evidenceFor({ artifact, phase: reviewPhase, taskId, treeSha, targetStateDigest, capturedAt, sourceName }) {
   const verdict = normalizedVerdict(artifact.verdict);
   const lists = findingLists(artifact, reviewPhase);
   const usedIds = new Map();
   const usedFingerprints = new Map();
-  const sourceName = artifactFilename(reviewPhase);
   const blockingFindings = lists.blocking.map((entry, index) => reviewFinding(
     entry, reviewPhase, "blocking", index, sourceName, usedIds, usedFingerprints,
   ));
@@ -240,16 +238,6 @@ function evidenceFor({ artifact, phase: reviewPhase, taskId, treeSha, targetStat
     }),
     disposition,
   });
-}
-
-function readJson(file, label) {
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (error) {
-    throw new Error(`${label} is unavailable or invalid JSON: ${error.message}`);
-  }
-  return jsonObject(parsed, label);
 }
 
 function taskParameters(taskId) {
@@ -419,20 +407,22 @@ export class CanonicalDraftReviewSource {
     });
   }
 
-  materialize(workUnit) {
+  materialize(workUnit, { write = true } = {}) {
     if (!(workUnit instanceof CanonicalReviewWorkUnit)) {
       throw new Error("canonical draft source requires a review work unit");
     }
-    const sourcePath = this.flowManager.writeRuntimeArtifact({
-      specId: this.state.specId,
-      nodeId: workUnit.nodeId,
-      artifact: {
-        logicalKey: "review.work.unit",
-        parameters: { workUnitPath: `${workUnit.nodeId}/${workUnit.attemptId}/draft.json` },
-        mediaType: "application/json",
-        bytes: this.bytes,
-      },
-    });
+    const input = {
+      logicalKey: "draft",
+      logicalPath: "draft.json",
+      mediaType: "application/json",
+      bytes: this.bytes,
+      root: true,
+    };
+    if (!write) {
+      workUnit.workUnit.declareInput(input);
+      return null;
+    }
+    const sourcePath = workUnit.workUnit.writeInput(input).sourcePath;
     return Object.freeze({
       logicalPath: "draft.json",
       sourcePath,
@@ -447,9 +437,9 @@ export class CanonicalDraftReviewSource {
  * path or writes an authority artifact here.
  */
 export class CanonicalReviewWorkUnit {
-  constructor({ flowManager, state, phase: reviewPhase, taskId = null } = {}) {
-    if (!flowManager || typeof flowManager.writeRuntimeArtifact !== "function") {
-      throw new Error("canonical review work unit requires FlowManager.writeRuntimeArtifact");
+  constructor({ flowManager, state, phase: reviewPhase, taskId = null, executionRoot, treeSha, targetStateDigest } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function") {
+      throw new Error("canonical review work unit requires FlowManager catalog reads");
     }
     if (state?.schemaRevision !== 3 || typeof state.specId !== "string" || state.specId === "") {
       throw new Error("canonical review work unit requires a Version-1 Flow state");
@@ -464,38 +454,29 @@ export class CanonicalReviewWorkUnit {
       throw new Error(`canonical review requires active Attempt for ${this.nodeId}`);
     }
     this.attemptId = requiredText(typed.attempt.id, "canonical review Attempt id");
-    this.workUnitPath = `${this.nodeId}/${this.attemptId}/manifest.json`;
-    Object.freeze(this);
-  }
-
-  prepare() {
-    const manifest = Object.freeze({
-      version: 1,
-      runId: this.state.runId,
-      specId: this.state.specId,
+    this.workUnit = new ReviewWorkUnit({
+      executionRoot,
+      runId: state.runId,
+      specId: state.specId,
       phase: this.phase,
       taskId: this.taskId,
       nodeId: this.nodeId,
       attemptId: this.attemptId,
-    });
-    const manifestPath = this.flowManager.writeRuntimeArtifact({
-      specId: this.state.specId,
-      nodeId: this.nodeId,
-      artifact: {
-        logicalKey: "review.work.unit",
-        parameters: { workUnitPath: this.workUnitPath },
-        mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8"),
-      },
-    });
-    return Object.freeze({
-      manifest,
-      manifestPath,
-      directory: path.dirname(manifestPath),
+      target: { treeSha, targetStateDigest },
+      output: reviewOutputFor({ phase: this.phase, taskId: this.taskId }),
     });
   }
 
-  #materializeCatalogInput({ logicalKey, logicalPath, optional = false }) {
+  prepare() {
+    this.workUnit.prepare();
+    return Object.freeze({ directory: this.workUnit.directory });
+  }
+
+  finalize() {
+    return this.workUnit.finalize();
+  }
+
+  #materializeCatalogInput({ logicalKey, logicalPath, optional = false }, { write = true } = {}) {
     const resolved = this.flowManager.readArtifact({
       specId: this.state.specId,
       logicalKey,
@@ -503,17 +484,17 @@ export class CanonicalReviewWorkUnit {
       optional,
     });
     if (resolved === null) return null;
-    const workUnitPath = `${this.nodeId}/${this.attemptId}/inputs/${logicalPath}`;
-    const sourcePath = this.flowManager.writeRuntimeArtifact({
-      specId: this.state.specId,
-      nodeId: this.nodeId,
-      artifact: {
-        logicalKey: "review.work.unit",
-        parameters: { workUnitPath },
-        mediaType: resolved.descriptor.mediaType,
-        bytes: resolved.bytes,
-      },
-    });
+    const input = {
+      logicalKey,
+      logicalPath,
+      mediaType: resolved.descriptor.mediaType,
+      bytes: resolved.bytes,
+    };
+    if (!write) {
+      this.workUnit.declareInput(input);
+      return null;
+    }
+    const sourcePath = this.workUnit.writeInput(input).sourcePath;
     return new CanonicalReviewInputDescriptor({
       version: 1,
       logicalKey,
@@ -525,8 +506,8 @@ export class CanonicalReviewWorkUnit {
   }
 
   /** The Spec is catalog-resolved once by the parent for every review phase. */
-  materializeSpecRecord() {
-    return this.#materializeCatalogInput({ logicalKey: "spec.record", logicalPath: "spec.json" });
+  materializeSpecRecord(options) {
+    return this.#materializeCatalogInput({ logicalKey: "spec.record", logicalPath: "spec.json" }, options);
   }
 
   /**
@@ -534,13 +515,13 @@ export class CanonicalReviewWorkUnit {
    * been published. The child decides whether absence is valid only after it
    * knows whether there is an implementation diff; it never invents a map.
    */
-  materializeFileMap() {
+  materializeFileMap(options) {
     if (this.phase !== "impl" || this.taskId !== null) return null;
     return this.#materializeCatalogInput({
       logicalKey: "file.map",
       logicalPath: "file-map.json",
       optional: true,
-    });
+    }, options);
   }
 
   /**
@@ -549,20 +530,21 @@ export class CanonicalReviewWorkUnit {
    * worker prompt and CLI option contract do not change while V1 keeps
    * spec.json.tasks[] as the sole durable Task specification.
    */
-  materializeTaskSpec() {
+  materializeTaskSpec({ write = true } = {}) {
     if (this.taskId === null) return null;
     const task = this.state.tasks?.find((candidate) => candidate.id === this.taskId) ?? null;
     if (task === null) throw new Error(`canonical review Task is absent: ${this.taskId}`);
-    const sourcePath = this.flowManager.writeRuntimeArtifact({
-      specId: this.state.specId,
-      nodeId: this.nodeId,
-      artifact: {
-        logicalKey: "review.work.unit",
-        parameters: { workUnitPath: `${this.nodeId}/${this.attemptId}/task-spec.md` },
-        mediaType: "text/markdown",
-        bytes: Buffer.from(renderTaskMarkdown(task), "utf8"),
-      },
-    });
+    const input = {
+      logicalKey: "task.spec",
+      logicalPath: "task-spec.md",
+      mediaType: "text/markdown",
+      bytes: Buffer.from(renderTaskMarkdown(task), "utf8"),
+    };
+    if (!write) {
+      this.workUnit.declareInput(input);
+      return null;
+    }
+    const sourcePath = this.workUnit.writeInput(input).sourcePath;
     const logicalPath = path.posix.join(
       path.posix.dirname(this.flowManager.specLocation(this.state.specId).relativeSpecFile),
       "tasks",
@@ -572,17 +554,17 @@ export class CanonicalReviewWorkUnit {
   }
 
   /** Materialize the catalog-authoritative draft under its worker-visible name. */
-  materializeDraft() {
+  materializeDraft(options) {
     if (this.phase !== "draft-questions" && this.phase !== "draft-coverage") return null;
     return new CanonicalDraftReviewSource({
       flowManager: this.flowManager,
       state: this.state,
       phase: this.phase,
-    }).materialize(this);
+    }).materialize(this, options);
   }
 
   /** Materialize catalog-resolved test inputs only in the transient work unit. */
-  materializeTestSources(directory) {
+  materializeTestSources(directory, { write = true } = {}) {
     if (this.phase !== "test") return null;
     const catalog = this.flowManager.artifactCatalog(this.state.specId);
     const sources = catalog.artifacts
@@ -601,16 +583,17 @@ export class CanonicalReviewWorkUnit {
         parameters: { testPath },
         consumerNodeId: "test-review",
       });
-      const target = this.flowManager.writeRuntimeArtifact({
-        specId: this.state.specId,
-        nodeId: this.nodeId,
-        artifact: {
-          logicalKey: "review.work.unit",
-          parameters: { workUnitPath: `${this.nodeId}/${this.attemptId}/tests/${testPath}` },
-          mediaType: "text/plain",
-          bytes: resolved.bytes,
-        },
-      });
+      const input = {
+        logicalKey: "tests.source",
+        logicalPath: `tests/${testPath}`,
+        mediaType: "text/plain",
+        bytes: resolved.bytes,
+      };
+      if (!write) {
+        this.workUnit.declareInput(input);
+        continue;
+      }
+      const target = this.workUnit.writeInput(input).sourcePath;
       if (path.dirname(target) !== testRoot && !target.startsWith(`${testRoot}${path.sep}`)) {
         throw new Error("canonical test source work-unit path escapes its review directory");
       }
@@ -618,6 +601,7 @@ export class CanonicalReviewWorkUnit {
     const ledger = typeof this.flowManager.activityLedger === "function"
       ? this.flowManager.activityLedger(this.state.specId)
       : [];
+    if (!write) return null;
     return Object.freeze({
       directory,
       revision: CanonicalTestSourceRevision.fromCatalog({
@@ -627,15 +611,23 @@ export class CanonicalReviewWorkUnit {
       }).toJSON(),
     });
   }
+
+  /** Reconstruct the exact parent contract without touching worker files. */
+  declareCanonicalInputs() {
+    this.materializeSpecRecord({ write: false });
+    this.materializeFileMap({ write: false });
+    this.materializeDraft({ write: false });
+    this.materializeTestSources(this.workUnit.directory, { write: false });
+    this.materializeTaskSpec({ write: false });
+    return this.workUnit.manifest();
+  }
 }
 
 /** Turn a child worker's transient JSON artifact into one V1 command result. */
 export class CanonicalReviewPromotion {
-  constructor({ workUnitDirectory, phase: reviewPhase, taskId = null, treeSha, targetStateDigest } = {}) {
-    if (!path.isAbsolute(workUnitDirectory)) {
-      throw new Error("canonical review work unit directory must be absolute");
-    }
-    this.workUnitDirectory = workUnitDirectory;
+  constructor({ workUnit, phase: reviewPhase, taskId = null, treeSha, targetStateDigest } = {}) {
+    if (!(workUnit instanceof ReviewWorkUnit)) throw new Error("canonical review promotion requires a sealed execution work unit");
+    this.workUnit = workUnit;
     this.phase = phase(reviewPhase);
     this.taskId = taskId == null ? null : requiredText(taskId, "canonical review taskId");
     this.treeSha = requiredText(treeSha, "canonical review treeSha").toLowerCase();
@@ -643,23 +635,73 @@ export class CanonicalReviewPromotion {
     Object.freeze(this);
   }
 
-  promote(result) {
-    const artifact = readJson(
-      path.join(this.workUnitDirectory, artifactFilename(this.phase)),
-      `canonical ${this.phase} review artifact`,
-    );
+  sealedArtifact() {
+    const sealed = this.workUnit.readSealedOutput();
+    const artifact = jsonObject(JSON.parse(sealed.bytes.toString("utf8")), `canonical ${this.phase} review artifact`);
     const evidence = evidenceFor({
       artifact,
       phase: this.phase,
       taskId: this.taskId,
       treeSha: this.treeSha,
       targetStateDigest: this.targetStateDigest,
+      sourceName: sealed.output.basename,
     });
+    return Object.freeze({ sealed, artifact, evidence });
+  }
+
+  /**
+   * Stdout is transient and is unavailable after a promotion crash.  Rebuild
+   * the lifecycle result solely from the sealed artifact so replay preserves
+   * the same PASS/ADVISORY/REJECTED route without another Agent invocation.
+   */
+  resultFromSealedArtifact() {
+    const { artifact, evidence } = this.sealedArtifact();
+    const verdict = normalizedVerdict(artifact.verdict);
+    const findings = findingLists(artifact, this.phase);
+    const blockingCount = findings.blocking.length;
+    const advisoryCount = findings.advisory.length;
+    const next = this.phase === "draft-questions" || this.phase === "draft-coverage"
+      ? (verdict === "PASS" ? draftReviewRouteForRetryPhase(this.phase).passNextStepId : draftReviewRouteForRetryPhase(this.phase).triageStepId)
+      : this.phase === "spec"
+        ? (verdict === "REJECTED" ? "spec-triage" : "spec-gate")
+        : this.phase === "test"
+          ? (verdict === "REJECTED" ? null : "implement")
+          : (verdict === "REJECTED" ? null : "impl-gate");
+    return {
+      result: "ok",
+      changed: [],
+      next,
+      artifacts: {
+        phase: this.phase,
+        verdict,
+        canonicalVerdict: verdict,
+        evidenceDigest: evidence.identity.evidenceDigest,
+        treeSha: this.treeSha,
+        targetStateDigest: this.targetStateDigest,
+        ...(this.phase === "spec" ? { proposalCount: blockingCount + advisoryCount } : {}),
+        ...(this.phase === "test" ? { blockingCount, advisoryCount } : {}),
+        ...(this.phase === "impl" ? { blockingCount, nonBlockingCount: advisoryCount } : {}),
+        ...((this.phase === "draft-questions" || this.phase === "draft-coverage") ? {
+          issueCount: blockingCount + advisoryCount,
+          retryPhase: this.phase,
+        } : {}),
+        ...(this.taskId === null ? {} : { taskId: this.taskId }),
+      },
+    };
+  }
+
+  promote(result) {
+    const { sealed, artifact, evidence } = this.sealedArtifact();
     const logicalKey = logicalKeyFor({ phase: this.phase, taskId: this.taskId });
     const normalizedArtifact = structuredClone(artifact);
     // `test-coverage.json` remains a logical document inside test.review;
     // its transient work-unit path is never a durable consumer path.
     if (this.phase === "test") normalizedArtifact.coverageArtifact = "test-coverage.json";
+    normalizedArtifact.workerOutput = new ReviewWorkUnitOutputReceipt({
+      digest: sealed.seal.output.digest,
+      byteLength: sealed.seal.output.byteLength,
+      mediaType: sealed.output.mediaType,
+    }).toJSON();
     normalizedArtifact.canonicalEvidence = evidence.toJSON();
     normalizedArtifact.canonicalTarget = {
       treeSha: this.treeSha,
@@ -687,12 +729,24 @@ export class CanonicalReviewPromotion {
     if (this.taskId !== null) result.artifacts.taskId = this.taskId;
     attachCanonicalCommandResultArtifact(result, artifactAttachment);
     attachCanonicalCommandResultPublications(result, [evidencePublication]);
+    Object.defineProperty(result, ATTACHED_REVIEW_WORK_UNIT, {
+      value: this.workUnit,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
     return result;
   }
 }
 
+/** The registry cleans this sealed worker surface only after Store confirmation. */
+export function attachedCanonicalReviewWorkUnit(result) {
+  const value = result?.[ATTACHED_REVIEW_WORK_UNIT] ?? null;
+  return value instanceof ReviewWorkUnit ? value : null;
+}
+
 export function canonicalReviewArtifactFilename(value) {
-  return artifactFilename(phase(value));
+  return reviewOutputFor({ phase: phase(value?.phase), taskId: value?.taskId ?? null }).basename;
 }
 
 export function canonicalReviewNodeId(value = {}) {

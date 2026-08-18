@@ -30,6 +30,7 @@ import {
   ActivityNonBlockingRecord,
   ActivityDispatchApproval,
   CurrentAttempt,
+  CurrentAttemptIdentity,
   CanonicalFlowRuntimeArtifactWrite,
   FlowExecution,
   CurrentFlowSpecRecord,
@@ -52,6 +53,7 @@ import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
+import { captureRetryRecoveryBaseline, retryBaselineArtifact, retryReceiptArtifact, retryEvidenceRouteForNode, RetryRecoveryReceipt } from "./retry-recovery.js";
 
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const TERMINAL_STATUSES = new Set(["done", "skipped"]);
@@ -473,6 +475,27 @@ function retryAttempt(state) {
   }).toJSON();
 }
 
+function exhaustedRecoveryAttempt(state, id = null) {
+  if (state.attempt === null || state.attempt.failure === null) {
+    throw new CurrentFlowStateInvariantError("canonical exhausted recovery requires a failed active Attempt");
+  }
+  const contract = state.definition.contractForNode(state.findNode(state.current.at(-1)));
+  return new CurrentAttempt({
+    id: id ?? activityId(`attempt-${state.attempt.nodeId}`),
+    nodeId: state.attempt.nodeId,
+    sequence: state.attempt.sequence + 1,
+    startedAt: new Date().toISOString(),
+    consumption: {
+      semantic: state.attempt.consumption.semantic,
+      tooling: contract.toolingRetryLimit ?? 0,
+    },
+    failure: null,
+    blocker: null,
+    incomplete: [],
+    operationClaims: state.attempt.operationClaims.map((claim) => claim.toJSON()),
+  }).toJSON();
+}
+
 function nullableString(value, field) {
   if (value == null) return null;
   return requiredText(value, field);
@@ -762,28 +785,34 @@ export class CanonicalFlowManagerStore {
     if (next === null) return state;
     if (next.operation === "resume") return state;
     if (next.operation === "start") {
+      const attempt = commandContextAttempt(state, next.nodeId);
       this.runtime.startAttempt({
         specId: resolved,
         activityId: activityId("attempt-started"),
         nodeId: next.nodeId,
-        attempt: commandContextAttempt(state, next.nodeId),
+        attempt,
+        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
       });
       return this.runtime.load(resolved);
     }
     if (next.operation === "recover") {
+      const attempt = commandContextAttempt(state, next.nodeId);
       this.runtime.recover({
         specId: resolved,
         activityId: activityId("attempt-recovered"),
         nodeId: next.nodeId,
-        attempt: commandContextAttempt(state, next.nodeId),
+        attempt,
+        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
       });
       return this.runtime.load(resolved);
     }
     if (next.operation === "retry") {
+      const attempt = retryAttempt(state);
       this.runtime.retryAttempt({
         specId: resolved,
         activityId: activityId("attempt-retried"),
-        attempt: retryAttempt(state),
+        attempt,
+        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
       });
       return this.runtime.load(resolved);
     }
@@ -1220,10 +1249,48 @@ export class CanonicalFlowManagerStore {
     const specId = this.#resolveSpecId(opts.specId);
     if (specId === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(specId);
+    const attempt = retryAttempt(state);
     return this.runtime.retryAttempt({
       specId,
       activityId: activityId("attempt-retried"),
-      attempt: retryAttempt(state),
+      attempt,
+      artifactWrites: this.#retryBaselineWrites(state, state.current?.at(-1), attempt),
+    });
+  }
+
+  retryExhaustedAttempt({ specId = null, receipt } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const typed = receipt instanceof RetryRecoveryReceipt ? receipt : new RetryRecoveryReceipt(receipt);
+    const state = this.runtime.load(resolved);
+    if (state.current === null || state.attempt?.failure === null) {
+      throw new CurrentFlowStateInvariantError("canonical exhausted recovery requires a failed active Attempt");
+    }
+    const nodeId = state.current.at(-1);
+    const route = retryEvidenceRouteForNode(state, nodeId);
+    if (route === null || !typed.previous.route.equals(route)) {
+      throw new CurrentFlowStateInvariantError("exhausted recovery receipt route does not match the active leaf");
+    }
+    if (
+      typed.previous.attemptId !== state.attempt.id
+      || typed.previous.attempt !== state.attempt.sequence
+      || typed.previous.runId !== state.runId
+      || typed.previous.specId !== state.specId
+      || typed.previous.issue !== (state.issue ?? null)
+      || typed.current.runId !== state.runId
+      || typed.current.specId !== state.specId
+      || typed.current.issue !== (state.issue ?? null)
+      || typed.current.attempt !== state.attempt.sequence + 1
+    ) {
+      throw new CurrentFlowStateInvariantError("exhausted recovery receipt identity does not match the active Attempt and Flow");
+    }
+    const nextAttempt = exhaustedRecoveryAttempt(state, typed.current.attemptId);
+    return this.runtime.retryRecoveryAttempt({
+      specId: resolved,
+      activityId: activityId("attempt-recovered-after-exhaustion"),
+      attempt: nextAttempt,
+      artifactWrites: [retryReceiptArtifact(typed)],
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     });
   }
 
@@ -1882,6 +1949,49 @@ export class CanonicalFlowManagerStore {
     });
   }
 
+  /**
+   * Record a command-bound tooling failure only when the exact Attempt that
+   * started that command is still active.  A producer may have already
+   * confirmed, failed, retried, or replaced that Attempt while lifecycle
+   * hooks were running; in all of those cases this is deliberately a no-op.
+   */
+  failCurrentAttemptIfCurrent({ specId = null, expectedRunId, expectedAttempt, failure, result, commandResult = undefined } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const expected = CurrentAttemptIdentity.from(expectedAttempt);
+    const state = this.runtime.load(resolved);
+    if (expectedRunId !== state.identity.runId.toString()) return false;
+    if (!expected.matches(state)) return false;
+    const nodeId = state.current.at(-1);
+    const now = new Date().toISOString();
+    const failureResult = result ?? {
+      outcome: "failed",
+      summary: requiredText(failure?.message, "canonical failure.message"),
+      confirmedAt: now,
+      artifactRefs: [],
+    };
+    const artifactWrites = commandResult === undefined
+      ? []
+      : [
+          ...this.#attemptHistoryWrites({
+            specId: resolved,
+            state,
+            nodeId,
+            commandResult,
+          }),
+          ...this.#commandPublicationWrites(commandResult),
+        ];
+    const recorded = this.runtime.failAttempt({
+      specId: resolved,
+      activityId: activityId("attempt-tooling-failed"),
+      failure,
+      result: failureResult,
+      artifactWrites,
+      expectedAttempt: expected,
+    });
+    return recorded !== null;
+  }
+
   acceptFinalRegressionFailure({ specId = null, commandResult } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
@@ -2356,6 +2466,20 @@ export class CanonicalFlowManagerStore {
     return canonicalSpecId(entries[0].specId);
   }
 
+  #retryBaselineWrites(state, nodeId, attempt) {
+    const baseline = captureRetryRecoveryBaseline({
+      flowState: this.load(state.specId),
+      flowManager: this,
+      executionRoot: this.root,
+      artifactRoot: this.mainRoot,
+      nodeId,
+      attempt,
+      specPath: this.runtime.location(state.specId).relativeSpecFile,
+    });
+    if (baseline === null) return [];
+    return [retryBaselineArtifact(baseline)];
+  }
+
   #beginExecutableNode(state, specId, nodeId) {
     const next = state.nextAction();
     if (next?.nodeId !== nodeId || !["start", "recover"].includes(next.operation)) {
@@ -2373,6 +2497,7 @@ export class CanonicalFlowManagerStore {
       // recovery leaf.
       attempt: commandContextAttempt(state, nodeId),
     };
+    input.artifactWrites = this.#retryBaselineWrites(state, nodeId, input.attempt);
     return next.operation === "recover"
       ? this.runtime.recover(input)
       : this.runtime.startAttempt(input);

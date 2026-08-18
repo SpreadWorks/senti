@@ -18,7 +18,7 @@ import {
   targetMismatchEnvelopeForInput,
 } from "../../lib/flow-target-guard.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
-import { buildStateRetryRecoveryView } from "./retry-recovery.js";
+import { buildStateRetryRecoveryView, captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { FlowFindingsArtifact } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
@@ -154,10 +154,34 @@ function resolveActiveStepMaxAttempts(state, active) {
   return Number.isSafeInteger(maxAttempts) && maxAttempts >= 1 ? maxAttempts : null;
 }
 
-function buildStatusRetryRecoveryView(root, flowState, input) {
+function buildStatusRetryRecoveryView(root, flowState, input, options = {}) {
+  let baselineAvailable = false;
+  let currentChanged = false;
+  const nodeId = flowState?.attempt?.nodeId ?? null;
+  const route = nodeId === null ? null : retryEvidenceRouteForNode(flowState, nodeId);
+  if (route !== null && options.flowManager) {
+    try {
+      const baseline = readRetryBaseline(options.flowManager, flowState, route);
+      const current = baseline === null ? null : captureRetryRecoveryBaseline({
+        flowState,
+        flowManager: options.flowManager,
+        executionRoot: options.executionRoot || root,
+        artifactRoot: options.artifactRoot || options.flowManager.mainRoot || root,
+        nodeId,
+      });
+      baselineAvailable = baseline !== null;
+      currentChanged = current !== null
+        && ["projectDigest", "runtimeDigest", "targetDigest"].some((field) => current[field] !== baseline[field]);
+    } catch {
+      baselineAvailable = false;
+      currentChanged = false;
+    }
+  }
   return buildStateRetryRecoveryView({
     root,
     flowState,
+    baselineAvailable,
+    currentChanged,
     ...input,
   });
 }
@@ -236,7 +260,7 @@ class CanonicalStatusArtifacts {
   }
 }
 
-function buildStatusGateViews(state, active, root) {
+function buildStatusGateViews(state, active, root, options = {}) {
   if (!active || !active.id.endsWith("-gate")) return null;
   const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
   if (resolvedMaxAttempts == null) return null;
@@ -252,9 +276,23 @@ function buildStatusGateViews(state, active, root) {
     phase: gateRecoveryDisplay.phase,
     attempts: gateRecoveryDisplay.attempts,
     max: gateRecoveryDisplay.max,
-  });
+  }, options);
   const gateStop = retryRecovery?.attempts >= retryRecovery?.max ? retryRecovery : null;
   return { gateStop, retryRecovery };
+}
+
+function buildStatusReviewViews(state, active, root, options = {}) {
+  if (!active || !active.id.endsWith("-review") || state.attempt?.failure == null) return null;
+  const route = retryEvidenceRouteForNode(state, active.id);
+  const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
+  if (route === null || resolvedMaxAttempts == null) return null;
+  const retryRecovery = buildStatusRetryRecoveryView(root, state, {
+    kind: "review",
+    phase: route.phase,
+    attempts: state.attempt?.sequence ?? 0,
+    max: resolvedMaxAttempts,
+  }, options);
+  return retryRecovery === null ? null : { retryRecovery };
 }
 
 function validateRunId(runId) {
@@ -282,15 +320,17 @@ function buildStatusOutput(state, root, options = {}) {
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;
   const reviewAction = null;
-  const gateViews = state.specId ? buildStatusGateViews(state, active, root) : null;
-  const retryRecovery = gateViews?.retryRecovery || null;
+  const gateViews = state.specId ? buildStatusGateViews(state, active, root, options) : null;
+  const reviewViews = state.specId ? buildStatusReviewViews(state, active, root, options) : null;
+  const retryRecovery = reviewViews?.retryRecovery || gateViews?.retryRecovery || null;
   const recoveryDiagnostics = (
     reviewAction
     || retryRecovery
     || gateViews?.gateStop
   ) ? {
       ...(reviewAction && { review: reviewAction }),
-      ...(retryRecovery && { gate: retryRecovery }),
+      ...(reviewViews?.retryRecovery && { review: reviewViews.retryRecovery }),
+      ...(gateViews?.retryRecovery && { gate: gateViews.retryRecovery }),
       ...(gateViews?.gateStop && { gateStopped: true }),
     } : null;
 

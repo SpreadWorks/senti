@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, test } from "node:test";
 
 import SetRetryCommand from "../../../src/flow/lib/set-retry.js";
@@ -30,7 +32,7 @@ function retryFixture({ nodeId = "test-review", failureKind = "semantic" } = {})
       retryKind: failureKind,
     },
   });
-  return { manager, flow };
+  return { manager, flow, root };
 }
 
 function commandInput(flow, values = {}) {
@@ -42,6 +44,8 @@ function commandInput(flow, values = {}) {
     yes: true,
     flowState: flow.manager.load(flow.flow.specId),
     flowManager: flow.manager,
+    root: flow.root,
+    executionRoot: flow.root,
     ...values,
   };
 }
@@ -104,12 +108,48 @@ test("retry reset fails closed after the definition-owned retry budget is exhaus
         retryable: true,
         retryKind: "semantic",
       },
+      commandResult: { artifacts: { targetStateDigest: "b".repeat(64), treeSha: "c".repeat(40) } },
     });
   }
   const before = flow.manager.activityLedger(flow.flow.specId);
 
   assert.equal(result.ok, false);
   assert.equal(result.errors[0].code, "RETRY_NOT_AVAILABLE");
-  assert.match(result.errors[0].messages.join(" "), /does not authorize retry/);
+  assert.match(result.errors[0].messages.join(" "), /tooling failures|changed evidence/);
   assert.deepEqual(flow.manager.activityLedger(flow.flow.specId), before);
+});
+
+test("retry reset records one changed-evidence recovery after exhaustion", () => {
+  const flow = retryFixture({ failureKind: "tooling" });
+  const command = new SetRetryCommand();
+  let result = null;
+  for (let retry = 0; retry < 10; retry += 1) {
+    result = command.execute(commandInput(flow));
+    if (result.ok === false) break;
+    flow.manager.failCurrentAttempt({
+      specId: flow.flow.specId,
+      failure: {
+        category: "provider",
+        code: "REVIEW_PROVIDER_UNAVAILABLE",
+        message: "The retry budget was consumed by the previous canonical Attempt.",
+        retryable: true,
+        retryKind: "tooling",
+      },
+      commandResult: { artifacts: { targetStateDigest: "b".repeat(64), treeSha: "c".repeat(40) } },
+    });
+  }
+  fs.writeFileSync(path.join(flow.root, "retry-recovery-changed.js"), "export const changed = true;\n");
+  assert.equal(result.ok, false);
+  const before = flow.manager.activityLedger(flow.flow.specId).length;
+  const recovered = command.execute(commandInput(flow));
+  assert.equal(recovered.reset, true, JSON.stringify(recovered));
+  assert.equal(recovered.grants[0].operation, "retry_recovery_attempt");
+  assert.equal(flow.manager.activityLedger(flow.flow.specId).length, before + 1);
+  const state = flow.manager.canonicalState(flow.flow.specId);
+  assert.equal(state.failureDisposition(), null);
+  assert.equal(state.attempt.failure, null);
+  assert.equal(flow.manager.activityLedger(flow.flow.specId).at(-1).transition.operation, "retry_recovery_attempt");
+  const replay = command.execute(commandInput(flow));
+  assert.equal(replay.ok, false);
+  assert.match(replay.errors[0].messages.join(" "), /failed active Attempt|retryable|available/);
 });

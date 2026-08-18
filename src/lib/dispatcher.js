@@ -34,6 +34,7 @@ import { guardedCommand } from "../flow/lib/guarded-command.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
 import { FatalPostHookError } from "./post-hook-error.js";
 import { AgentFailure } from "./agent-failure.js";
+import { DefinitionLifecycleAttemptBinding } from "../flow/lib/definition-lifecycle-failure.js";
 
 function attachNonblockingContinuation(envelope, ctx, reason) {
   const state = ctx?.flowState;
@@ -295,6 +296,16 @@ function settleTypedStepOutcome(envelope, result) {
   }
 }
 
+function recordDefinitionLifecycleToolingFailure(binding, error, fallbackCode, writeErr) {
+  if (!(binding instanceof DefinitionLifecycleAttemptBinding)) return false;
+  try {
+    return binding.toolingFailure(error, fallbackCode);
+  } catch (recordingError) {
+    writeErr(`[definition lifecycle failure] ${recordingError.message || recordingError}\n`);
+    return false;
+  }
+}
+
 /**
  * Dispatch a single entry.
  *
@@ -549,6 +560,16 @@ export async function dispatch({
     return;
   }
 
+  // Bind the exact active Attempt before any registry lifecycle hook can
+  // confirm, fail, or replace it.  Error handling below can therefore record
+  // a tooling failure only for this command's original Attempt.
+  const lifecycleAttemptBinding = DefinitionLifecycleAttemptBinding.capture({
+    hookCtx,
+    envelopeType,
+    envelopeKey,
+    registryFailureOwnership: entry.failureOwnership ?? null,
+  });
+
   // 6. pre
   if (entry.pre) {
     try {
@@ -559,6 +580,12 @@ export async function dispatch({
           writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
         }
       }
+      recordDefinitionLifecycleToolingFailure(
+        lifecycleAttemptBinding,
+        err,
+        "PRE_HOOK_FAILED",
+        writeErr,
+      );
       await emitFailure({
         err,
         mode,
@@ -624,23 +651,40 @@ export async function dispatch({
     const deferFinalizeCompletion = !skipPost
       && envelopeKey === "finalize-cleanup"
       && typeof mod.commitFinalizeCleanupPostCommandMetadata === "function";
-    if (skipPost && hookCtx.flowOutboxEntry && entry.onError) {
+    if (skipPost) {
       const failure = new Error(
         result.errors.flatMap((item) => item.messages || []).join("; ") || `${envelopeKey || "command"} failed`,
       );
-      try {
-        await entry.onError(hookCtx, failure);
-      } catch (onErrorErr) {
-        postFailed = true;
-        if (mode === "envelope") envelope.addWarning("ON_ERROR_HOOK_FAILED", onErrorErr.message || String(onErrorErr));
-        else writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
+      failure.code = result.errors.find((item) => item?.level === "fatal")?.code
+        || result.errors[0]?.code
+        || "COMMAND_ENVELOPE_FAILED";
+      if (hookCtx.flowOutboxEntry && entry.onError) {
+        try {
+          await entry.onError(hookCtx, failure);
+        } catch (onErrorErr) {
+          postFailed = true;
+          if (mode === "envelope") envelope.addWarning("ON_ERROR_HOOK_FAILED", onErrorErr.message || String(onErrorErr));
+          else writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
+        }
       }
+      recordDefinitionLifecycleToolingFailure(
+        lifecycleAttemptBinding,
+        failure,
+        "COMMAND_ENVELOPE_FAILED",
+        writeErr,
+      );
     }
     if (entry.post && !skipPost) {
       try {
         await entry.post(hookCtx, result);
       } catch (postErr) {
         postFailed = true;
+        recordDefinitionLifecycleToolingFailure(
+          lifecycleAttemptBinding,
+          postErr,
+          "POST_HOOK_FAILED",
+          writeErr,
+        );
         if (mode === "envelope") {
           if (postErr instanceof FatalPostHookError) {
             envelope.addFatal(postErr.code, postErr.message);
@@ -661,6 +705,12 @@ export async function dispatch({
         await entry.nonblockingPost(hookCtx, result);
       } catch (nonblockingError) {
         postFailed = true;
+        recordDefinitionLifecycleToolingFailure(
+          lifecycleAttemptBinding,
+          nonblockingError,
+          "NONBLOCKING_POST_FAILED",
+          writeErr,
+        );
         if (mode === "envelope") {
           envelope.addWarning("NONBLOCKING_EVIDENCE_RECORD_FAILED", nonblockingError.message || String(nonblockingError));
           envelope.ok = false;
@@ -687,6 +737,12 @@ export async function dispatch({
         });
       } catch (completionError) {
         postFailed = true;
+        recordDefinitionLifecycleToolingFailure(
+          lifecycleAttemptBinding,
+          completionError,
+          "FINALIZE_COMPLETION_COMMIT_FAILED",
+          writeErr,
+        );
         if (mode === "envelope") {
           envelope.addFatal(
             "FINALIZE_COMPLETION_COMMIT_FAILED",
@@ -731,6 +787,12 @@ export async function dispatch({
       writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
     }
   }
+  recordDefinitionLifecycleToolingFailure(
+    lifecycleAttemptBinding,
+    caught,
+    "COMMAND_FAILED",
+    writeErr,
+  );
   await emitFailure({
     err: caught,
     mode,

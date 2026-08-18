@@ -18,7 +18,7 @@ function requireRoot(value, field) {
  * Flow artifacts under the base-side artifact authority.
  */
 export class ReviewTargetAuthority {
-  constructor({ executionRoot, artifactRoot, flowState, flowManager } = {}) {
+  constructor({ executionRoot, artifactRoot, flowState, flowManager, specPath = null } = {}) {
     if (!flowState || typeof flowState !== "object" || Array.isArray(flowState)) {
       throw new Error("review target authority requires flowState");
     }
@@ -27,10 +27,10 @@ export class ReviewTargetAuthority {
     this.flowState = flowState;
     this.flowManager = flowManager;
     const location = flowStateSpecLocation(flowState);
-    if (location === null) {
+    if (location === null && (typeof specPath !== "string" || specPath.trim() === "")) {
       throw new Error("review target authority requires a manager-bound Version location");
     }
-    this.specPath = location.relativeSpecFile;
+    this.specPath = location?.relativeSpecFile ?? specPath;
     Object.freeze(this);
   }
 
