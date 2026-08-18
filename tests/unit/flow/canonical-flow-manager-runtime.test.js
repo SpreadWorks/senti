@@ -1697,16 +1697,15 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const created = manager.createFresh(request("001-canonical-draft-review"));
     manager.addActiveFlow(created.specId, "direct");
     const draft = Buffer.from(`${JSON.stringify({ goal: "Review the draft", qa: [] }, null, 2)}\n`, "utf8");
-    advanceTo(manager, created.specId, "draft-questions-review", {
-      onActive(nodeId) {
-        if (nodeId !== "draft") return;
-        manager.publishArtifacts({
-          specId: created.specId,
-          nodeId,
-          artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
-        });
-      },
+    advanceTo(manager, created.specId, "draft");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draft }],
     });
+    manager.updateStepStatus(
+      { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
 
     let invocation = null;
     const review = new RunReviewCommand({
@@ -2934,20 +2933,19 @@ describe("FlowManager canonical Version-1 runtime", () => {
         classification: "repair_target",
       }],
     };
-    advanceTo(manager, created.specId, "draft-questions-review", {
-      onActive(nodeId) {
-        if (nodeId !== "draft") return;
-        manager.publishArtifacts({
-          specId: created.specId,
-          nodeId,
-          artifactWrites: [{
-            logicalKey: "draft",
-            mediaType: "application/json",
-            bytes: draftBytes,
-          }],
-        });
-      },
+    advanceTo(manager, created.specId, "draft");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      artifactWrites: [{
+        logicalKey: "draft",
+        mediaType: "application/json",
+        bytes: draftBytes,
+      }],
     });
+    manager.updateStepStatus(
+      { stepId: "draft-questions-review", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
     publishAttemptArtifact(manager, created.specId, "draft-questions-review", "draft.questions.review", review);
     manager.updateStepStatus({ stepId: "draft-questions-review", requestedStatus: "done" }, { specId: created.specId });
     manager.updateStepStatus({ stepId: "draft-questions-triage", requestedStatus: "in_progress" }, { specId: created.specId });

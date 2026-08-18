@@ -28,13 +28,14 @@ import {
 import { DraftReviewEvidenceSet } from "./draft-review-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
+import { draftReviewSourceStepIds } from "./draft-review-routes.js";
 import { renderTaskMarkdown } from "../../spec/commands/render.js";
 
 const PHASES = new Set(["draft-questions", "draft-coverage", "spec", "test", "impl"]);
-const DRAFT_REVIEW_SOURCE_STEPS = Object.freeze({
-  "draft-questions": new Set(["draft", "draft-questions-repair"]),
-  "draft-coverage": new Set(["draft-refine", "draft-coverage-repair"]),
-});
+
+function isIsoTimestamp(value) {
+  return typeof value === "string" && value.trim() !== "" && Number.isFinite(Date.parse(value));
+}
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -80,6 +81,44 @@ function phase(value) {
   const resolved = requiredText(value, "canonical review phase");
   if (!PHASES.has(resolved)) throw new Error(`unsupported canonical review phase: ${resolved}`);
   return resolved;
+}
+
+/**
+ * The catalog descriptor is the authoritative association between one
+ * immutable draft payload and its producing Activity.  A V1 worker handoff
+ * writes the payload and confirms the producer Attempt in the same Version
+ * transaction, so that Activity is both publication and finalization proof.
+ */
+class CanonicalDraftSourceProducerActivity {
+  constructor({ descriptor, activity, reviewPhase, allowedSteps } = {}) {
+    if (descriptor === null || typeof descriptor !== "object" || Array.isArray(descriptor)) {
+      throw new Error("canonical draft source requires a catalog descriptor");
+    }
+    if (activity === null || typeof activity !== "object" || Array.isArray(activity)) {
+      throw new Error(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
+    }
+    if (
+      activity.id !== descriptor.activityId
+      || descriptor.logicalKey !== "draft"
+      || activity.type !== "result_confirmed"
+      || activity.transition?.operation !== "confirm_attempt"
+      || activity.transition?.nodeId !== activity.nodeId
+      || activity.transition?.status !== "done"
+      || activity.nodeId !== descriptor.publicationStep
+      || !allowedSteps.has(activity.nodeId)
+      || typeof activity.attemptId !== "string"
+      || activity.attemptId.trim() === ""
+      || !Number.isSafeInteger(activity.sequence)
+      || activity.sequence < 1
+      || activity.result?.outcome !== "passed"
+      || !isIsoTimestamp(activity.result?.confirmedAt)
+    ) {
+      throw new Error(`canonical draft source has no authorized ${reviewPhase} producer Activity`);
+    }
+    this.nodeId = activity.nodeId;
+    this.finalizedAt = activity.result.confirmedAt;
+    Object.freeze(this);
+  }
 }
 
 function nodeIdFor({ phase: reviewPhase, taskId = null }) {
@@ -334,28 +373,26 @@ export class CanonicalDraftReviewSource {
     }
     this.state = state;
     this.phase = phase(reviewPhase);
-    const allowed = DRAFT_REVIEW_SOURCE_STEPS[this.phase];
-    if (!allowed) throw new Error(`canonical draft source is unavailable for ${this.phase}`);
+    const sourceStepIds = draftReviewSourceStepIds(this.phase);
+    if (sourceStepIds === null) throw new Error(`canonical draft source is unavailable for ${this.phase}`);
+    const allowed = new Set(sourceStepIds);
     const resolved = this.flowManager.readArtifact({
       specId: state.specId,
       logicalKey: "draft",
       consumerNodeId: nodeIdFor({ phase: this.phase }),
     });
     const ledger = this.flowManager.activityLedger(state.specId);
-    const publication = ledger.find((candidate) => candidate.id === resolved.descriptor.activityId);
-    const confirmation = publication == null ? null : ledger.find((candidate) => (
-      candidate.nodeId === publication.nodeId
-      && candidate.type === "result_confirmed"
-      && candidate.confirmationOrder > publication.confirmationOrder
-      && candidate.result?.confirmedAt != null
-    ));
-    if (!publication || !allowed.has(publication.nodeId) || confirmation == null) {
-      throw new Error(`canonical draft source has no authorized ${this.phase} producer Activity`);
-    }
+    const publication = ledger.find((candidate) => candidate.id === resolved.descriptor.activityId) ?? null;
+    const producer = new CanonicalDraftSourceProducerActivity({
+      descriptor: resolved.descriptor,
+      activity: publication,
+      reviewPhase: this.phase,
+      allowedSteps: allowed,
+    });
     this.descriptor = resolved.descriptor;
     this.bytes = Buffer.from(resolved.bytes);
-    this.sourceNodeId = publication.nodeId;
-    this.finalizedAt = confirmation.result.confirmedAt;
+    this.sourceNodeId = producer.nodeId;
+    this.finalizedAt = producer.finalizedAt;
     Object.freeze(this);
   }
 

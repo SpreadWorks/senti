@@ -2,13 +2,10 @@ import crypto from "node:crypto";
 import path from "node:path";
 
 import { PRODUCT } from "../../lib/product.js";
+import { draftReviewSourceStepIds } from "./draft-review-routes.js";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const DRAFT_ARTIFACT_VERSION = 1;
-const REVIEW_SOURCE_STEPS = Object.freeze({
-  "draft-questions": new Set(["draft", "draft-questions-repair"]),
-  "draft-coverage": new Set(["draft-refine", "draft-coverage-repair"]),
-});
 
 export const DRAFT_ARTIFACT_FAILURE_MARKER_PREFIX = `${PRODUCT.env("DRAFT_ARTIFACT_FAILURE")} `;
 export const DRAFT_ARTIFACT_WRITER_STEPS = Object.freeze([
@@ -127,8 +124,8 @@ export class DraftArtifactRevision {
   }
 
   assertReviewSource(phase) {
-    const allowedSources = REVIEW_SOURCE_STEPS[phase];
-    if (allowedSources && !allowedSources.has(this.sourceStepId)) {
+    const allowedSources = draftReviewSourceStepIds(phase);
+    if (allowedSources !== null && !allowedSources.includes(this.sourceStepId)) {
       throw new DraftArtifactRecoveryError(
         "DRAFT_REVIEW_REVISION_STALE",
         `${phase} review requires a draft finalized by its immediately preceding draft-writing step`,

@@ -25,6 +25,7 @@ export class DraftReviewRoute {
     triageArtifact,
     repairArtifact,
     passNextStepId,
+    sourceStepIds,
   }) {
     this.key = requireNonEmptyString(key, "key");
     this.label = requireNonEmptyString(label, "label");
@@ -36,6 +37,13 @@ export class DraftReviewRoute {
     this.triageArtifact = requireNonEmptyString(triageArtifact, "triageArtifact");
     this.repairArtifact = requireNonEmptyString(repairArtifact, "repairArtifact");
     this.passNextStepId = requireNonEmptyString(passNextStepId, "passNextStepId");
+    if (!Array.isArray(sourceStepIds) || sourceStepIds.length === 0) {
+      throw new Error("invalid draft review route: sourceStepIds must be a non-empty array");
+    }
+    this.sourceStepIds = Object.freeze(sourceStepIds.map((stepId) => requireNonEmptyString(stepId, "sourceStepIds entry")));
+    if (new Set(this.sourceStepIds).size !== this.sourceStepIds.length) {
+      throw new Error("invalid draft review route: sourceStepIds must be unique");
+    }
     Object.freeze(this);
   }
 }
@@ -52,6 +60,7 @@ export const DRAFT_REVIEW_ROUTES = Object.freeze([
     triageArtifact: "draft-questions-triage.json",
     repairArtifact: "draft-questions-repair.json",
     passNextStepId: "draft-refine",
+    sourceStepIds: ["draft", "draft-questions-repair"],
   }),
   new DraftReviewRoute({
     key: "coverage",
@@ -64,6 +73,7 @@ export const DRAFT_REVIEW_ROUTES = Object.freeze([
     triageArtifact: "draft-coverage-triage.json",
     repairArtifact: "draft-coverage-repair.json",
     passNextStepId: "draft-gate",
+    sourceStepIds: ["draft-refine", "draft-coverage-repair"],
   }),
 ]);
 
@@ -80,6 +90,11 @@ const ROUTE_BY_STEP_ID = new Map(DRAFT_REVIEW_ROUTES.flatMap((route) => [
 
 export function draftReviewRouteForRetryPhase(retryPhase) {
   return ROUTE_BY_RETRY_PHASE.get(retryPhase) || null;
+}
+
+/** Immutable definition-owned draft producers permitted to feed one review phase. */
+export function draftReviewSourceStepIds(retryPhase) {
+  return draftReviewRouteForRetryPhase(retryPhase)?.sourceStepIds ?? null;
 }
 
 export function draftReviewRouteForKey(key) {
