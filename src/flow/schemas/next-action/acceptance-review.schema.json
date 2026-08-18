@@ -8,6 +8,13 @@
     },
     "requirementJudgments": { "type": "array", "items": { "type": "object" } },
     "mechanicalBlockers": { "type": "array", "items": { "type": "object" } },
-    "hardBlockers": { "type": "array", "items": { "type": "object" } }
+    "hardBlockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["findingId"],
+        "properties": { "findingId": { "type": "string", "minLength": 1 } }
+      }
+    }
   }
 }

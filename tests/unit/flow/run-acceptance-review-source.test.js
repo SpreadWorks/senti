@@ -3,6 +3,11 @@ import { test } from "node:test";
 import RunAcceptanceReviewCommand, {
   AcceptanceReviewResponseSource,
 } from "../../../src/flow/lib/run-acceptance-review.js";
+import {
+  AcceptanceRepairFindingSet,
+  deriveAcceptanceReviewVerdict,
+  validateAcceptanceReviewArtifact,
+} from "../../../src/flow/lib/acceptance-review-artifacts.js";
 
 class TestFixtureResponseSource extends AcceptanceReviewResponseSource {
   constructor(response) {
@@ -43,4 +48,42 @@ test("rejects a retired root-artifact acceptance fixture", async () => {
     }),
     /Version-1 Flow/,
   );
+});
+
+test("requires stable hard-blocker identities and binds all repair findings", () => {
+  const hardBlockers = ["DF-1", "DF-2"].map((findingId) => ({ findingId }));
+  const artifact = {
+    version: 2,
+    repairFingerprint: "a".repeat(64),
+    mechanicalBlockers: [],
+    hardBlockers,
+    requirementJudgments: [{
+      requirementId: "R-1",
+      status: "notMet",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R-1"],
+      diffRefs: ["diff:product.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R-1"],
+      missingEvidence: [],
+    }],
+    deferredFindings: [],
+    userDecision: null,
+    verdict: "repair_required",
+  };
+  assert.equal(deriveAcceptanceReviewVerdict(artifact), "repair_required");
+  validateAcceptanceReviewArtifact(artifact, { requirementIds: ["R-1"] });
+  assert.deepEqual(new AcceptanceRepairFindingSet(artifact).toJSON(), [
+    "requirement:R-1",
+    "hard-blocker:DF-1",
+    "hard-blocker:DF-2",
+  ]);
+
+  assert.throws(() => validateAcceptanceReviewArtifact({
+    ...artifact,
+    hardBlockers: [{ findingId: "DF-1" }, {}],
+  }, { requirementIds: ["R-1"] }), /hardBlockers\[1\].findingId|schema validation/);
+  assert.equal(deriveAcceptanceReviewVerdict({ ...artifact, requirementJudgments: [{
+    ...artifact.requirementJudgments[0], status: "met",
+  }] }), "user_decision_required");
 });

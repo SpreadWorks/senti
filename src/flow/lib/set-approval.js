@@ -61,10 +61,10 @@ export default class SetApprovalCommand extends FlowCommand {
     }
 
     const approval = new CanonicalSpecApproval({ confirmedAt, notes });
-    const userApproval = ctx.flowManager.updateSpecApproval({
+    const continuation = ctx.flowManager.approveSpecContinuation({
       specId: ctx.flowState.specId,
       approval,
     });
-    return { user_approval: userApproval };
+    return continuation;
   }
 }

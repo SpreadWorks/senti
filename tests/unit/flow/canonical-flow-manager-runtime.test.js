@@ -42,6 +42,9 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { emptySpecStub } from "../../../src/lib/spec-json.js";
 import {
   WorkerArtifactHandoffCoordinator,
+  WorkerArtifactHandoffRequest,
+  WorkerArtifactMutationAuthoritySnapshot,
+  SourceWorkerEffect,
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import {
@@ -780,6 +783,215 @@ describe("FlowManager canonical Version-1 runtime", () => {
       consumerNodeId: "acceptance-decision",
     }).bytes.toString("utf8"));
     assert.equal(history.attempts[0].artifact.payload.verdict, "repair_required");
+    const transition = manager.activityLedger(created.specId).at(-1);
+    assert.equal(transition.transition.operation, "repair_acceptance_review");
+    assert.equal(transition.nodeId, "acceptance-review");
+    assert.equal(transition.transition.attempt.nodeId, "impl-triage");
+    assert.equal(transition.references.artifacts[0].label, "acceptance.review");
+    const handoff = WorkerArtifactHandoffRequest.create({
+      mainRoot: repository,
+      executionRoot: repository,
+      state,
+      flowManager: manager,
+      invocation: {
+        id: "acceptance-repair-triage-invocation",
+        action: {
+          digest: crypto.createHash("sha256").update("acceptance-repair-triage").digest("hex"),
+          nextAction: { step: "impl-triage", taskId: null },
+        },
+      },
+    });
+    assert.deepEqual(handoff.inputs.map((input) => input.name), ["spec.json", "acceptance-review.json"]);
+    assert.notEqual(handoff.inputDigest, handoff.inputRevision);
+  });
+
+  it("binds every stable acceptance repair finding through sealed triage and journal reload", async () => {
+    const repository = root();
+    const specId = "001-canonical-acceptance-hard-blockers";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({
+        ...emptySpecStub(),
+        requirements: [{ id: "R-1", desc: "Repair all acceptance findings." }],
+        tasks: [],
+      }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "acceptance-review");
+    const ctx = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+    };
+    const hardBlockers = ["DF-acceptance-a", "DF-acceptance-b"].map((findingId) => ({
+      findingId,
+      sourceStep: "impl-review",
+      sourceArtifact: "steps/impl/review/result.json",
+      sourceFindingId: findingId,
+      finalDisposition: "blocking",
+      evidenceRefs: [`steps/impl/review/result.json#${findingId}`],
+    }));
+    const review = {
+      version: 2,
+      repairFingerprint: "a".repeat(64),
+      mechanicalBlockers: [],
+      hardBlockers,
+      requirementJudgments: [{
+        requirementId: "R-1",
+        status: "notMet",
+        requestRefs: ["flow.request"],
+        requirementRefs: ["spec.json#R-1"],
+        diffRefs: ["diff:README.md"],
+        repairRefs: ["acceptance:no-repair"],
+        testRefs: ["test-execute-result.json#R-1"],
+        missingEvidence: [],
+      }],
+      deferredFindings: hardBlockers,
+      userDecision: null,
+      verdict: "repair_required",
+    };
+    await FLOW_COMMANDS.run["acceptance-review"].post(ctx, attachCanonicalCommandResultArtifact({
+      result: "ok",
+      verdict: "repair_required",
+    }, { logicalKey: "acceptance.review", payload: review }));
+
+    const state = manager.load(created.specId);
+    assert.equal(state.currentNodeId, "impl-triage");
+    const coordinator = new WorkerArtifactHandoffCoordinator({
+      now: () => new Date("2026-08-18T00:00:00.000Z"),
+    });
+    const handoff = coordinator.createRequest({
+      ctx,
+      state,
+      invocation: {
+        id: "acceptance-hard-blocker-triage",
+        action: {
+          digest: crypto.createHash("sha256").update("acceptance-hard-blocker-triage").digest("hex"),
+          nextAction: { step: "impl-triage", taskId: null },
+        },
+      },
+    });
+    assert.deepEqual(handoff.inputs.map((input) => input.name), ["spec.json", "acceptance-review.json"]);
+    assert.deepEqual(handoff.inputs[1].document.hardBlockers.map((entry) => entry.findingId), [
+      "DF-acceptance-a", "DF-acceptance-b",
+    ]);
+    const authority = WorkerArtifactMutationAuthoritySnapshot.capture(handoff);
+    const effect = new SourceWorkerEffect({
+      version: 1,
+      stepId: "impl-triage",
+      completionStatus: "done",
+      requirements: [],
+      files: [],
+      issues: [],
+      overview: null,
+      triage: {
+        dispositions: [
+          { findingKey: "requirement:R-1", disposition: "apply", rationale: "The failed requirement needs an implementation repair." },
+          { findingKey: "hard-blocker:DF-acceptance-a", disposition: "apply", rationale: "The first canonical blocker requires repair." },
+          { findingKey: "hard-blocker:DF-acceptance-b", disposition: "apply", rationale: "The second canonical blocker requires repair." },
+        ],
+      },
+      repair: null,
+    });
+    fs.writeFileSync(handoff.payloadPath("effects.json"), `${JSON.stringify(effect.toJSON(), null, 2)}\n`);
+    sealWorkerArtifactHandoff({
+      requestPath: handoff.requestPath,
+      invocationId: handoff.dispatchInvocationId,
+      now: () => new Date("2026-08-18T00:00:01.000Z"),
+    });
+    const reconciliation = coordinator.reconcile({ ctx, request: handoff, mutationAuthority: authority });
+    assert.equal(reconciliation.completed, true);
+
+    const reloadedManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const reloaded = reloadedManager.load(created.specId);
+    assert.equal(reloaded.currentNodeId, "impl-repair");
+    const triage = JSON.parse(reloadedManager.readArtifact({
+      specId: created.specId,
+      logicalKey: "impl.triage",
+      consumerNodeId: "impl-repair",
+    }).bytes.toString("utf8"));
+    assert.deepEqual(triage.dispositions.map((entry) => entry.findingKey), [
+      "requirement:R-1",
+      "hard-blocker:DF-acceptance-a",
+      "hard-blocker:DF-acceptance-b",
+    ]);
+    const route = reloadedManager.activityLedger(created.specId).findLast((activity) => (
+      activity.transition.operation === "repair_acceptance_review"
+    ));
+    assert.ok(route);
+    assert.equal(route.references.artifacts[0].label, "acceptance.review");
+    const triageRoute = reloadedManager.activityLedger(created.specId).findLast((activity) => (
+      activity.transition.operation === "triage_implementation_for_repair"
+    ));
+    assert.ok(triageRoute);
+    assert.equal(triageRoute.nodeId, "impl-triage");
+    assert.equal(triageRoute.transition.attempt.nodeId, "impl-repair");
+    assert.notEqual(triageRoute.attemptId, triageRoute.transition.attempt.id);
+  });
+
+  it("uses fixed dual-identity source triage routes for applying and rejecting findings", () => {
+    for (const scenario of [
+      {
+        disposition: "apply",
+        operation: "triage_implementation_for_repair",
+        target: "impl-repair",
+        repairStatus: "in_progress",
+      },
+      {
+        disposition: "reject",
+        operation: "triage_implementation_no_repair",
+        target: "impl-gate",
+        repairStatus: "skipped",
+      },
+    ]) {
+      const repository = root();
+      const specId = `001-canonical-triage-${scenario.disposition}`;
+      const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      const created = manager.createFresh(request(specId, {
+        specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+      }));
+      manager.addActiveFlow(created.specId, "direct");
+      advanceTo(manager, created.specId, "impl-triage");
+      const handoffDigest = scenario.disposition === "apply" ? "a".repeat(64) : "b".repeat(64);
+      manager.confirmSourceWorkerHandoff({
+        specId: created.specId,
+        effect: new SourceWorkerEffect({
+          version: 1,
+          stepId: "impl-triage",
+          completionStatus: "done",
+          requirements: [], files: [], issues: [], overview: null, repair: null,
+          triage: {
+            dispositions: [{
+              findingKey: "finding-1",
+              disposition: scenario.disposition,
+              rationale: "The canonical triage route has a fixed target.",
+            }],
+          },
+        }),
+        handoffDigest,
+        result: {
+          outcome: "passed",
+          summary: "Worker handoff confirmed for impl-triage.",
+          confirmedAt: "2026-08-18T00:00:00.000Z",
+          artifactRefs: [
+            { kind: "worker-handoff", id: handoffDigest },
+            { kind: "worker-handoff-request", id: "c".repeat(64) },
+          ],
+        },
+      });
+      const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      const state = reloaded.load(created.specId);
+      assert.equal(state.currentNodeId, scenario.target, scenario.disposition);
+      assert.equal(leaves(state.steps).find((entry) => entry.id === "impl-repair").status, scenario.repairStatus);
+      const activity = reloaded.activityLedger(created.specId).at(-1);
+      assert.equal(activity.transition.operation, scenario.operation);
+      assert.equal(activity.nodeId, "impl-triage");
+      assert.equal(activity.transition.attempt.nodeId, scenario.target);
+      assert.notEqual(activity.attemptId, activity.transition.attempt.id);
+    }
   });
 
   it("records an explicit acceptance-risk decision without overwriting review evidence", async () => {
@@ -1696,6 +1908,43 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.deepEqual(handoff.inputs.map((entry) => entry.name), ["spec.json", "test-review.json"]);
     assert.equal(handoff.inputs[1].document.verdict, "REJECTED");
     assert.equal(fs.existsSync(path.join(manager.specLocation(created.specId).directory, "test-review.json")), false);
+  });
+
+  it("records a material impl repair and invalidates to one replacement test-execute Attempt", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-canonical-impl-repair", {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId: "001-canonical-impl-repair" }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "impl-repair");
+    const confirmedAt = "2026-08-13T00:00:00.000Z";
+    manager.confirmSourceWorkerHandoff({
+      specId: created.specId,
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "impl-repair",
+        completionStatus: "done",
+        requirements: [], files: [], issues: [], overview: null, triage: null,
+        repair: { appliedFindingKeys: ["finding-1"], summary: "Applied the reviewed implementation correction." },
+      }),
+      handoffDigest: "a".repeat(64),
+      result: {
+        outcome: "passed", summary: "Worker handoff confirmed for impl-repair.", confirmedAt,
+        artifactRefs: [{ kind: "worker-handoff", id: "a".repeat(64) }, { kind: "worker-handoff-request", id: "b".repeat(64) }],
+      },
+    });
+    const state = manager.load(created.specId);
+    assert.equal(state.currentNodeId, "test-execute");
+    assert.equal(leaves(state.steps).find((entry) => entry.id === "impl-repair").status, "invalidated");
+    assert.equal(leaves(state.steps).find((entry) => entry.id === "test-execute").status, "in_progress");
+    const ledger = manager.activityLedger(created.specId);
+    const activity = ledger.at(-1);
+    assert.equal(activity.transition.operation, "repair_implementation");
+    assert.equal(activity.nodeId, "impl-repair");
+    assert.notEqual(activity.attemptId, activity.transition.attempt.id, "producer and replacement Attempt identities differ");
+    assert.equal(activity.transition.attempt.nodeId, "test-execute");
+    assert.equal(manager.load(created.specId).currentNodeId, "test-execute", "journal reload preserves the replacement Attempt");
   });
 
   it("routes the normal review post-hook through the Version Store result history", async () => {

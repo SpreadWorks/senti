@@ -229,3 +229,25 @@ export function resolveFlowContext(container, options = {}) {
     dispatchInvocationId: dispatchInvocationIdFromEnvironment(),
   };
 }
+
+/**
+ * Build the context consumed by the shared command dispatcher and registry
+ * hooks.  Keeping this beside FlowCommand's resolver prevents in-process
+ * dispatcher execution from drifting from the public `sennel flow` entrypoint.
+ */
+export function buildFlowCommandHookContext(container, entry, input = {}) {
+  const targetInput = entry.specOptionAsTarget === true
+    && input.expectSpec == null
+    && input.spec != null
+    ? { ...input, expectSpec: input.spec }
+    : input;
+  return resolveFlowContext(container, {
+    allowMissingActive: entry.requiresFlow === false,
+    captureTargetResolutionError: true,
+    explicitTargetResolution: entry.explicitTargetResolution === true,
+    mismatchTargetResolution: entry.mismatchTargetResolution === true,
+    positionalRunIdTarget: entry.positionalRunIdTarget === true,
+    preparingRunIdSelection: entry.preparingRunIdSelection !== false,
+    input: targetInput,
+  });
+}

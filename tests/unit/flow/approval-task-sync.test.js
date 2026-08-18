@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { CanonicalSpecTaskSynchronizer, syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
+import { TaskCollection } from "../../../src/spec/lib/render-contract.js";
 
 function taskDocument(id, addedRound = 0) {
   return { id, title: `Task ${id}`, goal: `Complete ${id}.`, parent: null, origin: "plan", added_round: addedRound, status: "pending" };
@@ -47,6 +48,22 @@ describe("approval Task admission (REQ-2, REQ-6)", () => {
     assert.deepEqual(sync.pending().map((task) => [task.id, task.added_round]), [["T-2", 1]]);
     assert.deepEqual(sync.admit().added, ["T-2"]);
     assert.deepEqual(added.map((task) => task.id), ["T-2"]);
+  });
+
+  it("orders approval admission by parent even when the Spec proposal is child-first", () => {
+    const tasks = new TaskCollection([
+      { ...taskDocument("T-child"), parent: "T-parent" },
+      { ...taskDocument("T-parent"), parent: null },
+    ]);
+    assert.deepEqual(tasks.admissionOrder().map((task) => task.id.value), ["T-parent", "T-child"]);
+  });
+
+  it("rejects cyclic Task proposals before approval admission", () => {
+    const tasks = new TaskCollection([
+      { ...taskDocument("T-a"), parent: "T-b" },
+      { ...taskDocument("T-b"), parent: "T-a" },
+    ]);
+    assert.throws(() => tasks.admissionOrder(), /cycle/);
   });
 
   it("reports skipped when no active flow exists", async () => {

@@ -681,7 +681,7 @@ export function resolveLifecyclePlan(input = {}) {
   });
 }
 
-class FlowExecutionCommand {
+export class FlowExecutionCommand {
   constructor(subcommand, ...args) {
     const tokens = [subcommand, ...args];
     if (tokens.some((token) => (
@@ -689,12 +689,18 @@ class FlowExecutionCommand {
     ))) {
       throw new Error("flow execution command tokens must be non-empty strings without whitespace");
     }
+    this.subcommand = subcommand;
+    this.args = Object.freeze([...args]);
     this.tokens = Object.freeze(["sennel", "flow", "run", ...tokens]);
     Object.freeze(this);
   }
 
   toString() {
     return this.tokens.join(" ");
+  }
+
+  runArguments() {
+    return [...this.tokens.slice(3)];
   }
 }
 
@@ -1322,10 +1328,14 @@ export function buildCurrentFlowDefinition() {
   const preimplementationBootstrapSkippable = new Set(["scenario-validity", "test-review"]);
   const existingImplementationCompletion = new Set(["implement"]);
   const finalizationRouteLeaves = new Set(["finalize-sync", "finalize-cleanup"]);
-  const transitionsFor = ({ skippable = false, preimplementationBootstrap = false, existingImplementation = false, finalizationRoute = false, failurePolicy = null } = {}) => [
+  const transitionsFor = ({ skippable = false, triageNoRepair = false, preimplementationBootstrap = false, existingImplementation = false, finalizationRoute = false, failurePolicy = null } = {}) => [
     "pending:in_progress",
     "in_progress:done",
     ...(skippable ? ["in_progress:skipped"] : []),
+    // The impl-repair leaf may be skipped only by the typed all-reject
+    // implementation-triage Activity. It can be pending on the normal
+    // review route or invalidated on the acceptance-repair route.
+    ...(triageNoRepair ? ["pending:skipped", "invalidated:skipped"] : []),
     ...(preimplementationBootstrap ? ["pending:skipped", "in_progress:skipped"] : []),
     ...(existingImplementation ? ["pending:done"] : []),
     // These suffix leaves are skipped/reset only by the typed
@@ -1352,6 +1362,7 @@ export function buildCurrentFlowDefinition() {
     toolingRetryLimit: node.resolveToolingMaxAttempts({ autoApprove: false }),
     transitions: transitionsFor({
       ...node,
+      triageNoRepair: node.id === "impl-repair",
       skippable: node.skippable === true || advisorySkippable.has(node.id),
       preimplementationBootstrap: preimplementationBootstrapSkippable.has(node.id),
       existingImplementation: existingImplementationCompletion.has(node.id),
@@ -1441,6 +1452,20 @@ export function resolveSideEffects({ scope = "flow", stepId }) {
 export function isDefinitionLifecycleOwnedStep({ scope = "flow", stepId }) {
   const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
   return node?.definitionLifecycleOwned === true;
+}
+
+/**
+ * Resolve the definition-owned command for a leaf that mutates canonical Flow
+ * state.  The returned value keeps argv tokenized; callers must never recover
+ * a command by parsing a human-readable instruction string.
+ */
+export function resolveDispatcherOwnedFlowAction({ scope = "flow", stepId }) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  if (node?.definitionLifecycleOwned !== true) return null;
+  return Object.freeze({
+    action: node.action,
+    executionCommand: node.executionCommand,
+  });
 }
 
 export function deriveFlowPrereqs(targetId) {
@@ -1693,4 +1718,4 @@ export function findBranchForLeaf(definition, leafId) {
   return null;
 }
 
-export { FlowExecutionCommand, FlowNode };
+export { FlowNode };

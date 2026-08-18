@@ -32,7 +32,6 @@ import {
 } from "../flow/lib/user-action-prompt.js";
 import { guardedCommand } from "../flow/lib/guarded-command.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
-import { FinalizeCleanupRoute } from "./finalize-cleanup-paths.js";
 import { FatalPostHookError } from "./post-hook-error.js";
 import { AgentFailure } from "./agent-failure.js";
 
@@ -166,23 +165,10 @@ function runtimeLogAllowed(entry, hookCtx) {
   );
 }
 
-function removesManagedWorktree(envelopeKey) {
-  return FinalizeCleanupRoute.fromDispatch({ envelopeKey }).removesManagedWorktree;
-}
-
-function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
+function runtimeLogRoot({ entry, hookCtx, container }) {
   const fallbackRoot = hookCtx.root || container.get("paths").root;
-  if (envelopeKey === "finalize-sync" && hookCtx?.flowManager && hookCtx?.flowState?.worktree) {
-    const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(hookCtx.flowState);
-    return mainRepoPath || fallbackRoot;
-  }
-  if (
-    !removesManagedWorktree(envelopeKey)
-    || !hookCtx?.flowManager
-    || !hookCtx?.flowState?.worktree
-  ) {
-    return fallbackRoot;
-  }
+  if (entry.runtimeLog?.authority !== "main-repository") return fallbackRoot;
+  if (!hookCtx?.flowManager || !hookCtx?.flowState?.worktree) return fallbackRoot;
   const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(hookCtx.flowState);
   return mainRepoPath || fallbackRoot;
 }
@@ -374,7 +360,7 @@ export async function dispatch({
       || !runtimeLogAllowed(entry, hookCtx)
     ) return;
     runtimeLog = RuntimeLogBlockWriter.forDispatch({
-      root: runtimeLogRoot({ envelopeKey, hookCtx, container }),
+      root: runtimeLogRoot({ entry, hookCtx, container }),
       flowId: runtimeLogFlowId(hookCtx),
       runId: runtimeLogRunId(hookCtx),
       envelopeType,

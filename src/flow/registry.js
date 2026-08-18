@@ -1172,6 +1172,7 @@ export const FLOW_COMMANDS = {
       requiresFlow: true,
       explicitTargetResolution: true,
       targetNotFoundAsMismatch: true,
+      runtimeLog: { authority: "main-repository" },
       command: () => import("./lib/run-dispatch.js"),
       args: {
         flags: FLOW_TARGET_GUARD_FLAGS,
@@ -1593,7 +1594,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-sync": {
       helpKey: "flow.run.finalize-sync",
-      runtimeLog: { stepId: "finalize-sync" },
+      runtimeLog: { stepId: "finalize-sync", authority: "main-repository" },
       command: () => import("./lib/run-finalize-sync.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
@@ -1623,7 +1624,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
-      runtimeLog: { stepMetadata: false },
+      runtimeLog: { stepMetadata: false, authority: "main-repository" },
       explicitTargetResolution: true,
       command: () => import("./lib/run-finalize-cleanup.js"),
       args: { flags: withTargetGuardFlags(["--auto-rescue", "--force"]), options: [...FLOW_RUN_OPTIONS] },
@@ -2009,6 +2010,18 @@ export const FLOW_COMMANDS = {
           ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
           return;
         }
+        if (artifact.verdict === "repair_required") {
+          // This is a producer-to-replacement transition, not a generic
+          // completion followed by a rewind: one Activity keeps the
+          // acceptance result, its catalog publication, and the replacement
+          // impl-triage Attempt indivisible for recovery.
+          ctx.flowManager.repairAcceptanceReview({
+            specId: ctx.flowState.specId,
+            commandResult: result,
+          });
+          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
+          return;
+        }
         tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, {
           event: "acceptance-review:post",
           result,
@@ -2026,8 +2039,6 @@ export const FLOW_COMMANDS = {
             stepId: "final-regression",
             requestedStatus: "in_progress",
           }, { specId });
-        } else if (artifact.verdict === "repair_required") {
-          ctx.flowManager.rewindTo("impl-triage", { specId });
         } else if (artifact.verdict === "user_decision_required") {
           ctx.flowManager.updateStepStatus({
             stepId: "acceptance-decision",

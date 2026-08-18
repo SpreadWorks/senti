@@ -12,6 +12,7 @@ import {
   buildInitialTaskSteps,
 } from "../../../src/flow/definition.js";
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
@@ -19,9 +20,13 @@ import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
   WorkerArtifactMutationAuthoritySnapshot,
+  SourceWorkerEffect,
+  workerArtifactHandoffPolicy,
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { CanonicalWorkerSpecPublication, CurrentFlowSpecRecord } from "../../../src/flow/lib/current-flow-state.js";
+import { CanonicalSpecApproval } from "../../../src/flow/lib/canonical-spec-approval.js";
 import { persistAgentInvocationMetric } from "../../../src/lib/agent-invocation-metric.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../../src/lib/process-owned-lock.js";
 import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
@@ -229,6 +234,32 @@ function rewriteSubmission(request, mutate) {
 }
 
 describe("worker artifact handoff", () => {
+  it("accepts only a sealed typed source effect with task overview additions", () => {
+    const effect = SourceWorkerEffect.fromDocument({
+      version: 1,
+      stepId: "task-impl",
+      completionStatus: "done",
+      requirements: [],
+      files: [],
+      issues: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      triage: null,
+      repair: null,
+    }, "task-impl");
+    assert.deepEqual(effect.toJSON().overview, { modules: [], data_flow: [], decisions: [] });
+    assert.throws(() => SourceWorkerEffect.fromDocument({
+      version: 1,
+      stepId: "task-impl",
+      completionStatus: "done",
+      requirements: [],
+      files: [],
+      issues: [],
+      overview: null,
+      triage: null,
+      repair: null,
+    }, "task-impl"), /requires overview/);
+  });
+
   it("defines one complete authority record for all 36 Flow leaves and 3 task leaves", () => {
     const flowLeaves = flattenSteps(buildInitialNestedSteps()).map((step) => step.id);
     const taskLeaves = buildInitialTaskSteps().map((step) => step.id);
@@ -239,6 +270,7 @@ describe("worker artifact handoff", () => {
       [...flowLeaves, ...taskLeaves].sort(),
     );
     for (const entry of FLOW_ARTIFACT_AUTHORITY_MATRIX) {
+      assert.ok(["preparation", "command", "artifact", "source", "user"].includes(entry.category));
       assert.ok(entry.producer);
       assert.ok(entry.writableAuthority);
       assert.ok(entry.consumer);
@@ -246,6 +278,38 @@ describe("worker artifact handoff", () => {
       assert.ok(entry.completionValidator);
       assert.ok(entry.sourceBinding);
       assert.ok(entry.recoveryOwner);
+    }
+    assert.ok(FLOW_ARTIFACT_AUTHORITY_MATRIX.every((entry) => (
+      ["preparation", "command", "artifact", "source", "user"].filter((category) => entry.category === category).length === 1
+    )), "each leaf belongs to exactly one authority category");
+    assert.equal(FLOW_ARTIFACT_AUTHORITY_MATRIX.find((entry) => entry.stepId === "branch").category, "preparation");
+    assert.equal(FLOW_ARTIFACT_AUTHORITY_MATRIX.find((entry) => entry.stepId === "approval").category, "user");
+  });
+
+  it("aligns every source handoff input and parent effect publication with catalog authority", () => {
+    const rows = [
+      { step: "implement", input: ["spec.record"], read: ["spec.record", "file.map", "issue.log"], write: ["spec.record", "file.map", "issue.log"] },
+      { step: "impl-triage", input: ["spec.record", "impl.review", "acceptance.review"], read: ["spec.record"], write: ["impl.triage"] },
+      { step: "impl-repair", input: ["spec.record", "impl.review", "impl.triage"], read: ["spec.record", "file.map", "issue.log"], write: ["impl.repair", "file.map", "issue.log"] },
+      { step: "task-impl", input: [], read: ["spec.record", "file.map", "issue.log"], write: ["spec.record", "file.map", "issue.log"] },
+    ];
+    const logicalByInput = new Map([
+      ["spec.json", "spec.record"], ["impl-review.json", "impl.review"],
+      ["acceptance-review.json", "acceptance.review"], ["impl-triage.json", "impl.triage"],
+    ]);
+    for (const row of rows) {
+      const policy = workerArtifactHandoffPolicy(row.step);
+      assert.equal(policy?.kind, "source");
+      const declaredInputs = new Set(policy.inputContract.allowedSignatures.flatMap((signature) => (
+        signature === "" ? [] : signature.split("\u0000")
+      )).map((input) => logicalByInput.get(input)));
+      for (const logicalKey of row.input) assert.ok(declaredInputs.has(logicalKey), `${row.step} declares ${logicalKey} input`);
+      for (const logicalKey of [...new Set([...row.input, ...row.read])]) {
+        assert.ok(FLOW_ARTIFACT_CONTRACTS.require(logicalKey).ownership.consumers.includes(row.step), `${row.step} may read ${logicalKey}`);
+      }
+      for (const logicalKey of row.write) {
+        assert.ok(FLOW_ARTIFACT_CONTRACTS.require(logicalKey).ownership.updaters.includes(row.step), `${row.step} parent completion may publish ${logicalKey}`);
+      }
     }
   });
 
@@ -470,14 +534,28 @@ describe("worker artifact handoff", () => {
         state: specValue.flowManager.load(),
         invocation: specValue.invocation,
       });
-      fs.writeFileSync(specRequest.payloadPath("spec.json"), json(validSpec()));
+      const proposed = {
+        ...validSpec(),
+        tasks: [{
+          id: "T1", title: "Publish source handoff", goal: "Exercise approval admission.",
+          origin: "plan", added_round: 0, status: "pending",
+        }],
+      };
+      fs.writeFileSync(specRequest.payloadPath("spec.json"), json(proposed));
       seal(specRequest);
       specValue.coordinator.reconcile({ ctx: specValue.ctx, request: specRequest });
       assert.equal(findStepById(specValue.flowManager.load().steps, "spec").status, "done");
       assert.deepEqual(
         JSON.parse(fs.readFileSync(specValue.flowManager.specLocation(specValue.specId).specFile, "utf8")),
-        { ...validSpec(), tasks: [] },
+        proposed,
       );
+      specValue.flow.activate("approval");
+      const approval = specValue.flowManager.approveSpecContinuation({
+        specId: specValue.specId,
+        approval: new CanonicalSpecApproval({ confirmedAt: "2026-08-04T00:00:00.000Z" }),
+      });
+      assert.deepEqual(approval.added, ["T1"]);
+      assert.equal(specValue.flowManager.load(specValue.specId).tasks[0].id, "T1");
     } finally {
       removeTmpDir(specValue.mainRoot);
     }
@@ -506,6 +584,33 @@ describe("worker artifact handoff", () => {
       );
     } finally {
       removeTmpDir(testValue.mainRoot);
+    }
+  });
+
+  it("merges append-only worker Task proposals while rejecting admitted topology changes", () => {
+    const task = {
+      id: "T1", title: "Keep identity", goal: "Keep the approved Task immutable.",
+      origin: "plan", added_round: 0, status: "pending",
+    };
+    const previous = new CurrentFlowSpecRecord({ ...validSpec(), tasks: [task] }, { specId: "500-worker-handoff" });
+    const accepted = new CanonicalWorkerSpecPublication({
+      ...validSpec(),
+      tasks: [
+        { ...task, title: "Corrected title", goal: "Corrected task description." },
+        { id: "T2", title: "New task", goal: "Admit after approval.", origin: "plan", added_round: 1, status: "pending" },
+      ],
+    });
+    const merged = accepted.materialize(previous, { specId: "500-worker-handoff" }).toJSON();
+    assert.deepEqual(merged.tasks.map((entry) => entry.id), ["T1", "T2"]);
+    assert.equal(merged.tasks[0].title, "Corrected title");
+    assert.equal(merged.tasks[0].goal, "Corrected task description.");
+    for (const proposal of [
+      [{ id: "T2", title: "New", goal: "New.", origin: "plan", added_round: 1, status: "pending" }],
+      [{ ...task, added_round: 1 }],
+      [{ id: "T2", title: "New", goal: "New.", origin: "plan", added_round: 1, status: "pending" }, task],
+    ]) {
+      assert.throws(() => new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: proposal })
+        .materialize(previous, { specId: "500-worker-handoff" }), /proposal/);
     }
   });
 

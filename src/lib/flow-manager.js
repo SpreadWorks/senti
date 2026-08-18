@@ -437,6 +437,18 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  confirmSourceWorkerHandoff(input = {}) {
+    return this._store.confirmSourceWorkerHandoff({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  repairAcceptanceReview(input = {}) {
+    return this._store.repairAcceptanceReview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   failCurrentAttempt(input = {}) {
     return this._store.failCurrentAttempt({
       ...input,
@@ -494,6 +506,12 @@ export class FlowManager {
   }
   updateSpecApproval(input = {}) {
     return this._store.updateSpecApproval({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  approveSpecContinuation(input = {}) {
+    return this._store.approveSpecContinuation({
       ...input,
       specId: input.specId ?? this._boundSpecId,
     });

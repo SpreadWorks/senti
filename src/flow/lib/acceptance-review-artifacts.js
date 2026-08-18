@@ -99,8 +99,31 @@ export class AcceptanceEvidenceBindings {
   }
 }
 
+/** Stable, route-bound identities for acceptance-driven implementation repair. */
+export class AcceptanceRepairFindingSet {
+  constructor(artifact = {}) {
+    const judgments = Array.isArray(artifact.requirementJudgments) ? artifact.requirementJudgments : [];
+    const blockers = Array.isArray(artifact.hardBlockers) ? artifact.hardBlockers : [];
+    const requirementKeys = judgments
+      .filter((judgment) => judgment?.status === "notMet")
+      .map((judgment, index) => `requirement:${text(judgment?.requirementId, `acceptance requirement judgment[${index}].requirementId`)}`);
+    const blockerKeys = blockers.map((blocker, index) => (
+      `hard-blocker:${text(blocker?.findingId, `acceptance hardBlockers[${index}].findingId`)}`
+    ));
+    this.keys = Object.freeze([...requirementKeys, ...blockerKeys]);
+    if (new Set(this.keys).size !== this.keys.length) {
+      throw new Error("acceptance repair findings must have unique stable identities");
+    }
+    Object.freeze(this);
+  }
+  toJSON() { return [...this.keys]; }
+}
+
 export function deriveAcceptanceReviewVerdict(artifact = {}) {
   if ((artifact.mechanicalBlockers || []).length) return "blocked";
+  // A failed requirement is repairable even when the same evidence also
+  // contains hard blockers. The dedicated repair route binds both finding
+  // sets; a hard blocker alone remains a user-decision boundary.
   if ((artifact.requirementJudgments || []).some((entry) => entry.status === "notMet")) return "repair_required";
   if ((artifact.requirementJudgments || []).some((entry) => entry.status === "notVerifiable") || (artifact.hardBlockers || []).length) return "user_decision_required";
   return "pass";
@@ -113,6 +136,7 @@ export function validateAcceptanceReviewArtifact(artifact, { requirementIds = nu
   const expected = requirementIds || ids;
   if (new Set(ids).size !== ids.length || ids.length !== expected.length || expected.some((id) => !ids.includes(id))) throw new Error("acceptance requirement judgment coverage is invalid");
   if (artifact.verdict !== deriveAcceptanceReviewVerdict(artifact)) throw new Error("acceptance-review verdict must match derived verdict");
+  new AcceptanceRepairFindingSet(artifact);
   return artifact;
 }
 

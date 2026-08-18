@@ -1519,12 +1519,12 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // owned by its producing step; independent deliverables live in artifacts/.
   contract("flow.state", "flow.json", "flow-state", "repository-metadata", "system", own(["system", "prepare-spec"], ["system", ...NORMAL_FLOW_STEP_ACTORS], NORMAL_FLOW_STEP_ACTORS)),
   contract("flow.activities", "activities.jsonl", "activity-ledger", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], FLOW_WIDE_RECORD_ACTORS, FLOW_WIDE_RECORD_ACTORS)),
-  contract("spec.record", "spec.json", "spec-record", "repository-metadata", "system", own(["prepare-spec", "spec"], ["system", "prepare-spec", "spec", "spec-repair", "approval", "task-impl"], [
+  contract("spec.record", "spec.json", "spec-record", "repository-metadata", "system", own(["prepare-spec", "spec"], ["system", "prepare-spec", "spec", "spec-repair", "approval", "implement", "task-impl"], [
     // The renderer is a Store-backed system consumer. It may regenerate an
     // ephemeral human view but never writes a second Spec authority.
     "system", "draft", "draft-questions-review", "draft-coverage-review", "draft-gate", "spec", "spec-review", "spec-triage",
     "spec-repair", "spec-gate", "approval", "test", "scenario-validity", "test-review", "test-execute",
-    "test-result-review", "implement", "impl-review", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision",
+    "test-result-review", "implement", "impl-review", "impl-triage", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision",
     "final-regression", "report", "finalize-merge", "task-impl", "task-review", "task-gate",
   ])),
   // Issue-log entries are durable facts produced by the active Flow leaf.
@@ -1572,7 +1572,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   contract("impl.gate.source", "steps/impl/gate/source.json", "impl-gate-source", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["impl-gate", "retro"])),
   contract("impl.gate", "steps/impl/gate/result.json", "impl-gate", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["retro", "acceptance-review", "final-regression", "report"])),
   contract("retro", "steps/impl/retro/result.json", "retro", "canonical-flow-artifacts", "retro", own("retro", ["retro"], ["acceptance-review", "report"])),
-  contract("acceptance.review", "steps/acceptance-review/result.json", "acceptance-review", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review"], ["acceptance-decision", "final-regression", "report"])),
+  contract("acceptance.review", "steps/acceptance-review/result.json", "acceptance-review", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review"], ["impl-triage", "acceptance-decision", "final-regression", "report"])),
   contract("acceptance.review.evidence", "steps/acceptance-review/dispositions.json", "acceptance-review-evidence", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review"], ["acceptance-review", "final-regression"])),
   contract("acceptance.decision", "steps/acceptance-decision/result.json", "acceptance-decision", "canonical-flow-artifacts", "acceptance-decision", own("acceptance-decision", ["acceptance-decision"], ["final-regression", "report"])),
   contract("final.regression", "steps/final-regression/result.json", "final-regression", "canonical-flow-artifacts", "final-regression", own("final-regression", ["final-regression"], ["final-regression", "system", "report"])),
@@ -1587,7 +1587,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // namespace.  Workflow ideas retain their own contract and are excluded
   // from this broader source-era pattern below.
   contract("plugin.lifecycle.artifact", "artifacts/plugin-artifacts/:{pluginArtifactPath}", "plugin-lifecycle-artifact", "canonical-flow-artifacts", "system", own("system", ["system"], ["system"]), "permanent", "collection"),
-  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own(["implement", "task-impl"], ["implement", "impl-repair", "task-impl"], ["implement", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report"])),
+  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own(["implement", "task-impl"], ["implement", "impl-repair", "task-impl"], ["implement", "impl-repair", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report"])),
   // upgrade.js is the actual writer; this shared progress evidence is consumed by gates and reporting.
   contract("upgrade.result", "steps/upgrade-result.json", "upgrade-result", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "acceptance-review", "final-regression", "report"])),
   contract("placeholder.permission", "steps/test/permission.json", "placeholder-permission", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "impl-gate"])),

@@ -1,7 +1,4 @@
-   - Read `impl-triage.json` and its referenced source artifact.
-   - Confirm there is exactly one disposition for every source finding and no unknown finding id.
-   - `apply` findings proceed to `impl-repair`; `reject` requires a concrete rationale and evidence reference.
-   - If every implementation-review finding is `reject`, completion records an explicit no-repair path and proceeds to `impl-gate` without fabricating a repair ledger entry.
-   - Acceptance `notMet` findings cannot be rejected; they require `apply` and a fresh repair/retest cycle.
-   - Do not edit flow state or downstream evidence directly.
-   - **On complete:** run `sennel flow set step impl-triage done`.
+   - Read `impl-review.json`; it is the source of findings to classify. Do not read or create `impl-triage.json` directly.
+   - Produce exactly one disposition for each reviewed finding. `apply` proceeds to repair; `reject` needs concrete rationale and evidence. Acceptance `notMet` findings must be `apply`.
+   - Do not edit Flow state, canonical artifacts, or downstream evidence.
+   - Write the typed triage result only in the source handoff `effects.json` payload described by the dispatch contract. Set `requirements`, `files`, and `issues` empty, `overview` and `repair` null, and provide `triage.dispositions`; then run its exact `sealCommand`. The parent validates and publishes the canonical triage artifact.

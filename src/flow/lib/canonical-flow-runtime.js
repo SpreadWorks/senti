@@ -28,6 +28,10 @@ const TYPE_FOR_OPERATION = Object.freeze({
   rewind: "recovery",
   rewind_test_evidence: "recovery",
   repair_test_review: "recovery",
+  repair_implementation: "recovery",
+  triage_implementation_for_repair: "recovery",
+  triage_implementation_no_repair: "recovery",
+  repair_acceptance_review: "recovery",
   preimplementation_bootstrap: "recovery",
   recover_existing_implementation: "recovery",
   reopen_draft_preimplementation: "recovery",
@@ -329,6 +333,66 @@ export class CanonicalFlowRuntime {
       effort,
       usage,
       references,
+    });
+  }
+
+  /** Atomically record a material implementation repair and restart test execution. */
+  repairImplementation({ specId, activityId, attempt, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "impl-repair",
+      operation: "repair_implementation",
+      attempt: requiredAttempt(attempt, "repairImplementation"),
+      result,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      artifactWrites,
+    });
+  }
+
+  triageImplementationNoRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "impl-triage",
+      operation: "triage_implementation_no_repair",
+      attempt: requiredAttempt(attempt, "triageImplementationNoRepair"),
+      result,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      references,
+      artifactWrites,
+    });
+  }
+
+  triageImplementationForRepair({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "impl-triage",
+      operation: "triage_implementation_for_repair",
+      attempt: requiredAttempt(attempt, "triageImplementationForRepair"),
+      result,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      references,
+      artifactWrites,
+    });
+  }
+
+  repairAcceptanceReview({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId, nodeId: "acceptance-review", operation: "repair_acceptance_review",
+      attempt: requiredAttempt(attempt, "repairAcceptanceReview"), result,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 }, references, artifactWrites,
     });
   }
 
@@ -786,10 +850,12 @@ export class CanonicalFlowRuntime {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : null;
-    const activityAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(operation)
+    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"]).has(operation)
+      ? state.attempt
+      : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : state.attempt;
     if (activityAttempt === null) {

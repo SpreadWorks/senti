@@ -33,6 +33,7 @@ import {
   CanonicalFlowRuntimeArtifactWrite,
   FlowExecution,
   CurrentFlowSpecRecord,
+  CanonicalSourceWorkerSpecCompletion,
   CurrentFlowNonBlockingPolicy,
   CurrentFlowState,
   CurrentFlowStateInvariantError,
@@ -49,6 +50,8 @@ import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
+import { TaskCollection } from "../../spec/lib/render-contract.js";
+import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
 
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const TERMINAL_STATUSES = new Set(["done", "skipped"]);
@@ -1083,6 +1086,45 @@ export class CanonicalFlowManagerStore {
     throw new CurrentFlowStateInvariantError(`canonical recovery is unavailable for ${target}`);
   }
 
+  /** Atomically publish repair-required acceptance evidence and reopen impl triage. */
+  repairAcceptanceReview({ specId = null, commandResult } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    if (state.current?.at(-1) !== "acceptance-review") {
+      throw new CurrentFlowStateInvariantError("acceptance repair requires active acceptance-review Attempt");
+    }
+    const attached = attachedCanonicalCommandResultArtifact(commandResult);
+    if (attached?.logicalKey !== "acceptance.review") {
+      throw new CurrentFlowStateInvariantError("acceptance repair requires its canonical acceptance.review result");
+    }
+    const artifactWrites = [
+      ...this.#attemptHistoryWrites({ specId: resolved, state, nodeId: "acceptance-review", commandResult }),
+      ...this.#commandPublicationWrites(commandResult),
+    ];
+    const acceptanceWrite = artifactWrites.find((write) => write.logicalKey === "acceptance.review") ?? null;
+    if (acceptanceWrite === null) {
+      throw new CurrentFlowStateInvariantError("acceptance repair requires a cataloged acceptance.review publication");
+    }
+    // The reference names the exact cataloged bytes, not an unwrapped command
+    // payload.  The worker route later resolves this digest through the
+    // catalog, making the Activity's input binding durable and unforgeable.
+    const acceptanceDigest = crypto.createHash("sha256").update(acceptanceWrite.bytes).digest("hex");
+    return this.runtime.repairAcceptanceReview({
+      specId: resolved,
+      activityId: activityId("acceptance-review-repaired"),
+      attempt: commandContextAttempt(state, "impl-triage"),
+      result: {
+        outcome: "passed",
+        summary: "acceptance review requires implementation repair",
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [{ kind: "acceptance-review", id: acceptanceDigest }],
+      },
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [{ id: acceptanceDigest, label: "acceptance.review" }] },
+      artifactWrites,
+    });
+  }
+
   /**
    * Canonical stale-test-evidence recovery.  The source and target are fixed
    * by the Flow definition, so this is not a generic lifecycle mutation API.
@@ -1319,6 +1361,57 @@ export class CanonicalFlowManagerStore {
       specRecord: new CurrentFlowSpecRecord(next, { specId: resolved }),
     });
     return update.toJSON();
+  }
+
+  /**
+   * Parent-owned approval continuation. Task admission happens while the
+   * approval Attempt remains active; a crash can therefore only replay the
+   * missing additions before the one confirmation that writes approval.
+   */
+  approveSpecContinuation({ specId = null, approval } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const update = approval instanceof CanonicalSpecApproval
+      ? approval
+      : new CanonicalSpecApproval(approval);
+    let state = this.runtime.load(resolved);
+    if (state.current?.at(-1) !== "approval") {
+      throw new CurrentFlowStateInvariantError("canonical Spec approval requires the active approval Attempt");
+    }
+    const source = this.readArtifact({
+      specId: resolved,
+      logicalKey: "spec.record",
+      consumerNodeId: "approval",
+    });
+    const document = JSON.parse(source.bytes.toString("utf8"));
+    const taskContainer = state.findNode(state.definition.dynamicTaskContainerId);
+    const existing = new Set((taskContainer?.steps || []).map((task) => task.id));
+    const added = [];
+    for (const task of new TaskCollection(document.tasks ?? []).admissionOrder()) {
+      if (existing.has(task.id.value)) continue;
+      const { id, parent, ...taskDocument } = task;
+      this.addTask({
+        id: id.value,
+        parent: parent === null ? null : parent.value,
+        ...structuredClone(taskDocument),
+      }, { specId: resolved });
+      existing.add(id.value);
+      added.push(id.value);
+      state = this.runtime.load(resolved);
+    }
+    const approvedDocument = update.apply(document);
+    this.runtime.confirmAttempt({
+      specId: resolved,
+      activityId: activityId("spec-approval-confirmed"),
+      result: {
+        outcome: "passed",
+        summary: "explicit Spec approval confirmed",
+        confirmedAt: update.confirmedAt,
+        artifactRefs: [],
+      },
+      specRecord: new CurrentFlowSpecRecord(approvedDocument, { specId: resolved }),
+    });
+    return Object.freeze({ user_approval: update.toJSON(), added: Object.freeze(added) });
   }
 
   /**
@@ -1624,6 +1717,124 @@ export class CanonicalFlowManagerStore {
       artifactWrites,
       artifactRemovals,
       testSourceBaseline,
+    });
+  }
+
+  /**
+   * Commit a sealed source-worker effect and its Attempt confirmation in one
+   * Version Store transaction. Workers never receive this surface.
+   */
+  confirmSourceWorkerHandoff({ specId = null, effect, handoffDigest, result } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(effect instanceof SourceWorkerEffect)) {
+      throw new CurrentFlowStateInvariantError("canonical source worker effect must be a sealed SourceWorkerEffect");
+    }
+    const state = this.runtime.load(resolved);
+    const nodeId = state.current?.at(-1) ?? null;
+    const effectTargetsActiveNode = nodeId === effect.stepId
+      || (effect.stepId === "task-impl" && taskIdForNode(state, nodeId) !== null && nodeId.endsWith("-impl"));
+    if (!effectTargetsActiveNode) throw new CurrentFlowStateInvariantError("source worker effect does not target the active Attempt");
+    const specSource = this.readArtifact({ specId: resolved, logicalKey: "spec.record", consumerNodeId: nodeId });
+    let spec = JSON.parse(specSource.bytes.toString("utf8"));
+    for (const change of effect.requirements) {
+      spec = new CanonicalRequirementStatusUpdate(change).apply(spec).document;
+    }
+    if (effect.overview !== null) {
+      const taskId = taskIdForNode(state, nodeId);
+      if (taskId === null) throw new CurrentFlowStateInvariantError("source overview effect requires an active Task implementation");
+      spec = new CanonicalOverviewUpdate({ taskId, additions: effect.overview.additions }).applyTo(spec).document;
+    }
+    const artifactWrites = [];
+    if (effect.triage !== null) {
+      artifactWrites.push({
+        logicalKey: "impl.triage",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(effect.triage.toJSON(), null, 2)}\n`, "utf8"),
+      });
+    }
+    if (effect.files.length > 0) {
+      const existing = this.readArtifact({ specId: resolved, logicalKey: "file.map", consumerNodeId: nodeId, optional: true });
+      let fileMap = existing === null ? {} : JSON.parse(existing.bytes.toString("utf8"));
+      for (const change of effect.files) {
+        fileMap = new CanonicalFileMapUpdate({ requirementId: change.requirementId, paths: change.paths })
+          .apply({ spec, fileMap });
+      }
+      artifactWrites.push({ logicalKey: "file.map", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(fileMap, null, 2)}\n`, "utf8") });
+    }
+    if (effect.issues.length > 0) {
+      const existing = this.readArtifact({ specId: resolved, logicalKey: "issue.log", consumerNodeId: nodeId, optional: true });
+      const issues = new IssueLogDocument(existing === null ? { entries: [] } : JSON.parse(existing.bytes.toString("utf8")));
+      effect.issues.forEach((entry, index) => {
+        issues.append({
+          step: nodeId,
+          reason: entry.reason,
+          ...(entry.trigger === null ? {} : { trigger: entry.trigger }),
+          ...(entry.resolution === null ? {} : { resolution: entry.resolution }),
+          taskId: taskIdForNode(state, nodeId),
+          timestamp: result.confirmedAt,
+        }, `source-handoff:${handoffDigest}:${index}`);
+      });
+      artifactWrites.push({ logicalKey: "issue.log", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(issues.toJSON(), null, 2)}\n`, "utf8") });
+    }
+    if (effect.repair !== null) {
+      artifactWrites.push({
+        logicalKey: "impl.repair",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(effect.repair.toJSON(), null, 2)}\n`, "utf8"),
+      });
+      return this.runtime.repairImplementation({
+        specId: resolved,
+        activityId: activityId("impl-repair-invalidated"),
+        attempt: commandContextAttempt(state, "test-execute"),
+        result,
+        references: {
+          evaluations: [],
+          findings: effect.repair.appliedFindingKeys.map((id) => ({ id, label: "impl-repair applied finding" })),
+          repairs: [{ id: handoffDigest, label: "source worker repair handoff" }],
+          artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
+        },
+        artifactWrites,
+      });
+    }
+    if (effect.triage !== null && effect.triage.dispositions.every((entry) => entry.disposition === "reject")) {
+      return this.runtime.triageImplementationNoRepair({
+        specId: resolved,
+        activityId: activityId("impl-triage-no-repair"),
+        attempt: commandContextAttempt(state, "impl-gate"),
+        result,
+        references: {
+          evaluations: [],
+          findings: effect.triage.dispositions.map((entry) => ({ id: entry.findingKey, label: "impl-triage rejected finding" })),
+          repairs: [],
+          artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
+        },
+        artifactWrites,
+      });
+    }
+    if (effect.triage !== null) {
+      return this.runtime.triageImplementationForRepair({
+        specId: resolved,
+        activityId: activityId("impl-triage-repair"),
+        attempt: commandContextAttempt(state, "impl-repair"),
+        result,
+        references: {
+          evaluations: [],
+          findings: effect.triage.dispositions.map((entry) => ({ id: entry.findingKey, label: "impl-triage applying finding" })),
+          repairs: [{ id: handoffDigest, label: "source worker triage handoff" }],
+          artifacts: [{ id: handoffDigest, label: "worker-handoff" }],
+        },
+        artifactWrites,
+      });
+    }
+    const sourceSpecChanged = effect.requirements.length > 0 || effect.overview !== null;
+    this.runtime.confirmAttempt({
+      specId: resolved,
+      activityId: activityId(nodeId === "impl-repair" ? "impl-repair-invalidation-confirmed" : "source-handoff-confirmed"),
+      result,
+      status: effect.completionStatus,
+      ...(sourceSpecChanged ? { specRecord: new CanonicalSourceWorkerSpecCompletion(spec) } : {}),
+      artifactWrites,
     });
   }
 

@@ -317,7 +317,7 @@ When source verification during implementation discovers a contradictory or miss
 When implementation reveals that the spec needs additional tasks:
 - **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
 - Use `sennel flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions for implementation-phase task additions: at least one done task exists and the flow lifecycle is still `active`.
-- After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
+- After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `goal` of existing tasks may be corrected.
 - Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json.tasks[]` remains the task source of truth; the approval scene exposes a guarded read-only `flow get artifact spec.record --mode summary|full` view when needed and never renders a persistent `spec.md`. The approval post-hook admits only the new tasks through typed `addTask` operations; existing tasks keep their status and steps.
 
 ### Command execution discipline
@@ -327,7 +327,8 @@ When implementation reveals that the spec needs additional tasks:
 
 ## Hard Stops
 
-- Do not write code before the approach plan is user-approved.
+- Do not write code before the canonical `approval` leaf has confirmed the Spec. That approval authorizes implementation approaches that remain within the approved requirements, design principles, overview, and decisions.
+- An implementation worker must not open a second in-band approval wait. If implementation exposes a genuinely new user decision outside the approved Spec, preserve the source baseline and return the blocker through the Flow instead of guessing or editing.
 - Do not start `finalize-commit` without its required user confirmation unless the autoApprove exception applies; subsequent finalize leaves follow their `requires_approval` value and hook-managed transitions.
 - Do not bypass a failed gate. Re-fetch the guarded next action and follow its typed retry, defer, decision, or external-block outcome.
 - Do not proceed past a step whose `requires_approval` is `true` without user confirmation unless the autoApprove exception applies.

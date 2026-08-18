@@ -710,7 +710,7 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
-    it("writes finalize cleanup runtime logs outside the managed worktree", async () => {
+    it("writes an outer dispatcher runtime log under main authority when nested cleanup removes its worktree", async () => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-dispatcher-finalize-cleanup-"));
       const mainRoot = path.join(tmp, "main");
       const worktreeRoot = path.join(mainRoot, ".sennel", "worktree", "feature-demo");
@@ -734,18 +734,16 @@ describe("dispatcher (unified runner)", () => {
         class Cmd extends Command {
           static outputMode = "envelope";
           execute() {
+            fs.rmSync(worktreeRoot, { recursive: true, force: true });
             return { status: "done" };
           }
         }
 
         const entry = {
-          command: async () => ({
-            default: Cmd,
-            recordFinalizeCleanupPostCommandMetadata() {},
-          }),
+          command: async () => ({ default: Cmd }),
           args: { options: [] },
           requiresFlow: false,
-          runtimeLog: { stepMetadata: false },
+          runtimeLog: { stepMetadata: false, authority: "main-repository" },
         };
         const out = [];
         await dispatch({
@@ -753,7 +751,7 @@ describe("dispatcher (unified runner)", () => {
           entry,
           argv: [],
           envelopeType: "run",
-          envelopeKey: "finalize-cleanup",
+          envelopeKey: "dispatch",
           runtimeLog: true,
           stdout: (s) => out.push(s),
           buildHookCtx: () => ({

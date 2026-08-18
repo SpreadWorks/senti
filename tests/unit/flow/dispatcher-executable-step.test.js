@@ -3,9 +3,14 @@ import { test } from "node:test";
 
 import {
   buildInitialNestedSteps,
+  collectFlowLeafIds,
+  collectTaskLeafIds,
   deriveNextAction,
   FlowNode,
+  resolveDispatcherOwnedFlowAction,
 } from "../../../src/flow/definition.js";
+import { DispatcherOwnedFlowCommand } from "../../../src/flow/lib/run-dispatch.js";
+import { flowCommands } from "../../../src/lib/command-registry.js";
 import {
   ExecuteStepDirective,
   NextActionDirective,
@@ -106,4 +111,47 @@ test("agent-owned steps do not manufacture a CLI transition", () => {
   });
 
   assert.equal(action.executionCommand, null);
+});
+
+test("dispatcher-owned commands retain tokenized definition arguments", () => {
+  const definition = resolveDispatcherOwnedFlowAction({
+    scope: "flow",
+    stepId: "draft-questions-review",
+  });
+
+  assert.equal(definition.action, "run-review");
+  assert.deepEqual(definition.executionCommand.runArguments(), ["review", "--phase", "draft"]);
+  const command = new DispatcherOwnedFlowCommand({
+    taskId: null,
+    step: "draft-questions-review",
+    action: "run-review",
+  });
+  assert.equal(command.commandName, "review");
+  assert.deepEqual(command.command.runArguments(), ["review", "--phase", "draft"]);
+});
+
+test("dispatcher-owned commands reject a next-action whose semantic action disagrees with its definition", () => {
+  assert.throws(
+    () => new DispatcherOwnedFlowCommand({
+      taskId: null,
+      step: "draft-questions-review",
+      action: "write-draft",
+    }),
+    /action mismatch/,
+  );
+});
+
+test("every definition-owned lifecycle command resolves to one registered Flow run command", () => {
+  for (const [scope, stepIds] of [
+    ["flow", collectFlowLeafIds()],
+    ["task", collectTaskLeafIds()],
+  ]) {
+    for (const stepId of stepIds) {
+      const owned = resolveDispatcherOwnedFlowAction({ scope, stepId });
+      if (owned === null) continue;
+      assert.equal(owned.executionCommand.subcommand.length > 0, true, `${scope}.${stepId} command name`);
+      assert.equal(owned.executionCommand.runArguments()[0], owned.executionCommand.subcommand);
+      assert.equal(typeof flowCommands.run[owned.executionCommand.subcommand]?.command, "function", `${scope}.${stepId} registry command`);
+    }
+  }
 });

@@ -76,6 +76,26 @@ export class TaskCollection {
   [Symbol.iterator]() {
     return this.#entries[Symbol.iterator]();
   }
+
+  /** Parent-before-child admission order while preserving sibling proposal order. */
+  admissionOrder() {
+    const ordered = [];
+    const visited = new Set();
+    const visiting = new Set();
+    const visit = (entry) => {
+      if (visited.has(entry.id.value)) return;
+      if (visiting.has(entry.id.value)) {
+        throw new Error(`Task parent graph contains a cycle at ${entry.id.value}`);
+      }
+      visiting.add(entry.id.value);
+      if (entry.parent !== null) visit(this.#byId.get(entry.parent.value));
+      visiting.delete(entry.id.value);
+      visited.add(entry.id.value);
+      ordered.push(entry);
+    };
+    for (const entry of this.#entries) visit(entry);
+    return Object.freeze(ordered);
+  }
 }
 
 export class TaskOutputPath {

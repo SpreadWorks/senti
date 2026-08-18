@@ -180,10 +180,15 @@ function mergeById(base, additions) {
  * Load all guardrails from preset chain.
  *
  * @param {string} presetKey - Preset name
+ * @param {string} projectRoot - Project/execution root used for enabled plugin discovery
  * @returns {Object[]}
  */
-function loadPresetGuardrails(presetKey) {
-  const chain = resolveChainSafe(presetKey);
+function loadPresetGuardrails(presetKey, projectRoot) {
+  // Presets contributed by enabled plugins are project-scoped.  Guardrails are
+  // loaded for a concrete execution root, so keep that root attached while
+  // resolving the chain; otherwise only the package's builtin `base` preset is
+  // visible and every plugin preset falls back with a misleading warning.
+  const chain = resolveChainSafe(presetKey, projectRoot);
   let guardrails = [];
   for (const preset of chain) {
     const loaded = readGuardrailFile(preset.dir);
@@ -216,7 +221,7 @@ export function loadMergedGuardrails(root) {
   const { presetKey } = resolveGuardrailContext(root);
 
   // 1. Collect guardrails from preset chain
-  let guardrails = loadPresetGuardrails(presetKey);
+  let guardrails = loadPresetGuardrails(presetKey, root);
 
   // 2. Merge guardrails from project (.sennel/guardrail.json)
   const projectPath = path.join(managedDir(root), GUARDRAIL_FILENAME);

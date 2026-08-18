@@ -5,399 +5,432 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
-import { flowArtifactAuthorityForStep } from "../../../src/flow/lib/flow-artifact-authority.js";
-import { findInProgressLeaf, flattenSteps } from "../../../src/flow/lib/step-tree.js";
+import {
+  flowArtifactAuthorityForStep,
+  WORKER_ARTIFACT_HANDOFF_STEPS,
+  WORKER_SOURCE_HANDOFF_STEPS,
+} from "../../../src/flow/lib/flow-artifact-authority.js";
+import { deriveNextAction, findActiveNode } from "../../../src/flow/definition.js";
 import {
   sealWorkerArtifactHandoff,
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
-import { CanonicalWorkerArtifactAddress } from "../../../src/flow/lib/canonical-worker-artifacts.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
 import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import {
-  validWorkerHandoffSpec,
-  workerArtifactJson,
-} from "../../helpers/worker-artifact.js";
+import { validWorkerHandoffSpec, workerArtifactJson } from "../../helpers/worker-artifact.js";
 
-function nextAction(stepId) {
-  if (stepId == null) {
+const TASK_ID = "T1";
+const PREPARATION_LEAVES = new Set(["branch", "prepare-spec"]);
+const USER_DECISION_LEAF = "acceptance-decision";
+
+function plannedTask() {
+  return {
+    id: TASK_ID,
+    title: "Task one",
+    goal: "Exercise task effects.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  };
+}
+
+function sourceEffect(stepId) {
+  const base = {
+    version: 1,
+    stepId,
+    completionStatus: "done",
+    requirements: [],
+    files: [],
+    issues: [],
+    overview: null,
+    triage: null,
+    repair: null,
+  };
+  if (stepId === "implement") {
     return {
-      taskId: null,
-      step: null,
-      action: "completed",
-      instructions: null,
-      context: null,
-      output_schema: null,
-      requires_approval: false,
-      directive: { kind: "completed", terminal: true, requiresUserAction: false },
+      ...base,
+      requirements: [{ reference: "R1", status: "done" }],
+      files: [{ requirementId: "R1", paths: ["src/implementation.js"] }],
     };
   }
-  return {
-    taskId: null,
-    step: stepId,
-    action: `execute-${stepId}`,
-    instructions: { key: `plan.${stepId}`, content: `Execute ${stepId}.` },
-    context: {},
-    output_schema: {},
-    requires_approval: false,
-    maxAttempts: 1,
-    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: `execute-${stepId}` },
-  };
-}
-
-function draftReview(phase, revision) {
-  return {
-    version: 2,
-    phase,
-    sourceDraft: "draft.json",
-    sourceDraftRevision: revision,
-    generatedAt: "2026-08-04T00:00:00.000Z",
-    verdict: "PASS",
-    summary: "No draft findings.",
-    blockingFindings: [],
-    advisoryFindings: [],
-    repairTargets: [],
-  };
-}
-
-function attemptHistoryBytes(nodeId, logicalKey, payload) {
-  return Buffer.from(`${JSON.stringify(new FlowArtifactAttemptHistory([
-    new FlowArtifactAttemptRecord({
-      attempt: 1,
-      payload: {
-        nodeId,
-        outcome: "completed",
-        result: { result: "ok" },
-        artifact: { logicalKey, payload },
-      },
-    }),
-  ]).toJSON(), null, 2)}\n`, "utf8");
-}
-
-function publishAttemptArtifact(flowManager, specId, nodeId, logicalKey, payload) {
-  flowManager.publishArtifacts({
-    specId,
-    nodeId,
-    artifactWrites: [{
-      logicalKey,
-      mediaType: "application/json",
-      bytes: attemptHistoryBytes(nodeId, logicalKey, payload),
-    }],
-  });
-}
-
-function prepareCommandArtifact(stepId, flowManager, specId) {
-  const draftArtifact = ["draft-questions-review", "draft-coverage-review"].includes(stepId)
-    ? flowManager.readArtifact({ specId, logicalKey: "draft", consumerNodeId: stepId })
-    : null;
-  const draftRevision = draftArtifact === null ? null : {
-    version: 1,
-    runId: flowManager.load().runId,
-    specId,
-    sourceStepId: stepId === "draft-coverage-review" ? "draft-refine" : "draft",
-    digest: crypto.createHash("sha256").update(draftArtifact.bytes).digest("hex"),
-    byteLength: draftArtifact.bytes.length,
-    finalizedAt: "2026-08-14T00:00:00.000Z",
-  };
-  if (stepId === "draft-questions-review") {
-    publishAttemptArtifact(
-      flowManager,
-      specId,
-      stepId,
-      "draft.questions.review",
-      draftReview("draft-questions", draftRevision),
-    );
+  if (stepId === "impl-triage") {
+    return {
+      ...base,
+      triage: { dispositions: [{ findingKey: "F1", disposition: "apply", rationale: "The reviewed source change must be applied." }] },
+    };
   }
-  if (stepId === "draft-coverage-review") {
-    publishAttemptArtifact(
-      flowManager,
-      specId,
-      stepId,
-      "draft.coverage.review",
-      draftReview("draft-coverage", draftRevision),
-    );
+  if (stepId === "impl-repair") {
+    return {
+      ...base,
+      files: [{ requirementId: "R1", paths: ["src/repair.js"] }],
+      repair: { appliedFindingKeys: ["F1"], summary: "Applied the reviewed implementation correction." },
+    };
   }
-  if (stepId === "spec-review") {
-    publishAttemptArtifact(flowManager, specId, stepId, "spec.review", {
-      version: 1,
-      phase: "spec",
-      generatedAt: "2026-08-14T00:00:00.000Z",
-      verdict: "REJECTED",
-      blockingFindings: [{ title: "Bind publication", target: "requirements[0]" }],
-      nonBlockingImprovements: [],
-    });
+  if (stepId === "task-impl") {
+    return {
+      ...base,
+      files: [{ requirementId: "R1", paths: ["src/task.js"] }],
+      overview: { modules: ["Task implementation module."], data_flow: [], decisions: [] },
+    };
   }
+  throw new Error(`unexpected source step: ${stepId}`);
 }
 
 function payloadPath(request, logicalName) {
-  return request.payloads.find((entry) => entry.logicalName === logicalName).payloadPath;
+  const payload = request.payloads.find((entry) => entry.logicalName === logicalName);
+  assert.notEqual(payload, undefined, logicalName);
+  return payload.payloadPath;
 }
 
 function inputDocument(request, name) {
   return request.inputs.find((entry) => entry.name === name)?.document ?? null;
 }
 
-function writeHandoffPayload(stepId, request) {
+function writeArtifactPayload(stepId, request) {
   if (["draft", "draft-refine"].includes(stepId)) {
-    const draft = inputDocument(request, "draft.json") ?? { goal: "deterministic full-flow draft" };
-    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson({ ...draft, completedBy: stepId }));
+    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson(inputDocument(request, "draft.json") ?? { goal: "full flow" }));
+    return;
+  }
+  if (stepId === "spec") {
+    fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson({
+      ...validWorkerHandoffSpec(),
+      tasks: [plannedTask()],
+    }));
+    return;
+  }
+  if (stepId === "test") {
+    fs.writeFileSync(path.join(payloadPath(request, "spec-tests"), "full-flow.test.js"), [
+      "// spec: R1",
+      'import test from "node:test";',
+      'test("R1: publishes the validated artifact", () => {});',
+      "",
+    ].join("\n"));
     return;
   }
   if (["draft-questions-triage", "draft-coverage-triage"].includes(stepId)) {
     const prefix = stepId.replace("-triage", "");
     fs.writeFileSync(payloadPath(request, `${stepId}.json`), workerArtifactJson({
-      version: 1,
-      phase: stepId,
+      version: 1, phase: stepId,
       sourceReview: prefix === "draft-questions" ? "draft-review-questions.json" : "draft-review-coverage.json",
-      summary: "No repair required.",
-      items: [],
+      summary: "No repair required.", items: [],
     }));
     return;
   }
   if (["draft-questions-repair", "draft-coverage-repair"].includes(stepId)) {
     const prefix = stepId.replace("-repair", "");
     fs.writeFileSync(payloadPath(request, `${stepId}.json`), workerArtifactJson({
-      version: 1,
-      phase: stepId,
-      sourceTriage: `${prefix}-triage.json`,
-      summary: "No applied repairs.",
-      items: [],
+      version: 1, phase: stepId, sourceTriage: `${prefix}-triage.json`, summary: "No applied repairs.", items: [],
     }));
-    fs.writeFileSync(
-      payloadPath(request, "draft.json"),
-      workerArtifactJson(inputDocument(request, "draft.json")),
-    );
-    return;
-  }
-  if (stepId === "spec") {
-    fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson(validWorkerHandoffSpec()));
+    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson(inputDocument(request, "draft.json")));
     return;
   }
   if (stepId === "spec-triage") {
     fs.writeFileSync(payloadPath(request, "spec-triage.json"), workerArtifactJson({
-      version: 1,
-      phase: "spec-triage",
-      sourceReview: "spec-review.json",
-      summary: "Apply the blocking finding.",
-      items: [{
-        title: "Bind publication",
-        target: "requirements[0]",
-        decision: "apply",
-        rationale: "The finding is valid.",
-        evidence: "The requirement owns canonical publication.",
-      }],
+      version: 1, phase: "spec-triage", sourceReview: "spec-review.json", summary: "Apply the finding.",
+      items: [{ title: "Bind publication", target: "requirements[0]", decision: "apply", rationale: "The finding is valid.", evidence: "The requirement owns publication." }],
     }));
     return;
   }
   if (stepId === "spec-repair") {
     fs.writeFileSync(payloadPath(request, "spec-repair.json"), workerArtifactJson({
-      version: 1,
-      phase: "spec-repair",
-      sourceReview: "spec-triage.json",
-      summary: "Applied the blocking finding.",
-      items: [{
-        title: "Bind publication",
-        target: "requirements[0]",
-        decision: "applied",
-        rationale: "The publication owner is explicit.",
-        evidence: "requirements[0] retains the binding contract.",
-        changedFields: ["requirements[0].desc"],
-      }],
+      version: 1, phase: "spec-repair", sourceReview: "spec-triage.json", summary: "Applied the finding.",
+      items: [{ title: "Bind publication", target: "requirements[0]", decision: "applied", rationale: "The requirement is explicit.", evidence: "Requirement retains publication.", changedFields: ["requirements[0].desc"] }],
     }));
-    fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson(validWorkerHandoffSpec()));
+    const { tasks: _runtimeTasks, ...specDocument } = inputDocument(request, "spec.json");
+    fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson(specDocument));
     return;
   }
-  if (stepId === "test") {
-    fs.writeFileSync(path.join(payloadPath(request, "spec-tests"), "full-flow.test.js"), [
-      "// spec: R1",
-      "import test from \"node:test\";",
-      "test(\"R1: publishes the validated artifact\", () => {});",
-      "",
-    ].join("\n"));
+  const name = `${stepId}.json`;
+  fs.writeFileSync(payloadPath(request, name), workerArtifactJson({ version: 1, phase: stepId, items: [], summary: "Deterministic handoff." }));
+}
+
+function writeSourcePayload(stepId, request, executionRoot) {
+  const changed = {
+    implement: "src/implementation.js",
+    "impl-repair": "src/repair.js",
+    "task-impl": "src/task.js",
+  }[stepId];
+  if (changed) {
+    fs.mkdirSync(path.dirname(path.join(executionRoot, changed)), { recursive: true });
+    fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}\n`);
+  }
+  fs.writeFileSync(payloadPath(request, "effects.json"), workerArtifactJson(sourceEffect(stepId)));
+}
+
+function publishAttemptArtifact(flowManager, specId, nodeId, logicalKey, payload, histories) {
+  const history = histories.get(logicalKey) ?? new FlowArtifactAttemptHistory();
+  const next = history.append(new FlowArtifactAttemptRecord({
+    attempt: history.sequence.next(),
+    payload: { nodeId, outcome: "completed", result: { result: "ok" }, artifact: { logicalKey, payload } },
+  }));
+  histories.set(logicalKey, next);
+  const bytes = Buffer.from(`${JSON.stringify(next.toJSON(), null, 2)}\n`);
+  flowManager.publishArtifacts({ specId, nodeId, artifactWrites: [{ logicalKey, mediaType: "application/json", bytes }] });
+}
+
+function commandArtifacts(stepId, flowManager, specId, implReviewRuns, histories) {
+  if (["draft-questions-review", "draft-coverage-review"].includes(stepId)) {
+    const draft = flowManager.readArtifact({ specId, logicalKey: "draft", consumerNodeId: stepId });
+    const revision = {
+      version: 1, runId: flowManager.load().runId, specId,
+      sourceStepId: stepId === "draft-coverage-review" ? "draft-refine" : "draft",
+      digest: crypto.createHash("sha256").update(draft.bytes).digest("hex"),
+      byteLength: draft.bytes.length, finalizedAt: "2026-08-14T00:00:00.000Z",
+    };
+    publishAttemptArtifact(flowManager, specId, stepId,
+      stepId === "draft-questions-review" ? "draft.questions.review" : "draft.coverage.review", {
+        version: 2,
+        phase: stepId === "draft-questions-review" ? "draft-questions" : "draft-coverage",
+        sourceDraft: "draft.json", sourceDraftRevision: revision,
+        generatedAt: "2026-08-14T00:00:00.000Z", verdict: "PASS", summary: "No findings.",
+        blockingFindings: [], advisoryFindings: [], repairTargets: [],
+      }, histories);
+  }
+  if (stepId === "spec-review") {
+    publishAttemptArtifact(flowManager, specId, stepId, "spec.review", {
+      version: 1, phase: "spec", generatedAt: "2026-08-14T00:00:00.000Z", verdict: "REJECTED",
+      blockingFindings: [{ title: "Bind publication", target: "requirements[0]" }], nonBlockingImprovements: [],
+    }, histories);
+  }
+  if (stepId === "impl-review") {
+    publishAttemptArtifact(flowManager, specId, stepId, "impl.review", implReviewRuns === 1
+      ? { phase: "impl", verdict: "REJECTED", blockingFindings: [{ findingKey: "F1" }], nonBlockingImprovements: [] }
+      : { phase: "impl", verdict: "PASS", blockingFindings: [], nonBlockingImprovements: [] }, histories);
   }
 }
 
-function advanceCommandStep(flowManager, stepId) {
-  const state = flowManager.load();
-  const leaves = flattenSteps(state.steps);
-  const index = leaves.findIndex((step) => step.id === stepId);
-  assert.notEqual(index, -1);
-  flowManager.updateStepStatus({ stepId, requestedStatus: "done" });
-  if (leaves[index + 1]) {
-    flowManager.updateStepStatus({ stepId: leaves[index + 1].id, requestedStatus: "in_progress" });
+function actionFor(route) {
+  const derived = deriveNextAction({ scope: route.taskId === null ? "flow" : "task", stepId: route.stepId });
+  assert.notEqual(derived, null, `${route.taskId ?? "flow"}.${route.stepId}`);
+  if (route.stepId === USER_DECISION_LEAF) {
+    return {
+      taskId: null,
+      step: route.stepId,
+      action: derived.action,
+      instructions: { key: derived.instructionsKey, content: "Await the explicit acceptance decision." },
+      context: {}, output_schema: {}, requires_approval: false,
+      directive: {
+        kind: "await_user_decision", terminal: false, requiresUserAction: true,
+        actionPrompt: {
+          question: "Accept the verified implementation?",
+          choices: [
+            { actionId: "ACCEPT_FLOW", label: "Accept", stateTransition: "accept", impact: { retains: ["validated implementation"] } },
+            { actionId: "REJECT_FLOW", label: "Reject", stateTransition: "reject", impact: { changes: ["implementation"] } },
+          ],
+          recommendedActionId: "ACCEPT_FLOW",
+          recommendationReason: "The deterministic test fixture accepts the verified route.",
+        },
+        reason: "An explicit acceptance decision is required.",
+      },
+    };
   }
-}
-
-function assertCanonicalInputs(request, flowManager) {
-  for (const input of request.inputs) {
-    const canonical = new CanonicalWorkerArtifactAddress(input.name).catalogSnapshot({
-      flowManager,
-      specId: request.specId,
-    });
-    assert.notEqual(canonical, null, input.name);
-    assert.equal(canonical.digest, input.digest, input.targetRelativePath);
-    assert.equal(canonical.byteLength, input.byteLength, input.targetRelativePath);
-  }
-}
-
-function assertPublishedForConsumer(pending, flowManager, consumerStepId) {
-  const authority = flowArtifactAuthorityForStep(pending.stepId);
-  assert.equal(typeof authority.consumer, "string", pending.stepId);
-  assert.equal(typeof consumerStepId, "string", pending.stepId);
-  for (const entry of pending.submission.payloadManifest) {
-    const canonical = new CanonicalWorkerArtifactAddress(entry.targetRelativePath).catalogSnapshot({
-      flowManager,
-      specId: pending.submission.specId,
-    });
-    assert.notEqual(canonical, null, JSON.stringify({
-      producer: pending.stepId,
-      payload: entry.targetRelativePath,
-      currentNodeId: flowManager.load().currentNodeId,
-      catalog: flowManager.artifactCatalog(pending.submission.specId).artifacts.map((artifact) => artifact.relativePath),
-      activities: flowManager.activityLedger(pending.submission.specId).slice(-8).map((activity) => ({
-        type: activity.type,
-        operation: activity.transition?.operation,
-        nodeId: activity.transition?.resourceClaim?.nodeId,
-      })),
-    }, null, 2));
-    if (entry.targetRelativePath === "spec.json") {
-      const specRecord = JSON.parse(flowManager.readArtifact({
-        specId: pending.submission.specId,
-        logicalKey: "spec.record",
-        consumerNodeId: consumerStepId,
-      }).bytes.toString("utf8"));
-      assert.equal(specRecord.goal, "Validate worker handoff publication.");
-      assert.deepEqual(specRecord.requirements.map((requirement) => requirement.id), ["R1"]);
-      continue;
-    }
-    assert.equal(canonical.digest, entry.digest, `${pending.stepId}:${entry.targetRelativePath}`);
-    assert.equal(canonical.byteLength, entry.byteLength, `${pending.stepId}:${entry.targetRelativePath}`);
-  }
+  return {
+    taskId: route.taskId,
+    step: route.stepId,
+    action: derived.action,
+    instructions: { key: derived.instructionsKey, content: `Execute ${route.stepId}.` },
+    context: {}, output_schema: {}, requires_approval: derived.requiresApproval === true,
+    ...(derived.autoApproveChoiceId ? { auto_approval_choice_id: derived.autoApproveChoiceId } : {}),
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: derived.action },
+  };
 }
 
 describe("deterministic full Flow worker handoff", () => {
-  it("dispatches all 36 Flow leaves through finalize-cleanup with parent-owned handoffs", async () => {
-    const mainRoot = createTmpDir("worker-handoff-full-main-");
+  it("routes artifacts and source effects to workers, and commands/approval to the parent", async () => {
+    const temporaryRoot = createTmpDir("worker-handoff-full-");
     try {
-      const executionRoot = path.join(mainRoot, "execution");
+      const mainRoot = path.join(temporaryRoot, "main");
+      const executionRoot = path.join(temporaryRoot, "execution");
+      fs.mkdirSync(mainRoot, { recursive: true });
       fs.mkdirSync(executionRoot, { recursive: true });
+      initGitRepo(executionRoot);
+      fs.writeFileSync(path.join(executionRoot, "README.md"), "fixture\n");
+      commitAll(executionRoot, "fixture baseline");
       const specId = "500-worker-handoff-full-flow";
       const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
       const fixture = new CanonicalFlowFixture({
-        flowManager,
-        specId,
-        runId: "run-worker-handoff-full-flow",
-        request: "Exercise the complete target-bound worker handoff lifecycle.",
-        execution: {
-          mode: "worktree",
-          baseBranch: "main",
-          featureBranch: "feature/worker-handoff-full-flow",
-        },
-        specRecord: { goal: "Exercise the full worker handoff", requirements: [] },
-      }).create().activate("branch");
-      const initial = flowManager.load();
-      const visited = [];
-      const workerFailures = [];
+        flowManager, specId, runId: "run-worker-handoff-full-flow",
+        execution: { mode: "worktree", baseBranch: "main", featureBranch: "feature/worker-handoff-full-flow" },
+      }).create().activate("draft");
+
+      const staticRoute = fixture.leaves().map((step) => step.id).filter((id) => !PREPARATION_LEAVES.has(id));
+      const taskRoute = ["task-impl", "task-review", "task-gate"].map((stepId) => ({ stepId, taskId: TASK_ID }));
+      const implementationIndex = staticRoute.indexOf("implement");
+      const initialImplementation = staticRoute.slice(implementationIndex);
+      const repairIndex = initialImplementation.indexOf("impl-repair");
+      const firstImplGate = initialImplementation.indexOf("impl-gate");
+      const route = [
+        ...staticRoute.slice(0, implementationIndex + 1).map((stepId) => ({ stepId, taskId: null })),
+        ...taskRoute,
+        ...initialImplementation.slice(1, repairIndex + 1).map((stepId) => ({ stepId, taskId: null })),
+        ...["test-execute", "test-result-review", "impl-review", "impl-gate"].map((stepId) => ({ stepId, taskId: null })),
+        ...initialImplementation.slice(firstImplGate + 1).map((stepId) => ({ stepId, taskId: null })),
+      ];
+      let position = 0;
+      const workerSteps = [];
+      const parentCommands = [];
       let handoffCount = 0;
-      let pendingConsumer = null;
+      let implReviewRuns = 0;
+      const commandArtifactHistories = new Map();
       const coordinator = new WorkerArtifactHandoffCoordinator();
+
+      const routeNodeId = (entry) => entry.taskId === null ? entry.stepId : `${entry.taskId}-${entry.stepId.slice("task-".length)}`;
+      const activate = (entry) => {
+        const state = flowManager.load();
+        const nodeId = routeNodeId(entry);
+        if (state.currentNodeId === nodeId) return;
+        if (entry.taskId !== null && entry.stepId === "task-impl") flowManager.startTask(entry.taskId, { specId });
+        else flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId });
+      };
+      const advance = (entry) => {
+        const nodeId = routeNodeId(entry);
+        const active = flowManager.load();
+        const current = active.currentNodeId;
+        if (entry.stepId === "impl-review" && implReviewRuns === 2) {
+          // A passing flow-level implementation review takes the definition's
+          // fixed no-finding route: triage and repair complete without a
+          // worker, then impl-gate becomes the active command leaf.
+          flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "done" }, { specId });
+          flowManager.updateStepStatus({ stepId: "impl-triage", requestedStatus: "done" }, { specId });
+          flowManager.updateStepStatus({ stepId: "impl-repair", requestedStatus: "done" }, { specId });
+          position += 1;
+          if (position < route.length) activate(route[position]);
+          return;
+        }
+        if (current === nodeId) {
+          flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "done" }, { specId });
+        } else {
+          // Worker-handoff confirmation is itself the canonical Attempt
+          // transition, so it has already completed this leaf before the
+          // test advances its deterministic route cursor.
+          assert.notEqual(current, nodeId, `${nodeId} must not remain active after handoff confirmation`);
+        }
+        position += 1;
+        if (position < route.length) activate(route[position]);
+      };
+
       const dispatcher = new RunDispatchCommand({
         nextAction: {
           async run() {
-            let current = flowManager.load();
-            let stepId = findInProgressLeaf(current.steps)?.id ?? null;
-            if (stepId === null) {
-              const pending = flattenSteps(current.steps).find((step) => step.status === "pending") ?? null;
-              if (pending !== null) {
-                flowManager.updateStepStatus({ stepId: pending.id, requestedStatus: "in_progress" });
-                current = flowManager.load();
-                stepId = findInProgressLeaf(current.steps)?.id ?? null;
-              }
+            const entry = route[position];
+            if (!entry) return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false, directive: { kind: "completed", terminal: true, requiresUserAction: false } };
+            const nodeId = routeNodeId(entry);
+            if (flowManager.load().currentNodeId !== nodeId && entry.stepId === "approval") {
+              // The parent continuation already confirmed the approval Attempt.
+              position += 1;
+              activate(route[position]);
+              return actionFor(route[position]);
             }
-            if (pendingConsumer) {
-              assertPublishedForConsumer(pendingConsumer, flowManager, stepId);
-              pendingConsumer = null;
-            }
-            return nextAction(stepId);
+            activate(entry);
+            return actionFor(entry);
           },
         },
         agent: {
           async call(_prompt, options) {
+            const invocation = JSON.parse(options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION);
+            const stepId = invocation.action.step;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            assert.equal(typeof requestPath, "string", `${stepId} must have a sealed handoff request`);
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            if (stepId === "task-impl") {
+              const current = flowManager.load();
+              assert.deepEqual(
+                findActiveNode(current),
+                { scope: "task", taskId: TASK_ID, stepId: "T1-impl" },
+                JSON.stringify({ currentNodeId: current.currentNodeId, currentTaskId: current.currentTaskId }, null, 2),
+              );
+            }
+            workerSteps.push(stepId);
+            handoffCount += 1;
             try {
-              const invocation = JSON.parse(options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION);
-              const stepId = invocation.action.step;
-              visited.push(stepId);
-              const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
-              if (requestPath) {
-                handoffCount += 1;
-                const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
-                assertCanonicalInputs(request, flowManager);
-                writeHandoffPayload(stepId, request);
-                const sealed = sealWorkerArtifactHandoff({
-                  requestPath,
-                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-                });
-                assert.equal(sealed.handoffPath.endsWith("handoff.json"), true);
-              } else {
-                prepareCommandArtifact(stepId, flowManager, specId);
-                advanceCommandStep(flowManager, stepId);
-              }
-              return "deterministic worker report";
+              if (WORKER_SOURCE_HANDOFF_STEPS.includes(stepId)) writeSourcePayload(stepId, request, executionRoot);
+              else writeArtifactPayload(stepId, request);
+              sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
             } catch (error) {
-              workerFailures.push(error?.stack || error?.message || String(error));
-              throw error;
+              throw new Error(`${stepId} worker fixture failed: ${error.message}`, { cause: error });
             }
           },
         },
-        repositoryFingerprint: () => "deterministic-full-flow",
+        commandRunner: async ({ command }) => {
+          const entry = route[position];
+          assert.equal(entry.stepId, command.commandName === "review" ? entry.stepId : entry.stepId);
+          parentCommands.push(entry.stepId);
+          if (entry.stepId === "impl-review") implReviewRuns += 1;
+          commandArtifacts(entry.stepId, flowManager, specId, implReviewRuns, commandArtifactHistories);
+          advance(entry);
+          return command.commandName === "finalize-cleanup"
+            ? { ok: true, data: { status: "done", assurance: { completed: true } }, errors: [] }
+            : { ok: true, data: {}, errors: [] };
+        },
+        repositoryFingerprint: () => `full-flow-${position}`,
         maxDispatches: 64,
         leaseFactory: () => ({ acquire() {}, release() {} }),
         handoffCoordinator: {
-          recoverPending(input) {
-            return coordinator.recoverPending(input);
-          },
-          createRequest(input) {
-            return coordinator.createRequest(input);
-          },
+          recoverPending(input) { return coordinator.recoverPending(input); },
+          createRequest(input) { return coordinator.createRequest(input); },
           reconcile(input) {
-            const submission = JSON.parse(fs.readFileSync(input.request.submissionPath, "utf8"));
             const result = coordinator.reconcile(input);
-            pendingConsumer = {
-              stepId: input.request.stepId,
-              submission,
-            };
+            advance(route[position]);
             return result;
           },
         },
       });
       dispatcher.container = {};
-      const result = await dispatcher.execute({
-        root: executionRoot,
-        executionRoot,
-        mainRoot,
-        specId,
-        flowManager,
-        flowState: flowManager.load(),
-        expectRunId: initial.runId,
-        expectSpec: specId,
-        _envelopeType: "run",
-        _envelopeKey: "dispatch",
-      });
+      const baseCtx = {
+        root: executionRoot, executionRoot, mainRoot, specId, flowManager,
+        flowState: flowManager.load(), expectRunId: "run-worker-handoff-full-flow", expectSpec: specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      };
 
-      const expected = flattenSteps(initial.steps).map((step) => step.id);
-      assert.equal(expected.length, 36);
-      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify({ result, visited, workerFailures }, null, 2));
-      assert.deepEqual(visited, expected);
-      assert.equal(handoffCount, 10);
-      assert.equal(result.dispatch.dispatchCount, 36);
-      assert.equal(flattenSteps(flowManager.load().steps).every((step) => step.status === "done"), true);
+      const beforeApproval = await dispatcher.execute(baseCtx);
+      assert.equal(beforeApproval.dispatch?.boundary, "approval_required", JSON.stringify(beforeApproval, null, 2));
+      assert.equal(workerSteps.includes("approval"), false);
+      const afterApproval = await dispatcher.execute({ ...baseCtx, approve: beforeApproval.dispatch.approvalToken });
+      assert.equal(afterApproval.dispatch?.boundary, "await_user_decision", JSON.stringify({ afterApproval, workerSteps, parentCommands, position }, null, 2));
+      assert.equal(workerSteps.includes(USER_DECISION_LEAF), false);
+      advance(route[position]); // Explicit user decision is outside dispatcher/worker ownership.
+      const beforeFinalize = await dispatcher.execute(baseCtx);
+      assert.equal(beforeFinalize.dispatch?.boundary, "approval_required", JSON.stringify(beforeFinalize));
+      const completed = await dispatcher.execute({ ...baseCtx, approve: beforeFinalize.dispatch.approvalToken });
+
+      const artifactWorkers = workerSteps.filter((stepId) => WORKER_ARTIFACT_HANDOFF_STEPS.includes(stepId));
+      const sourceWorkers = workerSteps.filter((stepId) => WORKER_SOURCE_HANDOFF_STEPS.includes(stepId));
+      assert.equal(completed.dispatch?.boundary, "completed", JSON.stringify(completed));
+      assert.deepEqual(new Set(artifactWorkers), new Set(WORKER_ARTIFACT_HANDOFF_STEPS));
+      assert.deepEqual(new Set(sourceWorkers), new Set(WORKER_SOURCE_HANDOFF_STEPS));
+      assert.equal(handoffCount, WORKER_ARTIFACT_HANDOFF_STEPS.length + WORKER_SOURCE_HANDOFF_STEPS.length);
+      assert.equal(workerSteps.some((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), false);
+      assert.equal(parentCommands.every((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), true);
+      assert.equal(
+        parentCommands.length,
+        route.filter((entry) => flowArtifactAuthorityForStep(entry.stepId)?.category === "command").length,
+        "every command-owned route leaf must execute once, including the repaired implementation cycle",
+      );
+      assert.deepEqual(
+        new Set(parentCommands),
+        new Set(route.filter((entry) => flowArtifactAuthorityForStep(entry.stepId)?.category === "command").map((entry) => entry.stepId)),
+      );
+      assert.equal(parentCommands.includes("branch"), false);
+      assert.equal(parentCommands.includes("prepare-spec"), false);
+      assert.equal(implReviewRuns, 2, "impl-repair must restart the test/review route");
+      assert.equal(position, route.length);
+      assert.equal(
+        beforeApproval.dispatch.dispatchCount
+          + afterApproval.dispatch.dispatchCount
+          + beforeFinalize.dispatch.dispatchCount
+          + completed.dispatch.dispatchCount,
+        handoffCount + parentCommands.length + 1,
+        "dispatch count must include each worker/parent action and the parent Spec-approval continuation, but not user-boundary prompts",
+      );
     } finally {
-      removeTmpDir(mainRoot);
+      removeTmpDir(temporaryRoot);
     }
   });
 });

@@ -10,7 +10,7 @@
 
 import { EXIT_ERROR } from "./lib/constants.js";
 import { container, initContainer } from "./lib/container.js";
-import { resolveFlowContext } from "./flow/lib/flow-context.js";
+import { buildFlowCommandHookContext } from "./flow/lib/flow-context.js";
 import { coreCommandRegistry } from "./lib/command-registry.js";
 import { dispatch } from "./lib/dispatcher.js";
 
@@ -77,24 +77,8 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
       if (typeof resolvedEntry.skipAmbientFlowContext === "function" && resolvedEntry.skipAmbientFlowContext(input) === true) {
         return isolatedArtifactHookContext(c);
       }
-      const targetInput = resolvedEntry.specOptionAsTarget === true
-        && input.expectSpec == null
-        && input.spec != null
-        ? { ...input, expectSpec: input.spec }
-        : input;
       try {
-        return resolveFlowContext(c, {
-          allowMissingActive: resolvedEntry.requiresFlow === false,
-          // Every parsed target guard is an exact authority selection. Resolve
-          // failures are public command outcomes and must reach the shared JSON
-          // envelope boundary instead of escaping while hook context is built.
-          captureTargetResolutionError: true,
-          explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
-          mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
-          positionalRunIdTarget: resolvedEntry.positionalRunIdTarget === true,
-          preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
-          input: targetInput,
-        });
+        return buildFlowCommandHookContext(c, resolvedEntry, input);
       } catch (error) {
         if (group === "get" && envelopeKey === "artifact") {
           return isolatedArtifactHookContext(c, artifactContextReadFailure(error));

@@ -14,6 +14,7 @@ import {
 import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
 import { findActiveNode, getFlowNode } from "../definition.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
@@ -21,7 +22,10 @@ import {
   validateSpecRepairDocument,
   validateSpecTriageDocument,
 } from "./spec-review-artifacts.js";
-import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
+import {
+  requiresWorkerArtifactHandoff,
+  requiresWorkerSourceHandoff,
+} from "./flow-artifact-authority.js";
 import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
 import { canonicalTestReviewRepairForTarget } from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
@@ -35,6 +39,8 @@ import {
   CanonicalDraftReviewHandoffEvidence,
 } from "./canonical-review-artifacts.js";
 import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime-artifacts.js";
+import { validateAdditions } from "./overview-merge.js";
+import { AcceptanceRepairFindingSet } from "./acceptance-review-artifacts.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
@@ -262,7 +268,7 @@ export class WorkerArtifactPayloadRule {
 }
 
 export class WorkerArtifactInputContract {
-  constructor({ stepId, inputs, repairInputs = {}, testReviewRepairInputs = [] }) {
+  constructor({ stepId, inputs, repairInputs = {}, testReviewRepairInputs = [], acceptanceRepairInputs = [] }) {
     this.stepId = requiredString(stepId, "worker artifact input contract stepId");
     this.inputs = Object.freeze(
       inputs.map((entry) => normalizedRelativePath(entry, `${this.stepId}.input`)),
@@ -284,10 +290,17 @@ export class WorkerArtifactInputContract {
     if (this.testReviewRepairInputs.length > 0 && this.stepId !== "test") {
       throw new Error("test-review repair inputs may only belong to the test handoff");
     }
+    this.acceptanceRepairInputs = Object.freeze(acceptanceRepairInputs.map((entry) => (
+      normalizedRelativePath(entry, `${this.stepId}.acceptanceRepair.input`)
+    )));
+    if (this.acceptanceRepairInputs.length > 0 && this.stepId !== "impl-triage") {
+      throw new Error("acceptance repair inputs may only belong to the implementation triage handoff");
+    }
     this.allowedSignatures = Object.freeze([
       this.inputs,
       ...Object.values(variants),
       ...(this.testReviewRepairInputs.length > 0 ? [this.testReviewRepairInputs] : []),
+      ...(this.acceptanceRepairInputs.length > 0 ? [this.acceptanceRepairInputs] : []),
     ].map((paths) => paths.join("\u0000")));
     if (new Set(this.allowedSignatures).size !== this.allowedSignatures.length) {
       throw new Error(`duplicate worker artifact input contract for ${this.stepId}`);
@@ -295,7 +308,8 @@ export class WorkerArtifactInputContract {
     Object.freeze(this);
   }
 
-  resolve({ planGateRepair = null, testReviewRepair = null } = {}) {
+  resolve({ planGateRepair = null, testReviewRepair = null, acceptanceRepairRoute = null } = {}) {
+    if (acceptanceRepairRoute !== null) return this.acceptanceRepairInputs;
     if (testReviewRepair) return this.testReviewRepairInputs;
     return planGateRepair ? (this.repairInputs[planGateRepair.phase] || this.inputs) : this.inputs;
   }
@@ -315,18 +329,26 @@ export class WorkerArtifactHandoffPolicy {
     inputs,
     repairInputs = {},
     testReviewRepairInputs = [],
+    acceptanceRepairInputs = [],
     payloads,
     revisionKind = null,
+    kind = "artifact",
   }) {
     this.stepId = requiredString(stepId, "worker artifact policy stepId");
-    if (!requiresWorkerArtifactHandoff(this.stepId)) {
+    if (!new Set(["artifact", "source"]).has(kind)) throw new Error(`invalid worker handoff kind: ${kind}`);
+    if (kind === "artifact" && !requiresWorkerArtifactHandoff(this.stepId)) {
       throw new Error(`worker artifact policy is not declared by the authority matrix: ${this.stepId}`);
     }
+    if (kind === "source" && !requiresWorkerSourceHandoff(this.stepId)) {
+      throw new Error(`worker source policy is not declared by the authority matrix: ${this.stepId}`);
+    }
+    this.kind = kind;
     this.inputContract = new WorkerArtifactInputContract({
       stepId: this.stepId,
       inputs,
       repairInputs,
       testReviewRepairInputs,
+      acceptanceRepairInputs,
     });
     this.inputs = this.inputContract.inputs;
     this.payloads = Object.freeze(payloads.map((entry) => (
@@ -413,6 +435,31 @@ const POLICIES = Object.freeze([
     payloads: [{ logicalName: "spec-tests", kind: "tree", targetRelativePath: "tests" }],
     revisionKind: "test",
   }),
+  new WorkerArtifactHandoffPolicy({
+    stepId: "implement",
+    inputs: ["spec.json"],
+    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    kind: "source",
+  }),
+  new WorkerArtifactHandoffPolicy({
+    stepId: "impl-triage",
+    inputs: ["spec.json", "impl-review.json"],
+    acceptanceRepairInputs: ["spec.json", "acceptance-review.json"],
+    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    kind: "source",
+  }),
+  new WorkerArtifactHandoffPolicy({
+    stepId: "impl-repair",
+    inputs: ["spec.json", "impl-review.json", "impl-triage.json"],
+    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    kind: "source",
+  }),
+  new WorkerArtifactHandoffPolicy({
+    stepId: "task-impl",
+    inputs: [],
+    payloads: [{ logicalName: "effects.json", targetRelativePath: "effects.json" }],
+    kind: "source",
+  }),
 ]);
 
 const POLICY_BY_STEP = new Map(POLICIES.map((policy) => [policy.stepId, policy]));
@@ -444,6 +491,168 @@ export class WorkerArtifactInputSnapshot {
       digest: this.digest,
       byteLength: this.byteLength,
       document: structuredClone(this.document),
+    };
+  }
+}
+
+/**
+ * The only worker-to-parent control surface for a source-producing leaf.
+ * Source edits stay in the execution checkout; this sealed document merely
+ * declares the catalog effects the parent may commit with completion.
+ */
+export class SourceRequirementEffect {
+  constructor({ reference, status } = {}) {
+    this.reference = requiredString(reference, "source worker requirement reference");
+    this.status = requiredString(status, "source worker requirement status");
+    if (this.status !== "done") throw new Error("source worker requirement status must be done");
+    Object.freeze(this);
+  }
+  toJSON() { return { reference: this.reference, status: this.status }; }
+}
+
+export class SourceFileEffect {
+  constructor({ requirementId, paths } = {}) {
+    this.requirementId = requiredString(requirementId, "source worker file requirementId");
+    if (!Array.isArray(paths) || paths.length === 0 || paths.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source worker file paths must be a bounded non-empty array");
+    }
+    this.paths = Object.freeze(paths.map((candidate) => normalizedRelativePath(candidate, "source worker file path")));
+    Object.freeze(this);
+  }
+  toJSON() { return { requirementId: this.requirementId, paths: [...this.paths] }; }
+}
+
+export class SourceIssueEffect {
+  constructor({ reason, trigger = null, resolution = null } = {}) {
+    this.reason = requiredString(reason, "source worker issue reason");
+    if (this.reason.length < 20) throw new Error("source worker issue reason must be at least 20 characters");
+    for (const [name, value] of [["trigger", trigger], ["resolution", resolution]]) {
+      if (value !== null && (typeof value !== "string" || value.trim().length < 10)) {
+        throw new Error(`source worker issue ${name} must be null or at least 10 characters`);
+      }
+    }
+    this.trigger = trigger;
+    this.resolution = resolution;
+    Object.freeze(this);
+  }
+  toJSON() { return { reason: this.reason, trigger: this.trigger, resolution: this.resolution }; }
+}
+
+export class SourceOverviewEffect {
+  constructor(additions) {
+    const errors = validateAdditions(additions);
+    if (errors.length > 0) throw new Error(`invalid source worker overview additions: ${errors.join("; ")}`);
+    this.additions = Object.freeze({
+      modules: Object.freeze([...additions.modules]),
+      data_flow: Object.freeze([...additions.data_flow]),
+      decisions: Object.freeze([...additions.decisions]),
+    });
+    Object.freeze(this);
+  }
+  toJSON() { return { ...this.additions, modules: [...this.additions.modules], data_flow: [...this.additions.data_flow], decisions: [...this.additions.decisions] }; }
+}
+
+export class SourceTriageDisposition {
+  constructor({ findingKey, disposition, rationale } = {}) {
+    this.findingKey = requiredString(findingKey, "source triage findingKey");
+    this.disposition = requiredString(disposition, "source triage disposition");
+    if (!new Set(["apply", "reject"]).has(this.disposition)) throw new Error("source triage disposition is invalid");
+    this.rationale = requiredString(rationale, "source triage rationale");
+    if (this.rationale.length < 10) throw new Error("source triage rationale must be at least 10 characters");
+    Object.freeze(this);
+  }
+  toJSON() { return { findingKey: this.findingKey, disposition: this.disposition, rationale: this.rationale }; }
+}
+
+export class SourceTriageEffect {
+  constructor({ dispositions } = {}) {
+    if (!Array.isArray(dispositions) || dispositions.length > MAX_PAYLOAD_FILES) throw new Error("source triage dispositions are invalid");
+    this.dispositions = Object.freeze(dispositions.map((entry) => {
+      exactObjectKeys(entry, ["findingKey", "disposition", "rationale"], "source triage disposition");
+      return new SourceTriageDisposition(entry);
+    }));
+    if (new Set(this.dispositions.map((entry) => entry.findingKey)).size !== this.dispositions.length) {
+      throw new Error("source triage dispositions must not duplicate findingKey");
+    }
+    Object.freeze(this);
+  }
+  toJSON() { return { version: 1, dispositions: this.dispositions.map((entry) => entry.toJSON()) }; }
+}
+
+export class SourceRepairEffect {
+  constructor({ appliedFindingKeys, summary } = {}) {
+    if (!Array.isArray(appliedFindingKeys) || appliedFindingKeys.length === 0 || appliedFindingKeys.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source repair appliedFindingKeys are invalid");
+    }
+    this.appliedFindingKeys = Object.freeze(appliedFindingKeys.map((value) => requiredString(value, "source repair findingKey")));
+    if (new Set(this.appliedFindingKeys).size !== this.appliedFindingKeys.length) throw new Error("source repair findings must not duplicate");
+    this.summary = requiredString(summary, "source repair summary");
+    if (this.summary.length < 10) throw new Error("source repair summary must be at least 10 characters");
+    Object.freeze(this);
+  }
+  toJSON() { return { version: 1, appliedFindingKeys: [...this.appliedFindingKeys], summary: this.summary }; }
+}
+
+export class SourceWorkerEffect {
+  constructor({ version, stepId, completionStatus, requirements = [], files = [], issues = [], overview = null, triage = null, repair = null } = {}) {
+    if (version !== 1) throw new Error("source worker effect version must be 1");
+    this.version = 1;
+    this.stepId = requiredString(stepId, "source worker effect stepId");
+    if (!requiresWorkerSourceHandoff(this.stepId)) throw new Error(`source worker effect step is not source-owned: ${this.stepId}`);
+    this.completionStatus = requiredString(completionStatus, "source worker completionStatus");
+    if (!new Set(["done", "skipped"]).has(this.completionStatus)) throw new Error("source worker completionStatus is invalid");
+    if (this.completionStatus === "skipped" && this.stepId !== "implement") {
+      throw new Error("only implement may report a skipped source completion");
+    }
+    if (!Array.isArray(requirements) || !Array.isArray(files) || !Array.isArray(issues)) {
+      throw new Error("source worker effect collections must be arrays");
+    }
+    this.requirements = Object.freeze(requirements.map((entry) => {
+      exactObjectKeys(entry, ["reference", "status"], "source worker requirement effect");
+      return new SourceRequirementEffect(entry);
+    }));
+    this.files = Object.freeze(files.map((entry) => {
+      exactObjectKeys(entry, ["requirementId", "paths"], "source worker file effect");
+      return new SourceFileEffect(entry);
+    }));
+    this.issues = Object.freeze(issues.map((entry) => {
+      exactObjectKeys(entry, ["reason", "trigger", "resolution"], "source worker issue effect");
+      return new SourceIssueEffect(entry);
+    }));
+    if (this.stepId === "task-impl" && overview === null) throw new Error("task-impl source effect requires overview additions");
+    if (this.stepId !== "task-impl" && overview !== null) throw new Error("only task-impl may submit overview additions");
+    this.overview = overview === null ? null : new SourceOverviewEffect(overview);
+    if ((this.stepId === "impl-triage") !== (triage !== null)) throw new Error("source triage effect is required only for impl-triage");
+    if ((this.stepId === "impl-repair") !== (repair !== null)) throw new Error("source repair effect is required only for impl-repair");
+    this.triage = triage === null ? null : new SourceTriageEffect(triage);
+    this.repair = repair === null ? null : new SourceRepairEffect(repair);
+    if (this.stepId === "impl-triage" && (this.requirements.length > 0 || this.files.length > 0 || this.issues.length > 0 || this.overview !== null || this.repair !== null)) {
+      throw new Error("impl-triage source effect may contain only typed triage dispositions");
+    }
+    if (this.stepId === "impl-repair" && (this.requirements.length > 0 || this.overview !== null || this.triage !== null)) {
+      throw new Error("impl-repair source effect may contain source files, issues, and one typed repair only");
+    }
+    Object.freeze(this);
+  }
+
+  static fromDocument(value, expectedStepId) {
+    exactObjectKeys(value, ["version", "stepId", "completionStatus", "requirements", "files", "issues", "overview", "triage", "repair"], "source worker effect");
+    const effect = new SourceWorkerEffect(value);
+    if (effect.stepId !== expectedStepId) throw new Error("source worker effect step does not match the handoff");
+    return effect;
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      stepId: this.stepId,
+      completionStatus: this.completionStatus,
+      requirements: this.requirements.map((entry) => entry.toJSON()),
+      files: this.files.map((entry) => entry.toJSON()),
+      issues: this.issues.map((entry) => entry.toJSON()),
+      overview: this.overview?.toJSON() ?? null,
+      triage: this.triage?.toJSON() ?? null,
+      repair: this.repair?.toJSON() ?? null,
     };
   }
 }
@@ -639,6 +848,7 @@ function canonicalIssueSnapshotText({ flowManager, state }) {
 }
 
 function canonicalPayloadBaseline({ flowManager, state, rule }) {
+  if (rule.logicalName === "effects.json") return null;
   if (rule.kind === "tree") {
     const snapshot = CanonicalWorkerTestTree.catalogSnapshot({ flowManager, specId: state.specId });
     return Object.freeze({
@@ -1039,7 +1249,12 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     }
   }
 
+
   changedPaths(current) {
+    return this.allChangedPaths(current).slice(0, 20);
+  }
+
+  allChangedPaths(current) {
     const changed = [];
     if (this.head !== current.head) changed.push("<HEAD>");
     if (this.indexDigest !== current.indexDigest) changed.push("<index>");
@@ -1048,14 +1263,15 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     for (const relativePath of new Set([...before.keys(), ...after.keys()])) {
       if (before.get(relativePath) !== after.get(relativePath)) changed.push(relativePath);
     }
-    return changed.slice(0, 20);
+    return changed;
   }
 }
 
 export class WorkerArtifactMutationAuthoritySnapshot {
-  constructor({ specId, repositories }) {
+  constructor({ specId, repositories, sourceMode = false }) {
     this.specId = requiredString(specId, "worker artifact mutation authority specId");
     this.repositories = Object.freeze(repositories);
+    this.sourceMode = sourceMode === true;
     Object.freeze(this);
   }
 
@@ -1094,6 +1310,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
     }
     return new WorkerArtifactMutationAuthoritySnapshot({
       specId: request.specId,
+      sourceMode: request.policy.kind === "source",
       repositories: [...roots].map(([root, scope]) => (
         WorkerArtifactRepositoryMutationSnapshot.capture({
           root,
@@ -1107,6 +1324,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
 
   assertUnchanged() {
     for (const captured of this.repositories) {
+      if (this.sourceMode && captured.authorities.includes("execution")) continue;
       const current = WorkerArtifactRepositoryMutationSnapshot.capture({
         root: captured.root,
         authorities: captured.authorities,
@@ -1128,10 +1346,93 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       );
     }
   }
+
+  assertSourceDiff({ stepId, completionStatus, effect }) {
+    if (!this.sourceMode) return Object.freeze([]);
+    const changes = [];
+    for (const captured of this.repositories) {
+      if (!captured.authorities.includes("execution")) continue;
+      const current = WorkerArtifactRepositoryMutationSnapshot.capture({
+        root: captured.root,
+        authorities: captured.authorities,
+        ignoredDirectories: captured.ignoredDirectories,
+        runtimeLocks: captured.runtimeLocks,
+      });
+      const changed = captured.allChangedPaths(current);
+      if (changed.includes("<HEAD>") || changed.includes("<index>")) {
+        throw new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
+          "source worker must not commit or stage repository changes",
+          { retryable: false, data: { stepId, changedPaths: changed.slice(0, 20) } },
+        );
+      }
+      changes.push(...changed);
+    }
+    const unique = [...new Set(changes)].sort();
+    const forbidden = unique.filter((entry) => entry.startsWith(".sennel/") || entry.startsWith("specs/"));
+    if (forbidden.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_PATH_VIOLATION",
+        "source worker changed a canonical or runtime path",
+        { retryable: false, data: { stepId, changedPaths: forbidden.slice(0, 20) } },
+      );
+    }
+    const declared = new Set(effect.files.flatMap((entry) => entry.paths));
+    const undeclared = [...declared].filter((entry) => !unique.includes(entry));
+    if (undeclared.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_EFFECT_PATH_INVALID",
+        "source worker effect declares paths absent from the validated source diff",
+        { retryable: false, data: { stepId, paths: undeclared.slice(0, 20) } },
+      );
+    }
+    const noSourceDiff = stepId === "impl-triage" || (stepId === "implement" && completionStatus === "skipped");
+    if (noSourceDiff && unique.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_DIFF_FORBIDDEN",
+        `source handoff ${stepId} with ${completionStatus} must not change source files`,
+        { retryable: false, data: { stepId, changedPaths: unique.slice(0, 20) } },
+      );
+    }
+    if (completionStatus === "skipped" && (effect.requirements.length > 0 || effect.files.length > 0)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_SKIP_EFFECT_INVALID",
+        "skipped implementation may report issues but cannot report requirements or file-map effects",
+        { retryable: false, data: { stepId } },
+      );
+    }
+    const required = completionStatus === "done" && new Set(["implement", "impl-repair", "task-impl"]).has(stepId);
+    if (required && unique.length === 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_DIFF_REQUIRED",
+        `source handoff ${stepId} requires a source diff before completion`,
+        { retryable: false, data: { stepId } },
+      );
+    }
+    const missingEffects = required ? unique.filter((entry) => !declared.has(entry)) : [];
+    if (missingEffects.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_EFFECT_INCOMPLETE",
+        "source worker effect must declare every validated changed source path",
+        { retryable: false, data: { stepId, paths: missingEffects.slice(0, 20) } },
+      );
+    }
+    return Object.freeze(unique);
+  }
 }
 
-function inputRevision(inputDigest, { planGateRepair = null, testReviewRepair = null } = {}) {
+function inputRevision(inputDigest, { planGateRepair = null, testReviewRepair = null, acceptanceRepairRoute = null } = {}) {
   const baseRevision = inputDigest;
+  if (acceptanceRepairRoute !== null) {
+    return digest(stableStringify({ baseRevision, acceptanceRepairRoute: acceptanceRepairRoute.toJSON() }));
+  }
   if (testReviewRepair) {
     return digest(stableStringify({
       baseRevision,
@@ -1151,6 +1452,55 @@ function currentPlanGateRepair({ flowManager, state, stepId }) {
 
 function currentTestReviewRepair({ flowManager, state, stepId }) {
   return canonicalTestReviewRepairForTarget({ flowManager, state, targetStepId: stepId });
+}
+
+/** Immutable binding for the dedicated acceptance-review implementation-repair route. */
+class AcceptanceImplementationRepairRoute {
+  constructor({ activityId, acceptanceDigest, attemptId, sequence }) {
+    this.activityId = requiredString(activityId, "acceptance repair Activity id");
+    this.acceptanceDigest = requiredDigest(acceptanceDigest, "acceptance repair artifact digest");
+    this.attemptId = requiredString(attemptId, "acceptance repair impl-triage Attempt id");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("acceptance repair impl-triage Attempt sequence is invalid");
+    this.sequence = sequence;
+    Object.freeze(this);
+  }
+  toJSON() {
+    return {
+      activityId: this.activityId,
+      acceptanceDigest: this.acceptanceDigest,
+      attemptId: this.attemptId,
+      sequence: this.sequence,
+    };
+  }
+}
+
+function currentAcceptanceImplementationRepair({ flowManager, state, stepId }) {
+  const canonicalState = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  if (stepId !== "impl-triage" || canonicalState?.current?.at(-1) !== "impl-triage" || canonicalState.attempt === null) return null;
+  const attempt = canonicalState.attempt;
+  const entry = flowManager.activityLedger(state.specId).findLast((activity) => (
+    activity.transition?.operation === "repair_acceptance_review"
+    && activity.nodeId === "acceptance-review"
+    && activity.transition?.attempt?.nodeId === "impl-triage"
+    && activity.transition.attempt.id === attempt.id
+    && activity.transition.attempt.sequence === attempt.sequence
+  ));
+  if (entry === undefined) return null;
+  const reference = entry.references?.artifacts?.find((candidate) => candidate.label === "acceptance.review") ?? null;
+  if (reference === null) throw new WorkerArtifactHandoffError(
+    "invalid", "FLOW_ACCEPTANCE_REPAIR_ROUTE_INVALID", "acceptance repair Activity lacks its canonical acceptance.review reference",
+  );
+  const artifact = flowManager.readArtifact({
+    specId: state.specId, logicalKey: "acceptance.review", consumerNodeId: "impl-triage",
+  });
+  if (artifact.descriptor.hash !== reference.id) throw new WorkerArtifactHandoffError(
+    "stale", "FLOW_ACCEPTANCE_REPAIR_ROUTE_STALE", "acceptance repair Activity does not bind the current canonical acceptance.review artifact",
+  );
+  return new AcceptanceImplementationRepairRoute({
+    activityId: entry.id, acceptanceDigest: reference.id, attemptId: attempt.id, sequence: attempt.sequence,
+  });
 }
 
 function requiresDraftWorkerContext(policy) {
@@ -1201,9 +1551,15 @@ export class WorkerArtifactHandoffRequest {
     this.specId = requiredString(state.specId, "handoff specId");
     this.issue = state.issue ?? null;
     this.stepId = policy.stepId;
+    this.taskId = invocation.action.nextAction?.taskId ?? null;
+    if ((this.stepId === "task-impl") !== (typeof this.taskId === "string" && this.taskId.trim() !== "")) {
+      throw new Error("task-impl worker handoff requires exactly one taskId");
+    }
     this.actionDigest = requiredDigest(invocation.action.digest, "handoff actionDigest");
     this.dispatchInvocationId = requiredString(invocation.id, "handoff dispatchInvocationId");
-    this.targetAuthority = "canonical-flow-artifacts";
+    this.targetAuthority = policy.kind === "source"
+      ? "execution-checkout"
+      : "canonical-flow-artifacts";
     this.inputDigest = requiredDigest(inputDigest, "handoff inputDigest");
     this.inputRevision = requiredDigest(revision, "handoff inputRevision");
     this.inputs = Object.freeze(inputs);
@@ -1265,7 +1621,8 @@ export class WorkerArtifactHandoffRequest {
     }
     const planGateRepair = currentPlanGateRepair({ flowManager, state, stepId: policy.stepId });
     const testReviewRepair = currentTestReviewRepair({ flowManager, state, stepId: policy.stepId });
-    const inputs = policy.inputContract.resolve({ planGateRepair, testReviewRepair }).map((relativePath) => {
+    const acceptanceRepairRoute = currentAcceptanceImplementationRepair({ flowManager, state, stepId: policy.stepId });
+    const inputs = policy.inputContract.resolve({ planGateRepair, testReviewRepair, acceptanceRepairRoute }).map((relativePath) => {
       const { document, snapshot } = canonicalHandoffInputSnapshot({
         flowManager,
         state,
@@ -1321,7 +1678,7 @@ export class WorkerArtifactHandoffRequest {
       contextSnapshot,
       payloads,
       inputDigest: inputDigestValue,
-      inputRevision: inputRevision(inputDigestValue, { planGateRepair, testReviewRepair }),
+      inputRevision: inputRevision(inputDigestValue, { planGateRepair, testReviewRepair, acceptanceRepairRoute }),
       generatedAt: now().toISOString(),
       canonicalLocation: flowManager.specLocation(state.specId),
       flowManager,
@@ -1393,6 +1750,7 @@ export class WorkerArtifactHandoffRequest {
       specId: this.specId,
       issue: this.issue,
       stepId: this.stepId,
+      taskId: this.taskId,
       actionDigest: this.actionDigest,
       dispatchInvocationId: this.dispatchInvocationId,
       targetAuthority: this.targetAuthority,
@@ -1442,6 +1800,7 @@ export class WorkerArtifactHandoffRequest {
       specId: this.specId,
       issue: this.issue,
       stepId: this.stepId,
+      taskId: this.taskId,
       actionDigest: this.actionDigest,
       dispatchInvocationId: this.dispatchInvocationId,
       targetAuthority: this.targetAuthority,
@@ -1453,9 +1812,44 @@ export class WorkerArtifactHandoffRequest {
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
+      effectContract: this.sourceEffectContract(),
       sealCommand: "sennel flow run seal-handoff",
       completionOwner: "parent-dispatcher",
     };
+  }
+
+  sourceEffectContract() {
+    if (this.policy.kind !== "source") return null;
+    const diffRequired = this.stepId === "impl-repair" || this.stepId === "task-impl" || this.stepId === "implement";
+    const acceptanceRepairRoute = this.stepId === "impl-triage"
+      && this.inputs.some((input) => input.name === "acceptance-review.json");
+    return Object.freeze({
+      path: this.payloadPath("effects.json"),
+      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "requirements", "files", "issues", "overview", "triage", "repair"]),
+      required: Object.freeze({
+        version: 1,
+        stepId: this.stepId,
+        completionStatus: this.stepId === "implement" ? ["done", "skipped"] : ["done"],
+        overview: this.stepId === "task-impl" ? "required additions object" : "must be null",
+        triage: this.stepId === "impl-triage" ? "required { dispositions:[{ findingKey, disposition:apply|reject, rationale }] }" : "must be null",
+        repair: this.stepId === "impl-repair" ? "required { appliedFindingKeys:[...], summary }" : "must be null",
+        sourceDiff: diffRequired ? "required for done; every changed source path must occur in files[].paths" : "optional",
+        triageRoute: this.stepId !== "impl-triage" ? null : acceptanceRepairRoute
+          ? "acceptance repair: classify every requirement:<id> and hard-blocker:<findingId> as apply"
+          : "implementation review: classify every canonical review finding exactly once",
+      }),
+      example: Object.freeze({
+        version: 1,
+        stepId: this.stepId,
+        completionStatus: "done",
+        requirements: [],
+        files: [],
+        issues: [],
+        overview: this.stepId === "task-impl" ? { modules: [], data_flow: [], decisions: [] } : null,
+        triage: this.stepId === "impl-triage" ? { dispositions: [] } : null,
+        repair: this.stepId === "impl-repair" ? { appliedFindingKeys: ["finding-key"], summary: "Applied the reviewed source correction." } : null,
+      }),
+    });
   }
 
   executionEnvironment() {
@@ -1463,11 +1857,16 @@ export class WorkerArtifactHandoffRequest {
   }
 
   assertCurrent(state) {
+    const taskIdentity = TaskStepIdentity.active(state);
+    const active = taskIdentity === null
+      ? findActiveNode(state)
+      : { scope: "task", taskId: taskIdentity.taskId, stepId: taskIdentity.definitionId };
     if (
       state?.runId !== this.runId
       || state?.specId !== this.specId
       || (state?.issue ?? null) !== this.issue
-      || findActiveNode(state)?.stepId !== this.stepId
+      || active?.stepId !== this.stepId
+      || active?.taskId !== this.taskId
     ) {
       throw new WorkerArtifactHandoffError(
         "stale",
@@ -1504,7 +1903,12 @@ export class WorkerArtifactHandoffRequest {
       state,
       stepId: this.stepId,
     });
-    const expectedInputPaths = this.policy.inputContract.resolve({ planGateRepair, testReviewRepair });
+    const acceptanceRepairRoute = currentAcceptanceImplementationRepair({
+      flowManager: this.flowManager,
+      state,
+      stepId: this.stepId,
+    });
+    const expectedInputPaths = this.policy.inputContract.resolve({ planGateRepair, testReviewRepair, acceptanceRepairRoute });
     if (
       expectedInputPaths.length !== this.inputs.length
       || expectedInputPaths.some((relativePath, index) => relativePath !== this.inputs[index].targetRelativePath)
@@ -1528,7 +1932,7 @@ export class WorkerArtifactHandoffRequest {
       digest: input.digest,
       byteLength: input.byteLength,
     })), this.contextSnapshot);
-    const currentRevision = inputRevision(currentDigest, { planGateRepair, testReviewRepair });
+    const currentRevision = inputRevision(currentDigest, { planGateRepair, testReviewRepair, acceptanceRepairRoute });
     if (currentDigest !== this.inputDigest || currentRevision !== this.inputRevision) {
       throw new WorkerArtifactHandoffError(
         "stale",
@@ -1715,7 +2119,8 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
         cause.message,
         {
           cause,
-          retryable: cause.classification === "invalid" || cause.classification === "missing",
+          retryable: request.policy.kind !== "source"
+            && (cause.classification === "invalid" || cause.classification === "missing"),
           data: {
             stepId: request.stepId,
             logicalName: rule.logicalName,
@@ -1731,7 +2136,7 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
       `handoff payload ${rule.logicalName} failed CLI boundary validation: ${cause.message}`,
       {
         cause,
-        retryable: true,
+        retryable: request.policy.kind !== "source",
         data: {
           stepId: request.stepId,
           logicalName: rule.logicalName,
@@ -1795,12 +2200,24 @@ function requestFromStored(filePath) {
     throw new Error("handoff request path is outside its dedicated runtime authority");
   }
   const { document } = boundedJson(resolvedRequestPath, "worker artifact handoff request");
+  exactObjectKeys(document, [
+    "version", "runId", "specId", "issue", "stepId", "taskId", "actionDigest", "dispatchInvocationId",
+    "targetAuthority", "inputDigest", "inputRevision", "inputs", "contextSnapshot",
+    "payloads", "generatedAt",
+  ], "worker artifact handoff request");
+  if (document.version !== WORKER_ARTIFACT_HANDOFF_VERSION) {
+    throw new Error(`worker artifact handoff version must be ${WORKER_ARTIFACT_HANDOFF_VERSION}`);
+  }
   const policy = workerArtifactHandoffPolicy(document.stepId);
   if (!policy) throw new Error(`unsupported worker artifact handoff step: ${document.stepId}`);
   const runId = requiredString(document.runId, "handoff request runId");
   const invocationId = requiredString(document.dispatchInvocationId, "handoff request dispatchInvocationId");
   const actionDigest = requiredDigest(document.actionDigest, "handoff request actionDigest");
   const specId = requiredString(document.specId, "handoff request specId");
+  const taskId = document.taskId == null ? null : requiredString(document.taskId, "handoff request taskId");
+  if ((document.stepId === "task-impl") !== (taskId !== null)) {
+    throw new Error("handoff request task identity does not match its step");
+  }
   if (path.basename(handoffRoot) !== digest(specId).slice(0, 24)) {
     throw new Error("handoff request path does not match its Spec identity");
   }
@@ -1822,18 +2239,20 @@ function requestFromStored(filePath) {
       || stored.kind !== rule.kind
       || stored.targetRelativePath !== rule.targetRelativePath
       || stored.required !== rule.required
-      || stored.targetAuthority !== "canonical-flow-artifacts"
+      || stored.targetAuthority !== (policy.kind === "source" ? "execution-checkout" : "canonical-flow-artifacts")
     ) {
       throw new Error(`handoff request payload contract is invalid for ${rule.logicalName}`);
     }
   }
   const payloadDirectory = path.join(actionDirectory, "payload");
   const request = {
+    policy,
     version: document.version,
     runId,
     specId,
     issue: document.issue ?? null,
     stepId: requiredString(document.stepId, "handoff request stepId"),
+    taskId,
     actionDigest,
     dispatchInvocationId: invocationId,
     targetAuthority: requiredString(document.targetAuthority, "handoff request targetAuthority"),
@@ -1909,7 +2328,7 @@ function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored
       id: stored.dispatchInvocationId,
       action: {
         digest: stored.actionDigest,
-        nextAction: { step: stored.stepId },
+        nextAction: { step: stored.stepId, taskId: stored.taskId },
       },
       ...(stored.contextSnapshot === null ? {} : {
         target: { digest: stored.contextSnapshot.binding.targetDigest },
@@ -2302,6 +2721,40 @@ function assertTestReviewRepairMadeProgress(request, submission, state, logicalN
 
 function validatePayload(request, submission, state) {
   try {
+    if (request.policy.kind === "source") {
+      const effect = SourceWorkerEffect.fromDocument(
+        payloadDocument(request, submission, "effects.json"),
+        request.stepId,
+      );
+      if (effect.triage !== null) {
+        const acceptance = request.inputs.find((input) => input.name === "acceptance-review.json")?.document ?? null;
+        const keys = acceptance === null
+          ? [
+              ...((request.inputs.find((input) => input.name === "impl-review.json")?.document?.blockingFindings) ?? []),
+              ...((request.inputs.find((input) => input.name === "impl-review.json")?.document?.nonBlockingImprovements) ?? []),
+            ].map((finding) => finding?.findingKey)
+          : new AcceptanceRepairFindingSet(acceptance).keys;
+        if (keys.some((key) => typeof key !== "string" || key === "")
+          || new Set(keys).size !== keys.length
+          || keys.length !== effect.triage.dispositions.length
+          || effect.triage.dispositions.some((entry) => !keys.includes(entry.findingKey))
+          || (acceptance !== null && effect.triage.dispositions.some((entry) => entry.disposition !== "apply"))) {
+          throw new Error("source triage must classify each canonical route finding exactly once");
+        }
+      }
+      if (effect.repair !== null) {
+        const triage = request.inputs.find((input) => input.name === "impl-triage.json")?.document;
+        const applied = Array.isArray(triage?.dispositions)
+          ? triage.dispositions.filter((entry) => entry?.disposition === "apply").map((entry) => entry.findingKey)
+          : null;
+        if (applied === null
+          || applied.length !== effect.repair.appliedFindingKeys.length
+          || applied.some((key) => !effect.repair.appliedFindingKeys.includes(key))) {
+          throw new Error("source repair must apply exactly the canonical impl-triage apply findings");
+        }
+      }
+      return;
+    }
     if (request.stepId.startsWith("draft")) {
       if (request.stepId.endsWith("triage")) {
         const route = draftReviewRouteForStepId(request.stepId);
@@ -2363,7 +2816,7 @@ function validatePayload(request, submission, state) {
       `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
       {
         cause,
-        retryable: true,
+        retryable: request.policy.kind !== "source",
         data: {
           stepId: request.stepId,
           handoffDirectory: request.directory,
@@ -2581,9 +3034,9 @@ function canonicalHandoffPublications(request, submission) {
   });
 }
 
-function canonicalHandoffResult(request, submission, now) {
+function canonicalHandoffResult(request, submission, now, { status = "done" } = {}) {
   return Object.freeze({
-    outcome: "passed",
+    outcome: status === "skipped" ? "skipped" : "passed",
     summary: `Worker handoff confirmed for ${request.stepId}.`,
     confirmedAt: now().toISOString(),
     artifactRefs: [
@@ -2610,18 +3063,31 @@ function canonicalHandoffReceipt(request, submission, now) {
   });
 }
 
-function canonicalHandoffReceiptForRequest(state, request) {
-  const step = findStepById(state?.steps || [], request.stepId);
-  if (step?.status !== "done" || !Array.isArray(step.result?.artifactRefs)) return null;
-  const requestReference = step.result.artifactRefs.find((reference) => (
-    reference.kind === "worker-handoff-request" && reference.id === request.requestDigest
-  )) ?? null;
-  const handoffReference = step.result.artifactRefs.find((reference) => reference.kind === "worker-handoff") ?? null;
-  return requestReference !== null && handoffReference !== null ? handoffReference : null;
+function canonicalHandoffReceiptForRequest(state, request, flowManager = null) {
+  const step = request.taskId === null
+    ? findStepById(state?.steps || [], request.stepId)
+    : findStepById(state?.tasks?.find((task) => task.id === request.taskId)?.steps || [], `${request.taskId}-impl`);
+  const resultReferences = step && new Set(["done", "skipped"]).has(step.status) && Array.isArray(step.result?.artifactRefs)
+    ? [step.result.artifactRefs]
+    : flowManager?.activityLedger?.(request.specId)
+      .filter((activity) => (
+        activity?.nodeId === request.stepId
+        && ["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair"].includes(activity?.transition?.operation)
+        && Array.isArray(activity?.result?.artifactRefs)
+      ))
+      .map((activity) => activity.result.artifactRefs) ?? [];
+  for (const references of resultReferences) {
+    const requestReference = references.find((reference) => (
+      reference.kind === "worker-handoff-request" && reference.id === request.requestDigest
+    )) ?? null;
+    const handoffReference = references.find((reference) => reference.kind === "worker-handoff") ?? null;
+    if (requestReference !== null && handoffReference !== null) return handoffReference;
+  }
+  return null;
 }
 
-function canonicalHandoffIsCommitted(state, request, submission) {
-  const receipt = canonicalHandoffReceiptForRequest(state, request);
+function canonicalHandoffIsCommitted(state, request, submission, flowManager = null) {
+  const receipt = canonicalHandoffReceiptForRequest(state, request, flowManager);
   return receipt?.id === submission.handoffDigest;
 }
 
@@ -2770,6 +3236,14 @@ export class WorkerArtifactHandoffCoordinator {
         submission = readSubmission(stored);
       } catch (cause) {
         if (cause instanceof WorkerArtifactHandoffError && cause.classification === "missing") {
+          if (workerArtifactHandoffPolicy(stored.stepId)?.kind === "source") {
+            throw new WorkerArtifactHandoffError(
+              "recovery-required",
+              "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+              "unsealed source worker handoff may contain unverified source edits and cannot be retried automatically",
+              { data: { stepId: stored.stepId, handoffDirectory: stored.directory } },
+            );
+          }
           // No sealed payload exists.  The next dispatcher attempt owns a
           // fresh request; this incomplete work unit is not persisted truth.
           if (cleanupTransientExecutionHandoffDirectory(handoffRoot, stored.directory)) cleaned += 1;
@@ -2785,12 +3259,22 @@ export class WorkerArtifactHandoffCoordinator {
         canonicalLocation,
         flowManager: ctx.flowManager,
       });
-      if (canonicalHandoffIsCommitted(state, request, submission)) {
+      if (canonicalHandoffIsCommitted(state, request, submission, ctx.flowManager)) {
         cleanupCompletedHandoff(request.handoffRoot, canonicalHandoffReceipt(request, submission, this.now), this.faultInjector);
         cleaned += 1;
         continue;
       }
-      if (state.currentNodeId === request.stepId) {
+      if (request.policy.kind === "source") {
+        throw new WorkerArtifactHandoffError(
+          "recovery-required",
+          "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+          "sealed source worker handoff cannot be recovered without its parent-held immutable baseline",
+          { data: { stepId: request.stepId, handoffDirectory: request.directory } },
+        );
+      }
+      const requestIsActive = state.currentNodeId === request.stepId
+        || (request.taskId !== null && state.currentNodeId === `${request.taskId}-impl`);
+      if (requestIsActive) {
         return this.#reconcileCanonical({ ctx, request, state });
       }
       throw new WorkerArtifactHandoffError(
@@ -2820,7 +3304,7 @@ export class WorkerArtifactHandoffCoordinator {
       : null;
   }
 
-  reconcile({ ctx, request }) {
+  reconcile({ ctx, request, mutationAuthority = null }) {
     if (!(request instanceof WorkerArtifactHandoffRequest)) return null;
     // A sealed V1 payload sits in `.runtime/` until the parent accepts it.
     // Validate that untrusted surface before loading the Version Store: a
@@ -2836,7 +3320,7 @@ export class WorkerArtifactHandoffCoordinator {
     let state = null;
     try {
       state = ctx.flowManager.load(request.specId);
-      const committed = canonicalHandoffReceiptForRequest(state, request);
+      const committed = canonicalHandoffReceiptForRequest(state, request, ctx.flowManager);
       if (committed !== null) {
         return {
           completed: true,
@@ -2867,11 +3351,11 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     state ??= ctx.flowManager.load(request.specId);
-    return this.#reconcileCanonical({ ctx, request, state, submission });
+    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority });
   }
 
-  #reconcileCanonical({ ctx, request, state, submission = null }) {
-    const committed = canonicalHandoffReceiptForRequest(state, request);
+  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null }) {
+    const committed = canonicalHandoffReceiptForRequest(state, request, ctx.flowManager);
     if (committed !== null) {
       return {
         completed: true,
@@ -2895,7 +3379,10 @@ export class WorkerArtifactHandoffCoordinator {
             "FLOW_ARTIFACT_HANDOFF_INVALID",
             `canonical worker artifact handoff is invalid: ${cause.message}`,
             { cause },
-          );
+      );
+    }
+    if (request.policy.kind === "source") {
+      return this.#reconcileSource({ ctx, request, submission, mutationAuthority });
     }
     let publications;
     try {
@@ -2938,6 +3425,51 @@ export class WorkerArtifactHandoffCoordinator {
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
         `canonical worker artifact handoff could not commit: ${cause.message}`,
+        { cause, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+      );
+    }
+    const receipt = canonicalHandoffReceipt(request, submission, this.now);
+    cleanupCompletedHandoff(request.handoffRoot, receipt, this.faultInjector);
+    return {
+      completed: true,
+      replayed: false,
+      stepId: receipt.stepId,
+      handoffDigest: receipt.handoffDigest,
+      payloadDigest: receipt.payloadDigest,
+    };
+  }
+
+  #reconcileSource({ ctx, request, submission, mutationAuthority = null }) {
+    const effect = SourceWorkerEffect.fromDocument(
+      payloadDocument(request, submission, "effects.json"),
+      request.stepId,
+    );
+    if (!(mutationAuthority instanceof WorkerArtifactMutationAuthoritySnapshot)) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+        "sealed source worker handoff cannot recover without a parent-owned immutable baseline",
+        { retryable: false, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+      );
+    }
+    mutationAuthority.assertUnchanged();
+    mutationAuthority.assertSourceDiff({
+      stepId: request.stepId,
+      completionStatus: effect.completionStatus,
+      effect,
+    });
+    try {
+      ctx.flowManager.confirmSourceWorkerHandoff({
+        specId: request.specId,
+        effect,
+        handoffDigest: submission.handoffDigest,
+        result: canonicalHandoffResult(request, submission, this.now, { status: effect.completionStatus }),
+      });
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        cause?.code === "CURRENT_FLOW_STATE_CONFLICT" ? "conflict" : "recovery-required",
+        cause?.code === "CURRENT_FLOW_STATE_CONFLICT" ? "FLOW_ARTIFACT_HANDOFF_CONFLICT" : "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+        `canonical source worker handoff could not commit: ${cause.message}`,
         { cause, data: { stepId: request.stepId, handoffDirectory: request.directory } },
       );
     }

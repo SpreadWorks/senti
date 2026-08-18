@@ -37,6 +37,7 @@ export class ArtifactPublicationClaim {
 
 const PRODUCERS = new Set(["cli", "worker", "user"]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
+const CATEGORIES = new Set(["preparation", "command", "artifact", "source", "user"]);
 
 function requiredString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -55,7 +56,9 @@ export class FlowArtifactAuthorityEntry {
     completionValidator,
     sourceBinding,
     recoveryOwner,
+    category,
     workerHandoff = false,
+    sourceHandoff = false,
   }) {
     this.stepId = requiredString(stepId, "stepId");
     this.producer = requiredString(producer, `${this.stepId}.producer`);
@@ -74,12 +77,15 @@ export class FlowArtifactAuthorityEntry {
     );
     this.sourceBinding = requiredString(sourceBinding, `${this.stepId}.sourceBinding`);
     this.recoveryOwner = requiredString(recoveryOwner, `${this.stepId}.recoveryOwner`);
+    this.category = requiredString(category, `${this.stepId}.category`);
     if (!PRODUCERS.has(this.producer)) throw new Error(`invalid producer for ${this.stepId}`);
     ArtifactAuthority.from(this.writableAuthority);
     if (!OWNERS.has(this.publicationOwner) || !OWNERS.has(this.recoveryOwner)) {
       throw new Error(`invalid owner for ${this.stepId}`);
     }
+    if (!CATEGORIES.has(this.category)) throw new Error(`invalid category for ${this.stepId}`);
     this.workerHandoff = workerHandoff === true;
+    this.sourceHandoff = sourceHandoff === true;
     if (this.workerHandoff && (
       this.producer !== "worker"
       || this.writableAuthority !== "dispatcher-handoff"
@@ -87,6 +93,18 @@ export class FlowArtifactAuthorityEntry {
       || this.recoveryOwner !== "dispatcher"
     )) {
       throw new Error(`worker handoff ownership is inconsistent for ${this.stepId}`);
+    }
+    if (this.sourceHandoff && (
+      this.category !== "source"
+      || this.producer !== "worker"
+      || this.writableAuthority !== "execution-checkout"
+      || this.publicationOwner !== "dispatcher"
+      || this.recoveryOwner !== "dispatcher"
+    )) {
+      throw new Error(`worker source handoff ownership is inconsistent for ${this.stepId}`);
+    }
+    if ((this.workerHandoff || this.sourceHandoff) && this.category === "command") {
+      throw new Error(`handoff entry cannot be a command for ${this.stepId}`);
     }
     Object.freeze(this);
   }
@@ -101,7 +119,9 @@ export class FlowArtifactAuthorityEntry {
       completionValidator: this.completionValidator,
       sourceBinding: this.sourceBinding,
       recoveryOwner: this.recoveryOwner,
+      category: this.category,
       workerHandoff: this.workerHandoff,
+      sourceHandoff: this.sourceHandoff,
     };
   }
 }
@@ -116,6 +136,21 @@ function commandOwned(stepId, consumer = "next Flow leaf") {
     completionValidator: "definition lifecycle hook",
     sourceBinding: "guarded Flow target and command input fingerprint",
     recoveryOwner: "cli",
+    category: "command",
+  });
+}
+
+function preparationOwned(stepId, consumer = "next Flow leaf") {
+  return new FlowArtifactAuthorityEntry({
+    stepId,
+    producer: "cli",
+    writableAuthority: "canonical-flow-artifacts",
+    consumer,
+    publicationOwner: "cli",
+    completionValidator: "prepare-spec transaction",
+    sourceBinding: "prepared Flow identity and execution plan",
+    recoveryOwner: "cli",
+    category: "preparation",
   });
 }
 
@@ -125,10 +160,12 @@ function workerSourceOwned(stepId, consumer = "next Flow leaf") {
     producer: "worker",
     writableAuthority: "execution-checkout",
     consumer,
-    publicationOwner: "worker",
-    completionValidator: "guarded set-step transition",
-    sourceBinding: "immutable Git baseline and guarded Flow target",
-    recoveryOwner: "cli",
+    publicationOwner: "dispatcher",
+    completionValidator: "sealed source effect and source-diff transaction",
+    sourceBinding: "run, spec, Issue, step, action, invocation, immutable source baseline, and effect schema",
+    recoveryOwner: "dispatcher",
+    category: "source",
+    sourceHandoff: true,
   });
 }
 
@@ -142,6 +179,7 @@ function workerHandoffOwned(stepId, consumer, completionValidator) {
     completionValidator,
     sourceBinding: "run, spec, Issue, step, action, invocation, input digest, and revision",
     recoveryOwner: "dispatcher",
+    category: "artifact",
     workerHandoff: true,
   });
 }
@@ -156,12 +194,13 @@ function userOwned(stepId, consumer = "next Flow leaf") {
     completionValidator: "digest-guarded explicit decision",
     sourceBinding: "guarded Flow target and action digest",
     recoveryOwner: "user",
+    category: "user",
   });
 }
 
 const ENTRIES = Object.freeze([
-  workerSourceOwned("branch", "prepare-spec"),
-  commandOwned("prepare-spec", "draft"),
+  preparationOwned("branch", "prepare-spec"),
+  preparationOwned("prepare-spec", "draft"),
   workerHandoffOwned("draft", "draft-questions-review", "draft schema and revision transaction"),
   commandOwned("draft-questions-review", "draft-questions-triage or draft-refine"),
   workerHandoffOwned("draft-questions-triage", "draft-questions-repair", "draft triage linkage validator"),
@@ -208,6 +247,9 @@ export const FLOW_ARTIFACT_AUTHORITY_MATRIX = ENTRIES;
 export const WORKER_ARTIFACT_HANDOFF_STEPS = Object.freeze(
   ENTRIES.filter((entry) => entry.workerHandoff).map((entry) => entry.stepId),
 );
+export const WORKER_SOURCE_HANDOFF_STEPS = Object.freeze(
+  ENTRIES.filter((entry) => entry.sourceHandoff).map((entry) => entry.stepId),
+);
 
 export function flowArtifactAuthorityForStep(stepId) {
   return BY_STEP.get(stepId) || null;
@@ -215,6 +257,10 @@ export function flowArtifactAuthorityForStep(stepId) {
 
 export function requiresWorkerArtifactHandoff(stepId) {
   return flowArtifactAuthorityForStep(stepId)?.workerHandoff === true;
+}
+
+export function requiresWorkerSourceHandoff(stepId) {
+  return flowArtifactAuthorityForStep(stepId)?.sourceHandoff === true;
 }
 
 export function assertCatalogPublicationAuthority(stepId, authority) {

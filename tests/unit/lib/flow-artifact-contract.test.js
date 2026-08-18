@@ -133,7 +133,7 @@ describe("Flow artifact contract registry", () => {
     }
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("draft.questions.triage").ownership.consumers.includes("draft-gate"), true);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("file.map").ownership.consumers, [
-      "implement", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report",
+      "implement", "impl-repair", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report",
     ]);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("completion.overrides").ownership.consumers, [
       "test-review", "test-result-review", "impl-review", "impl-gate", "acceptance-review", "final-regression",
