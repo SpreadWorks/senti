@@ -1272,12 +1272,30 @@ export class CanonicalWorkerTaskProposal {
     Object.freeze(this);
   }
 
-  merge(admittedTasks) {
-    const previous = admittedTasks.map((task) => structuredClone(task.document));
-    if (this.tasks.length < previous.length) {
+  merge(previous, admittedTaskIds) {
+    if (!(previous instanceof CurrentFlowSpecRecord)) {
+      throw new CurrentFlowStateInvariantError("canonical worker Task proposal requires the current typed Spec record");
+    }
+    if (!Array.isArray(admittedTaskIds)) {
+      throw new CurrentFlowStateInvariantError("canonical worker Task proposal admitted Task ids must be an array");
+    }
+    const admittedIds = new Set(admittedTaskIds.map((id, index) => (
+      requireString(id, `canonical worker Task proposal admitted Task ids[${index}]`)
+    )));
+    if (admittedIds.size !== admittedTaskIds.length) {
+      throw new CurrentFlowStateInvariantError("canonical worker Task proposal admitted Task ids must not duplicate");
+    }
+    const previousById = new Map(previous.tasks.map((task) => [task.id, task]));
+    const admitted = previous.tasks.filter((task) => admittedIds.has(task.id));
+    if (admitted.length !== admittedIds.size) {
+      const missing = [...admittedIds].find((id) => !previousById.has(id));
+      throw new CurrentFlowStateInvariantError(`admitted Task is absent from canonical spec.json: ${missing}`);
+    }
+    const previousTasks = admitted.map((task) => structuredClone(task.document));
+    if (this.tasks.length < previousTasks.length) {
       throw new CurrentFlowStateInvariantError("worker Task proposal must not delete admitted Tasks");
     }
-    const merged = previous.map((existing, index) => {
+    const merged = previousTasks.map((existing, index) => {
       const proposed = this.tasks[index];
       if (proposed.id !== existing.id) {
         throw new CurrentFlowStateInvariantError("worker Task proposal must preserve admitted Task order and identity");
@@ -1291,7 +1309,19 @@ export class CanonicalWorkerTaskProposal {
       }
       return candidate;
     });
-    return Object.freeze([...merged, ...this.tasks.slice(previous.length).map((task) => structuredClone(task))]);
+    const additions = this.tasks.slice(previousTasks.length).map((task) => structuredClone(task));
+    const expectedRound = previousTasks.reduce(
+      (round, task) => Math.max(round, task.added_round),
+      -1,
+    ) + 1;
+    for (const task of additions) {
+      if (task.added_round !== expectedRound) {
+        throw new CurrentFlowStateInvariantError(
+          `worker Task proposal new Task added_round must be ${expectedRound}: ${task.id}`,
+        );
+      }
+    }
+    return Object.freeze([...merged, ...additions]);
   }
 }
 
@@ -1311,11 +1341,11 @@ export class CanonicalWorkerSpecPublication {
     Object.freeze(this);
   }
 
-  materialize(previous, { specId } = {}) {
+  materialize(previous, { specId, admittedTaskIds } = {}) {
     if (!(previous instanceof CurrentFlowSpecRecord)) {
       throw new CurrentFlowStateInvariantError("canonical worker spec publication requires the current typed Spec record");
     }
-    const proposedTasks = this.taskProposal?.merge(previous.tasks) ?? null;
+    const proposedTasks = this.taskProposal?.merge(previous, admittedTaskIds) ?? null;
     return new CurrentFlowSpecRecord({
       ...structuredClone(this.document),
       tasks: proposedTasks !== null
@@ -5841,8 +5871,12 @@ export class CurrentFlowVersionStore {
     if (isTypedSpecUpdate && !this.#isActiveTaskImplementation(activity) && activity.nodeId !== "approval") {
       throw new CurrentFlowStateInvariantError("canonical Spec update must target approval or the active Task implementation Step");
     }
+    const previous = this.#readSpecRecord();
     const next = value instanceof CanonicalWorkerSpecPublication || value instanceof CanonicalSourceWorkerSpecCompletion
-      ? value.materialize(this.#readSpecRecord(), { specId: this.location.specId.toString() })
+      ? value.materialize(previous, {
+          specId: this.location.specId.toString(),
+          ...(workerProposal && { admittedTaskIds: this.#admittedTaskIds(previous) }),
+        })
       : CurrentFlowSpecRecord.from(value, { specId: this.location.specId.toString() });
     if (!next.specId.equals(this.location.specId)) {
       throw new CurrentFlowStateInvariantError("canonical replacement spec.json must match the Version specId");
@@ -5858,6 +5892,31 @@ export class CurrentFlowVersionStore {
       .map((id) => state.findNode(id))
       .find((node) => node instanceof TaskNode) ?? null;
     return task !== null && activity.nodeId === `${task.id}-impl`;
+  }
+  #admittedTaskIds(specRecord) {
+    if (!(specRecord instanceof CurrentFlowSpecRecord)) {
+      throw new CurrentFlowStateInvariantError("admitted Task lookup requires the current typed Spec record");
+    }
+    // TaskNodes are the rehydrated projection of confirmed add_task Activities.
+    // The State Store has already checked that its journal and flow.json agree,
+    // so traversing the journal again would duplicate that validation and make
+    // every worker publication scale with the complete Flow history.
+    const persisted = this.#store().load();
+    if (persisted === null) throw new CurrentFlowStateInvariantError("admitted Task lookup requires persisted Flow state");
+    const state = this.#assertPersistedIdentity(persisted);
+    const container = state.findNode(state.definition.dynamicTaskContainerId);
+    if (container === null) throw new CurrentFlowStateInvariantError("admitted Task lookup requires the dynamic Task container");
+    const tasksById = new Map(specRecord.tasks.map((task) => [task.id, task]));
+    const ids = [];
+    for (const node of container.steps) {
+      if (!(node instanceof TaskNode)) continue;
+      const task = tasksById.get(node.id);
+      if (task === undefined || task.key !== node.key) {
+        throw new CurrentFlowStateInvariantError(`admitted Flow Task does not match canonical spec.json: ${node.id}`);
+      }
+      ids.push(node.id);
+    }
+    return Object.freeze(ids);
   }
   #artifactWrites(value, activity) {
     if (value === undefined) return Object.freeze([]);

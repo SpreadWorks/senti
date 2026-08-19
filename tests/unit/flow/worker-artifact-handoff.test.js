@@ -835,7 +835,10 @@ describe("worker artifact handoff", () => {
         { id: "T2", title: "New task", goal: "Admit after approval.", origin: "plan", added_round: 1, status: "pending" },
       ],
     });
-    const merged = accepted.materialize(previous, { specId: "500-worker-handoff" }).toJSON();
+    const merged = accepted.materialize(previous, {
+      specId: "500-worker-handoff",
+      admittedTaskIds: ["T1"],
+    }).toJSON();
     assert.deepEqual(merged.tasks.map((entry) => entry.id), ["T1", "T2"]);
     assert.equal(merged.tasks[0].title, "Corrected title");
     assert.equal(merged.tasks[0].goal, "Corrected task description.");
@@ -843,9 +846,183 @@ describe("worker artifact handoff", () => {
       [{ id: "T2", title: "New", goal: "New.", origin: "plan", added_round: 1, status: "pending" }],
       [{ ...task, added_round: 1 }],
       [{ id: "T2", title: "New", goal: "New.", origin: "plan", added_round: 1, status: "pending" }, task],
+      [{ ...task }, { id: "T2", title: "New", goal: "New.", origin: "plan", added_round: 0, status: "pending" }],
     ]) {
       assert.throws(() => new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: proposal })
-        .materialize(previous, { specId: "500-worker-handoff" }), /proposal/);
+        .materialize(previous, { specId: "500-worker-handoff", admittedTaskIds: ["T1"] }), /proposal/);
+    }
+  });
+
+  it("preserves canonical Spec order when parent-first admission differs from the proposal", () => {
+    const parent = {
+      id: "T-parent", title: "Parent", goal: "Complete the parent Task.", parent: null,
+      origin: "plan", added_round: 0, status: "pending",
+    };
+    const child = {
+      id: "T-child", title: "Child", goal: "Complete the child Task.", parent: "T-parent",
+      origin: "plan", added_round: 0, status: "pending",
+    };
+    const previous = new CurrentFlowSpecRecord({ ...validSpec(), tasks: [child, parent] }, { specId: "500-worker-handoff" });
+    const publication = new CanonicalWorkerSpecPublication({
+      ...validSpec(),
+      tasks: [
+        { ...child, title: "Corrected child title" },
+        { ...parent, goal: "Corrected parent goal." },
+      ],
+    });
+
+    assert.deepEqual(
+      publication.materialize(previous, {
+        specId: "500-worker-handoff",
+        admittedTaskIds: ["T-parent", "T-child"],
+      }).toJSON().tasks,
+      [
+        { ...child, title: "Corrected child title" },
+        { ...parent, goal: "Corrected parent goal." },
+      ],
+    );
+  });
+
+  it("allows a pre-approval worker repair to replace unadmitted Task instructions", () => {
+    const original = {
+      id: "T1",
+      title: "Original title",
+      goal: "Original goal.",
+      acceptance: ["Original acceptance."],
+      implementation_notes: "Original implementation note.",
+      test_strategy: "Original test strategy.",
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    };
+    const repaired = {
+      ...original,
+      title: "Repaired title",
+      goal: "Repaired goal.",
+      acceptance: ["Repaired acceptance."],
+      implementation_notes: "Repaired implementation note.",
+      test_strategy: "Repaired test strategy.",
+    };
+    const previous = new CurrentFlowSpecRecord({ ...validSpec(), tasks: [original] }, { specId: "500-worker-handoff" });
+    const publication = new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: [repaired] });
+
+    assert.deepEqual(
+      publication.materialize(previous, {
+        specId: "500-worker-handoff",
+        admittedTaskIds: [],
+      }).toJSON().tasks,
+      [repaired],
+    );
+  });
+
+  it("derives Task immutability from admitted Flow state rather than the prior Spec proposal", () => {
+    const value = fixture("spec", {
+      beforeActivate(fixtureValue) {
+        publishDraftBeforeTarget(fixtureValue, { goal: "draft input" });
+      },
+    });
+    try {
+      const initial = {
+        id: "T1",
+        title: "Initial title",
+        goal: "Initial goal.",
+        acceptance: ["Initial acceptance."],
+        implementation_notes: "Initial implementation note.",
+        test_strategy: "Initial test strategy.",
+        origin: "plan",
+        added_round: 0,
+        status: "pending",
+      };
+      value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        specRecord: new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: [initial] }),
+      });
+
+      value.flow.activate("spec-repair");
+      const repaired = {
+        ...initial,
+        acceptance: ["Repaired acceptance."],
+        implementation_notes: "Repaired implementation note.",
+        test_strategy: "Repaired test strategy.",
+      };
+      value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        specRecord: new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: [repaired] }),
+      });
+
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(value.flowManager.specLocation(value.specId).specFile, "utf8")).tasks,
+        [repaired],
+      );
+      assert.deepEqual(value.flowManager.load(value.specId).tasks, []);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("protects only admitted Tasks when a repaired Spec also has pending Task proposals", () => {
+    const admitted = {
+      id: "T1",
+      title: "Admitted title",
+      goal: "Admitted goal.",
+      acceptance: ["Admitted acceptance."],
+      implementation_notes: "Admitted implementation note.",
+      test_strategy: "Admitted test strategy.",
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    };
+    const pending = {
+      id: "T2",
+      title: "Pending title",
+      goal: "Pending goal.",
+      acceptance: ["Pending acceptance."],
+      implementation_notes: "Pending implementation note.",
+      test_strategy: "Pending test strategy.",
+      origin: "plan",
+      added_round: 1,
+      status: "pending",
+    };
+    const value = fixture("spec", {
+      beforeActivate(fixtureValue) {
+        publishDraftBeforeTarget(fixtureValue, { goal: "draft input" });
+        fixtureValue.flow.addTask(admitted);
+      },
+    });
+    try {
+      value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        specRecord: new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: [admitted, pending] }),
+      });
+
+      value.flow.activate("spec-repair");
+      const illegal = { ...admitted, acceptance: ["Rewritten admitted acceptance."] };
+      assert.throws(() => value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        specRecord: new CanonicalWorkerSpecPublication({ ...validSpec(), tasks: [illegal, pending] }),
+      }), /only correct admitted Task title or goal/);
+
+      const repairedPending = {
+        ...pending,
+        acceptance: ["Repaired pending acceptance."],
+        implementation_notes: "Repaired pending implementation note.",
+        test_strategy: "Repaired pending test strategy.",
+      };
+      value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        specRecord: new CanonicalWorkerSpecPublication({
+          ...validSpec(),
+          tasks: [{ ...admitted, title: "Corrected admitted title" }, repairedPending],
+        }),
+      });
+
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(value.flowManager.specLocation(value.specId).specFile, "utf8")).tasks,
+        [{ ...admitted, title: "Corrected admitted title" }, repairedPending],
+      );
+      assert.deepEqual(value.flowManager.load(value.specId).tasks.map((task) => task.id), ["T1"]);
+    } finally {
+      removeTmpDir(value.mainRoot);
     }
   });
 
