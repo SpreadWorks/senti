@@ -30,42 +30,12 @@ const GIT_CONFIG_INJECTION_PREFIXES = Object.freeze([
   "GIT_CONFIG_VALUE_",
 ]);
 
-const GIT_SOURCE_LISTING_BLOCKED_ENVIRONMENT = Object.freeze([
-  "GIT_DIR",
-  "GIT_WORK_TREE",
-  "GIT_COMMON_DIR",
-  "GIT_INDEX_FILE",
-  "GIT_OBJECT_DIRECTORY",
-  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-  "GIT_GRAFT_FILE",
-  "GIT_SHALLOW_FILE",
-  "GIT_CEILING_DIRECTORIES",
-  "GIT_DISCOVERY_ACROSS_FILESYSTEM",
-  "GIT_CONFIG",
-  "GIT_CONFIG_NOSYSTEM",
-  "GIT_CONFIG_COUNT",
-  "GIT_CONFIG_PARAMETERS",
-]);
-
 function removeGitConfigInjections(environment, names) {
   for (const name of names) delete environment[name];
   for (const name of Object.keys(environment)) {
     if (GIT_CONFIG_INJECTION_PREFIXES.some((prefix) => name.startsWith(prefix))) delete environment[name];
   }
   return environment;
-}
-
-/**
- * Preserve normal HOME/global/system ignore rules while pinning a later Git
- * command's repository location with explicit CLI configuration. The caller
- * must supply that `-c core.worktree=...` boundary; this function only removes
- * location and dynamic configuration injection variables.
- */
-export function sanitizeGitSourceListingEnvironment(environment = process.env) {
-  if (environment === null || typeof environment !== "object" || Array.isArray(environment)) {
-    throw new TypeError("Git source listing environment must be an object");
-  }
-  return removeGitConfigInjections({ ...environment }, GIT_SOURCE_LISTING_BLOCKED_ENVIRONMENT);
 }
 
 export function sanitizeGitRepositoryEnvironment(environment = process.env) {

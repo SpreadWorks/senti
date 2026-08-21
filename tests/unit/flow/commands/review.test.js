@@ -20,7 +20,6 @@ import { container } from "../../../../src/lib/container.js";
 import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
 import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-review-artifacts.js";
 import {
-  REVIEW_WORK_UNIT_CHECKOUT_ENV,
   REVIEW_WORK_UNIT_MANIFEST_ENV,
 } from "../../../../src/flow/lib/review-work-unit.js";
 import { ReviewFindingCycle } from "../../../../src/flow/lib/finding-disposition-policy.js";
@@ -249,7 +248,6 @@ describe("normal no-diff canonical review", () => {
   let previousReviewSpecSource;
   let previousReviewFileMapSource;
   let previousReviewWorkUnitManifest;
-  let previousReviewWorkUnitCheckout;
   let reviewEnvironmentCaptured = false;
 
   afterEach(() => {
@@ -262,13 +260,10 @@ describe("normal no-diff canonical review", () => {
     else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = previousReviewFileMapSource;
     if (previousReviewWorkUnitManifest === undefined) delete process.env[REVIEW_WORK_UNIT_MANIFEST_ENV];
     else process.env[REVIEW_WORK_UNIT_MANIFEST_ENV] = previousReviewWorkUnitManifest;
-    if (previousReviewWorkUnitCheckout === undefined) delete process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV];
-    else process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV] = previousReviewWorkUnitCheckout;
     previousReviewOutputDirectory = undefined;
     previousReviewSpecSource = undefined;
     previousReviewFileMapSource = undefined;
     previousReviewWorkUnitManifest = undefined;
-    previousReviewWorkUnitCheckout = undefined;
     reviewEnvironmentCaptured = false;
     if (noDiffRoot) removeTmpDir(noDiffRoot);
     noDiffRoot = null;
@@ -286,7 +281,6 @@ describe("normal no-diff canonical review", () => {
     workUnit.prepare();
     const specSource = workUnit.materializeSpecRecord();
     const fileMapSource = workUnit.materializeFileMap();
-    const checkout = workUnit.materializeExecutionCheckout();
     const surface = workUnit.finalize();
     const outputDirectory = surface.directory;
     if (!reviewEnvironmentCaptured) {
@@ -294,7 +288,6 @@ describe("normal no-diff canonical review", () => {
       previousReviewSpecSource = process.env.SENNEL_REVIEW_SPEC_SOURCE;
       previousReviewFileMapSource = process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
       previousReviewWorkUnitManifest = process.env[REVIEW_WORK_UNIT_MANIFEST_ENV];
-      previousReviewWorkUnitCheckout = process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV];
       reviewEnvironmentCaptured = true;
     }
     process.env.SENNEL_REVIEW_OUTPUT_DIR = outputDirectory;
@@ -302,8 +295,7 @@ describe("normal no-diff canonical review", () => {
     if (fileMapSource === null) delete process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
     else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = JSON.stringify(fileMapSource);
     process.env[REVIEW_WORK_UNIT_MANIFEST_ENV] = surface.manifestPath;
-    process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV] = checkout.directory;
-    return { outputDirectory, specSource, fileMapSource, executionWorkDir: checkout.directory };
+    return { outputDirectory, specSource, fileMapSource, executionWorkDir: noDiffRoot };
   }
 
   it("passes without a diff on a first Attempt and a typed retry after transient cleanup", async () => {
@@ -432,7 +424,8 @@ describe("normal no-diff canonical review", () => {
     assert.match(capturedPrompt, /"R-1": \[/);
     assert.match(capturedPrompt, /"src\/mapped\.js"/);
     assert.equal(capturedExecutionWorkDir, executionWorkDir);
-    assert.notEqual(capturedExecutionWorkDir, noDiffRoot);
+    assert.equal(capturedExecutionWorkDir, noDiffRoot);
+    assert.equal(fs.existsSync(path.join(outputDirectory, "checkout")), false);
     assert.equal(capturedWaitForProcessTree, true);
     assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
     assert.equal(fs.existsSync(path.join(fixture.location().directory, "file-map.json")), false);

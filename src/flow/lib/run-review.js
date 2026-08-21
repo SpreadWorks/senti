@@ -59,7 +59,6 @@ import {
   canonicalReviewNodeId,
 } from "./canonical-review-artifacts.js";
 import {
-  REVIEW_WORK_UNIT_CHECKOUT_ENV,
   REVIEW_WORK_UNIT_MANIFEST_ENV,
   ReviewWorkUnit,
 } from "./review-work-unit.js";
@@ -1203,7 +1202,6 @@ export class RunReviewCommand extends FlowCommand {
       const draftSource = workUnit.materializeDraft();
       const testSources = workUnit.materializeTestSources(prepared.directory);
       const taskSpec = workUnit.materializeTaskSpec();
-      const checkout = workUnit.materializeExecutionCheckout();
       const surface = workUnit.finalize();
       const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
       const args = [];
@@ -1218,7 +1216,6 @@ export class RunReviewCommand extends FlowCommand {
         ...sanitizeGitRepositoryEnvironment(),
         [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
         [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
-        [REVIEW_WORK_UNIT_CHECKOUT_ENV]: checkout.directory,
         [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
         ...(fileMapSource === null ? {} : {
           [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),

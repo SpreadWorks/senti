@@ -1882,6 +1882,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     }
     assert.equal(invocation.command, "node");
     assert.deepEqual(invocation.args.slice(-2), ["--phase", "spec"]);
+    assert.equal(invocation.options.cwd, repository);
+    assert.equal(invocation.options.env.SENNEL_REVIEW_WORK_UNIT_CHECKOUT, undefined);
     assert.equal(
       invocation.options.timeout,
       AgentTimeout.fromConfig().toOuterProcessMilliseconds(),
@@ -1922,6 +1924,54 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(leaves(state.steps).find((entry) => entry.id === "spec-review").status, "done");
     assert.equal(fs.existsSync(path.join(location.directory, "spec-review.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "review-history")), false);
+  });
+
+  it("rejects review evidence when the execution checkout changes during the review", async () => {
+    const repository = root();
+    initializeReviewSource(repository);
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-review-source-changed"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec-review");
+
+    const review = new RunReviewCommand({
+      runCommand(_command, _args, options) {
+        const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+        fs.writeFileSync(path.join(outputDirectory, "spec-review.json"), `${JSON.stringify({
+          verdict: "PASS",
+          blockingFindings: [],
+          nonBlockingImprovements: [],
+        }, null, 2)}\n`);
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
+        fs.writeFileSync(path.join(repository, "README.md"), "changed while review was running\n");
+        return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+      },
+    });
+    const ctx = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      phase: "spec",
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      config: {},
+    };
+    const before = manager.activityLedger(created.specId).length;
+
+    const result = await review.execute(ctx);
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "STALE_REVIEW_TARGET");
+    assert.equal(manager.activityLedger(created.specId).length, before);
+    assert.equal(manager.canonicalState(created.specId).current.at(-1), "spec-review");
+    assert.notEqual(manager.canonicalState(created.specId).attempt, null);
+    assert.equal(manager.readProducerArtifact({
+      specId: created.specId,
+      nodeId: "spec-review",
+      logicalKey: "spec.review",
+      optional: true,
+    }), null);
   });
 
   it("materializes draft review input from the catalog without exposing the Version root", async () => {

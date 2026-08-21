@@ -480,11 +480,6 @@ export class CanonicalReviewWorkUnit {
     return Object.freeze({ directory: this.workUnit.directory });
   }
 
-  /** Materialize an isolated source checkout for an untrusted review provider. */
-  materializeExecutionCheckout() {
-    return this.workUnit.materializeExecutionCheckout();
-  }
-
   finalize() {
     return this.workUnit.finalize();
   }

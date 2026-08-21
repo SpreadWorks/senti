@@ -91,11 +91,10 @@ import { collectUntrackedDiff } from "../lib/run-gate.js";
  */
 const callReviewAgent = (agent, prompt, commandId, systemPrompt) => {
   const executionOptions = {
-    // The provider never receives the canonical checkout.  The parent has
-    // already materialized and bound this source snapshot to the sealed work
-    // unit, so relative source references remain valid without source-write
-    // authority over the actual execution checkout.
-    executionWorkDir: ReviewWorkUnit.executionCheckoutFromEnvironment(),
+    // Review is diagnostic and runs against the actual execution checkout.
+    // The parent binds its result to the before/after source fingerprint and
+    // canonical target-state digest before promoting any review evidence.
+    executionWorkDir: container.get("root"),
     // The parent keeps the provider admission lease until descendants have
     // ended; otherwise a direct and dispatched review can overlap after the
     // provider's immediate process exits.
