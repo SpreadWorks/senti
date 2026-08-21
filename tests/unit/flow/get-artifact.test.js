@@ -18,7 +18,12 @@ import {
 import GetArtifactCommand, {
   ArtifactViewRequest,
 } from "../../../src/flow/lib/get-artifact.js";
-import { CanonicalFlowFixture, FreshFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  canonicalFixtureProducerResult,
+  CanonicalFlowFixture,
+  FreshFlowFixture,
+  makeFlowManager,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const roots = [];
@@ -80,7 +85,15 @@ function finalizeMigratedVersion(flowManager, specId) {
   for (const step of flattenSteps(flowManager.loadReadOnly(specId).steps)) {
     if (["done", "skipped"].includes(step.status)) continue;
     flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId });
-    flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId });
+    const canonicalCommandResult = canonicalFixtureProducerResult(
+      flowManager.loadReadOnly(specId),
+      step.id,
+      { flowManager, specId },
+    );
+    flowManager.updateStepStatus(
+      { stepId: step.id, requestedStatus: "done" },
+      { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+    );
   }
   flowManager.finalizeFlow(specId);
 }

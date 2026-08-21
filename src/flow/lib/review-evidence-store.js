@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { runGit } from "../../lib/git-helpers.js";
+import { sanitizeGitRepositoryEnvironment } from "../../lib/git-repository-environment.js";
 import {
   MAX_REVIEW_EVIDENCE_BYTES,
   REVIEW_EVIDENCE_VERSION,
@@ -23,7 +24,8 @@ function reviewEvidenceError(code, message) {
 }
 
 export function resolveCurrentReviewTreeSha(root, specPath = null) {
-  const tree = runGit(["rev-parse", "HEAD^{tree}"], { cwd: root });
+  const env = sanitizeGitRepositoryEnvironment();
+  const tree = runGit(["rev-parse", "HEAD^{tree}"], { cwd: root, env });
   if (!tree.ok) {
     throw reviewEvidenceError(
       "REVIEW_TARGET_TREE_UNAVAILABLE",
@@ -36,7 +38,7 @@ export function resolveCurrentReviewTreeSha(root, specPath = null) {
     "--binary",
     "HEAD",
     ...(registry ? ["--", ".", ...registry.gitPathspecExcludes()] : []),
-  ], { cwd: root });
+  ], { cwd: root, env });
   if (!diff.ok) {
     throw reviewEvidenceError(
       "REVIEW_TARGET_TREE_UNAVAILABLE",

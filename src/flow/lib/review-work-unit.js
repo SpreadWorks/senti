@@ -8,19 +8,29 @@
  */
 
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicFile } from "../../lib/atomic-file.js";
+import {
+  sanitizeGitRepositoryEnvironment,
+  sanitizeGitSourceListingEnvironment,
+} from "../../lib/git-repository-environment.js";
 import { PRODUCT } from "../../lib/product.js";
-import { captureRegularFile } from "../../lib/regular-file-snapshot.js";
+import { captureRegularFile, RegularFileSnapshot } from "../../lib/regular-file-snapshot.js";
 import { FlowArtifactAttemptHistory } from "../../lib/flow-artifact-contract.js";
 
 export const REVIEW_WORK_UNIT_MANIFEST_ENV = PRODUCT.env("REVIEW_WORK_UNIT_MANIFEST");
+export const REVIEW_WORK_UNIT_CHECKOUT_ENV = PRODUCT.env("REVIEW_WORK_UNIT_CHECKOUT");
 const REVIEW_WORK_UNIT_ROOT = PRODUCT.managedPath("review-work-units");
 const MAX_WORK_UNIT_FILE_BYTES = 2 * 1024 * 1024;
 const SHA256 = /^[a-f0-9]{64}$/;
 const TREE_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;
+const CHECKOUT_EXCLUDED_NAMES = new Set([".git", ".sennel", ".tmp", "node_modules"]);
+const MAX_EXECUTION_CHECKOUT_FILES = 20_000;
+const MAX_EXECUTION_CHECKOUT_BYTES = 64 * 1024 * 1024;
+const MAX_EXECUTION_CHECKOUT_MANIFEST_BYTES = 4 * 1024 * 1024;
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -78,11 +88,31 @@ function ensureRealDirectory(directory, boundary) {
   return target;
 }
 
+function existingRealDirectory(directory, label) {
+  const target = path.resolve(requiredText(directory, label));
+  const stat = fs.lstatSync(target);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(target) !== target) {
+    throw new Error(`${label} must be an existing real directory`);
+  }
+  return target;
+}
+
 function regularFile(file, label) {
   try {
     return captureRegularFile(file, { label, maxBytes: MAX_WORK_UNIT_FILE_BYTES });
   } catch (cause) {
     throw new Error(`${label} is unavailable or invalid: ${cause.message}`);
+  }
+}
+
+function checkoutManifestFile(file) {
+  try {
+    return captureRegularFile(file, {
+      label: "review execution checkout manifest",
+      maxBytes: MAX_EXECUTION_CHECKOUT_MANIFEST_BYTES,
+    });
+  } catch (cause) {
+    throw new Error(`review execution checkout manifest is unavailable or invalid: ${cause.message}`);
   }
 }
 
@@ -335,6 +365,251 @@ export class ReviewWorkUnitOutputReceipt {
   }
 }
 
+/** One immutable source file recorded in a parent-created review checkout. */
+export class ReviewExecutionCheckoutFile {
+  constructor(value = {}) {
+    const source = exactObject(value, ["relativePath", "digest", "byteLength"], "review execution checkout file");
+    this.relativePath = logicalPath(source.relativePath, "review execution checkout file relativePath");
+    this.digest = requiredDigest(source.digest, "review execution checkout file digest");
+    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0) {
+      throw new Error("review execution checkout file byteLength is invalid");
+    }
+    this.byteLength = source.byteLength;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { relativePath: this.relativePath, digest: this.digest, byteLength: this.byteLength }; }
+}
+
+/** One git-selected source entry captured before the checkout copy begins. */
+class ReviewExecutionCheckoutSourceEntry {
+  constructor({ relativePath, snapshot }) {
+    this.relativePath = logicalPath(relativePath, "review execution checkout source path");
+    if (snapshot !== null && !(snapshot instanceof RegularFileSnapshot)) {
+      throw new Error("review execution checkout source snapshot is invalid");
+    }
+    this.snapshot = snapshot;
+    Object.freeze(this);
+  }
+
+  get included() { return this.snapshot !== null; }
+
+  static capture(sourceRoot, relativePath, { maxBytes = MAX_EXECUTION_CHECKOUT_BYTES } = {}) {
+    const source = path.resolve(sourceRoot, ...relativePath.split("/"));
+    if (!isWithin(sourceRoot, source)) throw new Error("review execution checkout source escapes its root");
+    let resolved = source;
+    const visible = fs.lstatSync(source);
+    if (visible.isSymbolicLink()) {
+      resolved = fs.realpathSync(source);
+      if (!isWithin(sourceRoot, resolved)) {
+        return new ReviewExecutionCheckoutSourceEntry({ relativePath, snapshot: null });
+      }
+    }
+    const snapshot = captureRegularFile(resolved, {
+      label: `review execution checkout source ${relativePath}`,
+      maxBytes,
+    });
+    return new ReviewExecutionCheckoutSourceEntry({ relativePath, snapshot });
+  }
+
+  copyTo(checkoutRoot) {
+    if (!this.included) return null;
+    const destination = path.join(checkoutRoot, ...this.relativePath.split("/"));
+    fs.mkdirSync(path.dirname(destination), { recursive: true, mode: 0o755 });
+    fs.writeFileSync(destination, this.snapshot.bytes, { mode: this.snapshot.mode });
+    return new ReviewExecutionCheckoutFile({
+      relativePath: this.relativePath,
+      digest: this.snapshot.digest,
+      byteLength: this.snapshot.byteLength,
+    });
+  }
+
+  assertUnchanged(sourceRoot) {
+    let current;
+    try {
+      current = ReviewExecutionCheckoutSourceEntry.capture(sourceRoot, this.relativePath, {
+        maxBytes: this.included ? this.snapshot.byteLength : MAX_EXECUTION_CHECKOUT_BYTES,
+      });
+    } catch (cause) {
+      throw new Error(`review execution checkout source ${this.relativePath} changed during snapshot: ${cause.message}`);
+    }
+    if (
+      current.included !== this.included
+      || (this.included && (
+        current.snapshot.digest !== this.snapshot.digest
+        || current.snapshot.byteLength !== this.snapshot.byteLength
+        || current.snapshot.mode !== this.snapshot.mode
+      ))
+    ) {
+      throw new Error(`review execution checkout source ${this.relativePath} changed during snapshot`);
+    }
+  }
+}
+
+/**
+ * Provider-independent execution surface for source review.  It contains a
+ * byte-for-byte parent snapshot rather than a symlink or the canonical checkout.
+ */
+export class ReviewExecutionCheckoutSnapshot {
+  constructor({ target, files } = {}) {
+    this.target = target instanceof ReviewWorkUnitTarget ? target : new ReviewWorkUnitTarget(target);
+    if (!Array.isArray(files)) throw new Error("review execution checkout files must be an array");
+    this.files = Object.freeze(files.map((file) => (
+      file instanceof ReviewExecutionCheckoutFile ? file : new ReviewExecutionCheckoutFile(file)
+    )).sort((left, right) => left.relativePath.localeCompare(right.relativePath)));
+    if (new Set(this.files.map((file) => file.relativePath)).size !== this.files.length) {
+      throw new Error("review execution checkout has duplicate files");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: 1,
+      target: this.target.toJSON(),
+      files: this.files.map((file) => file.toJSON()),
+    };
+  }
+
+  static materialize({ sourceRoot, checkoutRoot, target } = {}) {
+    const source = existingRealDirectory(sourceRoot, "review execution checkout sourceRoot");
+    const destination = path.resolve(requiredText(checkoutRoot, "review execution checkout checkoutRoot"));
+    if (fs.existsSync(destination)) throw new Error("review execution checkout already exists");
+    fs.mkdirSync(destination, { recursive: true, mode: 0o755 });
+    const sourcePaths = checkoutSourcePaths(source);
+    const sourceEntries = [];
+    const files = [];
+    let totalBytes = 0;
+    let includedCount = 0;
+    for (const relativePath of sourcePaths) {
+      const entry = ReviewExecutionCheckoutSourceEntry.capture(source, relativePath, {
+        maxBytes: MAX_EXECUTION_CHECKOUT_BYTES - totalBytes,
+      });
+      if (entry.included) {
+        if (includedCount >= MAX_EXECUTION_CHECKOUT_FILES) {
+          throw new Error("review execution checkout exceeds the file limit");
+        }
+        totalBytes += entry.snapshot.byteLength;
+        includedCount += 1;
+      }
+      sourceEntries.push(entry);
+    }
+    totalBytes = 0;
+    for (const entry of sourceEntries) {
+      if (entry.included && files.length >= MAX_EXECUTION_CHECKOUT_FILES) {
+        throw new Error("review execution checkout exceeds the file limit");
+      }
+      const copied = entry.copyTo(destination);
+      if (copied === null) continue;
+      totalBytes += copied.byteLength;
+      files.push(copied);
+    }
+    if (totalBytes > MAX_EXECUTION_CHECKOUT_BYTES) {
+      throw new Error("review execution checkout exceeds the byte limit");
+    }
+    for (const entry of sourceEntries) entry.assertUnchanged(source);
+    const recapturedPaths = checkoutSourcePaths(source);
+    if (JSON.stringify(recapturedPaths) !== JSON.stringify(sourcePaths)) {
+      throw new Error("review execution checkout source paths changed during snapshot");
+    }
+    initializeCheckoutGitBoundary(destination);
+    const snapshot = new ReviewExecutionCheckoutSnapshot({ target, files });
+    if (Buffer.byteLength(`${JSON.stringify(snapshot.toJSON())}\n`, "utf8") > MAX_EXECUTION_CHECKOUT_MANIFEST_BYTES) {
+      throw new Error("review execution checkout manifest exceeds the byte limit");
+    }
+    return snapshot;
+  }
+
+  static fromJSON(value) {
+    const source = exactObject(value, ["version", "target", "files"], "review execution checkout manifest");
+    if (source.version !== 1) throw new Error("review execution checkout manifest version is invalid");
+    return new ReviewExecutionCheckoutSnapshot({ target: source.target, files: source.files });
+  }
+
+  assertSnapshot(checkoutRoot) {
+    const root = existingRealDirectory(checkoutRoot, "review execution checkout");
+    for (const file of this.files) {
+      const candidate = path.resolve(root, ...file.relativePath.split("/"));
+      if (!isWithin(root, candidate)) throw new Error("review execution checkout file escapes its directory");
+      let snapshot;
+      try {
+        snapshot = captureRegularFile(candidate, {
+          label: `review execution checkout file ${file.relativePath}`,
+          maxBytes: MAX_EXECUTION_CHECKOUT_BYTES,
+        });
+      } catch (cause) {
+        throw new Error(`review execution checkout file ${file.relativePath} is unavailable or invalid: ${cause.message}`);
+      }
+      if (snapshot.digest !== file.digest || snapshot.byteLength !== file.byteLength) {
+        throw new Error(`review execution checkout file ${file.relativePath} changed after parent snapshot`);
+      }
+    }
+    return root;
+  }
+}
+
+/**
+ * Give the provider an independent Git boundary. Without this, Git invoked
+ * from checkout/ walks upward and treats the canonical execution checkout as
+ * its worktree. The baseline is parent-created after the byte snapshot, so
+ * provider mutations and commits remain confined to this disposable copy.
+ */
+function initializeCheckoutGitBoundary(checkoutRoot) {
+  const env = sanitizeGitRepositoryEnvironment();
+  try {
+    execFileSync("git", ["-C", checkoutRoot, "init", "-q", "--initial-branch=sennel-review-snapshot"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+    execFileSync("git", ["-C", checkoutRoot, "config", "user.email", "review-snapshot@sennel.invalid"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+    execFileSync("git", ["-C", checkoutRoot, "config", "user.name", "Sennel review snapshot"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+    execFileSync("git", ["-C", checkoutRoot, "add", "--all"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+    execFileSync("git", ["-C", checkoutRoot, "commit", "-q", "--allow-empty", "-m", "review execution snapshot"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    });
+  } catch (cause) {
+    throw new Error(`review execution checkout Git boundary is unavailable: ${cause.message}`);
+  }
+}
+
+function checkoutSourcePaths(sourceRoot) {
+  let output;
+  try {
+    output = execFileSync("git", [
+      "-c", `core.worktree=${sourceRoot}`,
+      "-c", "core.bare=false",
+      "-c", "core.fsmonitor=false",
+      "-C", sourceRoot,
+      "ls-files", "--cached", "--others", "--exclude-standard", "-z",
+    ], {
+      encoding: "buffer",
+      stdio: ["ignore", "pipe", "pipe"],
+      env: sanitizeGitSourceListingEnvironment(),
+      // A valid checkout manifest is at least as large as its NUL-delimited
+      // source path list, so this bound admits every manifest that can pass
+      // the declared manifest limit without inheriting Node's smaller default.
+      maxBuffer: MAX_EXECUTION_CHECKOUT_MANIFEST_BYTES,
+    });
+  } catch (cause) {
+    throw new Error(`review execution checkout requires a Git source checkout: ${cause.message}`);
+  }
+  return output.toString("utf8").split("\0").filter(Boolean)
+    .map((entry) => logicalPath(entry, "review execution checkout path"))
+    .filter((entry) => !entry.split("/").some((segment) => CHECKOUT_EXCLUDED_NAMES.has(segment)))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+
 /** A parent-created execution work unit whose manifest is the child contract. */
 export class ReviewWorkUnit {
   constructor({ executionRoot, runId, specId, phase, taskId = null, nodeId, attemptId, target, output } = {}) {
@@ -367,6 +642,8 @@ export class ReviewWorkUnit {
   }
 
   get directory() { return this.root; }
+  get checkoutDirectory() { return path.join(this.root, "checkout"); }
+  get checkoutManifestPath() { return path.join(this.root, "checkout-manifest.json"); }
   get manifestPath() { return path.join(this.root, "manifest.json"); }
   get sealPath() { return path.join(this.root, "seal.json"); }
   outputPath() { return path.join(this.root, this.output.basename); }
@@ -431,10 +708,41 @@ export class ReviewWorkUnit {
     return Object.freeze({ manifest: this.manifestDocument, manifestPath: this.manifestPath, directory: this.root, outputPath: this.outputPath() });
   }
 
+  materializeExecutionCheckout() {
+    this.prepare();
+    const checkoutExisted = fs.existsSync(this.checkoutDirectory);
+    const manifestExisted = fs.existsSync(this.checkoutManifestPath);
+    try {
+      const snapshot = ReviewExecutionCheckoutSnapshot.materialize({
+        sourceRoot: this.executionRoot,
+        checkoutRoot: this.checkoutDirectory,
+        target: this.target,
+      });
+      new AtomicFile(this.checkoutManifestPath, { phaseNamespace: "review-execution-checkout-manifest" })
+        .write(Buffer.from(`${JSON.stringify(snapshot.toJSON(), null, 2)}\n`, "utf8"));
+      return Object.freeze({ directory: this.checkoutDirectory, snapshot });
+    } catch (cause) {
+      // A partially materialized checkout has no sealed worker authority.
+      // Remove only entries this invocation created so the same Attempt can
+      // retry without treating its own residue as a durable checkout.
+      this.cleanupUnsealedExecutionCheckout({
+        checkout: !checkoutExisted,
+        manifest: !manifestExisted,
+      });
+      throw cause;
+    }
+  }
+
   recoverSealed() {
     const hasManifest = fs.existsSync(this.manifestPath);
     const hasSeal = fs.existsSync(this.sealPath);
-    if (!hasManifest && !hasSeal) return null;
+    if (!hasManifest && !hasSeal) {
+      // A crash can occur after checkout creation but before the parent
+      // writes its manifest. This is parent-owned transient residue, never a
+      // recoverable worker result, so discard it before retrying the Attempt.
+      this.cleanupUnsealedExecutionCheckout();
+      return null;
+    }
     if (!hasManifest || !hasSeal) {
       this.cleanup();
       return null;
@@ -445,6 +753,32 @@ export class ReviewWorkUnit {
     );
     worker.readSealedOutput();
     return worker;
+  }
+
+  /** Remove only unsealed checkout residue below this exact work-unit root. */
+  cleanupUnsealedExecutionCheckout({ checkout = true, manifest = true } = {}) {
+    if (!fs.existsSync(this.root)) return false;
+    const root = existingRealDirectory(this.root, "review work unit cleanup root");
+    let removed = false;
+    if (checkout && fs.existsSync(this.checkoutDirectory)) {
+      const target = path.resolve(this.checkoutDirectory);
+      const stat = fs.lstatSync(target);
+      if (!isWithin(root, target) || !stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(target) !== target) {
+        throw new Error("review execution checkout cleanup target is invalid");
+      }
+      fs.rmSync(target, { recursive: true });
+      removed = true;
+    }
+    if (manifest && fs.existsSync(this.checkoutManifestPath)) {
+      const target = path.resolve(this.checkoutManifestPath);
+      const stat = fs.lstatSync(target);
+      if (!isWithin(root, target) || !stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(target) !== target) {
+        throw new Error("review execution checkout manifest cleanup target is invalid");
+      }
+      fs.unlinkSync(target);
+      removed = true;
+    }
+    return removed;
   }
 
   cleanup() {
@@ -480,6 +814,31 @@ export class ReviewWorkUnit {
     instance.manifestDocument = manifest;
     instance.manifestDigest = snapshot.digest;
     return instance;
+  }
+
+  executionCheckout(expectedDirectory = null) {
+    if (!(this.manifestDocument instanceof ReviewWorkUnitManifest)) {
+      throw new Error("review worker execution checkout requires a manifest");
+    }
+    const checkout = path.join(this.root, "checkout");
+    if (expectedDirectory !== null && path.resolve(expectedDirectory) !== checkout) {
+      throw new Error("review worker checkout does not match the parent-declared execution surface");
+    }
+    const manifestPath = path.join(this.root, "checkout-manifest.json");
+    const snapshot = checkoutManifestFile(manifestPath);
+    let declared;
+    try { declared = ReviewExecutionCheckoutSnapshot.fromJSON(JSON.parse(snapshot.bytes.toString("utf8"))); }
+    catch (cause) { throw new Error(`review execution checkout manifest is invalid: ${cause.message}`); }
+    if (!declared.target.equals(this.manifestDocument.target)) {
+      throw new Error("review execution checkout target does not match its work unit manifest");
+    }
+    return declared.assertSnapshot(checkout);
+  }
+
+  static executionCheckoutFromEnvironment(environment = process.env) {
+    const expected = requiredText(environment[REVIEW_WORK_UNIT_CHECKOUT_ENV], REVIEW_WORK_UNIT_CHECKOUT_ENV);
+    if (!path.isAbsolute(expected)) throw new Error(`${REVIEW_WORK_UNIT_CHECKOUT_ENV} must be an absolute checkout path`);
+    return ReviewWorkUnit.fromEnvironment(environment).executionCheckout(expected);
   }
 
   assertOutputDirectory(directory) {

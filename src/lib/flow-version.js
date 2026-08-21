@@ -60,6 +60,10 @@ const FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS = new Set([
   // later task and the flow-level gate resolve one authoritative catalog key.
   "file.map",
 ]);
+const RETRY_RECOVERY_TASK_ARTIFACTS = new Set([
+  "retry.recovery.baseline",
+  "retry.recovery.receipt",
+]);
 const MIGRATION_CATALOG_INITIALIZATION = Symbol("migration-catalog-initialization");
 const CATALOG_LOCK_RETRY_ATTEMPTS = 3;
 const CATALOG_LOCK_RETRY_MS = 10;
@@ -67,6 +71,34 @@ const FLOW_STATE_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.state").r
 const FLOW_ACTIVITIES_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities").relativePath;
 const SPEC_RECORD_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("spec.record").relativePath;
 const ARTIFACT_CATALOG_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("artifact.catalog").relativePath;
+
+/** Typed path/Task relation for the route-scoped retry artifacts. */
+class TaskRetryRecoveryArtifactOwner {
+  constructor({ logicalKey, relativePath } = {}) {
+    if (!RETRY_RECOVERY_TASK_ARTIFACTS.has(logicalKey)) {
+      throw new Error("task retry recovery owner requires a retry recovery artifact");
+    }
+    const directory = logicalKey === "retry.recovery.baseline" ? "baselines" : "receipts";
+    const match = relativePath.match(new RegExp(`^artifacts/retry-recovery/${directory}/([^/]+)/([^/]+)\\.json$`));
+    if (match === null) throw new Error(`task retry recovery artifact path is invalid: ${relativePath}`);
+    this.routeId = match[1];
+    this.attemptId = match[2];
+    Object.freeze(this);
+  }
+
+  assertActivityNode(nodeId) {
+    const taskStep = nodeId.match(/^(.+)-(review|gate)$/);
+    if (taskStep === null) throw new Error("task retry recovery artifact requires a Task review or gate Activity");
+    const [, taskId, role] = taskStep;
+    const expectedRouteId = role === "review"
+      ? `review-impl-${taskId}`
+      : `gate-task-impl-${taskId}`;
+    if (this.routeId !== expectedRouteId) {
+      throw new Error("task retry recovery artifact route does not match its related Activity Task");
+    }
+    return this;
+  }
+}
 
 function text(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -886,6 +918,13 @@ export class FlowArtifactActivityAssociation {
     if (updaterStep === null) throw new Error(`cataloged artifact related Activity has no node identity: ${artifact.relativePath}`);
     if (artifact.slot.publicationStep !== updaterStep) {
       throw new Error(`cataloged artifact updater does not match its related Activity node: ${artifact.relativePath}`);
+    }
+    if (updaterStep.startsWith("task-") && RETRY_RECOVERY_TASK_ARTIFACTS.has(artifact.logicalKey)) {
+      new TaskRetryRecoveryArtifactOwner({
+        logicalKey: artifact.logicalKey,
+        relativePath: artifact.relativePath,
+      }).assertActivityNode(this.nodeId);
+      return this;
     }
     if (updaterStep.startsWith("task-") && !FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS.has(artifact.logicalKey)) {
       const taskPath = artifact.relativePath.match(/^steps\/impl\/([^/]+)\/(?:impl|review|gate)(?:\/|$)/);

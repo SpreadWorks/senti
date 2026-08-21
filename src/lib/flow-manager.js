@@ -425,6 +425,18 @@ export class FlowManager {
   beginNextAction(specId = this._boundSpecId) {
     return this._store.beginNextAction(specId);
   }
+  recoverMissingProducerArtifact(input = {}) {
+    return this._store.recoverMissingProducerArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  missingProducerArtifactRoute(input = {}) {
+    return this._store.missingProducerArtifactRoute({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   beginInterruptedFinalizeSyncCleanup(input = {}) {
     return this._store.beginInterruptedFinalizeSyncCleanup({
       ...input,
@@ -433,6 +445,12 @@ export class FlowManager {
   }
   confirmCurrentAttempt(input = {}) {
     return this._store.confirmCurrentAttempt({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  completeAcceptanceDecisionNoOp(input = {}) {
+    return this._store.completeAcceptanceDecisionNoOp({
       ...input,
       specId: input.specId ?? this._boundSpecId,
     });
@@ -696,7 +714,7 @@ export class FlowManager {
   /** Start the next definition-owned Step of one canonical Task. */
   startTask(taskId, opts) { return this._store.startTask(taskId, withSpecIdDefault(opts, this._boundSpecId)); }
 
-  /** Apply one already-validated canonical Activity through the Version Store. */
+  /** Replay one exact immutable ledger Activity; new mutations use typed methods. */
   applyActivity(activity, opts) {
     return this._store.applyActivity(activity, withSpecIdDefault(opts, this._boundSpecId));
   }

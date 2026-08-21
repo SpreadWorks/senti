@@ -7,6 +7,7 @@ import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow
 import { CurrentFlowSpecRecord } from "../../../src/flow/lib/current-flow-state.js";
 import { ReviewRecoveryIdentity } from "../../../src/flow/lib/review-convergence.js";
 import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
+import { canonicalFixtureProducerResult } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const roots = [];
@@ -39,7 +40,18 @@ function advanceTo(fixture, nodeId) {
   const target = ordered.findIndex((step) => step.id === nodeId);
   assert.ok(target >= 0, `canonical definition includes ${nodeId}`);
   for (const step of ordered.slice(0, target)) {
-    fixture.manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId: fixture.created.specId });
+    const canonicalCommandResult = canonicalFixtureProducerResult(
+      fixture.manager.loadReadOnly(fixture.created.specId),
+      step.id,
+      { flowManager: fixture.manager, specId: fixture.created.specId },
+    );
+    fixture.manager.updateStepStatus(
+      { stepId: step.id, requestedStatus: "done" },
+      {
+        specId: fixture.created.specId,
+        ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }),
+      },
+    );
   }
   fixture.manager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId: fixture.created.specId });
 }

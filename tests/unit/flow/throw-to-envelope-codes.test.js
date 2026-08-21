@@ -4,7 +4,11 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  CanonicalFlowFixture,
+  makeFlowManager,
+  removeCatalogedArtifactForCorruptionFixture,
+} from "../../helpers/flow-setup.js";
 import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.js";
 import {
   FlowArtifactAttemptHistory,
@@ -186,6 +190,7 @@ describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
         raw_output_path: location.relativeArtifact("test.execute.raw-log"),
       },
     });
+    removeCatalogedArtifactForCorruptionFixture(manager, "001-test", "test.execute");
     const res = run(tmp, ["flow", "run", "retro"]);
     assert.notEqual(res.status, 0);
     const env = parseEnvelope(res);

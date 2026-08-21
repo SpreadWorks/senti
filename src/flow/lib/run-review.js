@@ -21,6 +21,7 @@ import fs from "fs";
 import crypto from "node:crypto";
 import { runGit } from "../../lib/git-helpers.js";
 import { PRODUCT } from "../../lib/product.js";
+import { sanitizeGitRepositoryEnvironment } from "../../lib/git-repository-environment.js";
 import {
   REVIEW_FAILURE_MARKER_PREFIX,
   ReviewFailure,
@@ -57,8 +58,13 @@ import {
   CanonicalReviewWorkUnit,
   canonicalReviewNodeId,
 } from "./canonical-review-artifacts.js";
-import { REVIEW_WORK_UNIT_MANIFEST_ENV, ReviewWorkUnit } from "./review-work-unit.js";
+import {
+  REVIEW_WORK_UNIT_CHECKOUT_ENV,
+  REVIEW_WORK_UNIT_MANIFEST_ENV,
+  ReviewWorkUnit,
+} from "./review-work-unit.js";
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
+import { ReviewExecutionLease } from "./review-execution-lease.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -1197,17 +1203,22 @@ export class RunReviewCommand extends FlowCommand {
       const draftSource = workUnit.materializeDraft();
       const testSources = workUnit.materializeTestSources(prepared.directory);
       const taskSpec = workUnit.materializeTaskSpec();
+      const checkout = workUnit.materializeExecutionCheckout();
       const surface = workUnit.finalize();
       const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
       const args = [];
       if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
       if (taskSpec !== null) args.push("--task-spec", taskSpec.logicalPath);
       if (ctx.skipConfirm) args.push("--skip-confirm");
-      const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toMilliseconds();
+      // The worker's Agent owns a provider process tree.  Leave it enough
+      // time to terminate that tree before this outer subprocess timeout can
+      // kill the worker and release its review-execution lease prematurely.
+      const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toOuterProcessMilliseconds();
       const env = {
-        ...process.env,
+        ...sanitizeGitRepositoryEnvironment(),
         [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
         [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
+        [REVIEW_WORK_UNIT_CHECKOUT_ENV]: checkout.directory,
         [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
         ...(fileMapSource === null ? {} : {
           [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),
@@ -1336,7 +1347,36 @@ export class RunReviewCommand extends FlowCommand {
         "review execution requires a Version-1 Flow Activity and catalog authority.",
       );
     }
-    return this.executeCanonical(ctx, { phase, dryRun, executionRoot });
+    const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
+    const state = ctx.flowManager.canonicalState(ctx.specId ?? ctx.flowState.specId);
+    const taskId = persistedPhase === IMPL_REVIEW_PHASE ? ctx.flowState.currentTaskId ?? null : null;
+    const expectedNodeId = canonicalReviewNodeId({ phase: persistedPhase, taskId });
+    if (state?.current?.at(-1) !== expectedNodeId || state.attempt === null) {
+      // executeCanonical returns the detailed canonical target error and
+      // remains the single state-validation path.
+      return this.executeCanonical(ctx, { phase, dryRun, executionRoot });
+    }
+    const lease = new ReviewExecutionLease({
+      mainRoot: ctx.mainRoot || executionRoot,
+      runId: state.runId,
+      nodeId: expectedNodeId,
+      attemptId: state.attempt.id,
+    });
+    try {
+      lease.acquire();
+    } catch (error) {
+      return Envelope.fail(
+        "run",
+        "review",
+        error.code || "REVIEW_EXECUTION_LOCK_FAILED",
+        error.message,
+      );
+    }
+    try {
+      return await this.executeCanonical(ctx, { phase, dryRun, executionRoot });
+    } finally {
+      lease.release();
+    }
 
   }
 }

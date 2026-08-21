@@ -53,7 +53,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
       taskId: "T-1",
       targetStep: "task-gate",
     }).create();
-    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
+    fixture.flow.flow.settle("T-1-gate");
     fm.completeTask("T-1");
     // The canonical Task lifecycle is completed through typed transitions;
     // finalize is then explicitly claimed through the definition-ordered API.

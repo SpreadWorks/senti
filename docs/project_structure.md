@@ -40,16 +40,15 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 159 | cli, model, route, lib, spec rationale section builder for prompts, draft-lifecycle-model, controller, config, get guardrail flow command, Typed review-observation model with validation and legacy normalization., library, Retry counter and failure classification utility, broad mode setter, Metric setter command handler, Note setter command handler, flow subcommand handler, test-header-validator |
-| src/lib | 84 | lib, config, model, Metric dimension normalizer shared by agent runner and metrics aggregator, route, Shared domain constants for flow validation and control., Error preview formatter utility, Option normalization utility, Core utility for translating glob patterns into executable regular expressions., lint-executor, Makefile parsing utility for automated test command discovery., view, Repository path matching utility, Fluent builder for AI prompts assembled from labeled sections, Skill rule loader and directive expander, migration, Test command source collection and precedence resolution., other |
-| src/docs | 41 | cli, analysis entry core library, utility, lib, rendering, test environment detector, text fill prompt library |
-| src | 12 | cli, view, route |
+| src/flow | 187 | controller, cli, model, route, lib, spec rationale section builder for prompts, config, view, draft-lifecycle-model, get guardrail flow command, Typed review-observation model with validation and legacy normalization., middleware, Retry counter and failure classification utility, Metric setter command handler, test-header-validator |
+| src/lib | 88 | lib, config, model, Metric dimension normalizer shared by agent runner and metrics aggregator, cli, Shared domain constants for flow validation and control., controller, Error preview formatter utility, Option normalization utility, Core utility for translating glob patterns into executable regular expressions., migration, lint-executor, Makefile parsing utility for automated test command discovery., view, Repository path matching utility, Fluent builder for AI prompts assembled from labeled sections, Skill rule loader and directive expander, Test command source collection and precedence resolution., other |
+| src/docs | 44 | cli, model, analysis entry core library, utility, lib, rendering, test environment detector, text fill prompt library |
+| src | 13 | cli, view, route |
 | src/data | 6 | model, data-source |
-| src/check | 3 | cli |
-| src/metrics | 2 | cli |
+| src/check | 4 | cli, lib |
+| src/metrics | 3 | cli, lib |
 | src/spec | 2 | cli, lib |
 | src/hook | 1 | Lists configured hooks for users in machine-readable or terminal-friendly form. |
-| src/scripts | 1 | other |
 <!-- {{/data}} -->
 
 ### Shared Libraries

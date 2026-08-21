@@ -80,10 +80,9 @@ function taskScenario(step = "review") {
     .registerActive()
     .prepareTaskFrontier()
     .activateTask("T-1");
-  manager.updateStepStatus({ stepId: "T-1-impl", requestedStatus: "done" }, { specId: fixture.specId });
+  fixture.settle("T-1-impl");
   if (step === "gate") {
-    manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "in_progress" }, { specId: fixture.specId });
-    manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "done" }, { specId: fixture.specId });
+    fixture.settle("T-1-review");
   }
   manager.updateStepStatus({ stepId: `T-1-${step}`, requestedStatus: "in_progress" }, { specId: fixture.specId });
   const logicalKey = step === "review" ? "task.review" : "task.gate";

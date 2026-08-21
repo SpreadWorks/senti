@@ -9,14 +9,15 @@ export function sameFileIdentity(left, right) {
 export class RegularFileSnapshot {
   #bytes;
 
-  constructor({ filePath, bytes }) {
-    if (!path.isAbsolute(filePath) || !Buffer.isBuffer(bytes)) {
+  constructor({ filePath, bytes, mode = 0o644 }) {
+    if (!path.isAbsolute(filePath) || !Buffer.isBuffer(bytes) || !Number.isSafeInteger(mode) || mode < 0 || mode > 0o777) {
       throw new Error("regular file snapshot requires an absolute path and Buffer bytes");
     }
     this.filePath = filePath;
     this.#bytes = Buffer.from(bytes);
     this.digest = crypto.createHash("sha256").update(this.#bytes).digest("hex");
     this.byteLength = this.#bytes.length;
+    this.mode = mode;
     Object.freeze(this);
   }
 
@@ -58,7 +59,7 @@ export function captureRegularFile(filePath, { label, maxBytes }) {
     if (!sameFileIdentity(opened, completed) || completed.size !== bytes.length || bytes.length > maxBytes) {
       throw new Error(`${label} changed while reading`);
     }
-    return new RegularFileSnapshot({ filePath: resolved, bytes });
+    return new RegularFileSnapshot({ filePath: resolved, bytes, mode: completed.mode & 0o777 });
   } finally {
     if (descriptor != null) fs.closeSync(descriptor);
   }

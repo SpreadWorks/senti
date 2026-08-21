@@ -17,6 +17,10 @@ import {
   CurrentFlowVersionStore,
   FlowActivity,
 } from "./current-flow-state.js";
+import {
+  containsRetryRecoveryArtifactWrite,
+  RetryRecoveryArtifactPublication,
+} from "./retry-recovery.js";
 
 const TYPE_FOR_OPERATION = Object.freeze({
   add_task: "task_added",
@@ -27,6 +31,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   fail_attempt: "attempt_failed",
   record_failure: "failure_recorded",
   confirm_attempt: "result_confirmed",
+  complete_acceptance_decision_noop: "result_confirmed",
   rewind: "recovery",
   rewind_test_evidence: "recovery",
   repair_test_review: "recovery",
@@ -41,6 +46,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   reopen_draft_spec_correction: "recovery",
   plan_gate_repair: "recovery",
   recover_attempt: "recovery",
+  recover_missing_producer_artifact: "recovery",
   park_flow: "flow_parked",
   resume_flow: "flow_resumed",
   finalize_flow: "flow_finalized",
@@ -157,15 +163,37 @@ export class CanonicalFlowRuntime {
     artifactRemovals,
     testSourceBaseline,
     sourceWorkerUpgrade,
+    admission,
+    retryRecoveryPublication = undefined,
   } = {}) {
+    const canonicalActivity = FlowActivity.canonical(activity);
+    const retryPublication = retryRecoveryPublication === undefined
+      ? null
+      : retryRecoveryPublication;
+    if (retryPublication !== null && !(retryPublication instanceof RetryRecoveryArtifactPublication)) {
+      throw new CurrentFlowStateInvariantError("canonical retry recovery publication must be typed");
+    }
+    if (retryPublication === null && containsRetryRecoveryArtifactWrite(artifactWrites)) {
+      throw new CurrentFlowStateInvariantError(
+        "retry recovery artifacts require the dedicated canonical retry transition",
+      );
+    }
+    if (retryPublication !== null) {
+      retryPublication.assertFor({
+        state: this.#state(specId),
+        activity: canonicalActivity,
+        artifactWrites,
+      });
+    }
     return this.store(specId).apply({
-      activity: FlowActivity.canonical(activity),
+      activity: canonicalActivity,
       ...(taskSpec !== undefined && { taskSpec }),
       ...(specRecord !== undefined && { specRecord }),
       ...(artifactWrites !== undefined && { artifactWrites }),
       ...(artifactRemovals !== undefined && { artifactRemovals }),
       ...(testSourceBaseline !== undefined && { testSourceBaseline }),
       ...(sourceWorkerUpgrade !== undefined && { sourceWorkerUpgrade }),
+      ...(admission !== undefined && { admission }),
     });
   }
 
@@ -186,7 +214,7 @@ export class CanonicalFlowRuntime {
     }), { taskSpec });
   }
 
-  startAttempt({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+  startAttempt({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, admission = undefined, retryRecoveryPublication = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -200,10 +228,12 @@ export class CanonicalFlowRuntime {
       usage,
       references,
       artifactWrites,
+      admission,
+      retryRecoveryPublication,
     });
   }
 
-  retryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+  retryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references, retryRecoveryPublication = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -217,17 +247,18 @@ export class CanonicalFlowRuntime {
       usage,
       references,
       artifactWrites,
+      retryRecoveryPublication,
     });
   }
 
-  retryRecoveryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+  retryRecoveryAttempt({ specId, activityId, attempt, artifactWrites = undefined, timing = null, provider = null, model = null, effort = null, usage = null, references, retryRecoveryPublication = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
       nodeId: this.#currentNodeId(state),
       operation: "retry_recovery_attempt",
       attempt: requiredAttempt(attempt, "retryRecoveryAttempt"),
-      timing, provider, model, effort, usage, references, artifactWrites,
+      timing, provider, model, effort, usage, references, artifactWrites, retryRecoveryPublication,
     });
   }
 
@@ -269,7 +300,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  recordFailure({ specId, activityId, result, timing = null, provider = null, model = null, effort = null, usage = null, references, expectedAttempt = null } = {}) {
+  recordFailure({ specId, activityId, result, timing = null, provider = null, model = null, effort = null, usage = null, references, expectedAttempt = null, admission = undefined } = {}) {
     const state = this.#state(specId);
     const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
     if (expected !== null && !expected.matchesFailed(state)) return null;
@@ -285,10 +316,11 @@ export class CanonicalFlowRuntime {
       effort,
       usage,
       references,
+      admission,
     });
   }
 
-  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline, sourceWorkerUpgrade = undefined } = {}) {
+  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline, sourceWorkerUpgrade = undefined, admission = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -308,6 +340,22 @@ export class CanonicalFlowRuntime {
       artifactRemovals,
       testSourceBaseline,
       sourceWorkerUpgrade,
+      admission,
+    });
+  }
+
+  completeAcceptanceDecisionNoOp({ specId, activityId, result, timing = null, references, admission = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "complete_acceptance_decision_noop",
+      attempt: null,
+      result,
+      status: "done",
+      timing,
+      references,
+      admission,
     });
   }
 
@@ -418,13 +466,13 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  repairAcceptanceReview({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined } = {}) {
+  repairAcceptanceReview({ specId, activityId, attempt, result, timing = null, references, artifactWrites = undefined, admission = undefined } = {}) {
     const state = this.#state(specId);
     const now = new Date().toISOString();
     return this.#applyAttemptTransition(specId, state, {
       id: activityId, nodeId: "acceptance-review", operation: "repair_acceptance_review",
       attempt: requiredAttempt(attempt, "repairAcceptanceReview"), result,
-      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 }, references, artifactWrites,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 }, references, artifactWrites, admission,
     });
   }
 
@@ -490,7 +538,7 @@ export class CanonicalFlowRuntime {
   }
 
   /** Atomically record guarded evidence and replace an active gate Attempt. */
-  planGateRepair({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+  planGateRepair({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, admission = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -504,6 +552,7 @@ export class CanonicalFlowRuntime {
       usage,
       references,
       artifactWrites,
+      admission,
     });
   }
 
@@ -520,6 +569,20 @@ export class CanonicalFlowRuntime {
       effort,
       usage,
       references,
+    });
+  }
+
+  /** Restore a producer's recorded failed Attempt after a legacy consumer claim. */
+  recoverMissingProducerArtifact({ specId, activityId, producerNodeId, attempt, timing = null, references, admission = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: requiredText(producerNodeId, "missing producer artifact producerNodeId"),
+      operation: "recover_missing_producer_artifact",
+      attempt: requiredAttempt(attempt, "recoverMissingProducerArtifact"),
+      timing,
+      references,
+      admission,
     });
   }
 
@@ -553,7 +616,10 @@ export class CanonicalFlowRuntime {
     const state = this.#state(specId);
     const target = requiredText(nodeId, "artifact publication nodeId");
     const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
-    if (expected !== null && !expected.matches(state)) {
+    // A non-pass producer may append its own diagnostic output after its
+    // Attempt is marked failed. Both active forms retain the exact identity;
+    // a replacement or stale Attempt remains forbidden.
+    if (expected !== null && !expected.matches(state) && !expected.matchesFailed(state)) {
       throw new CurrentFlowStateInvariantError("canonical producer Attempt changed before artifact publication");
     }
     if (!Array.isArray(artifactWrites) || artifactWrites.length === 0) {
@@ -885,22 +951,24 @@ export class CanonicalFlowRuntime {
     testSourceBaseline = undefined,
     sourceWorkerUpgrade = undefined,
     nonblocking = null,
+    admission = undefined,
+    retryRecoveryPublication = undefined,
   }) {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : null;
-    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"]).has(operation)
-      ? state.attempt
+    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact"]).has(operation)
+      ? state.attempt ?? attempt
       : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
       : state.attempt;
     if (activityAttempt === null) {
       throw new CurrentFlowStateInvariantError(`${operation} requires a current Attempt`);
     }
-    return this.apply(specId, this.#activity(state, {
+    const activity = this.#activity(state, {
       id,
       nodeId: target,
       result,
@@ -921,12 +989,18 @@ export class CanonicalFlowRuntime {
         status,
         nonblocking,
       },
-    }), {
+    });
+    const resolvedArtifactWrites = retryRecoveryPublication == null
+      ? artifactWrites
+      : retryRecoveryPublication.artifactWrites;
+    return this.apply(specId, activity, {
       specRecord,
-      artifactWrites,
+      artifactWrites: resolvedArtifactWrites,
       artifactRemovals,
       testSourceBaseline,
       sourceWorkerUpgrade,
+      admission,
+      retryRecoveryPublication,
     });
   }
 

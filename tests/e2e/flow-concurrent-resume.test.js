@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { FlowManager } from "../../src/lib/flow-manager.js";
 import { FlowOutboxStore, finalizationOutboxIdentity } from "../../src/flow/lib/flow-outbox.js";
 import { flattenSteps } from "../../src/flow/lib/step-tree.js";
+import { canonicalFixtureProducerResult } from "../helpers/flow-setup.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliPath = path.join(repoRoot, "src/sennel.js");
@@ -121,7 +122,15 @@ function completeManagedWorktreeFlow(root, flow) {
       manager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId: flow.specId });
     }
     if (manager.load(flow.specId).currentNodeId === step.id) {
-      manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId: flow.specId });
+      const canonicalCommandResult = canonicalFixtureProducerResult(
+        manager.loadReadOnly(flow.specId),
+        step.id,
+        { flowManager: manager, specId: flow.specId },
+      );
+      manager.updateStepStatus(
+        { stepId: step.id, requestedStatus: "done" },
+        { specId: flow.specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+      );
     }
   }
 

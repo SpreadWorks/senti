@@ -78,7 +78,7 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
   it("complete-task leaves the next forest leaf pending for explicit selection", () => {
     tmp = createTmpDir();
     const { fm, fixture } = setupForestFixture(tmp, { taskId: "T-1", targetStep: "task-gate" });
-    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
+    fixture.flow.flow.settle("T-1-gate");
     const res = run(tmp, ["flow", "run", "complete-task", "--task-id", "T-1"]);
     assert.equal(res.status, 0, `complete-task failed: ${res.stderr}`);
     const state = fm.loadReadOnly();

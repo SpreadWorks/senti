@@ -46,7 +46,10 @@ import {
 } from "../lib/draft-artifact-promotion.js";
 import { CanonicalFileMap } from "../lib/canonical-file-map.js";
 import { CanonicalReviewInputDescriptor } from "../lib/review-work-unit-input.js";
-import { REVIEW_WORK_UNIT_MANIFEST_ENV, ReviewWorkUnit } from "../lib/review-work-unit.js";
+import {
+  REVIEW_WORK_UNIT_MANIFEST_ENV,
+  ReviewWorkUnit,
+} from "../lib/review-work-unit.js";
 import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
@@ -87,15 +90,27 @@ import { collectUntrackedDiff } from "../lib/run-gate.js";
  * (optionally) commandId.
  */
 const callReviewAgent = (agent, prompt, commandId, systemPrompt) => {
+  const executionOptions = {
+    // The provider never receives the canonical checkout.  The parent has
+    // already materialized and bound this source snapshot to the sealed work
+    // unit, so relative source references remain valid without source-write
+    // authority over the actual execution checkout.
+    executionWorkDir: ReviewWorkUnit.executionCheckoutFromEnvironment(),
+    // The parent keeps the provider admission lease until descendants have
+    // ended; otherwise a direct and dispatched review can overlap after the
+    // provider's immediate process exits.
+    waitForProcessTree: true,
+  };
   if (prompt && typeof prompt === "object" && "userPrompt" in prompt) {
     return agent.call(prompt.userPrompt, {
       commandId,
       systemPrompt: prompt.systemPrompt ?? systemPrompt,
       jsonSchema: prompt.jsonSchema ?? null,
       fmtFallback: prompt.fmtFallback ?? null,
+      ...executionOptions,
     });
   }
-  return agent.call(prompt, { commandId, systemPrompt });
+  return agent.call(prompt, { commandId, systemPrompt, ...executionOptions });
 };
 
 function ensureAgent(commandId) {

@@ -20,7 +20,7 @@ import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
-import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
+import { canonicalFixtureProducerResult, CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { validWorkerHandoffSpec, workerArtifactJson } from "../../helpers/worker-artifact.js";
@@ -280,6 +280,12 @@ describe("deterministic full Flow worker handoff", () => {
       let implReviewRuns = 0;
       const commandArtifactHistories = new Map();
       const coordinator = new WorkerArtifactHandoffCoordinator();
+      const commandPublishedPrimaryArtifact = new Set([
+        "draft-questions-review",
+        "draft-coverage-review",
+        "spec-review",
+        "impl-review",
+      ]);
 
       const routeNodeId = (entry) => entry.taskId === null ? entry.stepId : `${entry.taskId}-${entry.stepId.slice("task-".length)}`;
       const activate = (entry) => {
@@ -305,7 +311,13 @@ describe("deterministic full Flow worker handoff", () => {
           return;
         }
         if (current === nodeId) {
-          flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "done" }, { specId });
+          const canonicalCommandResult = commandPublishedPrimaryArtifact.has(entry.stepId)
+            ? null
+            : canonicalFixtureProducerResult(active, nodeId, { flowManager, specId });
+          flowManager.updateStepStatus(
+            { stepId: nodeId, requestedStatus: "done" },
+            { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+          );
         } else {
           // Worker-handoff confirmation is itself the canonical Attempt
           // transition, so it has already completed this leaf before the

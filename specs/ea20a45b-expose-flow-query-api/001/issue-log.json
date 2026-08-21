@@ -1,0 +1,542 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Worker artifact handoff missing: sealed worker artifact handoff is unavailable: ENOENT: no such file or directory, lstat '/home/nakano/workspace/sennel/.sennel/worktree/feature-ea20a45b-expose-flow-query-api/.sennel/handoffs/2acaf7792cc176de8c3f7ed6/7663b653a10c4cc5bbe33b86/dfa6c8c28d34a76107803ce6/5a351d3250907de570c456a1d4200e0ea07d0c813c60b86291d1951873ba60b7/handoff.json'",
+      "trigger": "Parent dispatcher rejected or could not complete a worker artifact handoff.",
+      "resolution": "Correct the worker artifact payload and dispatch the current action again.",
+      "taskId": null,
+      "timestamp": "2026-08-19T07:10:28.631Z",
+      "issueLogId": "worker-handoff-5a351d3250907de570c456a1d4200e0ea07d0c813c60b86291d1951873ba60b7-missing"
+    },
+    {
+      "step": "draft-coverage-repair",
+      "reason": "Worker artifact handoff missing: sealed worker artifact handoff is unavailable: ENOENT: no such file or directory, lstat '/home/nakano/workspace/sennel/.sennel/worktree/feature-ea20a45b-expose-flow-query-api/.sennel/handoffs/2acaf7792cc176de8c3f7ed6/7663b653a10c4cc5bbe33b86/17683be5625a557945e2e83d/5c62a21653737a8ac1f86b53d393a35b01d4195b0b42468a960d4ac47099bc25/handoff.json'",
+      "trigger": "Parent dispatcher rejected or could not complete a worker artifact handoff.",
+      "resolution": "Correct the worker artifact payload and dispatch the current action again.",
+      "taskId": null,
+      "timestamp": "2026-08-19T07:26:20.934Z",
+      "issueLogId": "worker-handoff-5c62a21653737a8ac1f86b53d393a35b01d4195b0b42468a960d4ac47099bc25-missing"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[0]: unknown field \"autoApprove\"; qa[1]: unknown field \"autoApprove\"; qa[2]: unknown field \"autoApprove\"; qa[3]: unknown field \"autoApprove\"; qa[4]: unknown field \"autoApprove\"; qa[5]: unknown field \"autoApprove\"; qa[6]: unknown field \"autoApprove\"; qa[7]: unknown field \"autoApprove\"; qa[8]: unknown field \"autoApprove\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-19T07:29:03.468Z",
+      "passedGuardrails": [],
+      "headSha": "ffd030bf77499cf25930610bbf627d2e0b78a19a",
+      "worktreeHash": "91325bb731554068fba7476401e1c7e5d1f837374b5e0fe54c0db46600dbf47c",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[0]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[5]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[6]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[7]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[8]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "issueLogId": "set-issue-log-518f68ccc368ae553fe3c4e9fd5c760f6847057c85a75ee427e1d194b487504c"
+    },
+    {
+      "kind": "plan-gate-repair",
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "Guarded draft gate repair rewound to draft-refine.",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[0]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[1]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[2]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[3]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[4]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[5]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[6]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[7]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "qa[8]: unknown field \"autoApprove\"",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "timestamp": "2026-08-19T07:29:23.042Z",
+      "planGateRepair": {
+        "version": 1,
+        "runId": "ea20a45b-f3c2-4443-a3b2-9dec36003a76",
+        "specId": "ea20a45b-expose-flow-query-api",
+        "issue": 517,
+        "phase": "draft",
+        "targetStepId": "draft-refine",
+        "sourceIssueLogId": "set-issue-log-518f68ccc368ae553fe3c4e9fd5c760f6847057c85a75ee427e1d194b487504c",
+        "sourceEntryDigest": "d5536b0e1aa127d9385f68f3bb0dca48551dbff45861cf1626be1a26c7cdc298",
+        "observations": [
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[0]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[1]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[2]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[3]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[4]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[5]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[6]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[7]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "process-evidence-missing",
+            "requirementRef": "process:gate-structure",
+            "where": null,
+            "observed": "qa[8]: unknown field \"autoApprove\"",
+            "severity": "blocking",
+            "refs": [
+              "process:diff-verifiable"
+            ]
+          }
+        ],
+        "requestedAt": "2026-08-19T07:29:23.042Z"
+      },
+      "issueLogId": "plan-gate-repair-38c9bcdb1f69d84dde4465099f108fd636bec0f142f1f6065d71895f10d78fd1"
+    },
+    {
+      "step": "draft-refine",
+      "reason": "Worker artifact handoff missing: sealed worker artifact handoff is unavailable: ENOENT: no such file or directory, lstat '/home/nakano/workspace/sennel/.sennel/worktree/feature-ea20a45b-expose-flow-query-api/.sennel/handoffs/2acaf7792cc176de8c3f7ed6/7663b653a10c4cc5bbe33b86/953b2d0d71dc8d57a0f644ff/484ac94441e00e3f3852edb07e433f6645d8beae52164f01c1153a45ca1ee8f5/handoff.json'",
+      "trigger": "Parent dispatcher rejected or could not complete a worker artifact handoff.",
+      "resolution": "Correct the worker artifact payload and dispatch the current action again.",
+      "taskId": null,
+      "timestamp": "2026-08-19T07:30:39.726Z",
+      "issueLogId": "worker-handoff-484ac94441e00e3f3852edb07e433f6645d8beae52164f01c1153a45ca1ee8f5-missing"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.; There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.; The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-19T07:33:52.942Z",
+      "passedGuardrails": [],
+      "headSha": "ffd030bf77499cf25930610bbf627d2e0b78a19a",
+      "worktreeHash": "67bfeca2e58ab0bff5060d536875fb4bf42466c9d5e017a816aa85a51a50c500",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[4]"
+          },
+          "observed": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path."
+        }
+      ],
+      "issueLogId": "set-issue-log-fed389a937b5885b6cc94b4f936c17bfc7265938a79f8afccecd0255d1d0e509"
+    },
+    {
+      "kind": "plan-gate-repair",
+      "step": "draft-gate",
+      "phase": "draft",
+      "reason": "Guarded draft gate repair rewound to draft-refine.",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[4]"
+          },
+          "observed": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "timestamp": "2026-08-19T07:33:56.355Z",
+      "planGateRepair": {
+        "version": 1,
+        "runId": "ea20a45b-f3c2-4443-a3b2-9dec36003a76",
+        "specId": "ea20a45b-expose-flow-query-api",
+        "issue": 517,
+        "phase": "draft",
+        "targetStepId": "draft-refine",
+        "sourceIssueLogId": "set-issue-log-fed389a937b5885b6cc94b4f936c17bfc7265938a79f8afccecd0255d1d0e509",
+        "sourceEntryDigest": "69394cfecf3df91942d1dd695b6f95bfac634613a1ddbbc728248ea4bba6ae04",
+        "observations": [
+          {
+            "kind": "violation",
+            "failureMode": "guardrail-violation",
+            "requirementRef": "migration-parity",
+            "where": {
+              "file": "draft-content",
+              "locator": "decisionMap.knownFacts[9]"
+            },
+            "observed": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+            "severity": "blocking",
+            "refs": [
+              "migration-parity"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "guardrail-violation",
+            "requirementRef": "migration-parity",
+            "where": {
+              "file": "draft-content",
+              "locator": "decisionMap.knownFacts[9]"
+            },
+            "observed": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+            "severity": "blocking",
+            "refs": [
+              "migration-parity"
+            ]
+          },
+          {
+            "kind": "violation",
+            "failureMode": "guardrail-violation",
+            "requirementRef": "migration-parity",
+            "where": {
+              "file": "draft-content",
+              "locator": "qa[4]"
+            },
+            "observed": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+            "severity": "blocking",
+            "refs": [
+              "migration-parity"
+            ]
+          }
+        ],
+        "requestedAt": "2026-08-19T07:33:56.355Z"
+      },
+      "issueLogId": "plan-gate-repair-b491a8a42318fd234eb07e966054541d6c877b07456c91492ec37cccb19826d7"
+    }
+  ]
+}

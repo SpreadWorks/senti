@@ -66,6 +66,9 @@ const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
   "repair-plan-gate",
   "repair-test-review",
 ]);
+const DISPATCHER_OWNED_RECOVERY_COMMANDS = new Set([
+  "recover-missing-producer-artifact",
+]);
 const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([
   "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
   "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
@@ -849,6 +852,19 @@ export default class RunDispatchCommand extends FlowCommand {
     return this.runRegisteredFlowCommand(ctx, target, commandName, []);
   }
 
+  /**
+   * Historical state reconciliation is a Store-owned transition, never a
+   * worker instruction. Keep this deliberately small: unlike repair commands,
+   * only the one no-input typed recovery command is safe to run automatically.
+   */
+  async runDispatcherOwnedRecovery(ctx, target, action) {
+    if (!(action.directive instanceof ExecuteCommandDirective)) return null;
+    const match = /^sennel flow run ([a-z][a-z0-9-]*)(?:\s|$)/.exec(action.directive.nextAction);
+    const commandName = match?.[1] || null;
+    if (!DISPATCHER_OWNED_RECOVERY_COMMANDS.has(commandName)) return null;
+    return this.runRegisteredFlowCommand(ctx, target, commandName, []);
+  }
+
   async runRegisteredFlowCommand(ctx, target, commandName, args) {
     const entry = flowCommands.run?.[commandName];
     if (!entry?.command) {
@@ -1411,6 +1427,50 @@ export default class RunDispatchCommand extends FlowCommand {
           dispatchCount,
           stalledDispatches,
           owner: "repair command",
+        });
+        if (progressed.failure) return progressed.failure;
+        stalledDispatches = progressed.stalledDispatches;
+        current = progressed.current;
+        continue;
+      }
+
+      let dispatcherOwnedRecovery;
+      try {
+        dispatcherOwnedRecovery = await this.runDispatcherOwnedRecovery(ctx, target, action);
+      } catch (error) {
+        return this.failure(
+          ctx,
+          error.code || "FLOW_DISPATCH_RECOVERY_COMMAND_FAILED",
+          error.message || String(error),
+          blockedBoundary({
+            nextAction: validated,
+            dispatchCount,
+            message: "The dispatcher-owned missing producer artifact recovery failed before worker handoff could begin.",
+          }),
+        );
+      }
+      if (dispatcherOwnedRecovery != null) {
+        dispatchCount += 1;
+        if (commandFailed(dispatcherOwnedRecovery)) {
+          return this.failure(
+            ctx,
+            errorCode(dispatcherOwnedRecovery),
+            errorMessages(dispatcherOwnedRecovery),
+            blockedBoundary({
+              nextAction: validated,
+              dispatchCount,
+              message: "The dispatcher-owned missing producer artifact recovery did not complete its guarded Flow transition.",
+            }),
+          );
+        }
+        const progressed = await this.parentCommandProgress({
+          ctx,
+          session,
+          target,
+          invocation,
+          dispatchCount,
+          stalledDispatches,
+          owner: "missing producer artifact recovery",
         });
         if (progressed.failure) return progressed.failure;
         stalledDispatches = progressed.stalledDispatches;

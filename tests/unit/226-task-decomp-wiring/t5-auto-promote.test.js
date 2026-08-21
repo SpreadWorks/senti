@@ -64,7 +64,7 @@ describe("T-5: Task selection and explicit claim boundaries", () => {
       taskId: "T-1",
       targetStep: "task-gate",
     }).create();
-    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
+    fixture.flow.flow.settle("T-1-gate");
     fm.completeTask("T-1");
     const state = fm.loadReadOnly();
     assert.equal(state.currentTaskId, null);
@@ -94,7 +94,7 @@ describe("T-5: Task selection and explicit claim boundaries", () => {
       taskId: "T-1",
       targetStep: "task-gate",
     }).create();
-    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
+    flow.flow.settle("T-1-gate");
     fm.completeTask("T-1");
     const out = execFileSync("node", [path.join(process.cwd(), "src/sennel.js"), "flow", "get", "next-action"], {
       encoding: "utf8",

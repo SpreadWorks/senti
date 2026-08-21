@@ -13,7 +13,11 @@ import {
   CurrentFlowState,
   FlowActivity,
 } from "../../../src/flow/lib/current-flow-state.js";
-import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  CanonicalFlowFixture,
+  canonicalFixtureProducerResult,
+  makeFlowManager,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const roots = [];
@@ -58,6 +62,18 @@ function scenarioValidityArtifact(location) {
   };
 }
 
+function confirmFixtureStep(manager, specId, stepId) {
+  const canonicalCommandResult = canonicalFixtureProducerResult(
+    manager.canonicalState(specId),
+    stepId,
+    { flowManager: manager, specId },
+  );
+  return manager.updateStepStatus(
+    { stepId, requestedStatus: "done" },
+    { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+  );
+}
+
 function finalizedFixture() {
   const repository = root();
   const manager = makeFlowManager(repository);
@@ -70,7 +86,7 @@ function finalizedFixture() {
   const scenarioIndex = ordered.findIndex((step) => step.id === "scenario-validity");
   assert.ok(scenarioIndex >= 0, "the canonical definition must include scenario-validity");
   for (const step of ordered.slice(0, scenarioIndex)) {
-    manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId: fixture.specId });
+    confirmFixtureStep(manager, fixture.specId, step.id);
   }
   manager.updateStepStatus({ stepId: "scenario-validity", requestedStatus: "in_progress" }, { specId: fixture.specId });
   manager.publishArtifacts({
@@ -78,10 +94,10 @@ function finalizedFixture() {
     nodeId: "scenario-validity",
     artifactWrites: [scenarioValidityArtifact(manager.specLocation(fixture.specId))],
   });
-  manager.updateStepStatus({ stepId: "scenario-validity", requestedStatus: "done" }, { specId: fixture.specId });
+  confirmFixtureStep(manager, fixture.specId, "scenario-validity");
   for (const step of leaves(manager.load(fixture.specId).steps)) {
     if (step.status === "pending") {
-      manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId: fixture.specId });
+      confirmFixtureStep(manager, fixture.specId, step.id);
     }
   }
   manager.finalizeFlow(fixture.specId);

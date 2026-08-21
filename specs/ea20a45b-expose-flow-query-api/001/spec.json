@@ -1,0 +1,391 @@
+{
+  "goal": "Create a workspace-agnostic `sennel flow query` API that reads canonical Flow Version artifacts (`flow.state`, `spec.record`, `flow.activities`, artifact catalog) and exposes only public metadata and activity data through stable resource-specific query projections.",
+  "background": "Issue #517 requests a public, read-only query surface so Workspace and Connector clients can consume canonical flow version information without probing internal filesystem layout. Draft analysis shows current usage relies on fragile workspace internals, and this command must replace those paths with deterministic canonical readers while keeping flow mutations and catalog internals out of the API responses.",
+  "scope": {
+    "in": [
+      "Implement `sennel flow query` with stdin and `--request-file` input, strict JSON request validation, and route handling for resources `metadata` and `activities`.",
+      "Resolve one `specId` string and one optional flow version, derive lifecycle and blocked state from canonical evidence, and return fixed resource-specific response shapes including selected/available versions.",
+      "Add confirmation-order pagination using opaque query-bound cursors for `activities`, filtering on canonical ledger finished timestamps with ISO 8601 timezone-aware bounds.",
+      "Define and implement versioned response/error schema handling for all validation and read failures, including non-zero exit on `ok: false`, with no partial success payloads.",
+      "Keep command behavior read-only for canonical flow artifacts and working tree, including unchanged git status before/after query.",
+      "Provide migration-parity coverage for replacing legacy workspace-specific query-like behavior with `metadata` and `activities` resource calls."
+    ],
+    "out": [
+      "Do not create or modify any workflow-mutation commands (`start`, `park`, `finalize`, `finalize-cleanup`, etc.) from this issue.",
+      "Do not return workspace-specific views, filesystem paths, raw logs, prompt bodies, artifact bodies, or catalog internals.",
+      "Do not add offset/page-number pagination, sort order requests, full-text search, aggregate activity analytics, or cross-Spec query semantics.",
+      "Do not implement Version 2 resource behavior or branching logic in this scope; keep Version 1 query contract fixed.",
+      "Do not add backward-compatible layout probing for flow internals or migration-report parser fallbacks in query path."
+    ]
+  },
+  "constraints": [
+    "Request input must be exactly one JSON object; accept either stdin or `--request-file`, never both.",
+    "Only one exact string `condition.specId` is allowed; multi-spec arrays, partial matches, and `in` search semantics are validation errors.",
+    "Canonical inputs are limited to canonical artifacts and no workspace-specific file paths; responses must never expose catalog records or internal `relativePath` values.",
+    "Behavior for unknown fields/resources, unsupported request fields, invalid timestamps, unreadable records, invalid cursor reuse, and nonexistent Spec/Version must return `ok: false` with machine-readable error and fixed resource shape, not partial success.",
+    "`flowVersion` defaults to 1 when omitted; nonexistent requested versions do not fall back and must return available versions and failure.",
+    "`metadata` responses must be `{ item, selectedFlowVersion, availableFlowVersions }` with stable public fields; `activities` responses must be `{ items, pageInfo, selectedFlowVersion, availableFlowVersions }`.",
+    "`activities` items must be ascending `confirmationOrder`, include opaque cursor state bound to query signature, and reuse mismatches must be rejected.",
+    "Query reads must not mutate ledger, state, catalog, cache, or working tree and must exit non-zero on every validation or read failure."
+  ],
+  "design_principles": [
+    "Canonical first: all query projections are derived only from canonical `flow.state`, `spec.record`, `flow.activities`, and artifact catalog contracts.",
+    "Public schema lockstep: one fixed query schema revision and deterministic projection objects per resource.",
+    "Validation at the boundary: reject unsupported inputs early with explicit `error.code` and field path; do not normalize ambiguous user intent.",
+    "Read-only query isolation: do not change flow state or workspace files during query evaluation.",
+    "Conservative pagination: rely on ledger authority and immutable confirmation order so query positions remain stable as active versions append.",
+    "Single concern for command scope: expose only metadata and activities in `sennel flow query`, defer all extension work to later issues."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "Flow command entrypoint that wires `sennel flow query` into the existing flow command registry and routes to query handlers from a single request parser."
+      },
+      {
+        "text": "Query request validation module that enforces one-object input, JSON boundary checks, stdin/file mutual exclusion, and resource/condition schema by phase.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Metadata query reader/projection module that maps canonical state + spec record + artifact metadata into public metadata fields and deterministic aggregate metrics.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Activities query reader/projection module that filters by confirmed ledger timing, maps stable public activity fields, and applies cursor pagination in confirmationOrder order.",
+        "added_by_task": "T-4"
+      },
+      {
+        "text": "Query schema module for response envelope and error taxonomy, including shared `schemaRevision` handling and resource-specific success/error shapes.",
+        "added_by_task": "T-5"
+      },
+      {
+        "text": "Migration-parity fixtures and command-level behavior tests that prove replaced query-like behavior remains accessible through canonical resources.",
+        "added_by_task": "T-6"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Client submits one JSON request via stdin or `--request-file`; parser resolves raw body size and rejects mixed inputs immediately.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Parser validates resource and required condition fields, determines canonical `specId`, resolves requested version (default 1), and enumerates available versions from canonical state.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Query dispatcher loads canonical version inputs (`flow.state`, `spec.record`, `flow.activities`, artifact catalog) in read-only mode and selects metadata or activities projector.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Metadata projector derives lifecycle from canonical lifecycle plus blocked derivation (current Attempt failure + blocked next action operation), then emits only public artifact IDs and references.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Activities projector filters by ledger `timing.finishedAt` bounds, sorts by confirmation order, and enforces opaque cursor continuity keyed to resource/spec/version/filter/signature.",
+        "added_by_task": "T-4"
+      },
+      {
+        "text": "Schema responder emits resource-specific payload with success/failure branches; failure always returns `ok: false` with `error.code/path/message` and non-zero exit.",
+        "added_by_task": "T-5"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Require `flowVersion` defaults to 1 and never fallback when missing: source confirms canonical flow version discovery is based on flow version artifacts, so explicit version targeting can be validated against existing version set."
+      },
+      {
+        "text": "[VERIFY] Preserve canonical Activity invariants from existing model: `FlowArtifactActivityIndex` validates contiguous confirmationOrder sequencing, matching query requirement for ascending confirmation order in `activities` responses.",
+        "evidence": "src/lib/flow-version.js:927-930 shows duplicate check and strict contiguous confirmationOrder progression in FlowArtifactActivityIndex",
+        "consideredAlternatives": "Alternative to enforce order dynamically on read was rejected in favor of using canonical ledger ordering as source of truth."
+      },
+      {
+        "text": "[VERIFY] Query should reuse existing Flow CLI declarative command registry pattern (`src/flow/registry.js`) with lazy command imports to keep argument/diagnostic consistency with other flow commands.",
+        "evidence": "src/flow/registry.js defines flow subcommand metadata declaratively and routes commands through `command: () => import(...)` modules",
+        "consideredAlternatives": "Alternative command framework implementation is rejected to avoid divergence from flow command conventions."
+      },
+      {
+        "text": "[CORRECTION] Do not expose internal catalog contracts directly: although legacy behavior may have relied on migration-report artifacts and raw file paths, issue and draft scope require explicit exclusion from query responses and stable API projections."
+      },
+      {
+        "text": "[VERIFY] Validation errors should follow resource-specific envelopes for resolved resources (`metadata` uses `item: null`, `activities` uses `items: []`) and unknown-resource errors return no resource payload, matching issue contract and draft requirements."
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Add `sennel flow query` CLI entrypoint with mutually exclusive request input from stdin or `--request-file`, and reject both-at-once as validation failures.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R2",
+      "desc": "Validate request format as exactly one JSON object; reject arrays, malformed JSON, unknown top-level keys, unknown resources, unsupported pagination fields on metadata, and unsupported request-level operations.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R3",
+      "desc": "Require `condition.specId` to be exactly one string per request; reject multi-Spec arrays, partial matches, and `in` search semantics as errors.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R4",
+      "desc": "Default omitted `flowVersion` to 1 and read only requested version when provided; do not fallback on missing versions and include sorted available versions in all version-failure responses.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R5",
+      "desc": "Return metadata resource success shape with one `item`, `selectedFlowVersion`, and ascending `availableFlowVersions`; include public canonical fields only and omit workspace/internal model fields.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R6",
+      "desc": "Return activities resource success shape with `items`, `pageInfo`, `selectedFlowVersion`, and ascending `availableFlowVersions`; order `items` by ascending `confirmationOrder` regardless of filter combination.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R7",
+      "desc": "Implement `activities.page`/`limit` query with opaque `after` cursor bound to resource, `specId`, selected flow version, datetime filters, and last returned confirmation order.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R8",
+      "desc": "Filter activities using canonical `timing.finishedAt` only, require timezone-aware ISO timestamps, and enforce `recordedAt.gte < recordedAt.lt`.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R9",
+      "desc": "Surface all unsupported cursor reuse and signature-mismatch cases as `ok: false` with `error.code` and `error.path`, and never return partial payloads.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R10",
+      "desc": "Return failures (`invalid json`, unknown spec/version, unreadable records, validation) as non-zero exit with stable machine-readable error response and no mixed success payload.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R11",
+      "desc": "Keep query operations read-only and verify no mutation occurs to canonical files or git working tree during success and failure flows.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R12",
+      "desc": "Use schema revision 1 for query responses; avoid introducing branching or migration for later revisions in this issue.",
+      "priority": "should",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R13",
+      "desc": "Derive `blocked` only from current attempt failure and `nextAction().operation === \"blocked\"`, and never treat `blocked` as a standalone lifecycle value.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R14",
+      "desc": "Preserve migration parity by replacing workspace-specific metadata/activity parser behavior with canonical query resource equivalents and document each preserved public surface with behavior-level acceptance cases.",
+      "priority": "must",
+      "status": "pending",
+      "testable": true
+    },
+    {
+      "id": "R15",
+      "desc": "Add query-specific success and error fixtures for fresh/migrated, active/parked/finalized, blocked-derived, Git/no-Git, cursor reuse, and missing-version/error scenarios.",
+      "priority": "should",
+      "status": "pending",
+      "testable": true
+    }
+  ],
+  "acceptance_criteria": [
+    "`sennel flow query` accepts one request from stdin or `--request-file` and prints a single JSON payload to stdout.",
+    "Metadata success response is `ok: true` with only `item`, `selectedFlowVersion`, and `availableFlowVersions`; no `cardinality`, `order`, pagination, or internal path fields are introduced.",
+    "Activities success response is `ok: true` with `items` and `pageInfo`, zero matches return `items: []`, and `hasNext` correctly indicates remaining pages.",
+    "`flowVersion` omitted defaults to 1, requested versions must exist, and failures return available versions and no fallback behavior.",
+    "`activities` timestamps honor `recordedAt.gte` and `recordedAt.lt` against ledger `timing.finishedAt`, enforce ISO with timezone, and reject invalid order/format.",
+    "Cursor reuse outside identical query signature returns stable validation errors with `error.path` indicating signature mismatch.",
+    "`blocked` in metadata reflects derived state from current attempt failure and blocked next action, while lifecycle is still active/parked/finalized only.",
+    "Every error path uses non-zero exit and no partial metadata or activity payloads.",
+    "Successful and failure flows leave canonical files and git working tree unchanged, including active and finalized flow states.",
+    "Legacy query-like behavior is covered by acceptance mapping proving metadata, activity prefix, and cursor rejection remain user-visible through `flow query` resources."
+  ],
+  "clarifications": [
+    {
+      "q": "Should query resource errors return resource-fixed empty shapes for known resource names while unknown-resource validation bypasses resource payloads?",
+      "a": "Yes, resource-level errors should preserve `metadata.item` as `null` and `activities.items` as `[]`, while unknown-resource validation must return no resource shape."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Support multi-spec and search-style condition queries in the initial release.",
+      "reason": "Rejected to preserve deterministic single-spec selection and avoid ambiguous version/result sets in an external public API."
+    },
+    {
+      "option": "Use offset/limit-style pagination or stable sorting parameters for activities.",
+      "reason": "Rejected because active-version appends require confirmation-order cursors tied to filter signature to avoid duplicates and gaps."
+    },
+    {
+      "option": "Accept request-level schemaRevision input and switch response fields by revision at this phase.",
+      "reason": "Rejected so request contract remains simple and fixed; versioned behavior is reserved for later issues while keeping revision 1 parsing strict."
+    },
+    {
+      "option": "Expose legacy migration-report and workspace-specific model payloads alongside canonical fields.",
+      "reason": "Rejected due to public boundary requirements and to prevent workspace coupling."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "flow query",
+    "specId",
+    "flowVersion",
+    "flow.state",
+    "spec.record",
+    "flow.activities",
+    "artifact catalog",
+    "confirmationOrder",
+    "recordedAt",
+    "cursor",
+    "schemaRevision",
+    "blocked nextAction",
+    "next-action"
+  ],
+  "implementationTargets": [
+    "src/flow/registry.js",
+    "src/flow/commands",
+    "src/flow/lib",
+    "src/lib/flow-version.js",
+    "tests"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-08-19T07:28:45.002Z",
+    "notes": ""
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add query command entrypoint",
+      "goal": "Add `sennel flow query` to the flow command registry and route requests to dedicated query handling logic through a single command module.",
+      "acceptance": [
+        "Command is exposed as `sennel flow query` in flow help and accepts stdin or `--request-file`.",
+        "`--request-file` and stdin are mutually exclusive and produce a validation error when both are set."
+      ],
+      "implementation_notes": "Keep CLI registration and argument metadata in the existing declarative flow command registry with lazy imports and target-binding behavior consistent with other commands.",
+      "test_strategy": "CLI parse tests for command availability and argument validation; snapshot command help and argument conflict cases.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement query request parser",
+      "goal": "Create read-time request validation that enforces exactly one JSON object, required fields, and strict resource/condition boundaries before any canonical reads occur.",
+      "acceptance": [
+        "Malformed JSON, missing fields, unknown resource names, and unknown top-level fields fail with `ok: false` shape and non-zero exit.",
+        "`condition.specId` must be a single string and all multi-spec/in-search forms are rejected."
+      ],
+      "implementation_notes": "Use schema validation utilities in the existing flow query path; keep validation errors deterministic with stable `error.code` and `error.path`.",
+      "test_strategy": "Unit tests for parser errors, field-level errors, and mutually exclusive input-path detection.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Project metadata response",
+      "goal": "Build `metadata` handler using canonical version artifacts only and return only the public schema fields required for Workspace/Connector consumption.",
+      "acceptance": [
+        "Returned payload uses `item`, includes `selectedFlowVersion`, and keeps `availableFlowVersions` ascending.",
+        "No catalog internals, relative paths, or artifact bodies are present in metadata output."
+      ],
+      "implementation_notes": "Derive lifecycle and blocker from canonical state and next action; represent unavailable values with explicit public provenance instead of filesystem inference.",
+      "test_strategy": "Fixture-based integration checks for fresh/migrated/active/parked/finalized states and for canonical field exclusions.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Implement activities projection",
+      "goal": "Build `activities` handler that filters by canonical finished timing and emits ascending confirmation-ordered public activity items with resource-specific pagination.",
+      "acceptance": [
+        "Zero matches return `items: []` and stable `pageInfo` with `hasNext` false when no more records exist.",
+        "Invalid datetime bounds and timezone-naive timestamps return explicit validation errors."
+      ],
+      "implementation_notes": "Use canonical ledger timing only (`timing.finishedAt`); derive confirmation order directly from ledger order.",
+      "test_strategy": "Targeted tests for recordedAt range boundaries, ordering, active append stability, and empty result success behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Implement cursor security checks",
+      "goal": "Add opaque cursor encoding/validation for activities and reject cursor reuse across query signatures.",
+      "acceptance": [
+        "Cursor includes resource, specId, version, datetime filters, and last confirmationOrder.",
+        "Using a cursor from a different query signature returns `ok: false` and stable error path."
+      ],
+      "implementation_notes": "Keep cursor compact and opaque; enforce bound checks in-memory before replaying Activity slice.",
+      "test_strategy": "Cursor boundary tests for valid continuation, tampering, and cross-query mismatch scenarios.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-6",
+      "title": "Define query response schema",
+      "goal": "Create query-specific schema revision 1 response and error contracts for both resources, including fixed success and resource-level error shapes.",
+      "acceptance": [
+        "`metadata` success uses `item` and `activities` success uses `items` + `pageInfo`.",
+        "Failure responses remain resource-fixed where applicable and include machine-readable `error.code`, `error.path`, and message."
+      ],
+      "implementation_notes": "Centralize schema revision and error code definitions to avoid divergence across command and tests.",
+      "test_strategy": "Schema validation tests against fixtures and malformed payload fixtures for each resource path and failure mode.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-7",
+      "title": "Verify migration parity fixtures",
+      "goal": "Create fixture matrix and acceptance-level coverage that maps legacy query-like public surfaces to `metadata` and `activities` resource behavior.",
+      "acceptance": [
+        "Fixtures include fresh and migrated flows for each relevant lifecycle state and cursor failure cases.",
+        "Coverage proves parity for metadata intent, confirmed activity prefix ordering, and cursor-reuse rejection across active/finalized flows."
+      ],
+      "implementation_notes": "Prefer existing canonical fixtures and add only query-facing additions required by this issue; keep resource-specific expected JSON responses explicit.",
+      "test_strategy": "End-to-end command tests using fixture artifacts, comparing output JSON and exit codes for success and failure paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ]
+}

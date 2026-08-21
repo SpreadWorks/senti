@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
 
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { AgentTimeout } from "../../../src/lib/agent-timeout.js";
+import { GIT_REPOSITORY_LOCATION_ENVIRONMENT } from "../../../src/lib/git-repository-environment.js";
 import { container } from "../../../src/lib/container.js";
 import {
   FlowArtifactAttemptHistory,
@@ -65,7 +68,11 @@ import {
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { validWorkerHandoffSpec } from "../../helpers/worker-artifact.js";
-import { FlowAtStepFixture, TaskLifecycleFixture } from "../../helpers/flow-setup.js";
+import {
+  canonicalFixtureProducerResult,
+  FlowAtStepFixture,
+  TaskLifecycleFixture,
+} from "../../helpers/flow-setup.js";
 import { validateCanonicalUpgradeEvidence } from "../../../src/flow/lib/test-artifacts.js";
 import { ReviewTargetAuthority } from "../../../src/flow/lib/review-target-authority.js";
 import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
@@ -77,6 +84,12 @@ function root() {
   const value = createTmpDir("canonical-flow-manager-");
   roots.push(value);
   return value;
+}
+
+function initializeReviewSource(rootPath) {
+  fs.writeFileSync(path.join(rootPath, "README.md"), "review checkout fixture\n");
+  initGitRepo(rootPath);
+  commitAll(rootPath, "review source");
 }
 
 function request(specId = "001-canonical-manager", overrides = {}) {
@@ -123,9 +136,29 @@ function advanceTo(manager, specId, nodeId, { onActive = null } = {}) {
   for (const entry of ordered.slice(0, targetIndex)) {
     manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" }, { specId });
     onActive?.(entry.id);
-    manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" }, { specId });
+    confirmFixtureStep(manager, entry.id, { specId });
   }
   manager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId });
+}
+
+/**
+ * A setup-only normal completion has the same primary result transaction as
+ * a real producer. This keeps fixture progress from manufacturing an
+ * impossible artifactless completed producer.
+ */
+function confirmFixtureStep(manager, stepId, opts = {}) {
+  if (Object.hasOwn(opts, "canonicalCommandResult")) {
+    return manager.updateStepStatus({ stepId, requestedStatus: "done" }, opts);
+  }
+  const state = manager.canonicalState(opts.specId);
+  const canonicalCommandResult = canonicalFixtureProducerResult(state, stepId, {
+    flowManager: manager,
+    specId: opts.specId,
+  });
+  return manager.updateStepStatus(
+    { stepId, requestedStatus: "done" },
+    canonicalCommandResult === null ? opts : { ...opts, canonicalCommandResult },
+  );
 }
 
 function attemptHistoryBytes(nodeId, logicalKey, payload) {
@@ -520,9 +553,9 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow("001-canonical-manager", "direct");
 
     manager.updateStepStatus({ stepId: "branch", requestedStatus: "in_progress" });
-    manager.updateStepStatus({ stepId: "branch", requestedStatus: "done" });
+    confirmFixtureStep(manager, "branch");
     manager.updateStepStatus({ stepId: "prepare-spec", requestedStatus: "in_progress" });
-    manager.updateStepStatus({ stepId: "prepare-spec", requestedStatus: "done" });
+    confirmFixtureStep(manager, "prepare-spec");
     manager.addTask({
       id: "T-1",
       key: "implement-task",
@@ -565,8 +598,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request());
     manager.addActiveFlow(created.specId, "direct");
-    manager.updateStepStatus({ stepId: "branch", requestedStatus: "done" });
-    manager.updateStepStatus({ stepId: "prepare-spec", requestedStatus: "done" });
+    confirmFixtureStep(manager, "branch");
+    confirmFixtureStep(manager, "prepare-spec");
     manager.addTask({
       id: "T-1",
       key: "runtime-metadata-task",
@@ -581,14 +614,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const taskImplIndex = leaves(manager.load(created.specId).steps)
       .findIndex((step) => step.id === "T-1-impl");
     for (const step of leaves(manager.load(created.specId).steps).slice(0, taskImplIndex)) {
-      if (step.status === "pending") manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" });
+      if (step.status === "pending") confirmFixtureStep(manager, step.id);
     }
     manager.updateStepStatus({ stepId: "T-1-impl", requestedStatus: "in_progress" });
     manager.setStepRuntimeLog("task-impl", runtimeLog(created.runId, 1));
-    manager.updateStepStatus({ stepId: "T-1-impl", requestedStatus: "done" });
+    confirmFixtureStep(manager, "T-1-impl");
     manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "in_progress" });
     manager.setStepRuntimeLog("task-review", runtimeLog(created.runId, 2));
-    manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "done" });
+    confirmFixtureStep(manager, "T-1-review");
     manager.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "in_progress" });
     manager.setStepRuntimeLog("task-gate", runtimeLog(created.runId, 3));
     manager.setStepRuntimeLog("T-1-gate", runtimeLog(created.runId, 4));
@@ -634,7 +667,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const gateIndex = ordered.findIndex((entry) => entry.id === "spec-gate");
     assert.ok(gateIndex > 0);
     for (const entry of ordered.slice(0, gateIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-gate", requestedStatus: "in_progress" });
     const ctx = {
@@ -692,7 +725,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ordered = leaves(manager.load(created.specId).steps);
     const gateIndex = ordered.findIndex((entry) => entry.id === "spec-gate");
     for (const entry of ordered.slice(0, gateIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-gate", requestedStatus: "in_progress" });
     const ctx = {
@@ -1196,6 +1229,73 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(history.attempts[0].artifact.payload.verdict, "pass");
   });
 
+  it("rejects an artifactless no-op from an explicit acceptance-risk decision", async () => {
+    const repository = root();
+    const specId = "001-canonical-noop-risk-bypass";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({
+        ...emptySpecStub(),
+        requirements: [{ id: "R-1", desc: "An explicit decision cannot become a no-op." }],
+        tasks: [],
+      }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    await beginAcceptanceRiskDecision({ manager, created, repository });
+
+    assert.throws(
+      () => manager.completeAcceptanceDecisionNoOp({ specId: created.specId }),
+      (error) => error?.code === "CANONICAL_ACCEPTANCE_DECISION_NOOP_NOT_AUTHORIZED",
+    );
+    assert.throws(
+      () => manager.updateStepStatus({ stepId: "acceptance-decision", requestedStatus: "done" }, { specId: created.specId }),
+      (error) => error?.code === "CANONICAL_PRODUCER_ARTIFACT_NOT_READY",
+    );
+    assert.equal(manager.load(created.specId).currentNodeId, "acceptance-decision");
+  });
+
+  it("resumes a same-schema PASS no-op recorded before the final-regression claim", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-canonical-legacy-pass-noop"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "acceptance-review");
+    const result = attachCanonicalCommandResultArtifact({ result: "ok", verdict: "pass" }, {
+      logicalKey: "acceptance.review",
+      payload: {
+        version: 2,
+        repairFingerprint: "c".repeat(64),
+        mechanicalBlockers: [],
+        hardBlockers: [],
+        requirementJudgments: [],
+        deferredFindings: [],
+        userDecision: null,
+        verdict: "pass",
+      },
+    });
+    manager.publishCurrentAttemptResult({ specId: created.specId, commandResult: result });
+    manager.confirmCurrentAttempt({ specId: created.specId });
+    manager.updateStepStatus({ stepId: "acceptance-decision", requestedStatus: "in_progress" }, { specId: created.specId });
+    manager._store.runtime.confirmAttempt({
+      specId: created.specId,
+      activityId: "same-schema-legacy-acceptance-noop",
+      result: {
+        outcome: "passed",
+        summary: "legacy PASS acceptance no-op",
+        confirmedAt: "2026-08-20T00:00:00.000Z",
+        artifactRefs: [],
+      },
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    });
+    const interrupted = manager.canonicalState(created.specId);
+    assert.equal(interrupted.current, null);
+    assert.equal(interrupted.findNode("acceptance-decision").status, "done");
+
+    const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    reloaded.updateStepStatus({ stepId: "final-regression", requestedStatus: "in_progress" }, { specId: created.specId });
+    assert.equal(reloaded.load(created.specId).currentNodeId, "final-regression");
+  });
+
   it("routes test execution and result-review artifacts through V1 history and the transient raw contract", async () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
@@ -1205,7 +1305,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const executeIndex = ordered.findIndex((entry) => entry.id === "test-execute");
     assert.ok(executeIndex > 0);
     for (const entry of ordered.slice(0, executeIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "test-execute", requestedStatus: "in_progress" });
     manager.writeRuntimeArtifact({
@@ -1295,7 +1395,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const reviewIndex = ordered.findIndex((entry) => entry.id === "spec-review");
     assert.ok(reviewIndex > 0);
     for (const entry of ordered.slice(0, reviewIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus(
       { stepId: "spec-review", requestedStatus: "done" },
@@ -1338,7 +1438,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const finalRegressionIndex = ordered.findIndex((entry) => entry.id === "final-regression");
     assert.ok(finalRegressionIndex > 0);
     for (const entry of ordered.slice(0, finalRegressionIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "final-regression", requestedStatus: "in_progress" });
     const commandResult = attachCanonicalCommandResultArtifact({
@@ -1403,7 +1503,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ordered = leaves(manager.load(created.specId).steps);
     const finalRegressionIndex = ordered.findIndex((entry) => entry.id === "final-regression");
     for (const entry of ordered.slice(0, finalRegressionIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "final-regression", requestedStatus: "in_progress" });
     const ctx = {
@@ -1440,6 +1540,12 @@ describe("FlowManager canonical Version-1 runtime", () => {
   it("delivers a linked-Issue report through the canonical catalog and report outbox", async () => {
     const repository = root();
     fs.writeFileSync(path.join(repository, "README.md"), "canonical report\n");
+    fs.writeFileSync(path.join(repository, "final-regression.test.js"), [
+      "import test from 'node:test';",
+      "import assert from 'node:assert/strict';",
+      "test('canonical report final regression', () => assert.equal(1, 1));",
+      "",
+    ].join("\n"));
     initGitRepo(repository);
     commitAll(repository, "initial");
     const binDirectory = path.join(repository, "bin");
@@ -1479,11 +1585,27 @@ describe("FlowManager canonical Version-1 runtime", () => {
       const reportIndex = ordered.findIndex((entry) => entry.id === "report");
       assert.ok(reportIndex > 0);
       for (const entry of ordered.slice(0, reportIndex)) {
+        if (entry.id === "final-regression") {
+          manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" });
+          const finalRegressionContext = {
+            root: repository,
+            mainRoot: repository,
+            executionRoot: repository,
+            specId: created.specId,
+            phase: "final-regression",
+            config: { test: { command: "node --test final-regression.test.js", timeout: 5 } },
+            flowManager: manager,
+            flowState: manager.load(created.specId),
+          };
+          const finalRegressionResult = await new RunFinalRegressionCommand().execute(finalRegressionContext);
+          await FLOW_COMMANDS.run["final-regression"].post(finalRegressionContext, finalRegressionResult);
+          continue;
+        }
         if (entry.id === "implement") {
           manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" });
           manager.updateFileMap({ requirementId: "R1", paths: ["src/report.js"] });
         }
-        manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+        confirmFixtureStep(manager, entry.id);
       }
       manager.updateStepStatus({ stepId: "report", requestedStatus: "in_progress" });
       const identity = new FlowOutboxIdentity({
@@ -1548,7 +1670,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ordered = leaves(manager.load(created.specId).steps);
     const reviewIndex = ordered.findIndex((entry) => entry.id === "spec-review");
     for (const entry of ordered.slice(0, reviewIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-review", requestedStatus: "in_progress" });
     const digest = "a".repeat(64);
@@ -1587,7 +1709,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ordered = leaves(manager.load(created.specId).steps);
     const reviewIndex = ordered.findIndex((entry) => entry.id === "spec-review");
     for (const entry of ordered.slice(0, reviewIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-review", requestedStatus: "in_progress" });
     const flowState = manager.load(created.specId);
@@ -1672,13 +1794,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
   it("runs the normal spec-review worker in a transient V1 work unit and confirms its result through the Store", async () => {
     const repository = root();
+    initializeReviewSource(repository);
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request());
     manager.addActiveFlow(created.specId, "direct");
     const ordered = leaves(manager.load(created.specId).steps);
     const reviewIndex = ordered.findIndex((entry) => entry.id === "spec-review");
     for (const entry of ordered.slice(0, reviewIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-review", requestedStatus: "in_progress" });
 
@@ -1729,12 +1852,51 @@ describe("FlowManager canonical Version-1 runtime", () => {
       config: {},
     };
 
-    const result = await review.execute(ctx);
+    const foreignRoot = root();
+    initializeReviewSource(foreignRoot);
+    const dynamicConfig = ["GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"];
+    const inheritedGitEnvironment = Object.fromEntries(
+      [...GIT_REPOSITORY_LOCATION_ENVIRONMENT, ...dynamicConfig].map((name) => [name, process.env[name]]),
+    );
+    Object.assign(process.env, {
+      GIT_DIR: path.join(foreignRoot, ".git"),
+      GIT_WORK_TREE: foreignRoot,
+      GIT_INDEX_FILE: path.join(foreignRoot, ".git", "index"),
+      GIT_OBJECT_DIRECTORY: path.join(foreignRoot, ".git", "objects"),
+      GIT_ALTERNATE_OBJECT_DIRECTORIES: path.join(foreignRoot, ".git", "objects"),
+      GIT_COMMON_DIR: path.join(foreignRoot, ".git"),
+      GIT_CEILING_DIRECTORIES: foreignRoot,
+      GIT_CONFIG_COUNT: "1",
+      GIT_CONFIG_KEY_0: "core.worktree",
+      GIT_CONFIG_VALUE_0: foreignRoot,
+      GIT_CONFIG_PARAMETERS: "core.worktree=foreign",
+    });
+    let result;
+    try {
+      result = await review.execute(ctx);
+    } finally {
+      for (const [name, value] of Object.entries(inheritedGitEnvironment)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
     assert.equal(invocation.command, "node");
     assert.deepEqual(invocation.args.slice(-2), ["--phase", "spec"]);
+    assert.equal(
+      invocation.options.timeout,
+      AgentTimeout.fromConfig().toOuterProcessMilliseconds(),
+      "the outer review worker survives the inner Agent's process-tree cleanup window",
+    );
     assert.equal(invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR.startsWith(
       path.join(repository, ".sennel", "review-work-units"),
     ), true);
+    for (const name of GIT_REPOSITORY_LOCATION_ENVIRONMENT) {
+      if (name === "GIT_CONFIG_GLOBAL" || name === "GIT_CONFIG_NOSYSTEM") continue;
+      assert.equal(invocation.options.env[name], undefined, `${name} must not reach the review worker`);
+    }
+    for (const name of dynamicConfig) assert.equal(invocation.options.env[name], undefined, `${name} must not reach the review worker`);
+    assert.equal(invocation.options.env.GIT_CONFIG_GLOBAL, os.devNull);
+    assert.equal(invocation.options.env.GIT_CONFIG_NOSYSTEM, "1");
     assert.equal(result.artifacts.phase, "spec");
     assert.equal(result.artifacts.evidenceDigest.length, 64);
     assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "spec.review");
@@ -1766,6 +1928,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const repository = root();
     const executionRoot = path.join(repository, "execution");
     fs.mkdirSync(executionRoot, { recursive: true });
+    initializeReviewSource(executionRoot);
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-draft-review"));
     manager.addActiveFlow(created.specId, "direct");
@@ -1953,6 +2116,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       const repository = root();
       const executionRoot = path.join(repository, "execution");
       fs.mkdirSync(executionRoot, { recursive: true });
+      initializeReviewSource(executionRoot);
       const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
       const created = manager.createFresh(request(`001-canonical-draft-replay-${verdict.toLowerCase()}`));
       manager.addActiveFlow(created.specId, "direct");
@@ -2019,6 +2183,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const repository = root();
     const executionRoot = path.join(repository, "execution");
     fs.mkdirSync(executionRoot, { recursive: true });
+    initializeReviewSource(executionRoot);
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-review-cleanup-reconcile"));
     manager.addActiveFlow(created.specId, "direct");
@@ -2073,6 +2238,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
   it("materializes the shared file.map for impl review from its catalog authority", async () => {
     const repository = root();
+    initializeReviewSource(repository);
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const specId = "001-canonical-file-map-review";
     const created = manager.createFresh(request(specId, {
@@ -2264,7 +2430,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ordered = leaves(manager.load(created.specId).steps);
     const reviewIndex = ordered.findIndex((entry) => entry.id === "spec-review");
     for (const entry of ordered.slice(0, reviewIndex)) {
-      manager.updateStepStatus({ stepId: entry.id, requestedStatus: "done" });
+      confirmFixtureStep(manager, entry.id);
     }
     manager.updateStepStatus({ stepId: "spec-review", requestedStatus: "in_progress" });
 
@@ -2357,10 +2523,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const scenarioIndex = ordered.findIndex((step) => step.id === "scenario-validity");
     assert.ok(scenarioIndex >= 0);
     for (const step of ordered.slice(0, scenarioIndex)) {
-      manager.updateStepStatus(
-        { stepId: step.id, requestedStatus: "done" },
-        { specId: created.specId },
-      );
+      confirmFixtureStep(manager, step.id, { specId: created.specId });
     }
     manager.updateStepStatus(
       { stepId: "scenario-validity", requestedStatus: "in_progress" },
@@ -2375,8 +2538,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
       raw_output_path: location.relativeArtifact("scenario.validity.raw-log"),
       summary: [],
     });
-    const referencesBeforeFinalization = catalogArtifactReferences(manager.artifactCatalog(created.specId));
-    assert.equal(referencesBeforeFinalization.some((artifact) => artifact.logicalKey === "scenario.validity"), true);
+    assert.equal(
+      catalogArtifactReferences(manager.artifactCatalog(created.specId))
+        .some((artifact) => artifact.logicalKey === "scenario.validity"),
+      true,
+    );
     manager.updateStepStatus(
       { stepId: "scenario-validity", requestedStatus: "done" },
       { specId: created.specId },
@@ -2384,12 +2550,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     for (const step of leaves(manager.load(created.specId).steps)) {
       if (step.status === "pending") {
-        manager.updateStepStatus(
-          { stepId: step.id, requestedStatus: "done" },
-          { specId: created.specId },
-        );
+        confirmFixtureStep(manager, step.id, { specId: created.specId });
       }
     }
+    const referencesBeforeFinalization = catalogArtifactReferences(manager.artifactCatalog(created.specId));
+    assert.equal(referencesBeforeFinalization.some((artifact) => artifact.logicalKey === "scenario.validity"), true);
 
     const finalized = manager.finalizeFlow(created.specId);
     assert.equal(finalized.lifecycle.state, "finalized");
@@ -2602,7 +2767,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       manager.addActiveFlow(created.specId, "direct");
       for (const stepId of ["branch", "prepare-spec"]) {
         manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-        manager.updateStepStatus({ stepId, requestedStatus: "done" });
+        confirmFixtureStep(manager, stepId);
       }
       await new GetNextActionCommand().execute({
         root: repository,
@@ -2734,7 +2899,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     manager.setAutoApprove(true);
     manager.updateStepStatus({ stepId: "branch", requestedStatus: "in_progress" });
-    manager.updateStepStatus({ stepId: "branch", requestedStatus: "done" });
+    confirmFixtureStep(manager, "branch");
     manager.rewindTo("branch");
 
     const location = manager.specLocation(created.specId);
@@ -2961,7 +3126,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     }, { specId: created.specId });
     manager.addActiveFlow(created.specId, "direct");
     advanceTo(manager, created.specId, "T-1-gate");
-    manager.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" }, { specId: created.specId });
+    confirmFixtureStep(manager, "T-1-gate", { specId: created.specId });
 
     const location = manager.specLocation(created.specId);
     const before = fs.readFileSync(location.activitiesFile, "utf8");
@@ -2984,7 +3149,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow(created.specId, "direct");
     for (const stepId of ["branch", "prepare-spec"]) {
       manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      confirmFixtureStep(manager, stepId);
     }
     const context = {
       root: repository,
@@ -3021,7 +3186,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow(created.specId, "direct");
     for (const stepId of ["branch", "prepare-spec"]) {
       manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      confirmFixtureStep(manager, stepId);
     }
     await new GetNextActionCommand().execute({
       root: repository,
@@ -3061,7 +3226,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow(created.specId, "direct");
     for (const stepId of ["branch", "prepare-spec"]) {
       manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      confirmFixtureStep(manager, stepId);
     }
     await new GetNextActionCommand().execute({
       root: repository,
@@ -3089,7 +3254,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     assert.equal(manager.canonicalState(created.specId).findNode("draft").status, "in_progress");
     assert.equal(activities.at(-1).transition.operation, "publish_artifacts");
-    assert.equal(activities.at(-1).attemptId, null);
+    assert.equal(activities.at(-1).attemptId, manager.canonicalState(created.specId).attempt.id);
     assert.equal(artifact.activityId, activities.at(-1).id);
     assert.equal(fs.readFileSync(path.join(location.directory, artifact.relativePath), "utf8"), '{"goal":"durable without completion"}\n');
   });
@@ -3101,7 +3266,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow(created.specId, "direct");
     for (const stepId of ["branch", "prepare-spec"]) {
       manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      confirmFixtureStep(manager, stepId);
     }
     await new GetNextActionCommand().execute({
       root: repository,
@@ -3459,14 +3624,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       observations: source.observations,
     });
 
-    manager.updateStepStatus({ stepId: "draft-refine", requestedStatus: "done" }, { specId: created.specId });
+    confirmFixtureStep(manager, "draft-refine", { specId: created.specId });
     for (const stepId of ["draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair"]) {
       const next = await new GetNextActionCommand().execute({
         ...context,
         flowState: manager.load(created.specId),
       });
       assert.equal(next.step, stepId);
-      manager.updateStepStatus({ stepId, requestedStatus: "done" }, { specId: created.specId });
+      confirmFixtureStep(manager, stepId, { specId: created.specId });
     }
     const freshGate = await new GetNextActionCommand().execute({
       ...context,
@@ -3613,6 +3778,16 @@ describe("FlowManager canonical Version-1 runtime", () => {
       request: "Record an exhausted definition failure.",
       targetStep: "spec-review",
     }).create();
+    // A semantic producer failure remains distinct from a tooling failure:
+    // the review result has already been canonically published, so its
+    // definition-owned record continuation has valid consumer input.
+    recordManager.publishCurrentAttemptResult({
+      specId: "001-record-failure",
+      commandResult: attachCanonicalCommandResultArtifact({ result: "rejected" }, {
+        logicalKey: "spec.review",
+        payload: { verdict: "REJECTED", proposalCount: 1 },
+      }),
+    });
     recordManager.failCurrentAttempt({
       specId: "001-record-failure",
       failure: {
@@ -3781,7 +3956,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.addActiveFlow(created.specId, "direct");
     for (const stepId of ["branch", "prepare-spec"]) {
       manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      confirmFixtureStep(manager, stepId);
     }
     await new GetNextActionCommand().execute({
       root: repository,

@@ -39,6 +39,7 @@ import {
   CurrentFlowNonBlockingPolicy,
   CurrentFlowState,
   CurrentFlowStateInvariantError,
+  FlowActivity,
   TaskNode,
 } from "./current-flow-state.js";
 import { CanonicalFlowRuntime } from "./canonical-flow-runtime.js";
@@ -54,32 +55,59 @@ import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
-import { captureRetryRecoveryBaseline, retryBaselineArtifact, retryReceiptArtifact, retryEvidenceRouteForNode, RetryRecoveryReceipt } from "./retry-recovery.js";
+import {
+  captureRetryRecoveryBaseline,
+  containsRetryRecoveryArtifactWrite,
+  retryEvidenceRouteForNode,
+  RetryRecoveryArtifactPublication,
+  RetryRecoveryReceipt,
+} from "./retry-recovery.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
+import {
+  MissingProducerArtifactRecoveryAdmission,
+  MissingProducerArtifactRoute,
+  ProducerArtifactPublicationAdmission,
+  ProducerArtifactReadinessAdmission,
+  AcceptanceDecisionNoOpAdmission,
+  attemptHistoryTargetForNode,
+  producerArtifactReadinessesForConsumer,
+  producerArtifactReadinessesForProducer,
+} from "./producer-artifact-readiness.js";
 
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const TERMINAL_STATUSES = new Set(["done", "skipped"]);
 const TASK_RUNTIME_STEP_ALIASES = new Set(["task-impl", "task-review", "task-gate"]);
-
-// These are the durable result artifacts whose contract explicitly retains
-// every attempt.  The mapping is intentionally here at the Version Store
-// boundary: commands supply a result, never an inferred filesystem path.
-const ATTEMPT_HISTORY_ARTIFACTS = new Map([
-  ["draft-questions-review", "draft.questions.review"],
-  ["draft-coverage-review", "draft.coverage.review"],
-  ["draft-gate", "draft.gate"],
-  ["spec-review", "spec.review"],
-  ["spec-gate", "spec.gate"],
-  ["scenario-validity", "scenario.validity"],
-  ["test-review", "test.review"],
-  ["test-execute", "test.execute"],
-  ["test-result-review", "test.result.review"],
-  ["impl-review", "impl.review"],
-  ["impl-gate", "impl.gate"],
-  ["acceptance-review", "acceptance.review"],
-  ["acceptance-decision", "acceptance.decision"],
-  ["final-regression", "final.regression"],
+const RAW_ACTIVITY_MUTATION_OPTION_FIELDS = Object.freeze([
+  "taskSpec",
+  "specRecord",
+  "artifactWrites",
+  "artifactRemovals",
+  "testSourceBaseline",
+  "sourceWorkerUpgrade",
+  "admission",
 ]);
+
+/**
+ * The public manager never accepts a caller-authored Activity as new state.
+ * Typed Store methods derive the Activity and its admission together.  This
+ * error keeps the remaining raw method intentionally narrow: it is only a
+ * crash-replay bridge for an Activity that is already in the immutable ledger.
+ */
+export class CanonicalRawActivityReplayOnlyError extends CurrentFlowStateInvariantError {
+  constructor(message = "canonical raw Activity mutation is forbidden; use a typed FlowManager operation") {
+    super(message);
+    this.name = "CanonicalRawActivityReplayOnlyError";
+    this.code = "CANONICAL_RAW_ACTIVITY_MUTATION_FORBIDDEN";
+  }
+}
+
+function rawActivityReplayMatches(existing, proposed) {
+  return JSON.stringify(existing.toJSON()) === JSON.stringify(proposed.toJSON());
+}
+
+function rawActivityHasMutationOptions(options) {
+  return RAW_ACTIVITY_MUTATION_OPTION_FIELDS.some((field) => Object.hasOwn(options, field));
+}
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -351,17 +379,6 @@ function resultFor(status, nodeId) {
     confirmedAt: new Date().toISOString(),
     artifactRefs: [],
   };
-}
-
-function attemptHistoryTarget(nodeId) {
-  const logicalKey = ATTEMPT_HISTORY_ARTIFACTS.get(nodeId);
-  if (logicalKey !== undefined) return Object.freeze({ logicalKey, parameters: Object.freeze({}) });
-  const task = nodeId.match(/^(.+)-(review|gate)$/);
-  if (task === null) return null;
-  return Object.freeze({
-    logicalKey: task[2] === "review" ? "task.review" : "task.gate",
-    parameters: Object.freeze({ taskId: task[1] }),
-  });
 }
 
 function commandResultPayload(value, nodeId, artifactLogicalKey) {
@@ -793,7 +810,8 @@ export class CanonicalFlowManagerStore {
         activityId: activityId("attempt-started"),
         nodeId: next.nodeId,
         attempt,
-        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
+        retryRecoveryPublication: this.#retryBaselinePublication(state, next.nodeId, attempt),
+        admission: this.#consumerAdmission(state, next.nodeId),
       });
       return this.runtime.load(resolved);
     }
@@ -804,7 +822,8 @@ export class CanonicalFlowManagerStore {
         activityId: activityId("attempt-recovered"),
         nodeId: next.nodeId,
         attempt,
-        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
+        retryRecoveryPublication: this.#retryBaselinePublication(state, next.nodeId, attempt),
+        admission: this.#consumerAdmission(state, next.nodeId),
       });
       return this.runtime.load(resolved);
     }
@@ -814,7 +833,7 @@ export class CanonicalFlowManagerStore {
         specId: resolved,
         activityId: activityId("attempt-retried"),
         attempt,
-        artifactWrites: this.#retryBaselineWrites(state, next.nodeId, attempt),
+        retryRecoveryPublication: this.#retryBaselinePublication(state, next.nodeId, attempt),
       });
       return this.runtime.load(resolved);
     }
@@ -865,6 +884,7 @@ export class CanonicalFlowManagerStore {
         mediaType: "application/json",
         bytes: Buffer.from(`${JSON.stringify(document.toJSON(), null, 2)}\n`, "utf8"),
       }] : [],
+      admission: this.#consumerAdmission(state, next.nodeId),
     });
     return this.runtime.load(resolved);
   }
@@ -975,6 +995,7 @@ export class CanonicalFlowManagerStore {
       status: requestedStatus,
       result: resultFor(requestedStatus, nodeId),
       artifactWrites,
+      ...(requestedStatus === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
     });
   }
 
@@ -1029,6 +1050,7 @@ export class CanonicalFlowManagerStore {
       activityId: activityId("task-attempt-started"),
       nodeId: first.id,
       attempt: commandContextAttempt(state, first.id),
+      admission: this.#consumerAdmission(state, first.id),
     });
   }
 
@@ -1087,6 +1109,10 @@ export class CanonicalFlowManagerStore {
         mediaType: "application/json",
         bytes: Buffer.from(`${JSON.stringify(nextIssueLog, null, 2)}\n`, "utf8"),
       }],
+      admission: this.#replacementConsumerAdmission(state, {
+        route: "repair-plan-gate",
+        targetNodeId: target,
+      }),
     });
   }
 
@@ -1114,6 +1140,7 @@ export class CanonicalFlowManagerStore {
         nodeId: target,
         attempt,
         expectedAttempt: expected,
+        admission: this.#consumerAdmission(state, target),
       });
       if (rewound === null) {
         throw new CurrentFlowStateInvariantError("canonical failed Attempt changed before rewind");
@@ -1126,6 +1153,7 @@ export class CanonicalFlowManagerStore {
         activityId: activityId("attempt-recovered"),
         nodeId: target,
         attempt,
+        admission: this.#consumerAdmission(state, target),
       });
     }
     throw new CurrentFlowStateInvariantError(`canonical recovery is unavailable for ${target}`);
@@ -1167,6 +1195,10 @@ export class CanonicalFlowManagerStore {
       },
       references: { evaluations: [], findings: [], repairs: [], artifacts: [{ id: acceptanceDigest, label: "acceptance.review" }] },
       artifactWrites,
+      admission: this.#replacementConsumerAdmission(state, {
+        route: "repair-acceptance-review",
+        targetNodeId: "impl-triage",
+      }),
     });
   }
 
@@ -1270,7 +1302,7 @@ export class CanonicalFlowManagerStore {
       specId,
       activityId: activityId("attempt-retried"),
       attempt,
-      artifactWrites: this.#retryBaselineWrites(state, state.current?.at(-1), attempt),
+      retryRecoveryPublication: this.#retryBaselinePublication(state, state.current?.at(-1), attempt),
     });
   }
 
@@ -1305,7 +1337,7 @@ export class CanonicalFlowManagerStore {
       specId: resolved,
       activityId: activityId("attempt-recovered-after-exhaustion"),
       attempt: nextAttempt,
-      artifactWrites: [retryReceiptArtifact(typed)],
+      retryRecoveryPublication: RetryRecoveryArtifactPublication.receipt(typed),
       references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     });
   }
@@ -1334,13 +1366,28 @@ export class CanonicalFlowManagerStore {
   applyActivity(activity, opts = {}) {
     const specId = this.#resolveSpecId(opts.specId);
     if (specId === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
-    return this.runtime.apply(specId, activity, {
-      taskSpec: opts.taskSpec,
-      specRecord: opts.specRecord,
-      artifactWrites: opts.artifactWrites,
-      artifactRemovals: opts.artifactRemovals,
-      testSourceBaseline: opts.testSourceBaseline,
-    });
+    if (rawActivityHasMutationOptions(opts)) {
+      throw new CanonicalRawActivityReplayOnlyError(
+        "canonical raw Activity replay cannot carry mutation options",
+      );
+    }
+    const proposed = FlowActivity.canonical(activity);
+    const existing = this.runtime.activities(specId).find((entry) => entry.id === proposed.id) ?? null;
+    if (existing !== null) {
+      if (!rawActivityReplayMatches(existing, proposed)) {
+        throw new CanonicalRawActivityReplayOnlyError(
+          "canonical raw Activity replay must exactly match the immutable ledger Activity",
+        );
+      }
+      return this.runtime.apply(specId, proposed);
+    }
+    // Preserve the stronger finalized-state diagnostic for the historical
+    // public call.  The Runtime still rejects it without an append; active
+    // Flows receive the explicit replay-only boundary error below.
+    if (this.runtime.load(specId)?.lifecycle.state === "finalized") {
+      return this.runtime.apply(specId, proposed);
+    }
+    throw new CanonicalRawActivityReplayOnlyError();
   }
 
   /**
@@ -1351,13 +1398,24 @@ export class CanonicalFlowManagerStore {
   publishArtifacts({ specId = null, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    if (containsRetryRecoveryArtifactWrite(artifactWrites)) {
+      throw new CurrentFlowStateInvariantError(
+        "retry recovery artifacts require the dedicated canonical retry transition",
+      );
+    }
+    const producerNodeId = requiredText(nodeId, "canonical artifact publication nodeId");
+    const expectedAttempt = state.current?.at(-1) === producerNodeId && state.attempt !== null
+      ? CurrentAttemptIdentity.from(state.attempt)
+      : null;
     return this.runtime.publishArtifacts({
       specId: resolved,
       activityId: activityId("artifacts-published"),
-      nodeId: requiredText(nodeId, "canonical artifact publication nodeId"),
+      nodeId: producerNodeId,
       artifactWrites,
       artifactRemovals,
       testSourceBaseline,
+      ...(expectedAttempt === null ? {} : { expectedAttempt }),
     });
   }
 
@@ -1816,6 +1874,28 @@ export class CanonicalFlowManagerStore {
       artifactWrites,
       artifactRemovals,
       testSourceBaseline,
+      ...(status === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
+    });
+  }
+
+  /** Settle only the acceptance-review-owned, artifactless no-op decision. */
+  completeAcceptanceDecisionNoOp({ specId = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    let state = this.runtime.load(resolved);
+    if (state.current === null) {
+      this.#beginExecutableNode(state, resolved, "acceptance-decision");
+      state = this.runtime.load(resolved);
+    }
+    if (state.current?.at(-1) !== "acceptance-decision" || state.attempt?.failure !== null) {
+      throw new CurrentFlowStateInvariantError("acceptance decision no-op requires its active unfailed Attempt");
+    }
+    return this.runtime.completeAcceptanceDecisionNoOp({
+      specId: resolved,
+      activityId: activityId("acceptance-decision-noop-completed"),
+      result: resultFor("done", "acceptance-decision"),
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+      admission: new AcceptanceDecisionNoOpAdmission(),
     });
   }
 
@@ -1941,6 +2021,7 @@ export class CanonicalFlowManagerStore {
       status: effect.completionStatus,
       ...(sourceSpecChanged ? { specRecord: new CanonicalSourceWorkerSpecCompletion(spec) } : {}),
       artifactWrites,
+      ...(effect.completionStatus === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
       ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
     });
   }
@@ -2024,6 +2105,7 @@ export class CanonicalFlowManagerStore {
         activityId: activityId("attempt-failure-recorded"),
         result: failure.result,
         expectedAttempt: expected,
+        admission: this.#settlementAdmission(state, failure.result),
       });
       if (recorded === null) {
         throw new CurrentFlowStateInvariantError("canonical failed Attempt changed before failure recording");
@@ -2035,6 +2117,74 @@ export class CanonicalFlowManagerStore {
       return this.rewindTo(target, { specId: resolved, expectedFailedAttempt: expected });
     }
     throw new CurrentFlowStateInvariantError("canonical failure disposition has no settle transition");
+  }
+
+  /**
+   * Repair a Version-1 run created by the historical settlement bug.  It is
+   * deliberately a narrow reconciliation, not a state editor: only the
+   * catalog's missing primary producer output and the immutable ledger's
+   * immediately recorded failure authorize restoring the old failed cursor.
+   */
+  recoverMissingProducerArtifact({ specId = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    const candidate = this.#historicalMissingProducerArtifactCandidate(state, resolved);
+    if (candidate === null) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery cannot reconstruct the recorded producer Attempt");
+    }
+    return this.runtime.recoverMissingProducerArtifact({
+      specId: resolved,
+      activityId: activityId("missing-producer-artifact-recovered"),
+      producerNodeId: candidate.producerNodeId,
+      attempt: candidate.producerAttempt.toJSON(),
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+      admission: new MissingProducerArtifactRecoveryAdmission({
+        runId: state.runId,
+        consumerAttempt: candidate.consumerAttempt,
+        producerAttempt: candidate.producerAttempt,
+        readiness: candidate.readiness,
+      }),
+    });
+  }
+
+  /** The single typed route consumed by next-action and the dispatcher. */
+  missingProducerArtifactRoute({ specId = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) return null;
+    const state = this.runtime.load(resolved);
+    const catalog = this.runtime.catalog(resolved);
+    const activities = this.activityLedger(resolved);
+    const historical = this.#historicalMissingProducerArtifactCandidate(state, resolved);
+    if (historical !== null && !historical.readiness.isReady({ state, catalog, activities })) {
+      return new MissingProducerArtifactRoute({
+        kind: historical.consumerAttempt === null ? "historical-gap" : "historical-consumer",
+        producerNodeId: historical.producerNodeId,
+        consumerNodeId: historical.consumerNodeId,
+        readiness: historical.readiness,
+      });
+    }
+    const producerNodeId = state.current?.at(-1) ?? null;
+    const failed = state.attempt?.failure == null ? null : state.attempt;
+    if (producerNodeId === null || failed === null) return null;
+    const failureDisposition = state.nextAction();
+    if (failureDisposition?.operation !== "record") return null;
+    const failure = [...activities].reverse().find((activity) => (
+      activity.nodeId === producerNodeId
+      && activity.attemptId === failed.id
+      && activity.sequence === failed.sequence
+      && activity.transition.operation === "fail_attempt"
+    )) ?? null;
+    if (failure?.result === undefined) return null;
+    const readiness = producerArtifactReadinessesForProducer({ producerNodeId })
+      .find((candidate) => !candidate.isReady({ state, catalog, activities })) ?? null;
+    if (readiness === null) return null;
+    return new MissingProducerArtifactRoute({
+      kind: "active-producer",
+      producerNodeId,
+      consumerNodeId: readiness.consumerNodeId,
+      readiness,
+    });
   }
 
   /**
@@ -2555,7 +2705,7 @@ export class CanonicalFlowManagerStore {
     return canonicalSpecId(entries[0].specId);
   }
 
-  #retryBaselineWrites(state, nodeId, attempt) {
+  #retryBaselinePublication(state, nodeId, attempt) {
     const baseline = captureRetryRecoveryBaseline({
       flowState: this.load(state.specId),
       flowManager: this,
@@ -2565,8 +2715,8 @@ export class CanonicalFlowManagerStore {
       attempt,
       specPath: this.runtime.location(state.specId).relativeSpecFile,
     });
-    if (baseline === null) return [];
-    return [retryBaselineArtifact(baseline)];
+    if (baseline === null) return null;
+    return RetryRecoveryArtifactPublication.baseline(baseline);
   }
 
   #beginExecutableNode(state, specId, nodeId) {
@@ -2585,18 +2735,128 @@ export class CanonicalFlowManagerStore {
       // preserves whether this is a fresh pending leaf or an invalidated
       // recovery leaf.
       attempt: commandContextAttempt(state, nodeId),
+      admission: this.#consumerAdmission(state, nodeId),
     };
-    input.artifactWrites = this.#retryBaselineWrites(state, nodeId, input.attempt);
+    input.retryRecoveryPublication = this.#retryBaselinePublication(state, nodeId, input.attempt);
     return next.operation === "recover"
       ? this.runtime.recover(input)
       : this.runtime.startAttempt(input);
+  }
+
+  #historicalMissingProducerArtifactCandidate(state, specId) {
+    const consumerAttempt = state.attempt;
+    const consumerNodeId = state.current?.at(-1) ?? null;
+    const leaves = state.definition.orderedLeaves(state.root);
+    const activities = this.activityLedger(specId);
+    const candidateFor = ({ readiness, consumer = null }) => {
+      const producerNodeId = readiness.producerNodeId;
+      const producer = state.findNode(producerNodeId);
+      if (producer?.status !== "failed") return null;
+      const record = [...activities].reverse().find((activity) => (
+        activity.nodeId === producerNodeId
+        && activity.transition.operation === "record_failure"
+        && activity.sequence === producer.attemptSequence
+      )) ?? null;
+      const failed = record === null ? null : [...activities].slice(0, activities.indexOf(record)).reverse().find((activity) => (
+        activity.nodeId === producerNodeId
+        && activity.attemptId === record.attemptId
+        && activity.sequence === record.sequence
+        && activity.transition.operation === "fail_attempt"
+      )) ?? null;
+      const introduced = failed === null ? null : [...activities].slice(0, activities.indexOf(failed)).reverse().find((activity) => (
+        activity.nodeId === producerNodeId
+        && activity.transition.attempt?.id === failed.attemptId
+        && activity.transition.attempt?.sequence === failed.sequence
+      )) ?? null;
+      if (
+        record === null || failed === null || introduced === null || failed.failure === null
+        || JSON.stringify(record.result) !== JSON.stringify(producer.result)
+      ) return null;
+      return Object.freeze({
+        consumerAttempt,
+        consumerNodeId: consumer,
+        producerNodeId,
+        producerAttempt: new CurrentAttempt({ ...introduced.transition.attempt, failure: failed.failure }),
+        readiness,
+      });
+    };
+    if ((consumerAttempt === null) !== (consumerNodeId === null)) return null;
+    if (consumerAttempt !== null) {
+      const consumerIndex = leaves.findIndex((node) => node.id === consumerNodeId);
+      if (consumerIndex < 1) return null;
+      const readinesses = producerArtifactReadinessesForConsumer({
+        producerNodeIds: leaves.slice(0, consumerIndex).map((node) => node.id),
+        consumerNodeId,
+      });
+      for (const readiness of [...readinesses].reverse()) {
+        const candidate = candidateFor({ readiness, consumer: consumerNodeId });
+        if (candidate !== null) return candidate;
+      }
+      return null;
+    }
+    for (let producerIndex = leaves.length - 1; producerIndex >= 0; producerIndex -= 1) {
+      const producer = leaves[producerIndex];
+      if (producer.status !== "failed"
+        || leaves.slice(producerIndex + 1).some((node) => !["pending", "invalidated"].includes(node.status))) continue;
+      const readinesses = producerArtifactReadinessesForProducer({ producerNodeId: producer.id });
+      for (const readiness of readinesses) {
+        const consumerIndex = leaves.findIndex((node) => node.id === readiness.consumerNodeId);
+        if (consumerIndex <= producerIndex || leaves[consumerIndex]?.status !== "pending") continue;
+        const candidate = candidateFor({ readiness, consumer: null });
+        if (candidate !== null) return candidate;
+      }
+    }
+    return null;
+  }
+
+  #consumerAdmission(state, consumerNodeId) {
+    const leaves = state.definition.orderedLeaves(state.root);
+    const index = leaves.findIndex((node) => node.id === consumerNodeId);
+    if (index < 1) return null;
+    const readinesses = producerArtifactReadinessesForConsumer({
+      producerNodeIds: leaves.slice(0, index).map((node) => node.id),
+      consumerNodeId,
+    });
+    return readinesses.length === 0 ? null : new ProducerArtifactReadinessAdmission({ readinesses });
+  }
+
+  // Replacement transitions may skip producers that a normal linear claim
+  // would consume.  Only the two routes with an intact primary handoff are
+  // admitted here; applying the generic predecessor scan to every recovery
+  // would incorrectly require artifacts from explicitly skipped work.
+  #replacementConsumerAdmission(state, { route, targetNodeId }) {
+    const sourceNodeId = state.current?.at(-1) ?? null;
+    const requiresAdmission = (
+      route === "repair-plan-gate"
+      && sourceNodeId === "spec-gate"
+      && targetNodeId === "spec"
+    ) || (
+      route === "repair-acceptance-review"
+      && sourceNodeId === "acceptance-review"
+      && targetNodeId === "impl-triage"
+    );
+    return requiresAdmission ? this.#consumerAdmission(state, targetNodeId) : null;
+  }
+
+  #producerCompletionAdmission(producerNodeId, artifactWrites) {
+    const readinesses = producerArtifactReadinessesForProducer({ producerNodeId });
+    return readinesses.length === 0
+      ? null
+      : new ProducerArtifactPublicationAdmission({ readinesses, artifactWrites });
+  }
+
+  #settlementAdmission(state, result) {
+    const after = state.recordCurrentFailure({ result });
+    const consumerNodeId = after.nextAction()?.nodeId ?? null;
+    if (consumerNodeId === null) return null;
+    return this.#consumerAdmission(after, consumerNodeId);
   }
 
   #attemptHistoryWrites({ specId, state, nodeId, commandResult, attemptSequence = state.attempt?.sequence }) {
     if (state.current?.at(-1) !== nodeId || state.attempt === null) {
       throw new CurrentFlowStateInvariantError("canonical command attempt history requires the active current Attempt");
     }
-    const target = attemptHistoryTarget(nodeId);
+    const target = attemptHistoryTargetForNode(nodeId);
     if (target === null) return [];
     const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(target.logicalKey, target.parameters);
     const contract = artifact.contract;

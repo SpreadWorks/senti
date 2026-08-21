@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "phase": "draft",
+  "generatedAt": "2026-08-19T07:33:51.855Z",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "decisionMap.knownFacts[9]"
+          },
+          "observed": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft-content",
+            "locator": "qa[4]"
+          },
+          "observed": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "decisionMap.knownFacts[9]"
+      },
+      "observed": "The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "decisionMap.knownFacts[9]"
+      },
+      "observed": "There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "draft-content",
+        "locator": "qa[4]"
+      },
+      "observed": "The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ]
+    }
+  ],
+  "issues": [],
+  "reasons": [
+    {
+      "verdict": "FAIL",
+      "detail": "Migration Parity — The draft states migration parity is required but does not enumerate the existing public query-like behavior being moved or replaced, so the required migration inventory is missing.",
+      "guardrail_id": "migration-parity",
+      "category": "process"
+    },
+    {
+      "verdict": "FAIL",
+      "detail": "Migration Parity — There is no one-to-one mapping of retained public behaviors to a new owner (or explicit removal decision) for this query transition; references to removing old layout/path usage remain high level.",
+      "guardrail_id": "migration-parity",
+      "category": "process"
+    },
+    {
+      "verdict": "FAIL",
+      "detail": "Migration Parity — The answered QA confirms intent to add migration parity but does not define behavior-level verification/acceptance criteria proving each retained public surface works through the new canonical resource path.",
+      "guardrail_id": "migration-parity",
+      "category": "process"
+    }
+  ],
+  "failureKind": "ai_semantic_fail"
+}

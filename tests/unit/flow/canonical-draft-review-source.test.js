@@ -3,7 +3,11 @@ import { afterEach, describe, it } from "node:test";
 
 import { CanonicalDraftReviewSource } from "../../../src/flow/lib/canonical-review-artifacts.js";
 import { ReviewTargetAuthority } from "../../../src/flow/lib/review-target-authority.js";
-import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  canonicalFixtureProducerResult,
+  FlowAtStepFixture,
+  makeFlowManager,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const SPEC_ID = "canonical-draft-review-source";
@@ -28,7 +32,20 @@ function managerWith(manager, { descriptor = null, activities = null } = {}) {
 
 function completeStep(flowManager, stepId, artifactWrites = []) {
   flowManager.updateStepStatus({ stepId, requestedStatus: "in_progress" }, { specId: SPEC_ID });
-  flowManager.confirmCurrentAttempt({ specId: SPEC_ID, artifactWrites });
+  const canonicalCommandResult = canonicalFixtureProducerResult(
+    flowManager.loadReadOnly(SPEC_ID),
+    stepId,
+    { flowManager, specId: SPEC_ID },
+  );
+  if (canonicalCommandResult === null) {
+    flowManager.confirmCurrentAttempt({ specId: SPEC_ID, artifactWrites });
+    return;
+  }
+  assert.deepEqual(artifactWrites, []);
+  flowManager.updateStepStatus(
+    { stepId, requestedStatus: "done" },
+    { specId: SPEC_ID, canonicalCommandResult },
+  );
 }
 
 describe("canonical draft review source", () => {

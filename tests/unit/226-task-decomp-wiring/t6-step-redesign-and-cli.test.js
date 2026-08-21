@@ -24,7 +24,7 @@ function taskDocument(id, parent = null) {
 function completedTaskFixture(tmp, taskDocuments, taskId) {
   const fm = makeFlowManager(tmp);
   const fixture = new TaskLifecycleFixture({ flowManager: fm, taskDocuments, taskId, targetStep: "task-gate" }).create();
-  fm.updateStepStatus({ stepId: `${taskId}-gate`, requestedStatus: "done" });
+  fixture.flow.flow.settle(`${taskId}-gate`);
   return { fm, fixture };
 }
 

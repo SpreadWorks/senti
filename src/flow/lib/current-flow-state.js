@@ -90,9 +90,10 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "reopen_draft_spec_correction",
   "plan_gate_repair",
   "recover_attempt",
+  "recover_missing_producer_artifact",
   "accept_final_regression_failure",
 ]);
-const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"]);
+const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
   "repair_implementation",
@@ -3184,6 +3185,72 @@ export class CurrentFlowState {
     return this.#replaceRoot(replaceNode(this.root, leaf.id, leaf.with({ attemptSequence: next.sequence })), this.current, next);
   }
 
+  /**
+   * Restore the failed producer cursor when an older build recorded it and
+   * illegally claimed its consumer without publishing the required cataloged
+   * result.  This is intentionally not a generic status patch: the caller
+   * supplies the original failed Attempt. A claimed consumer is invalidated
+   * with its suffix; a record-to-claim crash has no consumer Attempt and
+   * instead restores only the failed producer cursor.
+   */
+  recoverMissingProducerArtifact({ path: producerPath, attempt }) {
+    this.#assertExecutionActive();
+    const producer = nodeAtPath(this.root, producerPath);
+    const restored = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (producer.steps.length !== 0 || producer.id !== restored.nodeId) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery must restore its exact producer leaf");
+    }
+    if (producer.status !== "failed" || producer.attemptSequence !== restored.sequence || restored.failure === null) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery requires the recorded failed producer Attempt");
+    }
+    const consumer = this.current?.at(-1) ?? null;
+    if ((consumer === null) !== (this.attempt === null)) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery has an invalid active cursor");
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const producerIndex = leaves.findIndex((node) => node.id === producer.id);
+    if (producerIndex < 0) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery requires a definition producer leaf");
+    }
+    if (consumer === null) {
+      if (leaves.slice(producerIndex + 1).some((node) => !["pending", "invalidated"].includes(node.status))) {
+        throw new CurrentFlowStateInvariantError("missing producer artifact recovery cannot cross a completed downstream leaf");
+      }
+      let root = replaceNode(
+        this.root,
+        producer.id,
+        transitionNode(producer, "in_progress", this.definition, { result: null }),
+      );
+      root = reconcileInvalidatedParents(root, this.definition);
+      for (const id of producerPath) {
+        const node = findNodeInRoot(root, id);
+        if (node.status !== "in_progress") {
+          root = replaceNode(root, id, transitionNode(node, "in_progress", this.definition, { result: null }));
+        }
+      }
+      return this.#replaceRoot(root, producerPath, restored);
+    }
+    const consumerIndex = leaves.findIndex((node) => node.id === consumer);
+    if (consumerIndex <= producerIndex) {
+      throw new CurrentFlowStateInvariantError("missing producer artifact recovery requires a downstream consumer");
+    }
+    let root = this.root;
+    for (const id of leaves.slice(producerIndex + 1).map((node) => node.id)) {
+      const node = findNodeInRoot(root, id);
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    const source = findNodeInRoot(root, producer.id);
+    root = replaceNode(root, source.id, transitionNode(source, "in_progress", this.definition, { result: null }));
+    root = reconcileInvalidatedParents(root, this.definition);
+    for (const id of producerPath) {
+      const node = findNodeInRoot(root, id);
+      if (node.status !== "in_progress") {
+        root = replaceNode(root, id, transitionNode(node, "in_progress", this.definition, { result: null }));
+      }
+    }
+    return this.#replaceRoot(root, producerPath, restored);
+  }
+
   confirmCurrentAttempt({ result, status = "done" }) {
     this.#assertExecutionActive();
     if (this.current == null) throw new CurrentFlowStateInvariantError("confirmCurrentAttempt requires an active Attempt");
@@ -3210,6 +3277,13 @@ export class CurrentFlowState {
       this.definition,
     );
     return this.#replaceRoot(root, null, null);
+  }
+
+  completeAcceptanceDecisionNoOp({ result }) {
+    if (this.current?.at(-1) !== "acceptance-decision" || this.attempt === null) {
+      throw new CurrentFlowStateInvariantError("acceptance decision no-op requires its active Attempt");
+    }
+    return this.confirmCurrentAttempt({ result, status: "done" });
   }
 
   /**
@@ -4324,7 +4398,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -4420,12 +4494,15 @@ export class ActivityTransition {
     if ((operation === FLOW_CREATION_TRANSITION_OPERATION || LIFECYCLE_TRANSITION_OPERATIONS.has(operation) || POLICY_TRANSITION_OPERATIONS.has(operation) || OUTBOX_TRANSITION_OPERATIONS.has(operation) || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(operation) || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(operation) || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(operation)) && this.nodeId !== "flow") {
       throw new CurrentFlowStateInvariantError("Flow lifecycle, policy, outbox, and dispatch approval transitions must target only the Flow root id");
     }
-    if (operation === "confirm_attempt") {
+    if (operation === "complete_acceptance_decision_noop" && status !== "done") {
+      throw new CurrentFlowStateInvariantError("acceptance decision no-op transition requires done status");
+    }
+    if (["confirm_attempt", "complete_acceptance_decision_noop"].includes(operation)) {
       if (!["done", "skipped"].includes(status)) {
         throw new CurrentFlowStateInvariantError("confirm_attempt transition requires done or skipped status");
       }
     } else if (status !== null) {
-      throw new CurrentFlowStateInvariantError("only confirm_attempt transition may specify status");
+      throw new CurrentFlowStateInvariantError("only confirmation transitions may specify status");
     }
     this.status = status;
     Object.freeze(this);
@@ -4534,7 +4611,7 @@ export class ActivityTransition {
       }
       return state.addTask(this.task);
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -4605,6 +4682,9 @@ export class ActivityTransition {
       if (this.operation === "plan_gate_repair") {
         return state.repairPlanGate({ path: currentPath, attempt: this.attempt });
       }
+      if (this.operation === "recover_missing_producer_artifact") {
+        return state.recoverMissingProducerArtifact({ path: currentPath, attempt: this.attempt });
+      }
       return state.recover({ path: currentPath, attempt: this.attempt });
     }
     if (this.operation === "retry_recovery_attempt") {
@@ -4660,6 +4740,9 @@ export class ActivityTransition {
       throw new CurrentFlowStateInvariantError("confirm_attempt Activity sequence must match the current Attempt sequence");
     }
     if (activity.result == null) throw new CurrentFlowStateInvariantError("confirm_attempt Activity requires a result");
+    if (this.operation === "complete_acceptance_decision_noop") {
+      return state.completeAcceptanceDecisionNoOp({ result: activity.result });
+    }
     return state.confirmCurrentAttempt({ result: activity.result, status: this.status });
   }
 
@@ -4710,6 +4793,7 @@ export class FlowActivity {
       fail_attempt: "attempt_failed",
       record_failure: "failure_recorded",
       confirm_attempt: "result_confirmed",
+      complete_acceptance_decision_noop: "result_confirmed",
       rewind: "recovery",
       rewind_test_evidence: "recovery",
       repair_test_review: "recovery",
@@ -4724,6 +4808,7 @@ export class FlowActivity {
       reopen_draft_spec_correction: "recovery",
       plan_gate_repair: "recovery",
       recover_attempt: "recovery",
+      recover_missing_producer_artifact: "recovery",
       park_flow: "flow_parked",
       resume_flow: "flow_resumed",
       finalize_flow: "flow_finalized",
@@ -4759,10 +4844,10 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
@@ -4791,7 +4876,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -4989,6 +5074,22 @@ function assertJournalAttemptIdentities(entries) {
       ) {
         throw new CurrentFlowStateInvariantError(
           "record_failure Activity must immediately preserve the failed Attempt result",
+        );
+      }
+    }
+    if (entry.transition.operation === "recover_missing_producer_artifact") {
+      const restored = entry.transition.attempt;
+      const producer = identities.get(restored.id);
+      const latest = lastActivityByAttempt.get(restored.id);
+      if (
+        !producer
+        || producer.nodeId !== restored.nodeId
+        || producer.sequence !== restored.sequence
+        || restored.failure === null
+        || latest?.transition.operation !== "record_failure"
+      ) {
+        throw new CurrentFlowStateInvariantError(
+          "missing producer artifact recovery must restore a previously recorded failed Attempt",
         );
       }
     }
@@ -5736,6 +5837,10 @@ export class CurrentFlowVersionStore {
       artifactWrites,
       artifactRemovals,
     );
+    const admission = input?.admission ?? null;
+    if (admission !== null && typeof admission.assert !== "function") {
+      throw new CurrentFlowStateInvariantError("canonical admission must provide assert()");
+    }
     const taskAddition = activity.transition.operation === "add_task";
     const taskSpec = taskAddition
       ? this.#nextTaskSpec(activity, input?.taskSpec)
@@ -5786,7 +5891,23 @@ export class CurrentFlowVersionStore {
     const options = {
       artifacts,
       precondition: (catalog) => {
-        this.#assertPersistedIdentity(this.#store().load());
+        const state = this.#assertPersistedIdentity(this.#store().load());
+        // The catalog lock encloses this check and the subsequent state
+        // Activity.  A producer cannot disappear between validation and a
+        // consumer claim, and no caller can defer this failure downstream.
+        admission?.assert({
+          state,
+          catalog,
+          activities: this.#store().loadSnapshot().activities,
+          readCatalogedArtifact: (descriptor) => {
+            const cataloged = catalog.resolve(descriptor.relativePath);
+            if (cataloged.hash !== descriptor.hash || cataloged.activityId !== descriptor.activityId) {
+              throw new CurrentFlowStateInvariantError("canonical admission artifact descriptor changed");
+            }
+            cataloged.verify(this.location);
+            return fs.readFileSync(this.location.resolve(cataloged.relativePath));
+          },
+        });
         testSourceBaseline?.assertCatalog(catalog);
       },
       write: () => {

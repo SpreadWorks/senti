@@ -1769,6 +1769,26 @@ export const FLOW_COMMANDS = {
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
+    "recover-missing-producer-artifact": {
+      helpKey: "flow.run.recover-missing-producer-artifact",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-recover-missing-producer-artifact.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: sennel flow run recover-missing-producer-artifact ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Restore the exact recorded failed producer Attempt only when a historical consumer claim lacks its cataloged producer result.",
+        "The command derives run, producer, consumer, Attempt, and catalog identities from canonical storage; it accepts no mutable state input.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
     "repair-test-review": {
       helpKey: "flow.run.repair-test-review",
       runtimeLog: { stepMetadata: false },
@@ -2091,13 +2111,7 @@ export const FLOW_COMMANDS = {
         });
         const specId = ctx.flowState.specId;
         if (artifact.verdict === "pass") {
-          ctx.flowManager.updateStepStatus({
-            stepId: "acceptance-decision",
-            // The definition treats this approval leaf as non-skippable.
-            // A passing acceptance review settles its no-op Attempt as done;
-            // only an explicit risk choice owns acceptance.decision bytes.
-            requestedStatus: "done",
-          }, { specId });
+          ctx.flowManager.completeAcceptanceDecisionNoOp({ specId });
           ctx.flowManager.updateStepStatus({
             stepId: "final-regression",
             requestedStatus: "in_progress",

@@ -15,7 +15,11 @@ import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
-import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import {
+  FlowAtStepFixture,
+  makeFlowManager,
+  removeCatalogedArtifactForCorruptionFixture,
+} from "../../helpers/flow-setup.js";
 
 function createRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "retro-req-"));
@@ -139,7 +143,8 @@ describe("R5: retro consumes canonical test Attempt results (spec 251)", () => {
 
   it("R5: returns Envelope.fail when the canonical test-execute result is missing", async () => {
     root = createRepo();
-    const { context } = createRetroContext(root, { includeExecution: false });
+    const { context, flowManager, specId } = createRetroContext(root);
+    removeCatalogedArtifactForCorruptionFixture(flowManager, specId, "test.execute");
 
     const result = await new RunRetroCommand().execute({ ...context, dryRun: true });
 

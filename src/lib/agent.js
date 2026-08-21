@@ -24,7 +24,7 @@ import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
 import { persistAgentInvocationMetric } from "./agent-invocation-metric.js";
-import { AgentTimeout } from "./agent-timeout.js";
+import { AgentTimeout, DEFAULT_AGENT_PROCESS_TREE_GRACE_MS } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
 import {
@@ -34,7 +34,6 @@ import {
   EmptyAgentResponseFailure,
 } from "./agent-failure.js";
 
-const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
 const DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS = 250;
 const PROCESS_DEATH_POLL_MS = 10;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
@@ -74,6 +73,17 @@ function normalizedExecutionEnvironment(value) {
     environment[name] = entry;
   }
   return environment;
+}
+
+class AgentExecutionContext {
+  constructor({ providerWorkDir, spawnCwd }) {
+    if (!path.isAbsolute(providerWorkDir) || !path.isAbsolute(spawnCwd)) {
+      throw new Error("agent execution directories must be absolute");
+    }
+    this.providerWorkDir = providerWorkDir;
+    this.spawnCwd = spawnCwd;
+    Object.freeze(this);
+  }
 }
 
 class Agent {
@@ -162,11 +172,11 @@ class Agent {
         message: attempt.formatFailure(),
       });
     }
-    let executionWorkDir;
+    let executionContext;
     try {
       ensureWorkDir(this._paths.agentWorkDir);
-      executionWorkDir = this._resolveExecutionWorkDir(opts.executionWorkDir);
-      ensureWorkDir(executionWorkDir);
+      executionContext = this._resolveExecutionContext(opts.executionWorkDir);
+      ensureWorkDir(executionContext.providerWorkDir);
     } catch (error) {
       throw AgentFailure.from(error).recordAttempts(1, 1);
     }
@@ -213,7 +223,11 @@ class Agent {
         cacheCandidate = await this._callOnceWithRetry(
           resolved,
           prompt,
-          { ...opts, executionWorkDir },
+          {
+            ...opts,
+            executionWorkDir: executionContext.providerWorkDir,
+            spawnCwd: executionContext.spawnCwd,
+          },
           retry,
         );
         return cacheCandidate;
@@ -246,6 +260,14 @@ class Agent {
       });
     }
     return resolved;
+  }
+
+  _resolveExecutionContext(override) {
+    const providerWorkDir = this._resolveExecutionWorkDir(override);
+    const spawnCwd = override == null
+      ? path.resolve(this._paths.root || process.cwd())
+      : providerWorkDir;
+    return new AgentExecutionContext({ providerWorkDir, spawnCwd });
   }
 
   _buildPromptCacheKeyMaterialForTest(resolved, prompt, options = {}) {
@@ -396,7 +418,11 @@ class Agent {
   async _callOnce(resolved, prompt, options) {
     const { provider, profile, providerKey, profileKey, timeoutMs } = resolved;
     const { finalArgs, env, stdinContent, pendingSchemaWrite } = this._buildInvocation(resolved, prompt, options);
-    const cwd = this._paths.root || process.cwd();
+    // A provider work-directory flag is an optional provider optimization,
+    // not the execution-boundary mechanism.  An explicit per-call directory
+    // is always the child cwd too, so flagless providers cannot fall back to
+    // the canonical checkout through process.cwd().
+    const cwd = options.spawnCwd || path.resolve(this._paths.root || process.cwd());
 
     if (pendingSchemaWrite) {
       await fs.promises.writeFile(pendingSchemaWrite.path, pendingSchemaWrite.content);
@@ -437,7 +463,7 @@ class Agent {
         const supervisor = new ChildProcessSupervisor({
           child,
           timeoutMs,
-          graceMs: this._supervision.graceMs || DEFAULT_AGENT_TIMEOUT_GRACE_MS,
+          graceMs: this._supervision.graceMs || DEFAULT_AGENT_PROCESS_TREE_GRACE_MS,
           exitDrainMs: this._supervision.exitDrainMs || DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS,
           platform,
           runTaskkill: this._supervision.runTaskkill,

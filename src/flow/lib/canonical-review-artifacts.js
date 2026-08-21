@@ -480,6 +480,11 @@ export class CanonicalReviewWorkUnit {
     return Object.freeze({ directory: this.workUnit.directory });
   }
 
+  /** Materialize an isolated source checkout for an untrusted review provider. */
+  materializeExecutionCheckout() {
+    return this.workUnit.materializeExecutionCheckout();
+  }
+
   finalize() {
     return this.workUnit.finalize();
   }
@@ -578,7 +583,9 @@ export class CanonicalReviewWorkUnit {
     const sources = catalog.artifacts
       .filter((entry) => entry.logicalKey === "tests.source")
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
-    const testRoot = path.join(directory, "tests");
+    // Work-unit inputs are deliberately namespaced below `inputs/`; the
+    // review child receives this parent-owned surface, not a source-tree path.
+    const testRoot = path.join(directory, "inputs", "tests");
     for (const descriptor of sources) {
       const prefix = "artifacts/tests/";
       if (!descriptor.relativePath.startsWith(prefix)) {
@@ -611,7 +618,10 @@ export class CanonicalReviewWorkUnit {
       : [];
     if (!write) return null;
     return Object.freeze({
-      directory,
+      // review.js treats this as the source root and resolves `tests/` below
+      // it; expose only the declared input namespace, never the work-unit
+      // root that also contains parent-owned output and sealing metadata.
+      directory: path.join(directory, "inputs"),
       revision: CanonicalTestSourceRevision.fromCatalog({
         state: this.state,
         catalog,

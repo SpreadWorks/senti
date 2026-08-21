@@ -13,6 +13,7 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { buildFlowCommandHookContext } from "../../../src/flow/lib/flow-context.js";
 import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { ExecuteCommandDirective } from "../../../src/flow/lib/next-action-directive.js";
 
 function completedAction() {
   return {
@@ -73,6 +74,29 @@ function taskReviewAction(taskId, step, action, key) {
     directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action },
   };
 }
+
+test("dispatcher owns the typed historical missing-producer recovery command", async () => {
+  const dispatcher = new RunDispatchCommand();
+  const calls = [];
+  dispatcher.runRegisteredFlowCommand = async (_ctx, _target, commandName, args) => {
+    calls.push({ commandName, args });
+    return { ok: true, errors: [] };
+  };
+  const result = await dispatcher.runDispatcherOwnedRecovery(
+    {},
+    {},
+    {
+      directive: new ExecuteCommandDirective({
+        actionId: "RECOVER_MISSING_PRODUCER_ARTIFACT",
+        nextAction: "sennel flow run recover-missing-producer-artifact --expect-run-id recovery-run",
+        instruction: "Recover the historical producer.",
+        reason: "The consumer was claimed before the producer result existed.",
+      }),
+    },
+  );
+  assert.deepEqual(result, { ok: true, errors: [] });
+  assert.deepEqual(calls, [{ commandName: "recover-missing-producer-artifact", args: [] }]);
+});
 
 test("dispatcher executes a definition-owned review in the parent without starting a worker", async () => {
   const root = createTmpDir("dispatcher-command-owner-");

@@ -15,6 +15,7 @@ import {
 } from "../../../src/lib/agent-failure.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
+import { ReviewExecutionLease } from "../../../src/flow/lib/review-execution-lease.js";
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "agent-test-"));
@@ -25,7 +26,7 @@ const WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH = path.resolve(
   "../../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
 );
 
-function makeAgent(profile, { config, paths, flowManager, logger } = {}) {
+function makeAgent(profile, { config, paths, flowManager, logger, supervision } = {}) {
   const root = paths?.root || tmpDir();
   const agentWorkDir = paths?.agentWorkDir || path.join(root, ".tmp");
   const userProviders = profile ? { "test/exec": profile } : {};
@@ -43,7 +44,47 @@ function makeAgent(profile, { config, paths, flowManager, logger } = {}) {
     registry,
     logger: logger || new Logger({ logDir: os.tmpdir(), enabled: false }),
     flowManager,
+    supervision,
   });
+}
+
+async function waitForFile(file, timeoutMs = 1_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!fs.existsSync(file)) {
+    if (Date.now() >= deadline) throw new Error(`timed out waiting for ${file}`);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
+async function waitForProcessExit(pid, timeoutMs = 1_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    try {
+      process.kill(pid, 0);
+    } catch (error) {
+      if (error.code === "ESRCH") return;
+      throw error;
+    }
+    if (Date.now() >= deadline) throw new Error(`provider descendant ${pid} remained alive after timeout cleanup`);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
+function successfulSpawnRecorder(record) {
+  return (command, args, options) => {
+    record.command = command;
+    record.args = args;
+    record.options = options;
+    const child = new EventEmitter();
+    child.pid = null;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    queueMicrotask(() => {
+      child.stdout.emit("data", "ok");
+      child.emit("close", 0, null);
+    });
+    return child;
+  };
 }
 
 describe("Agent.call() — basic invocation", () => {
@@ -91,6 +132,68 @@ describe("Agent.call() — basic invocation", () => {
 
     assert.deepEqual(invocation.finalArgs, ["exec", "--cwd", executionWorkDir, "work"]);
     fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("starts a flagless provider inside the execution work directory", async (t) => {
+    const root = tmpDir();
+    const executionWorkDir = path.join(root, "review-snapshot");
+    fs.mkdirSync(executionWorkDir);
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const spawned = {};
+    const agent = makeAgent(
+      { command: "worker", args: ["exec", "{{PROMPT}}"] },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        supervision: { spawn: successfulSpawnRecorder(spawned) },
+      },
+    );
+
+    assert.equal(await agent.call("review", {
+      commandId: "test",
+      executionWorkDir,
+      retryCount: 0,
+    }), "ok");
+    assert.equal(spawned.options.cwd, executionWorkDir);
+    assert.deepEqual(spawned.args, ["exec", "review"]);
+  });
+
+  it("starts a flagged provider inside the same execution work directory", async (t) => {
+    const root = tmpDir();
+    const executionWorkDir = path.join(root, "review-snapshot");
+    fs.mkdirSync(executionWorkDir);
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const spawned = {};
+    const agent = makeAgent(
+      { command: "worker", args: ["exec", "{{PROMPT}}"], workDirFlag: "--cwd" },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        supervision: { spawn: successfulSpawnRecorder(spawned) },
+      },
+    );
+
+    assert.equal(await agent.call("review", {
+      commandId: "test",
+      executionWorkDir,
+      retryCount: 0,
+    }), "ok");
+    assert.equal(spawned.options.cwd, executionWorkDir);
+    assert.deepEqual(spawned.args, ["exec", "--cwd", executionWorkDir, "review"]);
+  });
+
+  it("keeps the repository root as the default child working directory", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const spawned = {};
+    const agent = makeAgent(
+      { command: "worker", args: ["exec", "{{PROMPT}}"] },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        supervision: { spawn: successfulSpawnRecorder(spawned) },
+      },
+    );
+
+    assert.equal(await agent.call("review", { commandId: "test", retryCount: 0 }), "ok");
+    assert.equal(spawned.options.cwd, root);
   });
 
   it("passes the spec schema through a schema-capable provider profile", (t) => {
@@ -235,6 +338,53 @@ describe("Agent.call() — basic invocation", () => {
 
     assert.equal(result, "provider returned");
     assert.equal(fs.readFileSync(marker, "utf8"), "done");
+  });
+
+  it("kills a forked timed-out provider tree before releasing its review execution lease", async (t) => {
+    if (process.platform === "win32") t.skip("POSIX process-group containment is covered by the Windows supervisor separately");
+    const root = tmpDir();
+    const marker = path.join(root, "forked-provider-child.pid");
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const descendant = [
+      "const fs=require('node:fs');",
+      `fs.writeFileSync(${JSON.stringify(marker)},String(process.pid));`,
+      "setInterval(()=>{},1_000);",
+    ].join("");
+    const provider = [
+      "const {spawn}=require('node:child_process');",
+      `spawn(process.execPath,['-e',${JSON.stringify(descendant)}],{stdio:'ignore'});`,
+      "setInterval(()=>{},1_000);",
+    ].join("");
+    const agent = makeAgent(
+      { command: process.execPath, args: ["-e", provider] },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        config: {
+          agent: {
+            default: "test/exec",
+            providers: { "test/exec": { command: process.execPath, args: ["-e", provider] } },
+            timeout: 0.2,
+          },
+        },
+      },
+    );
+    const identity = { mainRoot: root, runId: "timeout-run", nodeId: "spec-review", attemptId: "timeout-attempt" };
+    const lease = new ReviewExecutionLease(identity);
+    lease.acquire();
+    try {
+      await assert.rejects(agent.call("", {
+        commandId: "test",
+        retryCount: 0,
+        waitForProcessTree: true,
+      }), /timed out/i);
+    } finally {
+      lease.release();
+    }
+    await waitForFile(marker);
+    await waitForProcessExit(Number.parseInt(fs.readFileSync(marker, "utf8"), 10));
+    const afterTimeout = new ReviewExecutionLease(identity);
+    afterTimeout.acquire();
+    afterTimeout.release();
   });
 
   it("throws on failing command", async () => {

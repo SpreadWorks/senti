@@ -23,6 +23,25 @@ export default class RunSettleFailureCommand extends FlowCommand {
       );
     }
     const state = ctx.flowManager.canonicalState(ctx.specId ?? projectedState.specId);
+    const missingProducerArtifactRoute = typeof ctx.flowManager.missingProducerArtifactRoute === "function"
+      ? ctx.flowManager.missingProducerArtifactRoute({ specId: state?.specId })
+      : null;
+    if (missingProducerArtifactRoute !== null) {
+      const historical = missingProducerArtifactRoute.kind === "historical-consumer";
+      return Envelope.fail(
+        "run",
+        "settle-failure",
+        "CANONICAL_PRODUCER_ARTIFACT_NOT_READY",
+        historical
+          ? "a historical consumer claim lacks its required producer artifact; use the typed recovery command instead of settlement"
+          : "the failed producer Attempt lacks its required consumer artifact; settlement is blocked until explicit evidence-based recovery is available",
+        {
+          producerNodeId: missingProducerArtifactRoute.producerNodeId,
+          consumerNodeId: missingProducerArtifactRoute.consumerNodeId,
+          ...(historical && { recoveryCommand: "sennel flow run recover-missing-producer-artifact" }),
+        },
+      );
+    }
     const descriptor = state?.nextAction() ?? null;
     if (descriptor === null || !["record", "rewind"].includes(descriptor.operation)) {
       return Envelope.fail(

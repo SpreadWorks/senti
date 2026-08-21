@@ -19,6 +19,10 @@ import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { container } from "../../../../src/lib/container.js";
 import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
 import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-review-artifacts.js";
+import {
+  REVIEW_WORK_UNIT_CHECKOUT_ENV,
+  REVIEW_WORK_UNIT_MANIFEST_ENV,
+} from "../../../../src/flow/lib/review-work-unit.js";
 import { ReviewFindingCycle } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
@@ -244,6 +248,8 @@ describe("normal no-diff canonical review", () => {
   let previousReviewOutputDirectory;
   let previousReviewSpecSource;
   let previousReviewFileMapSource;
+  let previousReviewWorkUnitManifest;
+  let previousReviewWorkUnitCheckout;
   let reviewEnvironmentCaptured = false;
 
   afterEach(() => {
@@ -254,9 +260,15 @@ describe("normal no-diff canonical review", () => {
     else process.env.SENNEL_REVIEW_SPEC_SOURCE = previousReviewSpecSource;
     if (previousReviewFileMapSource === undefined) delete process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
     else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = previousReviewFileMapSource;
+    if (previousReviewWorkUnitManifest === undefined) delete process.env[REVIEW_WORK_UNIT_MANIFEST_ENV];
+    else process.env[REVIEW_WORK_UNIT_MANIFEST_ENV] = previousReviewWorkUnitManifest;
+    if (previousReviewWorkUnitCheckout === undefined) delete process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV];
+    else process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV] = previousReviewWorkUnitCheckout;
     previousReviewOutputDirectory = undefined;
     previousReviewSpecSource = undefined;
     previousReviewFileMapSource = undefined;
+    previousReviewWorkUnitManifest = undefined;
+    previousReviewWorkUnitCheckout = undefined;
     reviewEnvironmentCaptured = false;
     if (noDiffRoot) removeTmpDir(noDiffRoot);
     noDiffRoot = null;
@@ -271,20 +283,27 @@ describe("normal no-diff canonical review", () => {
       treeSha: "a".repeat(40),
       targetStateDigest: "b".repeat(64),
     });
-    const outputDirectory = workUnit.prepare().directory;
+    workUnit.prepare();
     const specSource = workUnit.materializeSpecRecord();
     const fileMapSource = workUnit.materializeFileMap();
+    const checkout = workUnit.materializeExecutionCheckout();
+    const surface = workUnit.finalize();
+    const outputDirectory = surface.directory;
     if (!reviewEnvironmentCaptured) {
       previousReviewOutputDirectory = process.env.SENNEL_REVIEW_OUTPUT_DIR;
       previousReviewSpecSource = process.env.SENNEL_REVIEW_SPEC_SOURCE;
       previousReviewFileMapSource = process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
+      previousReviewWorkUnitManifest = process.env[REVIEW_WORK_UNIT_MANIFEST_ENV];
+      previousReviewWorkUnitCheckout = process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV];
       reviewEnvironmentCaptured = true;
     }
     process.env.SENNEL_REVIEW_OUTPUT_DIR = outputDirectory;
     process.env.SENNEL_REVIEW_SPEC_SOURCE = JSON.stringify(specSource);
     if (fileMapSource === null) delete process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
     else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = JSON.stringify(fileMapSource);
-    return { outputDirectory, specSource, fileMapSource };
+    process.env[REVIEW_WORK_UNIT_MANIFEST_ENV] = surface.manifestPath;
+    process.env[REVIEW_WORK_UNIT_CHECKOUT_ENV] = checkout.directory;
+    return { outputDirectory, specSource, fileMapSource, executionWorkDir: checkout.directory };
   }
 
   it("passes without a diff on a first Attempt and a typed retry after transient cleanup", async () => {
@@ -387,9 +406,11 @@ describe("normal no-diff canonical review", () => {
     fixture.settle("implement").activate("impl-review");
     fs.writeFileSync(path.join(noDiffRoot, "src", "mapped.js"), "export const value = 2;\n");
 
-    const { outputDirectory, fileMapSource } = bindReviewWorkUnit(fixture, flowManager);
+    const { outputDirectory, fileMapSource, executionWorkDir } = bindReviewWorkUnit(fixture, flowManager);
     assert.ok(fileMapSource);
     let capturedPrompt = "";
+    let capturedExecutionWorkDir = null;
+    let capturedWaitForProcessTree = null;
     container.reset();
     container.register("root", noDiffRoot);
     container.register("mainRoot", noDiffRoot);
@@ -399,6 +420,8 @@ describe("normal no-diff canonical review", () => {
       resolve: () => ({ provider: "fixture" }),
       call: async (userPrompt, options) => {
         capturedPrompt = `${options.systemPrompt || ""}\n${userPrompt}`;
+        capturedExecutionWorkDir = options.executionWorkDir;
+        capturedWaitForProcessTree = options.waitForProcessTree;
         return JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] });
       },
     });
@@ -408,6 +431,9 @@ describe("normal no-diff canonical review", () => {
     assert.match(capturedPrompt, /## Requirement-File Mapping/);
     assert.match(capturedPrompt, /"R-1": \[/);
     assert.match(capturedPrompt, /"src\/mapped\.js"/);
+    assert.equal(capturedExecutionWorkDir, executionWorkDir);
+    assert.notEqual(capturedExecutionWorkDir, noDiffRoot);
+    assert.equal(capturedWaitForProcessTree, true);
     assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
     assert.equal(fs.existsSync(path.join(fixture.location().directory, "file-map.json")), false);
   });
@@ -428,7 +454,30 @@ describe("normal no-diff canonical review", () => {
       runId: "run-missing-file-map-review",
       execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
       specRecord: { requirements: [{ id: "R-1", desc: "Require a durable file map." }] },
-    }).create().registerActive().activate("impl-review");
+    }).create().registerActive();
+    // Model an older completion without the optional file.map publication.
+    // The review command must still fail closed before the provider sees
+    // changed source when its catalog authority is unavailable.
+    const reviewIndex = fixture.leaves().findIndex((step) => step.id === "impl-review");
+    for (const step of fixture.leaves().slice(0, reviewIndex)) {
+      if (step.id !== "implement") {
+        fixture.settle(step.id);
+        continue;
+      }
+      fixture.activate("implement", { settlePredecessors: false });
+      flowManager._store.runtime.confirmAttempt({
+        specId: fixture.specId,
+        activityId: "historical-artifactless-implement-confirmation",
+        status: "done",
+        result: {
+          outcome: "passed",
+          summary: "historical artifactless implementation completion",
+          confirmedAt: "2026-08-20T00:00:00.000Z",
+          artifactRefs: [],
+        },
+      });
+    }
+    fixture.activate("impl-review", { settlePredecessors: false });
     fs.writeFileSync(path.join(noDiffRoot, "changed.js"), "export const changed = 2;\n");
     bindReviewWorkUnit(fixture, flowManager);
     let agentCalls = 0;
@@ -1088,6 +1137,55 @@ describe("flow run review CLI", () => {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
       assert.match(out, /no active flow/i);
     }
+  });
+});
+
+describe("canonical test review work-unit inputs", () => {
+  let targetRoot = null;
+
+  afterEach(() => {
+    if (targetRoot) removeTmpDir(targetRoot);
+    targetRoot = null;
+  });
+
+  it("materializes cataloged test sources only below the work-unit input directory", () => {
+    targetRoot = createTmpDir("canonical-test-review-input-");
+    const flowManager = makeFlowManager(targetRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-test-review-input",
+      runId: "run-test-review-input",
+      specRecord: { goal: "Materialize test sources inside one review work unit.", requirements: [] },
+    }).create().registerActive().activate("test");
+    flowManager.publishArtifacts({
+      specId: fixture.specId,
+      nodeId: "test",
+      artifactWrites: [{
+        logicalKey: "tests.source",
+        parameters: { testPath: "r1.test.js" },
+        mediaType: "text/javascript",
+        bytes: Buffer.from("export const reviewInput = true;\n", "utf8"),
+      }],
+    });
+    fixture.settle("test").settle("scenario-validity").activate("test-review", { settlePredecessors: false });
+
+    const workUnit = new CanonicalReviewWorkUnit({
+      flowManager,
+      state: fixture.state(),
+      phase: "test",
+      executionRoot: targetRoot,
+      treeSha: "a".repeat(40),
+      targetStateDigest: "b".repeat(64),
+    });
+    const prepared = workUnit.prepare();
+    const sources = workUnit.materializeTestSources(prepared.directory);
+
+    assert.equal(sources.directory, path.join(prepared.directory, "inputs"));
+    assert.equal(
+      fs.readFileSync(path.join(prepared.directory, "inputs", "tests", "r1.test.js"), "utf8"),
+      "export const reviewInput = true;\n",
+    );
+    assert.equal(fs.existsSync(path.join(prepared.directory, "tests", "r1.test.js")), false);
   });
 });
 

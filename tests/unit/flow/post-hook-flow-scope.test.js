@@ -51,7 +51,7 @@ describe("canonical Flow and Task Attempt scope", () => {
   it("completes a flow-level leaf without reopening a terminal Task", () => {
     root = createTmpDir("canonical-flow-post-scope-");
     const flowManager = makeFlowManager(root);
-    new FlowAtStepFixture({
+    const fixture = new FlowAtStepFixture({
       flowManager,
       specId: "001-test",
       runId: "run-flow-scope",
@@ -63,10 +63,7 @@ describe("canonical Flow and Task Attempt scope", () => {
     const before = flowManager.loadReadOnly("001-test");
     assert.equal(before.tasks[0].status, "done");
     assert.equal(before.currentTaskId, null);
-    flowManager.updateStepStatus({
-      stepId: "test-execute",
-      requestedStatus: "done",
-    }, { specId: "001-test" });
+    fixture.flow.flow.settle("test-execute");
 
     const after = flowManager.loadReadOnly("001-test");
     assert.equal(findStepById(after.steps, "test-execute").status, "done");

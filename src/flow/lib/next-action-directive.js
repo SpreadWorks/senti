@@ -14,6 +14,7 @@ import {
 import { guardedCommand } from "./guarded-command.js";
 import { CurrentNextActionDescriptor } from "./current-flow-state.js";
 import { PlanGateRepairRoute } from "./plan-gate-repair.js";
+import { MissingProducerArtifactRoute } from "./producer-artifact-readiness.js";
 
 const ACTION_ID = /^[A-Z][A-Z0-9_]{2,79}$/;
 const MAX_TEXT_LENGTH = 4000;
@@ -126,6 +127,11 @@ export class ExecuteCommandDirective extends NextActionDirective {
     });
     Object.freeze(this);
   }
+
+  get actionId() { return this.continuation.actionId; }
+  get nextAction() { return this.continuation.nextAction; }
+  get instruction() { return this.continuation.instruction; }
+  get reason() { return this.continuation.reason; }
 
   toJSON() {
     return { ...super.toJSON(), ...this.continuation.toJSON() };
@@ -245,6 +251,7 @@ export class NextActionDirectiveResolver {
     action,
     descriptor,
     recoveryCommand = null,
+    missingProducerArtifactRoute = null,
     planGateRepairRoute = null,
     planGateRepairReason = null,
   } = {}) {
@@ -264,6 +271,11 @@ export class NextActionDirectiveResolver {
     this.recoveryCommand = recoveryCommand == null
       ? null
       : requireString(recoveryCommand, "directive resolver recovery command");
+    if (missingProducerArtifactRoute !== null
+      && !(missingProducerArtifactRoute instanceof MissingProducerArtifactRoute)) {
+      throw new Error("directive resolver requires a typed missing producer artifact route");
+    }
+    this.missingProducerArtifactRoute = missingProducerArtifactRoute;
     if (planGateRepairRoute !== null) {
       if (!(planGateRepairRoute instanceof PlanGateRepairRoute)) {
         throw new Error("directive resolver requires a typed plan gate repair route");
@@ -277,6 +289,34 @@ export class NextActionDirectiveResolver {
   }
 
   resolve() {
+    if (this.missingProducerArtifactRoute !== null) {
+      if (["historical-consumer", "historical-gap"].includes(this.missingProducerArtifactRoute.kind)) {
+        const reason = this.missingProducerArtifactRoute.kind === "historical-consumer"
+          ? `The active ${this.missingProducerArtifactRoute.consumerNodeId} Attempt was historically claimed before ${this.missingProducerArtifactRoute.producerNodeId} published its required canonical result.`
+          : `The recorded ${this.missingProducerArtifactRoute.producerNodeId} failure was interrupted before its consumer could be claimed, without the required canonical result.`;
+        return new ExecuteCommandDirective({
+          actionId: "RECOVER_MISSING_PRODUCER_ARTIFACT",
+          nextAction: guardedCommand("sennel flow run recover-missing-producer-artifact", this.state, this.binding),
+          instruction: "Restore the exact producer Attempt through the catalog-checked recovery transition, then refresh next-action. Do not resume the consumer or create an artifact manually.",
+          reason,
+        });
+      }
+      if (this.recoveryCommand !== null) {
+        return new ExecuteCommandDirective({
+          actionId: "RECOVER_EXHAUSTED_TOOLING_RETRY",
+          nextAction: this.recoveryCommand,
+          instruction: "Apply the single audited tooling recovery after parent-derived evidence changed, then refresh next-action.",
+          reason: this.descriptor.failureDisposition?.reason
+            ?? "The exhausted tooling Attempt has changed canonical evidence.",
+        });
+      }
+      const reason = `The failed ${this.missingProducerArtifactRoute.producerNodeId} Attempt did not publish the required canonical result for ${this.missingProducerArtifactRoute.consumerNodeId}; settlement is intentionally unavailable.`;
+      return new BlockedDirective({
+        code: "CANONICAL_PRODUCER_ARTIFACT_NOT_READY",
+        reason,
+        resumeInstruction: "Record changed canonical evidence and use the guarded retry-reset recovery, or repair a historical consumer claim with recover-missing-producer-artifact. Do not create an artifact manually.",
+      });
+    }
     if (this.planGateRepairRoute !== null) {
       return new RepairEvidenceDirective({
         actionId: "REPAIR_PLAN_GATE_EVIDENCE",

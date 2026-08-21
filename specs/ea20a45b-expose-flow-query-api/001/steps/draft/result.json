@@ -1,0 +1,179 @@
+{
+  "devType": "feature",
+  "goal": "Add a public, workspace-agnostic `sennel flow query` API that returns canonical Flow Version metadata and activity data without workspace-specific views or filesystem-layout coupling.",
+  "analysis": {
+    "problem": "Workspace and Connector currently lack a stable public query surface that reads canonical Flow Versions directly, so they cannot reliably consume metadata and confirmed activities across fresh/migrated flows without depending on internal layout paths.",
+    "proposedApproach": "Create a dedicated `flow query` command path that validates one JSON request, routes by `resource` (`metadata` or `activities`) to resource-specific readers, and projects canonical store data into one query schema revision with strict read-only behavior.",
+    "validation": "Acceptance requirements should explicitly confirm single-spec single-version reads, canonical input boundaries (`flow.json`, `spec.json`, activity ledger, artifact catalog), fixed response shape by resource, immutable cursor pagination, and deterministic behavior for success and validation failures without state writes."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: The request model requires a single JSON object with `resource` and `condition`, and supports stdin and `--request-file` as alternate input methods.",
+      "must: Canonical data inputs are `flow.json`, `spec.json`, activity ledger, and artifact catalog only.",
+      "must: Both resources must remain read-only and must not mutate ledger, state, catalog, cache, or working tree.",
+      "must: Lifecycle exposure is limited to `active`, `parked`, and `finalized`, with `blocked` derived from the current attempt failure + `nextAction().operation === \"blocked\"`.",
+      "must: `flowVersion` defaults to 1 when omitted and does not fall back when the requested version is missing.",
+      "must: Query API SHALL remain canonical public schema-only and never expose Workspace-specific models or internal Artifact catalog structures.",
+      "must: One exact string `condition.specId` is required per request; multi-spec and pattern/in search are validation errors.",
+      "must: Success payloads MUST follow resource-specific schemas (`metadata.item`, `activities.items`, `activities.pageInfo`) and include `selectedFlowVersion` plus ascending `availableFlowVersions`.",
+      "must: Unsupported request-level operations and unknown fields/resources are `ok: false` validation errors with stable resource shape handling.",
+      "must: Migration parity is required for query-like behavior currently consumed through Workspace/Connector internals. Inventory and replacements: legacy \"workspace internal layout probing for metadata\" -> `resource: \"metadata\"` with `condition.specId` + canonical flow metadata fields (`flowId`, `flowVersionId`, `specId`, `runId`, `lifecycle`, `current location`, blocker, next action); legacy \"custom parsing of `flow.json`/artifact catalog snapshots\" to infer status/relationships -> `resource: \"metadata\"` projection directly from canonical readers; legacy \"ledger dump / raw file parse for confirmed activity stream\" -> `resource: \"activities\"` items with ascending `confirmationOrder`, authoritative `timing.finishedAt`, and opaque `cursor` pagination. Legacy parser-side `blocked` or layout-derived fields are not preserved; blockers must be derived from Attempt failure + `nextAction().operation === \"blocked\"`, and old migration-report or temporary-file behavior is intentionally removed.",
+      "must: User-visible failures return machine-readable `error.code`, `error.path`, `message` with non-zero exit code, with no partial success payload.",
+      "must: Activity datetime filters use ledger `timing.finishedAt` authority with timezone-aware ISO format and strict interval ordering.",
+      "must: Activities cursors are opaque and bound to query signature; reuse outside that signature is a validation error.",
+      "should: Query implementation in this issue stays revision 1 with no hardcoded branching for later schema revisions."
+    ],
+    "decisionPoints": [
+      "should: Keep query command input strict: either stdin JSON or `--request-file`, but never both, and reject unknown fields or resources as validation errors.",
+      "must: Return query-specific top-level schema with fixed `metadata` (`item`) and `activities` (`items`, `pageInfo`) shapes, while still sharing the same canonical schema registry and response `schemaRevision` checks.",
+      "should: Enforce cursor binding across resource/specId/flowVersion/recordedAt filter + last `confirmationOrder`, and reject cursor reuse outside that exact query signature.",
+      "must: `activities` ordering must always be ascending `confirmationOrder`, with zero matches represented as success `items: []` and `hasNext` state.",
+      "should: Aggregate canonical Artifact references without exposing artifact body, `relativePath`, or raw catalog contents in responses."
+    ],
+    "resolvedByProjectRules": [
+      "must: Reuse existing SDD and project conventions without introducing external npm dependencies.",
+      "must: Respect immutable docs generation and canonical source-of-truth boundaries for non-spec code output.",
+      "must: Keep all new flow artifacts within repo-owned paths and avoid changing unrelated feature flows or existing public commands.",
+      "must: Follow existing flow command routing and registration patterns instead of creating a new command execution framework."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: Define exact error-code names, machine-readable `error.path` values, and exact validation messages during task implementation spec.",
+      "must: Specify fixture matrix details per resource/state/version permutations before writing tests.",
+      "should: Finalize internal pagination token format, including token size and truncation policies, in the task implementation details.",
+      "nice-to-have: Add a short consumer contract note for eventual external Workspace / Connector SDK usage.",
+      "must: Define how resource-specific artifacts remain stable when Version 2 and later fixtures are added without changing Version 1 logic."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Implement `sennel flow query` command entrypoint, request parser, validation, and resource handlers for `metadata` and `activities`.",
+      "must: Return resource-specific success payloads (`metadata.item` and `activities.items`) with `selectedFlowVersion` and ascending `availableFlowVersions`.",
+      "must: Add public error taxonomy and response shapes for invalid request, unknown Spec/Version, and cursor misuse while exiting non-zero for `ok: false`.",
+      "should: Ensure both active and finalized flows can be queried without mutation and produce stable results for finalized state plus append-safe cursor positions for active states.",
+      "should: Provide fixtures for fresh, migrated, active, parked, blocked-derived, and Git/no-Git query scenarios.",
+      "nice-to-have: Add dedicated examples in docs or CLI help for request forms and sample pagination flows.",
+      "must: Migration parity verification: the draft must prove retained public query-like surfaces through `sennel flow query` by including behavioral cases for (1) metadata success for known `specId` returning current state from canonical inputs, (2) activities success returning confirmed prefix in `confirmationOrder` order, and (3) invalid cursor reuse rejection and `ok:false` machine-readable shape; each mapped from legacy query-like behavior and covered for active/finalized flows where relevant."
+    ],
+    "out": [
+      "must: Do not introduce workspace-specific projection layers or return Artifact bodies, raw logs, prompts, internal file names, catalog payloads, temp data, locks, or checkpoints.",
+      "must: Do not add flow mutation commands (`start`, `park`, `finalize`, etc.) in this issue.",
+      "must: Do not implement arbitrary sort, offset pagination, full-text search, or aggregate activity queries.",
+      "must: Do not add version 2 creation logic; query versioning should consume canonical Version 2 fixtures only when added by later work.",
+      "should: Avoid exposing migration-report internals or old layout parser paths as long-term compatibility behavior."
+    ]
+  },
+  "impactOnExisting": [
+    "must: New command path is additive within the existing `flow` namespace and should not replace existing flow command behavior.",
+    "must: Existing canonical reader and Activity ledger producers remain unchanged, except where existing shared helpers are reused for query projection.",
+    "should: Any Workspace / Connector adapters relying on old non-public paths will need migration documentation at integration level, because this issue formalizes public read APIs.",
+    "nice-to-have: Existing docs and AGENTS guidance may gain a concise note that direct filesystem probing for flow internals is discouraged for query clients."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should the API scope stay limited to a canonical public schema (`flowId`, `flowVersionId`, `runId`, `specId`, `flowVersion`, etc.) and explicitly exclude Workspace-specific models and Artifact catalog internals, as a prerequisite for issue success?",
+      "answer": "Yes. The API MUST remain canonical and workspace-agnostic; it must only expose canonical public schema fields and exclude Workspace-specific model projections and raw artifact catalog internals.",
+      "evidence": "Issue #517 public boundary explicitly requires canonical inputs only and excludes Workspace-specific paths or internals.",
+      "why": "This is the core purpose of flow query and required for non-coupled Workspace/Connector consumption.",
+      "considered": "Derived from Issue #517 public boundary and scopeVerification in/out.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: Should scope verification include only one Spec per request with an exact single string `condition.specId`, and treat multi-Spec/match-by-pattern/in-search as unsupported validation errors?",
+      "answer": "Yes. The request must target exactly one `specId` string; multi-spec, pattern matching, or in-search semantics are unsupported validation errors.",
+      "evidence": "Issue #517 request contract requires one required `condition.specId` string and explicitly bans multi-Spec, partial match, and `in` searches.",
+      "why": "Single-spec lookup keeps version selection deterministic and avoids ambiguous result sets in a public query API.",
+      "considered": "Derived from request contract and acceptance criteria.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "must: Should success responses use only resource-shaped payloads (metadata: `item`, activities: `items` + `pageInfo`) and require explicit `selectedFlowVersion` plus sorted `availableFlowVersions` for every success path?",
+      "answer": "Yes. Success responses must follow resource shapes only: metadata returns `item`, activities returns `items` and `pageInfo`, and both always include `selectedFlowVersion` plus sorted `availableFlowVersions`.",
+      "evidence": "Issue #517 response contract and acceptance criteria define these fixed resource payloads and version-context fields.",
+      "why": "Stable shapes and explicit version metadata are required for tolerant schema revision checking by consumers.",
+      "considered": "Consistent with success shape requirements and scope verification.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: Should we exclude unsupported request-level behavior (`cardinality`, `order`, pagination via offset, raw catalog browsing, temporary-path reads) and classify each as a resource-stable `ok: false` validation error?",
+      "answer": "Yes. Unsupported request-level behavior and unknown/invalid fields/resources must return `ok: false` and the fixed resource-level shape for the resolved resource.",
+      "evidence": "Issue #517 request contract and response/error contract specify strict validation for unknown fields and unsupported pagination/order behavior.",
+      "why": "Strict validation boundaries prevent implicit behavior and keep parse errors machine-readable for automation.",
+      "considered": "Aligned with no-premature-conclusion and canonical boundary design rules.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "must: Should migration parity be documented as an explicit behavior decision in this spec by mapping any replaced flow-query-like behavior to the new canonical resource contract and confirming there is no surviving legacy public command dependency?",
+      "answer": "Yes. Migration parity must be explicit: old public query-like usage of workspace internals, migration-report artifacts, and temporary layouts must be replaced by the new canonical `sennel flow query` API. The replacement is one-to-one by intent: metadata intent -> `resource: \"metadata\"`; activity stream intent -> `resource: \"activities\"` with same `specId`, selected `flowVersion`, and cursor pagination contract; blocked/next-action visibility -> metadata `blocked`/`nextAction` derived fields. Each retained public surface requires acceptance checks showing equivalent user-visible results on matching fixtures: metadata fields are present in `metadata.item`, confirmed activity order is stable and complete in `activities.items` using canonical timing, and cursor reuse errors are rejected for mismatched query signatures.",
+      "evidence": "Issue #517 public boundary, response/error contracts, and Migration-parity guardrail require removal of old layout/migration-report access and replacement with canonical query resources (`metadata`, `activities`) plus explicit one-to-one verification.",
+      "why": "Consumers need predictable migration guidance when old workspace-coupled behavior is intentionally removed.",
+      "considered": "Derived from migration requirements in Issue #517 and migration-parity guardrail.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "must: Should user-visible error handling return `ok: false` with machine-readable `error.code`, `error.path`, `message`, and non-zero exit code for nonexistent Spec/Version, invalid cursor reuse, malformed datetime filters, and unreadable canonical records, while avoiding partial payload success?",
+      "answer": "Yes. User-visible failures must return machine-readable `error.code`, `error.path`, `message`, and non-zero exit code; partial payload success must never be returned.",
+      "evidence": "Issue #517 response/error contract requires `ok: false` with machine-readable error fields and explicit non-zero exit for failures.",
+      "why": "This is required for safe client handling in Workspace / Connector automation.",
+      "considered": "Derived from acceptance criteria and response contract.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "should: Should timestamp filtering rely on ledger authority (`timing.finishedAt`) and never use filesystem timestamps, with ISO 8601 timezone values only and `recordedAt.gte` < `recordedAt.lt` enforcement?",
+      "answer": "Yes. Timestamp filtering should use authoritative ledger timing (`timing.finishedAt`) only, enforce timezone-aware ISO 8601 input and `recordedAt.gte < recordedAt.lt` ordering.",
+      "evidence": "Issue `activities` contract and public boundary explicitly require ledger authority and prohibit filesystem timestamps.",
+      "why": "Only canonical timing is stable across environments and replays.",
+      "considered": "Matches timestamp filtering requirements in request/acceptance sections.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "must: For `activities`, should the cursor be an opaque token (an unreadable client-facing string that captures resource, specId, version, filters, and last `confirmationOrder`) and be rejected when reused across different request filters?",
+      "answer": "Yes. Cursors must be opaque and bound to resource, specId, selected Flow Version, recordedAt filters, and last confirmationOrder; reuse against different signatures must be rejected.",
+      "evidence": "Issue `Pagination` section mandates query-signature-bound opaque cursors and cursor reuse error cases.",
+      "why": "This guarantees deterministic pagination even as new activities are appended to active flows.",
+      "considered": "Direct requirement from pagination and acceptance text.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q9",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "should: Should future query extensions such as new resources or schema revisions be treated as later spec work, with this issue intentionally constrained to schema revision 1 and no hardcoded version branching in query implementation?",
+      "answer": "Yes. Keep this spec and implementation intentionally at revision 1 scope, with additional resources/schema revisions deferred to later work.",
+      "evidence": "Issue implementation scope states revision focus and notes Version 2 handled by later issue acf3.",
+      "why": "This contains change risk and preserves contract stability for the initial public query API.",
+      "considered": "Derived from scope and migration/version constraints in Issue #517.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-08-19T07:28:45.002Z",
+    "notes": ""
+  }
+}

@@ -201,10 +201,7 @@ describe("flow-state steps and requirements", () => {
     const fixture = atStep(tmp, "spec-gate");
     const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
-    fm.updateStepStatus(
-      makeLifecycleStepTransition(fm.load(specId), "spec-gate", "done"),
-      { specId },
-    );
+    fixture.flow.flow.settle("spec-gate");
     const loaded = makeFlowManager(tmp).load();
     const gate = findStepById(loaded.steps, "spec-gate");
     assert.equal(gate.status, "done");

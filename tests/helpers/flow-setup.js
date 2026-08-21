@@ -8,6 +8,10 @@ import { CurrentFlowSpecRecord, FlowExecution } from "../../src/flow/lib/current
 import { findStepById, flattenSteps } from "../../src/flow/lib/step-tree.js";
 import { createLifecycleStepTransition } from "../../src/flow/lib/lifecycle-step-transition.js";
 import { NormalStepTransition } from "../../src/flow/lib/step-transition-policy.js";
+import { attachCanonicalCommandResultArtifact } from "../../src/flow/lib/canonical-command-result.js";
+import { attemptHistoryTargetForNode } from "../../src/flow/lib/producer-artifact-readiness.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../src/lib/flow-artifact-contract.js";
+import { FlowArtifactCatalog } from "../../src/lib/flow-version.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -59,6 +63,126 @@ const FIXTURE_TASK_STEP_SUFFIXES = new Map([
   ["task-review", "review"],
   ["task-gate", "gate"],
 ]);
+
+function fixtureFinalRegressionResult(flowManager, specId) {
+  const rawOutputPath = flowManager === null
+    ? "tests/.raw/final-regression-fixture.log"
+    : flowManager.specLocation(specId).relativeArtifact("final.regression.raw-log", { attempt: "001" });
+  const reason = "Fixture project policy has no supported regression command.";
+  return {
+    version: "1",
+    completed: true,
+    result: "skipped",
+    failureKind: null,
+    skipKind: "skipped_by_project_policy",
+    reason,
+    command: null,
+    commandSource: null,
+    rawOutputPath,
+    rawOutputLines: { start: 1, end: 1 },
+    process: { started: false, exitCode: null, signal: null, timedOut: false, spawnError: null },
+    childProcesses: [],
+    changedFiles: [],
+    changedFileFingerprints: [],
+    retryable: false,
+    nextAction: "report",
+    proof: {
+      kind: "skipped_by_project_policy",
+      commandDiscovery: {
+        checkedSources: ["fixture"],
+        supportedCommandFound: false,
+        invalidConfiguredCommand: false,
+        reason,
+      },
+    },
+  };
+}
+
+/**
+ * A fixture's synthetic `done` transition represents a real producer
+ * completion. Publish its durable primary Attempt result, rather than
+ * fabricating optional handoff artifacts with unrelated payload semantics.
+ */
+export function canonicalFixtureProducerResult(_state, nodeId, { flowManager = null, specId = null } = {}) {
+  const target = attemptHistoryTargetForNode(nodeId);
+  if (target === null) return null;
+  if (flowManager !== null) {
+    const resolvedSpecId = specId ?? _state?.specId ?? null;
+    if (typeof resolvedSpecId !== "string" || resolvedSpecId === "") {
+      throw new Error("canonical fixture producer result requires specId");
+    }
+    const state = flowManager.canonicalState(resolvedSpecId);
+    const alreadyPublished = state.current?.at(-1) === nodeId
+      && state.attempt !== null
+      && flowManager.artifactCatalog(resolvedSpecId).artifacts.some((descriptor) => (
+        descriptor.logicalKey === target.logicalKey
+        && flowManager.activityLedger(resolvedSpecId).some((activity) => (
+          activity.id === descriptor.activityId
+          && activity.nodeId === nodeId
+          && activity.attemptId === state.attempt.id
+          && activity.sequence === state.attempt.sequence
+        ))
+      ));
+    if (alreadyPublished) return null;
+  }
+  // The acceptance-decision no-op is authorized by the cataloged semantic
+  // PASS, not merely an attempt-history envelope.  Fixtures that complete a
+  // whole definition therefore publish the same valid empty PASS shape a
+  // real acceptance worker would produce for a Spec without requirements.
+  const payload = nodeId === "acceptance-review"
+    ? {
+      version: 2,
+      repairFingerprint: "0".repeat(64),
+      mechanicalBlockers: [],
+      hardBlockers: [],
+      requirementJudgments: [],
+      deferredFindings: [],
+      userDecision: null,
+      verdict: "pass",
+    }
+    : nodeId === "final-regression"
+      ? fixtureFinalRegressionResult(flowManager, specId)
+    : { fixture: "canonical-producer-result", nodeId };
+  const result = { result: "fixture producer result" };
+  attachCanonicalCommandResultArtifact(result, {
+    logicalKey: target.logicalKey,
+    payload,
+  });
+  return result;
+}
+
+/**
+ * Construct a catalog-consistent corrupted persisted state after a scenario
+ * reached it through normal producer confirmation. This is test-only setup
+ * for consumers that must reject a missing historical artifact; it never
+ * exercises a public mutation path or invents an artifact.
+ */
+export function removeCatalogedArtifactForCorruptionFixture(
+  flowManager,
+  specId,
+  logicalKey,
+  parameters = {},
+) {
+  const location = flowManager.specLocation(specId);
+  const target = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters);
+  const stored = JSON.parse(fs.readFileSync(location.catalogFile, "utf8"));
+  const catalog = new FlowArtifactCatalog(stored);
+  const descriptor = catalog.artifacts.find((entry) => entry.relativePath === target.relativePath) ?? null;
+  if (descriptor === null || descriptor.logicalKey !== logicalKey) {
+    throw new Error(`corruption fixture requires cataloged ${logicalKey}`);
+  }
+  const artifactPath = location.resolve(descriptor.relativePath);
+  if (!fs.existsSync(artifactPath)) {
+    throw new Error(`corruption fixture requires ${logicalKey} bytes`);
+  }
+  fs.unlinkSync(artifactPath);
+  const corrupted = new FlowArtifactCatalog({
+    schemaRevision: catalog.schemaRevision,
+    artifacts: catalog.artifacts.filter((entry) => entry.relativePath !== descriptor.relativePath),
+  });
+  fs.writeFileSync(location.catalogFile, `${JSON.stringify(corrupted.toJSON(), null, 2)}\n`, "utf8");
+  return descriptor;
+}
 
 /**
  * Purpose-built V1 Flow fixture API.
@@ -190,7 +314,17 @@ export class CanonicalFlowFixture {
         this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId: this.specId });
       }
     }
-    this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: status }, { specId: this.specId });
+    const current = this.state();
+    const canonicalCommandResult = status === "done"
+      ? canonicalFixtureProducerResult(current, nodeId, { flowManager: this.flowManager, specId: this.specId })
+      : null;
+    this.flowManager.updateStepStatus(
+      { stepId: nodeId, requestedStatus: status },
+      {
+        specId: this.specId,
+        ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }),
+      },
+    );
     return this;
   }
 

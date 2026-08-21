@@ -304,6 +304,11 @@ function retryRecoveryCommandFor({ ctx, state, descriptor, target, binding }) {
   );
 }
 
+function missingProducerArtifactRouteFor({ ctx, typedState }) {
+  if (typeof ctx.flowManager?.missingProducerArtifactRoute !== "function") return null;
+  return ctx.flowManager.missingProducerArtifactRoute({ specId: typedState.specId });
+}
+
 function acceptanceDecisionMessages({ root, config }) {
   return new FlowDecisionMessages({ root, config, decision: "acceptanceDecision", names: [
     "question",
@@ -384,7 +389,7 @@ function acceptanceDecisionDirective({ root, state, binding, target, config }) {
  * established field order; only the source of identity and lifecycle facts
  * changes from mutable state to the Version Store.
  */
-function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
+function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, missingProducerArtifactRoute = null) {
   const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
   const binding = captureNextActionBinding(ctx, state);
   const derived = deriveNextAction({
@@ -423,6 +428,8 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
     config: ctx.config,
   });
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
+  const missingRoute = missingProducerArtifactRoute
+    ?? missingProducerArtifactRouteFor({ ctx, typedState });
   const planGateRepair = inspectCanonicalPlanGateRepair({
     flowManager: ctx.flowManager,
     state: typedState,
@@ -433,6 +440,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
     action: derived.action,
     descriptor,
     recoveryCommand,
+    missingProducerArtifactRoute: missingRoute,
     planGateRepairRoute: planGateRepair?.route ?? null,
     planGateRepairReason: planGateRepair?.reason ?? null,
   }).resolve();
@@ -504,8 +512,9 @@ export default class GetNextActionCommand extends FlowCommand {
     if (descriptor === null) {
       return completedNextAction();
     }
-    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor);
-    if (["start", "recover", "retry"].includes(descriptor.operation)) {
+    const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
+    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, missingRoute);
+    if (["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
       ctx.flowManager.beginNextAction(ctx.specId);
       // Downstream dispatcher hooks and injected test effects must observe the
       // Activity-confirmed state, never the planner's temporary projection.

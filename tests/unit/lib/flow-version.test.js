@@ -510,6 +510,32 @@ describe("Flow artifact catalog authority slots", () => {
       id: "activity-task-impl", nodeId: "T-1-impl", nodeKey: "task.task-impl", confirmationOrder: 1,
     }).assertRelatedArtifact(flowStateDescriptor));
 
+    // Task retry recovery remains route-scoped evidence outside the Task
+    // deliverable directory, but the route's Task suffix must be the exact
+    // Task Activity that publishes it.
+    for (const logicalKey of ["retry.recovery.baseline", "retry.recovery.receipt"]) {
+      const recovery = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, {
+        routeId: "review-impl-T-1",
+        attemptId: "attempt-task-review",
+      });
+      const recoveryDescriptor = new FlowArtifactDescriptor({
+        logicalKey: recovery.logicalKey,
+        authoritySlot: recovery.authoritySlotFor("task-review"),
+        relativePath: recovery.relativePath,
+        hash: "d".repeat(64),
+        size: 1,
+        mediaType: "application/json",
+        retention: "permanent",
+        activityId: `activity-${logicalKey}`,
+      });
+      assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
+        id: `activity-${logicalKey}`, nodeId: "T-1-review", nodeKey: "impl.T-1.review", confirmationOrder: 1,
+      }).assertRelatedArtifact(recoveryDescriptor));
+      assert.throws(() => new FlowArtifactActivityAssociation({
+        id: `activity-${logicalKey}`, nodeId: "T-2-review", nodeKey: "impl.T-2.review", confirmationOrder: 1,
+      }).assertRelatedArtifact(recoveryDescriptor), /route does not match its related Activity Task/);
+    }
+
     const upgrade = FLOW_ARTIFACT_CONTRACTS.resolve("upgrade.result");
     const upgradeDescriptor = new FlowArtifactDescriptor({
       logicalKey: upgrade.logicalKey,

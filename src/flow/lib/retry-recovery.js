@@ -18,6 +18,10 @@ import { TaskStepIdentity } from "./task-step-identity.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
+export const RETRY_RECOVERY_ARTIFACT_KEYS = Object.freeze(new Set([
+  "retry.recovery.baseline",
+  "retry.recovery.receipt",
+]));
 
 const BASELINE_PHASES = new Map([
   ["draft-questions-review", "draft-questions"], ["draft-coverage-review", "draft-coverage"],
@@ -29,9 +33,23 @@ const BASELINE_MODULES = Object.freeze({
   gate: Object.freeze(["run-gate.js", "canonical-gate-artifacts.js"]),
 });
 
+function taskStepInDefinition(node, nodeId) {
+  if (node === null || node === undefined || typeof node !== "object") return null;
+  const direct = node.kind === "task" ? TaskStepIdentity.fromTaskNode(node, nodeId) : null;
+  if (direct !== null) return direct;
+  if (!Array.isArray(node.steps)) return null;
+  for (const child of node.steps) {
+    const resolved = taskStepInDefinition(child, nodeId);
+    if (resolved !== null) return resolved;
+  }
+  return null;
+}
+
 function taskStepForStateNode(state, nodeId) {
   const projected = TaskStepIdentity.fromStateNode(state, nodeId);
   if (projected !== null) return projected;
+  const fromDefinition = taskStepInDefinition(state?.root, nodeId);
+  if (fromDefinition !== null) return fromDefinition;
   if (typeof state?.findNode !== "function" || !Array.isArray(state.current)) return null;
   const task = state.current
     .map((id) => state.findNode(id))
@@ -182,10 +200,10 @@ export function captureRetryRecoveryBaseline({ flowState, flowManager, execution
 /** Resolve the only retry evidence route that may own an executable leaf. */
 export function retryEvidenceRouteForNode(flowState, nodeId) {
   const taskStep = taskStepForStateNode(flowState, nodeId);
-  const dynamicTask = taskStep !== null
-    && typeof flowState?.currentTaskId === "string"
-    && taskStep.taskId === flowState.currentTaskId
-    && ["review", "gate"].includes(taskStep.role);
+  // A failed Task Attempt retains its immutable current path but has no
+  // mutable `currentTaskId` projection. Its TaskStepIdentity is therefore the
+  // durable authority for both baseline publication and exhausted recovery.
+  const dynamicTask = taskStep !== null && ["review", "gate"].includes(taskStep.role);
   const phase = BASELINE_PHASES.get(nodeId) || (dynamicTask ? (nodeId.endsWith("-gate") ? "task-impl" : "impl") : null);
   if (!phase) return null;
   return new RetryEvidenceRoute({
@@ -204,6 +222,110 @@ export function retryReceiptArtifact(receipt) {
   if (!(receipt instanceof RetryRecoveryReceipt)) throw new Error("retry receipt artifact requires a typed receipt");
   const route = receipt.current.route;
   return new CanonicalFlowArtifactWrite({ logicalKey: "retry.recovery.receipt", parameters: { routeId: `${route.kind}-${route.phase}${route.taskId ? `-${route.taskId}` : ""}`, attemptId: receipt.current.attemptId }, mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(receipt.toJSON(), null, 2)}\n`, "utf8") });
+}
+
+/** Whether an untrusted generic artifact-write request tries to claim retry authority. */
+export function containsRetryRecoveryArtifactWrite(writes) {
+  return Array.isArray(writes) && writes.some((write) => {
+    const logicalKey = write?.artifact?.logicalKey ?? write?.logicalKey ?? null;
+    return RETRY_RECOVERY_ARTIFACT_KEYS.has(logicalKey);
+  });
+}
+
+function assertPublicationAttempt(activity, value, field) {
+  const transitionAttempt = activity?.transition?.attempt;
+  const attemptId = transitionAttempt?.id ?? activity?.attemptId;
+  const sequence = transitionAttempt?.sequence ?? activity?.sequence;
+  if (attemptId !== value.attemptId || sequence !== value.attempt) {
+    throw new Error(`${field} Attempt identity does not match its owning Activity`);
+  }
+}
+
+function assertPublicationFlow(value, state, field) {
+  if (
+    value.runId !== state.runId
+    || value.specId !== state.specId
+    || value.issue !== (state.issue ?? null)
+  ) throw new Error(`${field} Flow identity does not match its owning Flow`);
+}
+
+function assertExactPublicationWrite(actualWrites, expectedWrite, field) {
+  if (!Array.isArray(actualWrites) || actualWrites.length !== 1) {
+    throw new Error(`${field} requires exactly one dedicated artifact write`);
+  }
+  const actual = actualWrites[0];
+  if (
+    actual?.artifact?.logicalKey !== expectedWrite.artifact.logicalKey
+    || actual.artifact.relativePath !== expectedWrite.artifact.relativePath
+    || actual.mediaType !== expectedWrite.mediaType
+    || !Buffer.isBuffer(actual.bytes)
+    || !actual.bytes.equals(expectedWrite.bytes)
+  ) throw new Error(`${field} artifact bytes or authority do not match its typed publication`);
+}
+
+/**
+ * Internal-only retry output admission.  Generic artifact publication never
+ * carries recovery evidence: a retry transition owns both the Activity and
+ * its exact route/Attempt/Flow-bound bytes in one catalog transaction.
+ */
+export class RetryRecoveryArtifactPublication {
+  constructor({ baseline = null, receipt = null } = {}) {
+    if ((baseline === null) === (receipt === null)) {
+      throw new Error("retry recovery artifact publication requires exactly one typed payload");
+    }
+    if (baseline !== null && !(baseline instanceof RetryRecoveryBaseline)) {
+      throw new Error("retry recovery baseline publication requires a typed baseline");
+    }
+    if (receipt !== null && !(receipt instanceof RetryRecoveryReceipt)) {
+      throw new Error("retry recovery receipt publication requires a typed receipt");
+    }
+    this.baseline = baseline;
+    this.receipt = receipt;
+    Object.freeze(this);
+  }
+
+  static baseline(baseline) { return new RetryRecoveryArtifactPublication({ baseline }); }
+  static receipt(receipt) { return new RetryRecoveryArtifactPublication({ receipt }); }
+
+  get artifactWrites() {
+    return Object.freeze([
+      this.baseline === null ? retryReceiptArtifact(this.receipt) : retryBaselineArtifact(this.baseline),
+    ]);
+  }
+
+  assertFor({ state, activity, artifactWrites } = {}) {
+    const route = retryEvidenceRouteForNode(state, activity?.nodeId);
+    if (route === null) throw new Error("retry recovery artifact publication requires a retryable owning leaf");
+    if (this.baseline !== null) {
+      if (!new Set(["start_attempt", "recover_attempt", "retry_attempt"]).has(activity.transition.operation)) {
+        throw new Error("retry recovery baseline publication requires a start, recovery, or retry Activity");
+      }
+      if (!this.baseline.route.equals(route)) {
+        throw new Error("retry recovery baseline route does not match its owning Activity");
+      }
+      assertPublicationAttempt(activity, this.baseline, "retry recovery baseline");
+      assertPublicationFlow(this.baseline, state, "retry recovery baseline");
+      assertExactPublicationWrite(artifactWrites, retryBaselineArtifact(this.baseline), "retry recovery baseline");
+      return this;
+    }
+    if (activity.transition.operation !== "retry_recovery_attempt") {
+      throw new Error("retry recovery receipt publication requires an exhausted recovery Activity");
+    }
+    if (!this.receipt.previous.route.equals(route) || !this.receipt.current.route.equals(route)) {
+      throw new Error("retry recovery receipt route does not match its owning Activity");
+    }
+    assertPublicationAttempt(activity, this.receipt.current, "retry recovery receipt");
+    assertPublicationFlow(this.receipt.previous, state, "retry recovery receipt previous");
+    assertPublicationFlow(this.receipt.current, state, "retry recovery receipt current");
+    if (
+      state.attempt === null
+      || state.attempt.id !== this.receipt.previous.attemptId
+      || state.attempt.sequence !== this.receipt.previous.attempt
+      || state.attempt.nodeId !== activity.nodeId
+    ) throw new Error("retry recovery receipt previous Attempt does not match the failed active Attempt");
+    assertExactPublicationWrite(artifactWrites, retryReceiptArtifact(this.receipt), "retry recovery receipt");
+    return this;
+  }
 }
 
 /** Changed review/gate evidence required for an exhausted recovery. */
@@ -393,6 +515,10 @@ export class CanonicalRetryRecovery {
     if (!matchesRoute(route, before.attempt?.nodeId, before)) {
       throw new Error(`retry recovery target is not active: ${this.request.kind}/${this.request.phase}`);
     }
+    const evidenceRoute = retryEvidenceRouteForNode(before, before.attempt.nodeId);
+    if (evidenceRoute === null) {
+      throw new Error("retry recovery target has no durable evidence route");
+    }
     const previousAttempt = before.attempt;
     const start = this.flowManager.activityLedger(this.state.specId).length;
     const disposition = before.failureDisposition();
@@ -417,9 +543,7 @@ export class CanonicalRetryRecovery {
       if (this.request.changedEvidence === null) {
         throw new Error("exhausted retry recovery requires changed evidence");
       }
-      const targetRoute = routeFor(this.request, before);
-      const routeValue = new RetryEvidenceRoute({ kind: targetRoute.kind, phase: targetRoute.phase, taskId: targetRoute.scope === "task" ? before.currentTaskId : null });
-      const baseline = readRetryBaseline(this.flowManager, before, routeValue);
+      const baseline = readRetryBaseline(this.flowManager, before, evidenceRoute);
       if (baseline === null) {
         throw new Error("exhausted retry recovery requires a durable parent-derived baseline");
       }
