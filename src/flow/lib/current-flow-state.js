@@ -5130,6 +5130,52 @@ function assertJournalAttemptIdentities(entries) {
   }
 }
 
+class FlowActivityJournalRevision {
+  constructor(stat) {
+    if (
+      !stat.isFile()
+      || stat.nlink !== 1
+      || !Number.isSafeInteger(stat.dev)
+      || !Number.isSafeInteger(stat.ino)
+      || !Number.isSafeInteger(stat.size)
+      || stat.size < 0
+      || !Number.isFinite(stat.mtimeMs)
+      || !Number.isFinite(stat.ctimeMs)
+    ) {
+      throw new CurrentFlowStateInvariantError("Activity journal authority changed while opening");
+    }
+    this.dev = stat.dev;
+    this.ino = stat.ino;
+    this.size = stat.size;
+    this.mtimeMs = stat.mtimeMs;
+    this.ctimeMs = stat.ctimeMs;
+    Object.freeze(this);
+  }
+
+  matches(other) {
+    return other instanceof FlowActivityJournalRevision
+      && this.dev === other.dev
+      && this.ino === other.ino
+      && this.size === other.size
+      && this.mtimeMs === other.mtimeMs
+      && this.ctimeMs === other.ctimeMs;
+  }
+}
+
+class FlowActivityJournalSnapshot {
+  constructor({ entries, revision = null }) {
+    if (!Array.isArray(entries) || entries.some((entry) => !(entry instanceof FlowActivity))) {
+      throw new CurrentFlowStateInvariantError("activity journal snapshot requires typed Activities");
+    }
+    if (revision !== null && !(revision instanceof FlowActivityJournalRevision)) {
+      throw new CurrentFlowStateInvariantError("activity journal snapshot requires a typed file revision or null");
+    }
+    this.entries = Object.freeze([...entries]);
+    this.revision = revision;
+    Object.freeze(this);
+  }
+}
+
 export class FlowActivityJournal {
   constructor(filePath) {
     this.filePath = path.resolve(filePath);
@@ -5138,12 +5184,12 @@ export class FlowActivityJournal {
   }
 
   read() {
-    return this.#readSnapshot().entries;
+    return this.readSnapshot().entries;
   }
 
-  #readSnapshot() {
+  readSnapshot() {
     const opened = this.#openExisting(fs.constants.O_RDONLY);
-    if (opened === null) return { entries: [], identity: null };
+    if (opened === null) return new FlowActivityJournalSnapshot({ entries: [] });
     let content;
     try {
       content = fs.readFileSync(opened.descriptor, "utf8");
@@ -5151,7 +5197,7 @@ export class FlowActivityJournal {
       fs.closeSync(opened.descriptor);
     }
     this.#assertVisibleIdentity(opened.identity);
-    if (content === "") return { entries: [], identity: opened.identity };
+    if (content === "") return new FlowActivityJournalSnapshot({ entries: [], revision: opened.revision });
     if (!content.endsWith("\n")) {
       throw new CurrentFlowStateInvariantError("activities.jsonl ends with a partial line");
     }
@@ -5169,21 +5215,26 @@ export class FlowActivityJournal {
       order = entry.confirmationOrder;
     }
     assertJournalAttemptIdentities(entries);
-    return { entries, identity: opened.identity };
+    return new FlowActivityJournalSnapshot({ entries, revision: opened.revision });
   }
 
-  append(activity, writerAuthority) {
+  append(activity, writerAuthority, snapshot = null) {
     if (writerAuthority !== JOURNAL_WRITER_AUTHORITY) {
       throw new CurrentFlowStateInvariantError("activities.jsonl may be appended only by CurrentFlowStateStore");
     }
-    const snapshot = this.#readSnapshot();
-    const { entries } = snapshot;
+    if (snapshot !== null && !(snapshot instanceof FlowActivityJournalSnapshot)) {
+      throw new CurrentFlowStateInvariantError("activity journal append snapshot must be typed");
+    }
+    const verifiedSnapshot = snapshot ?? this.readSnapshot();
+    const { entries } = verifiedSnapshot;
     const next = FlowActivity.canonical(activity);
     const existing = entries.find((entry) => entry.id === next.id);
     if (existing) {
       if (!jsonEqual(existing.toJSON(), next.toJSON())) {
         throw new CurrentFlowStateConflictError(`activity id ${next.id} was already appended with a different payload`);
       }
+      const opened = this.#openAppend(verifiedSnapshot.revision);
+      fs.closeSync(opened.descriptor);
       return { appended: false, activity: existing };
     }
     const expectedOrder = entries.length + 1;
@@ -5191,7 +5242,7 @@ export class FlowActivityJournal {
       throw new CurrentFlowStateConflictError("new Activity confirmationOrder must follow the append-only journal");
     }
     assertJournalAttemptIdentities([...entries, next]);
-    const opened = this.#openAppend(snapshot.identity);
+    const opened = this.#openAppend(verifiedSnapshot.revision);
     try {
       fs.writeFileSync(opened.descriptor, `${JSON.stringify(next.toJSON())}\n`, "utf8");
       fs.fsyncSync(opened.descriptor);
@@ -5214,15 +5265,15 @@ export class FlowActivityJournal {
     }
     this.#assertRegularRealFile(visible);
     const descriptor = fs.openSync(this.filePath, flags | (fs.constants.O_NOFOLLOW || 0));
-    return { descriptor, identity: this.#openedIdentity(descriptor, visible) };
+    return { descriptor, ...this.#openedFile(descriptor, visible) };
   }
 
-  #openAppend(expectedIdentity) {
+  #openAppend(expectedRevision) {
     const existing = this.#openExisting(fs.constants.O_WRONLY | fs.constants.O_APPEND);
-    if (expectedIdentity !== null) {
-      if (existing === null || !sameFileIdentity(existing.identity, expectedIdentity)) {
+    if (expectedRevision !== null) {
+      if (existing === null || !expectedRevision.matches(existing.revision)) {
         if (existing !== null) fs.closeSync(existing.descriptor);
-        throw new CurrentFlowStateInvariantError("Activity journal authority changed between read and append");
+        throw new CurrentFlowStateInvariantError("Activity journal changed between read and append");
       }
       return { ...existing, created: false };
     }
@@ -5240,10 +5291,10 @@ export class FlowActivityJournal {
         | (fs.constants.O_NOFOLLOW || 0),
       0o644,
     );
-    return { descriptor, identity: this.#openedIdentity(descriptor), created: true };
+    return { descriptor, ...this.#openedFile(descriptor), created: true };
   }
 
-  #openedIdentity(descriptor, expected = null) {
+  #openedFile(descriptor, expected = null) {
     try {
       const opened = fs.fstatSync(descriptor);
       if (
@@ -5253,7 +5304,10 @@ export class FlowActivityJournal {
       ) {
         throw new CurrentFlowStateInvariantError("Activity journal authority changed while opening");
       }
-      return { dev: opened.dev, ino: opened.ino };
+      return {
+        identity: { dev: opened.dev, ino: opened.ino },
+        revision: new FlowActivityJournalRevision(opened),
+      };
     } catch (cause) {
       fs.closeSync(descriptor);
       throw cause;
@@ -5381,7 +5435,8 @@ export class CurrentFlowStateStore {
     const next = this.serializer.deserialize(state);
     return this.#withLock(() => {
       this.#assertFreshCreationState(next);
-      const entries = this.journal.read();
+      const journalSnapshot = this.journal.readSnapshot();
+      const entries = journalSnapshot.entries;
       let created;
       if (entries.length === 0) {
         created = FlowActivity.flowCreated(next, new Date().toISOString());
@@ -5394,7 +5449,8 @@ export class CurrentFlowStateStore {
         throw new CurrentFlowStateConflictError("current flow creation requires an empty or sole flow_created Activity journal");
       }
       const materialized = this.#applyActivity(next, created);
-      const appended = this.journal.append(created, JOURNAL_WRITER_AUTHORITY);
+      this.faultInjector({ phase: "activity-ready-to-append", activity: created, state: next });
+      const appended = this.journal.append(created, JOURNAL_WRITER_AUTHORITY, journalSnapshot);
       if (appended.appended) {
         this.faultInjector({ phase: "activity-appended", activity: created, state: next });
       }
@@ -5448,8 +5504,11 @@ export class CurrentFlowStateStore {
     return this.statePath;
   }
 
-  apply({ activity, expectedRevision = null }) {
+  apply({ activity, expectedRevision = null, assertCurrentState = null }) {
     const proposed = FlowActivity.canonical(activity);
+    if (assertCurrentState !== null && typeof assertCurrentState !== "function") {
+      throw new CurrentFlowStateInvariantError("current flow state assertion must be a function or null");
+    }
     return this.#withLock(() => {
       const originalBytes = this.#readStateBytes();
       if (originalBytes === null) {
@@ -5459,8 +5518,10 @@ export class CurrentFlowStateStore {
       if (expectedRevision !== null && expectedRevision !== digest(originalBytes)) {
         throw new CurrentFlowStateConflictError("flow state changed before update");
       }
-      const entries = this.journal.read();
+      const journalSnapshot = this.journal.readSnapshot();
+      const entries = journalSnapshot.entries;
       this.#assertJournalConsistency(original, entries);
+      assertCurrentState?.(original);
       const existing = entries.find((entry) => entry.id === proposed.id);
       if (existing && !jsonEqual(existing.toJSON(), proposed.toJSON())) {
         throw new CurrentFlowStateConflictError(`activity id ${proposed.id} was already appended with a different payload`);
@@ -5479,7 +5540,8 @@ export class CurrentFlowStateStore {
       // journal-first crash recovery: a replay cannot silently substitute a
       // different callback for a persisted Activity id/order.
       const next = this.#applyActivity(original, proposed);
-      this.journal.append(proposed, JOURNAL_WRITER_AUTHORITY);
+      this.faultInjector({ phase: "activity-ready-to-append", activity: proposed, state: original });
+      this.journal.append(proposed, JOURNAL_WRITER_AUTHORITY, journalSnapshot);
       this.faultInjector({ phase: "activity-appended", activity: proposed, state: original });
       this.#write(next, originalBytes);
       this.faultInjector({ phase: "state-written", activity: proposed, state: next });
@@ -5891,28 +5953,33 @@ export class CurrentFlowVersionStore {
     const options = {
       artifacts,
       precondition: (catalog) => {
-        const state = this.#assertPersistedIdentity(this.#store().load());
         // The catalog lock encloses this check and the subsequent state
         // Activity.  A producer cannot disappear between validation and a
         // consumer claim, and no caller can defer this failure downstream.
-        admission?.assert({
-          state,
-          catalog,
-          activities: this.#store().loadSnapshot().activities,
-          readCatalogedArtifact: (descriptor) => {
-            const cataloged = catalog.resolve(descriptor.relativePath);
-            if (cataloged.hash !== descriptor.hash || cataloged.activityId !== descriptor.activityId) {
-              throw new CurrentFlowStateInvariantError("canonical admission artifact descriptor changed");
-            }
-            cataloged.verify(this.location);
-            return fs.readFileSync(this.location.resolve(cataloged.relativePath));
-          },
-        });
+        if (admission !== null) {
+          const snapshot = this.#store().loadSnapshot();
+          admission.assert({
+            state: this.#assertPersistedIdentity(snapshot.state),
+            catalog,
+            activities: snapshot.activities,
+            readCatalogedArtifact: (descriptor) => {
+              const cataloged = catalog.resolve(descriptor.relativePath);
+              if (cataloged.hash !== descriptor.hash || cataloged.activityId !== descriptor.activityId) {
+                throw new CurrentFlowStateInvariantError("canonical admission artifact descriptor changed");
+              }
+              cataloged.verify(this.location);
+              return fs.readFileSync(this.location.resolve(cataloged.relativePath));
+            },
+          });
+        }
         testSourceBaseline?.assertCatalog(catalog);
       },
       write: () => {
         if (taskSpec !== null) this.#materializeTaskWorkspace(activity.transition.task);
-        const result = this.#store().apply(input);
+        const result = this.#store().apply({
+          ...input,
+          assertCurrentState: (state) => this.#assertPersistedIdentity(state),
+        });
         if (taskSpec !== null) {
           this.#writeSpecRecord(taskSpec);
         }

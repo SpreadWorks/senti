@@ -1507,6 +1507,86 @@ describe("Current Flow state foundation", () => {
     assert.equal(store.journal.read().length, 2);
   });
 
+  it("rejects a caller assertion before appending its Activity", () => {
+    tmp = createTmpDir("current-flow-assert-before-append-");
+    const fixedDefinition = definition();
+    const store = new CurrentFlowStateStore({ directory: tmp, definition: fixedDefinition });
+    const initial = store.create(CurrentFlowState.create({ definition: fixedDefinition }));
+    const currentPath = initial.nextAction().path;
+    assert.throws(
+      () => store.apply({
+        activity: flowActivity({
+          id: "assertion-start",
+          state: initial,
+          currentPath,
+          confirmationOrder: 2,
+          operation: "start_attempt",
+          attempt: attemptFor(initial, currentPath, "assertion-attempt"),
+        }),
+        assertCurrentState: () => { throw new CurrentFlowStateInvariantError("rejected state"); },
+      }),
+      /rejected state/,
+    );
+    assert.equal(store.load().confirmationOrder, 1);
+    assert.equal(store.journal.read().length, 1);
+  });
+
+  it("rejects a journal changed after state validation before appending its Activity", () => {
+    tmp = createTmpDir("current-flow-journal-revision-");
+    const fixedDefinition = definition();
+    let journalPath = null;
+    const store = new CurrentFlowStateStore({
+      directory: tmp,
+      definition: fixedDefinition,
+      faultInjector({ phase }) {
+        if (phase === "activity-ready-to-append" && journalPath !== null) fs.appendFileSync(journalPath, "tampered");
+      },
+    });
+    const initial = store.create(CurrentFlowState.create({ definition: fixedDefinition }));
+    journalPath = store.journal.filePath;
+    const currentPath = initial.nextAction().path;
+    assert.throws(
+      () => store.apply({
+        activity: flowActivity({
+          id: "journal-revision-start",
+          state: initial,
+          currentPath,
+          confirmationOrder: 2,
+          operation: "start_attempt",
+          attempt: attemptFor(initial, currentPath, "journal-revision-attempt"),
+        }),
+      }),
+      /Activity journal changed between read and append/,
+    );
+    assert.equal(JSON.parse(fs.readFileSync(store.statePath, "utf8")).confirmationOrder, 1);
+  });
+
+  it("rejects a changed journal before a duplicate creation Activity writes recovered state", () => {
+    tmp = createTmpDir("current-flow-journal-recovery-revision-");
+    const fixedDefinition = definition();
+    const initial = CurrentFlowState.create({ definition: fixedDefinition });
+    const crashingStore = new CurrentFlowStateStore({
+      directory: tmp,
+      definition: fixedDefinition,
+      faultInjector({ phase }) {
+        if (phase === "activity-appended") throw new Error("crash after flow_created append");
+      },
+    });
+    assert.throws(() => crashingStore.create(initial), /crash after flow_created append/);
+    const recoveringStore = new CurrentFlowStateStore({
+      directory: tmp,
+      definition: fixedDefinition,
+      faultInjector({ phase }) {
+        if (phase === "activity-ready-to-append") fs.appendFileSync(path.join(tmp, "activities.jsonl"), "tampered");
+      },
+    });
+    assert.throws(
+      () => recoveringStore.create(initial),
+      /Activity journal changed between read and append/,
+    );
+    assert.equal(fs.existsSync(recoveringStore.statePath), false);
+  });
+
   it("rejects a partial Activity journal tail rather than treating it as control input", () => {
     tmp = createTmpDir("current-flow-partial-journal-");
     const journalPath = path.join(tmp, "activities.jsonl");

@@ -221,6 +221,41 @@ function startActivity(state, { id = "activity-1", attemptId = null } = {}) {
   });
 }
 
+function addTaskActivity(state, { id = "add-task-activity", taskId = "T-mismatch", key = "mismatch" } = {}) {
+  const nodeId = state.definition.dynamicTaskContainerId;
+  const node = state.findNode(nodeId);
+  return new FlowActivity({
+    id,
+    nodeId,
+    nodeKey: node.key,
+    attemptId: null,
+    sequence: null,
+    confirmationOrder: state.confirmationOrder + 1,
+    type: "task_added",
+    transition: new ActivityTransition({
+      operation: "add_task",
+      nodeId,
+      task: { id: taskId, key },
+      attempt: null,
+      status: null,
+      policy: null,
+      outbox: null,
+      approval: null,
+      nonblocking: null,
+    }),
+    result: null,
+    timing: { startedAt: "2026-08-08T00:00:00.000Z", finishedAt: "2026-08-08T00:00:01.000Z", durationMs: 1000 },
+    failure: null,
+    provider: "test",
+    model: "test",
+    effort: "test",
+    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
+    references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    metric: null,
+    note: null,
+  });
+}
+
 function updateAttemptActivity(state) {
   const node = state.findNode(state.current.at(-1));
   return new FlowActivity({
@@ -1114,6 +1149,39 @@ describe("Current Flow Version storage", () => {
     assert.equal(store.loadSnapshot().state.attempt.id, "attempt-1");
     fs.appendFileSync(location.flowStateFile, "tampered\n");
     assert.throws(() => store.load(), /does not match the catalog/);
+  });
+
+  it("rejects a mismatched persisted identity before committing Version side effects", () => {
+    const location = canonicalLocation();
+    const wrongLocation = canonicalLocation({ specId: "other-spec" });
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const store = boundary.openVersionStore({ location });
+    const wrongStore = boundary.openVersionStore({ location: wrongLocation });
+    store.create(freshState(boundary, location), { specRecord: specRecord() });
+    wrongStore.create(freshState(boundary, wrongLocation), { specRecord: specRecord("other-spec") });
+
+    const wrongCatalog = wrongStore.catalog();
+    fs.copyFileSync(wrongLocation.flowStateFile, location.flowStateFile);
+    fs.copyFileSync(wrongLocation.activitiesFile, location.activitiesFile);
+    fs.copyFileSync(wrongLocation.specFile, location.specFile);
+    fs.writeFileSync(location.catalogFile, JSON.stringify(wrongCatalog.toJSON()));
+
+    const before = {
+      state: fs.readFileSync(location.flowStateFile),
+      activities: fs.readFileSync(location.activitiesFile),
+      catalog: fs.readFileSync(location.catalogFile),
+      spec: fs.readFileSync(location.specFile),
+    };
+    const taskLocation = location.taskArtifactLocation("T-mismatch");
+    assert.throws(
+      () => store.apply({ activity: addTaskActivity(wrongStore.load()) }),
+      /persisted flow\.json identity does not match the opened Version location/,
+    );
+    assert.deepEqual(fs.readFileSync(location.flowStateFile), before.state);
+    assert.deepEqual(fs.readFileSync(location.activitiesFile), before.activities);
+    assert.deepEqual(fs.readFileSync(location.catalogFile), before.catalog);
+    assert.deepEqual(fs.readFileSync(location.specFile), before.spec);
+    assert.equal(fs.existsSync(taskLocation.directory), false);
   });
 });
 
