@@ -40,9 +40,8 @@ export class ReviewExecutionLease {
     Object.freeze(this);
   }
 
-  // A crashed parent can leave a provider descendant alive.  This lease does
-  // not persist that process tree, so it must fail closed instead of admitting
-  // a second provider execution after only the parent identity goes stale.
-  acquire() { return this.lock.acquire({ claimStale: false }); }
+  // ProcessOwnedLock only reclaims locks when the recorded owner identity is
+  // conclusively stale. A live or indeterminate owner remains exclusive.
+  acquire() { return this.lock.acquire({ claimStale: true }); }
   release() { this.lock.release(); }
 }

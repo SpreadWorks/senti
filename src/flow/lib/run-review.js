@@ -21,7 +21,6 @@ import fs from "fs";
 import crypto from "node:crypto";
 import { runGit } from "../../lib/git-helpers.js";
 import { PRODUCT } from "../../lib/product.js";
-import { sanitizeGitRepositoryEnvironment } from "../../lib/git-repository-environment.js";
 import {
   REVIEW_FAILURE_MARKER_PREFIX,
   ReviewFailure,
@@ -1213,7 +1212,7 @@ export class RunReviewCommand extends FlowCommand {
       // kill the worker and release its review-execution lease prematurely.
       const timeoutMs = AgentTimeout.fromConfig(ctx.config?.agent).toOuterProcessMilliseconds();
       const env = {
-        ...sanitizeGitRepositoryEnvironment(),
+        ...process.env,
         [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
         [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
         [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),

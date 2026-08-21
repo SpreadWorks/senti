@@ -456,12 +456,10 @@ export class FlowDispatchLease {
   }
 
   acquire() {
-    // A dispatcher process can disappear while its detached agent child (and
-    // therefore a long-running review started by that child) is still alive.
-    // Reclaiming an apparently stale parent lock would permit a second review
-    // to overwrite the first one's canonical artifacts. Fail closed until an
-    // operator has verified that the original process tree has ended.
-    return this.lock.acquire({ claimStale: false });
+    // ProcessOwnedLock only reclaims locks when the recorded dispatcher
+    // identity is conclusively stale. Live and indeterminate owners remain
+    // exclusive, while a crashed dispatcher cannot block the Flow forever.
+    return this.lock.acquire({ claimStale: true });
   }
 
   release() {

@@ -149,6 +149,45 @@ describe("ReviewWorkUnit", () => {
       () => ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: directorySymlinkSurface.manifestPath }),
       /manifest directory must be a real directory/i,
     );
+
+    const oversizedInput = createWorkUnit(executionRoot, { attemptId: "attempt-oversized-input" });
+    oversizedInput.writeInput({ logicalKey: "draft", logicalPath: "draft.json", bytes: "{}\n", root: true });
+    const oversizedInputSurface = oversizedInput.finalize();
+    fs.writeFileSync(path.join(oversizedInputSurface.directory, "draft.json"), Buffer.alloc(1024, "x"));
+    fs.writeFileSync(oversizedInputSurface.outputPath, '{"verdict":"PASS"}\n');
+    assert.throws(
+      () => ReviewWorkUnit.fromEnvironment({
+        [REVIEW_WORK_UNIT_MANIFEST_ENV]: oversizedInputSurface.manifestPath,
+      }).seal(),
+      /review work unit input draft is unavailable or invalid:.*up to 3 bytes/,
+    );
+  });
+
+  it("accepts parent-declared inputs larger than the worker output limit", () => {
+    const executionRoot = root();
+    const writer = createWorkUnit(executionRoot, { attemptId: "large-parent-input" });
+    const input = Buffer.alloc((2 * 1024 * 1024) + 1, "x");
+    writer.writeInput({ logicalKey: "spec.record", logicalPath: "spec.json", bytes: input, root: true });
+    const surface = writer.finalize();
+    fs.writeFileSync(surface.outputPath, '{"verdict":"PASS"}\n');
+    assert.doesNotThrow(() => ReviewWorkUnit.fromEnvironment({
+      [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
+    }).seal());
+
+    const recovered = createWorkUnit(executionRoot, { attemptId: "large-parent-input" });
+    recovered.declareInput({ logicalKey: "spec.record", logicalPath: "spec.json", bytes: input, root: true });
+    assert.ok(recovered.recoverSealed());
+  });
+
+  it("rejects an oversized worker output", () => {
+    const executionRoot = root();
+    const writer = createWorkUnit(executionRoot, { attemptId: "large-worker-output" });
+    const surface = writer.finalize();
+    fs.writeFileSync(surface.outputPath, Buffer.alloc((2 * 1024 * 1024) + 1, "x"));
+    assert.throws(
+      () => ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath }).seal(),
+      /review work unit output is unavailable or invalid:.*2097152 bytes/,
+    );
   });
 
   it("reconstructs phase lifecycle results from sealed artifacts equivalently to the subprocess parser", () => {

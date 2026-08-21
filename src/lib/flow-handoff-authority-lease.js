@@ -66,9 +66,10 @@ export class FlowHandoffAuthorityLease {
     const deadline = timeoutMs === null ? null : Date.now() + timeoutMs;
     for (;;) {
       try {
-        // A disappeared dispatcher may still have a descendant worker. The
-        // caller must not reclaim that lease automatically.
-        return this.lock.acquire({ claimStale: false });
+        // ProcessOwnedLock only reclaims locks when the recorded owner
+        // identity is conclusively stale. Live and indeterminate owners stay
+        // exclusive, while a crashed owner cannot permanently block recovery.
+        return this.lock.acquire({ claimStale: true });
       } catch (error) {
         if (!wait || error?.code !== "FLOW_HANDOFF_AUTHORITY_BUSY") throw error;
         const remaining = deadline === null ? null : deadline - Date.now();

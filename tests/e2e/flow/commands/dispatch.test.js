@@ -731,7 +731,7 @@ describe("flow dispatch CLI", () => {
     assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
   });
 
-  it("does not reclaim a lease whose dispatcher owner exited", () => {
+  it("reclaims a lease whose dispatcher owner exited", () => {
     root = createTmpDir("sennel-flow-dispatch-stale-");
     const worker = installWorker(root);
     const scenario = new DispatchFlowScenario(root);
@@ -752,8 +752,8 @@ describe("flow dispatch CLI", () => {
     const result = invoke(scenario);
 
     assert.notEqual(result.status, 0);
-    assert.equal(result.envelope.errors[0].code, "FLOW_DISPATCH_LOCK_STALE");
-    assert.equal(fs.existsSync(worker.count), false);
+    assert.equal(result.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
   });
 
   it("returns an approval boundary without starting a worker", () => {

@@ -18,7 +18,7 @@ import { FlowArtifactAttemptHistory } from "../../lib/flow-artifact-contract.js"
 
 export const REVIEW_WORK_UNIT_MANIFEST_ENV = PRODUCT.env("REVIEW_WORK_UNIT_MANIFEST");
 const REVIEW_WORK_UNIT_ROOT = PRODUCT.managedPath("review-work-units");
-const MAX_WORK_UNIT_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_UNTRUSTED_WORK_UNIT_FILE_BYTES = 2 * 1024 * 1024;
 const SHA256 = /^[a-f0-9]{64}$/;
 const TREE_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;
 
@@ -78,9 +78,9 @@ function ensureRealDirectory(directory, boundary) {
   return target;
 }
 
-function regularFile(file, label) {
+function regularFile(file, label, maxBytes = MAX_UNTRUSTED_WORK_UNIT_FILE_BYTES) {
   try {
-    return captureRegularFile(file, { label, maxBytes: MAX_WORK_UNIT_FILE_BYTES });
+    return captureRegularFile(file, { label, maxBytes });
   } catch (cause) {
     throw new Error(`${label} is unavailable or invalid: ${cause.message}`);
   }
@@ -151,7 +151,7 @@ export class ReviewWorkUnitInput {
     this.logicalPath = logicalPath(source.logicalPath, "review work unit input logicalPath");
     this.relativePath = logicalPath(source.relativePath, "review work unit input relativePath");
     this.digest = requiredDigest(source.digest, "review work unit input digest");
-    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0 || source.byteLength > MAX_WORK_UNIT_FILE_BYTES) {
+    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0) {
       throw new Error("review work unit input byteLength is invalid");
     }
     this.byteLength = source.byteLength;
@@ -173,7 +173,11 @@ export class ReviewWorkUnitInput {
   assertSnapshot(root) {
     const source = path.resolve(root, this.relativePath);
     if (!isWithin(root, source)) throw new Error("review work unit input escapes its directory");
-    const snapshot = regularFile(source, `review work unit input ${this.logicalKey}`);
+    const snapshot = regularFile(
+      source,
+      `review work unit input ${this.logicalKey}`,
+      this.byteLength,
+    );
     if (snapshot.digest !== this.digest || snapshot.byteLength !== this.byteLength) {
       throw new Error(`review work unit input ${this.logicalKey} changed after manifest finalization`);
     }
@@ -236,7 +240,7 @@ export class ReviewWorkUnitSealedOutput {
   constructor(value = {}) {
     const source = exactObject(value, ["digest", "byteLength"], "review work unit sealed output");
     this.digest = requiredDigest(source.digest, "review work unit sealed output digest");
-    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0 || source.byteLength > MAX_WORK_UNIT_FILE_BYTES) {
+    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0 || source.byteLength > MAX_UNTRUSTED_WORK_UNIT_FILE_BYTES) {
       throw new Error("review work unit sealed output byteLength is invalid");
     }
     this.byteLength = source.byteLength;
@@ -320,7 +324,7 @@ export class ReviewWorkUnitOutputReceipt {
   constructor(value = {}) {
     const source = exactObject(value, ["digest", "byteLength", "mediaType"], "review work unit output receipt");
     this.digest = requiredDigest(source.digest, "review work unit output receipt digest");
-    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0 || source.byteLength > MAX_WORK_UNIT_FILE_BYTES) {
+    if (!Number.isSafeInteger(source.byteLength) || source.byteLength < 0 || source.byteLength > MAX_UNTRUSTED_WORK_UNIT_FILE_BYTES) {
       throw new Error("review work unit output receipt byteLength is invalid");
     }
     this.byteLength = source.byteLength;
@@ -376,7 +380,6 @@ export class ReviewWorkUnit {
     const key = requiredText(logicalKey, "review work unit input logicalKey");
     const relative = logicalPath(name, "review work unit input logicalPath");
     const value = Buffer.isBuffer(bytes) ? Buffer.from(bytes) : Buffer.from(bytes);
-    if (value.length > MAX_WORK_UNIT_FILE_BYTES) throw new Error("review work unit input exceeds maximum size");
     const entry = new ReviewWorkUnitInput({
       logicalKey: key,
       logicalPath: relative,

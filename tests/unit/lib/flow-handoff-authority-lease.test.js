@@ -93,7 +93,7 @@ describe("FlowHandoffAuthorityLease", () => {
     }
   });
 
-  it("fails closed immediately when a prior checkout lease owner is stale", async () => {
+  it("reclaims a stale checkout lease owner", async () => {
     const root = createTmpDir("flow-handoff-authority-stale-");
     try {
       fs.mkdirSync(`${root}/.sennel`);
@@ -104,12 +104,8 @@ describe("FlowHandoffAuthorityLease", () => {
       assert.equal(code, 0);
 
       const lease = new FlowHandoffAuthorityLease({ mainRoot: root, executionRoot: root });
-      const startedAt = Date.now();
-      assert.throws(
-        () => lease.acquire({ wait: true }),
-        (error) => error.code === "FLOW_HANDOFF_AUTHORITY_LOCK_STALE" && error.lockPath.endsWith(".lock"),
-      );
-      assert.ok(Date.now() - startedAt < 1_000, "a stale owner must not enter the live-owner wait loop");
+      lease.acquire({ wait: true });
+      lease.release();
     } finally {
       removeTmpDir(root);
     }

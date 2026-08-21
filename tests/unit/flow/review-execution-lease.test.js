@@ -30,7 +30,7 @@ describe("ReviewExecutionLease", () => {
     duplicate.release();
   });
 
-  it("fails closed for a process-identity-confirmed stale lease", () => {
+  it("reclaims a process-identity-confirmed stale lease", () => {
     const root = createTmpDir("review-execution-lease-stale-");
     roots.push(root);
     const identity = {
@@ -54,10 +54,9 @@ describe("ReviewExecutionLease", () => {
         ownerToken: "11111111-1111-4111-8111-111111111111",
       },
     })}\n`);
-    assert.throws(
-      () => lease.acquire(),
-      (error) => error?.code === "REVIEW_EXECUTION_LOCK_STALE",
-    );
+    lease.acquire();
     assert.equal(fs.existsSync(lease.lock.lockPath), true);
+    lease.release();
+    assert.equal(fs.existsSync(lease.lock.lockPath), false);
   });
 });

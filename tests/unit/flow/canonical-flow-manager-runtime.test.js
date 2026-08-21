@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
@@ -1858,6 +1857,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const inheritedGitEnvironment = Object.fromEntries(
       [...GIT_REPOSITORY_LOCATION_ENVIRONMENT, ...dynamicConfig].map((name) => [name, process.env[name]]),
     );
+    const globalConfig = path.join(foreignRoot, "global.gitconfig");
+    fs.writeFileSync(globalConfig, "[user]\n  name = Review Worker\n");
     Object.assign(process.env, {
       GIT_DIR: path.join(foreignRoot, ".git"),
       GIT_WORK_TREE: foreignRoot,
@@ -1870,7 +1871,12 @@ describe("FlowManager canonical Version-1 runtime", () => {
       GIT_CONFIG_KEY_0: "core.worktree",
       GIT_CONFIG_VALUE_0: foreignRoot,
       GIT_CONFIG_PARAMETERS: "core.worktree=foreign",
+      GIT_CONFIG_GLOBAL: globalConfig,
     });
+    delete process.env.GIT_CONFIG_NOSYSTEM;
+    const expectedReviewGitEnvironment = Object.fromEntries(
+      [...GIT_REPOSITORY_LOCATION_ENVIRONMENT, ...dynamicConfig].map((name) => [name, process.env[name]]),
+    );
     let result;
     try {
       result = await review.execute(ctx);
@@ -1892,13 +1898,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR.startsWith(
       path.join(repository, ".sennel", "review-work-units"),
     ), true);
-    for (const name of GIT_REPOSITORY_LOCATION_ENVIRONMENT) {
-      if (name === "GIT_CONFIG_GLOBAL" || name === "GIT_CONFIG_NOSYSTEM") continue;
-      assert.equal(invocation.options.env[name], undefined, `${name} must not reach the review worker`);
+    for (const [name, value] of Object.entries(expectedReviewGitEnvironment)) {
+      assert.equal(invocation.options.env[name], value, `${name} must be inherited by the review worker`);
     }
-    for (const name of dynamicConfig) assert.equal(invocation.options.env[name], undefined, `${name} must not reach the review worker`);
-    assert.equal(invocation.options.env.GIT_CONFIG_GLOBAL, os.devNull);
-    assert.equal(invocation.options.env.GIT_CONFIG_NOSYSTEM, "1");
+    assert.equal(invocation.options.env.GIT_CONFIG_GLOBAL, globalConfig);
+    assert.equal(invocation.options.env.GIT_CONFIG_NOSYSTEM, undefined);
     assert.equal(result.artifacts.phase, "spec");
     assert.equal(result.artifacts.evidenceDigest.length, 64);
     assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "spec.review");
