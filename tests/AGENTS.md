@@ -37,6 +37,13 @@ the repository's `.sennel`, Git state, or a shared lock.
 - Build valid scenarios through production APIs. Do not manufacture impossible
   internal state to shorten setup. Hand-written malformed state is allowed only
   when rejection of that system-boundary input is the behavior under test.
+- Before adding a test that performs state transitions, identify an existing
+  production path or test that performs the same transition. Do not infer or
+  invent a transition sequence only for test setup; use the public API sequence
+  that can occur in production.
+- If test setup raises an invariant error, verify that the scenario is a legal
+  production state transition before changing product code, assertions, or
+  expected results.
 - A regression test must reproduce the externally observable failure and fail
   before the product fix. Do not encode the chosen implementation as the
   expected behavior.

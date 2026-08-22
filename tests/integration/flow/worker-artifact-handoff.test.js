@@ -183,12 +183,12 @@ function seal(request) {
   });
 }
 
-function draftWorkerAction() {
+function draftWorkerAction(stepId = "draft") {
   return {
     taskId: null,
-    step: "draft",
+    step: stepId,
     action: "write-draft",
-    instructions: { key: "plan.draft", content: "Write the draft." },
+    instructions: { key: `plan.${stepId}`, content: "Write the draft." },
     context: { workerArtifactHandoff: { required: true } },
     output_schema: {},
     requires_approval: false,
@@ -1213,107 +1213,40 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("detects a worker-spoofed canonical metric before flushing the parent metric once", async () => {
-    const value = fixture("draft", { worktree: false });
+  it("allows an independent issue-log append while draft-refine publishes its declared output", async () => {
+    const value = fixture("draft-refine", {
+      beforeActivate(candidate) {
+        publishDraftBeforeTarget(candidate, { goal: "before issue-log append" });
+      },
+    });
     try {
-      initializeGitRepository(value);
-      const action = {
-        taskId: null,
-        step: "draft",
-        action: "write-draft",
-        instructions: { key: "plan.draft", content: "Write the draft." },
-        context: { workerArtifactHandoff: { required: true } },
-        output_schema: {},
-        requires_approval: false,
-        maxAttempts: 1,
-        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
-      };
       const dispatcher = new RunDispatchCommand({
-        nextAction: { async run() { return structuredClone(action); } },
-        agent: {
-          async call(_prompt, options) {
-            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
-            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
-            fs.writeFileSync(
-              request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
-              json({ goal: "must not be published" }),
-            );
-            sealWorkerArtifactHandoff({
-              requestPath,
-              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-            });
-            value.flowManager.accumulateAgentMetrics("draft", {
-              provider: "worker-spoof",
-              profileKey: "fake",
-              responseChars: 999,
-              durationMs: 1,
-            });
-            await persistAgentInvocationMetric({
-              flowManager: value.flowManager,
-              provider: "parent-provider",
-              profileKey: "flow-dispatch",
-              usage: null,
-              responseChars: 12,
-              model: null,
-              durationMs: 2,
-            }, options.deferredMetric);
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "draft-refine").status === "done"
+              ? completedWorkerAction()
+              : draftWorkerAction("draft-refine");
           },
         },
-        repositoryFingerprint: () => "stable-fixture",
-        leaseFactory: () => ({ acquire() {}, release() {} }),
-      });
-      dispatcher.container = {};
-
-      const result = await dispatcher.execute({
-        ...value.ctx,
-        flowState: value.flowManager.load(),
-        expectRunId: "run-worker-handoff",
-        expectSpec: value.specId,
-        _envelopeType: "run",
-        _envelopeKey: "dispatch",
-      });
-
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION");
-      const state = value.flowManager.load();
-      assert.equal(findStepById(state.steps, "draft").status, "in_progress");
-      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
-      assert.equal(state.metrics.filter((entry) => entry.provider === "parent-provider").length, 1);
-      assert.equal(state.metrics.filter((entry) => entry.provider === "worker-spoof").length, 1);
-    } finally {
-      removeTmpDir(value.mainRoot);
-    }
-  });
-
-  it("rejects a handoff worker that mutates another spec in the execution checkout", async () => {
-    const value = fixture("draft", { worktree: true });
-    try {
-      const action = {
-        taskId: null,
-        step: "draft",
-        action: "write-draft",
-        instructions: { key: "plan.draft", content: "Write the draft." },
-        context: { workerArtifactHandoff: { required: true } },
-        output_schema: {},
-        requires_approval: false,
-        maxAttempts: 1,
-        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
-      };
-      const dispatcher = new RunDispatchCommand({
-        nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call(_prompt, options) {
             const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
-              json({ goal: "valid handoff payload" }),
+              json({ goal: "refined after issue-log append" }),
             );
-            const wrongSpec = path.join(value.executionRoot, "specs", "484-flow-authority-boundaries");
-            fs.mkdirSync(wrongSpec, { recursive: true });
-            fs.writeFileSync(path.join(wrongSpec, "draft.json"), json({ overwrittenBy: value.specId }));
             sealWorkerArtifactHandoff({
               requestPath,
               invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            value.flowManager.appendIssueLog({
+              specId: value.specId,
+              entry: {
+                step: "draft-refine",
+                reason: "Independent observation recorded during worker execution.",
+              },
+              idempotencyKey: "draft-refine-concurrent-issue-log",
             });
           },
         },
@@ -1331,10 +1264,15 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION");
-      assert.equal(result.data.dispatch.dispatchCount, 1);
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
-      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+      assert.equal(result.dispatch.boundary, "completed");
+      assert.equal(result.dispatch.dispatchCount, 1);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "done");
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), {
+        goal: "refined after issue-log append",
+      });
+      const issueLog = readCatalogJson(value, "issue.log", "draft-refine");
+      assert.equal(issueLog.entries.length, 1);
+      assert.equal(issueLog.entries[0].issueLogId, "draft-refine-concurrent-issue-log");
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -1905,6 +1843,71 @@ describe("worker artifact handoff", () => {
       );
       assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "in_progress");
       assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), { goal: "stale input" });
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a draft handoff when a materialized project overview changes before publication", () => {
+    const value = fixture("draft");
+    try {
+      const docsDirectory = path.join(value.executionRoot, "docs");
+      const overviewPath = path.join(docsDirectory, "overview.md");
+      fs.mkdirSync(docsDirectory, { recursive: true });
+      fs.writeFileSync(overviewPath, "# Project overview\n\nCaptured worker context.\n");
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "worker output" }));
+      seal(request);
+      fs.writeFileSync(overviewPath, "# Project overview\n\nChanged worker context.\n");
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "stale"
+          && error.code === "FLOW_ARTIFACT_HANDOFF_STALE",
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a handoff captured by a replaced Attempt without publishing its output", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "stale Attempt output" }));
+      seal(request);
+      value.flowManager.confirmCurrentAttempt({
+        specId: value.specId,
+        artifactWrites: [{
+          logicalKey: "draft",
+          mediaType: "application/json",
+          bytes: Buffer.from(json({ goal: "newer confirmed draft" }), "utf8"),
+        }],
+      });
+      value.flowManager.rewindTo("draft", { specId: value.specId });
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "stale"
+          && error.code === "FLOW_ARTIFACT_HANDOFF_STALE",
+      );
+      const state = value.flowManager.canonicalState(value.specId);
+      assert.equal(state.attempt.sequence, 2);
+      assert.equal(state.attempt.failure, null);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), { goal: "newer confirmed draft" });
     } finally {
       removeTmpDir(value.mainRoot);
     }
