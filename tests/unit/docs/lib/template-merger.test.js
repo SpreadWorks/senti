@@ -9,7 +9,7 @@ import {
   mergeResolved,
   resolveChaptersOrder,
 } from "../../../../src/docs/lib/template-merger.js";
-import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../support/builders/tmp-dir.js";
 
 /**
  * Create a temporary project root with an installed plugin preset fixture.

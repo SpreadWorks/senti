@@ -1,0 +1,194 @@
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { afterEach, test } from "node:test";
+import {
+  CanonicalFlowFindingsStore,
+  deferExhaustedSemanticFindings,
+} from "../../../src/flow/lib/flow-findings.js";
+import {
+  CanonicalNonBlockingHandoffStore,
+  materializeNonblockingAcceptanceHandoff,
+  verifyNonblockingHandoffSource,
+} from "../../../src/flow/lib/nonblocking-handoff.js";
+import RunReopenDraftCommand from "../../../src/flow/lib/run-reopen-draft.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
+
+let tmp = null;
+
+afterEach(() => {
+  if (tmp !== null) removeTmpDir(tmp);
+  tmp = null;
+});
+
+function attemptHistory(logicalKey, payload) {
+  return Buffer.from(`${JSON.stringify({
+    attempts: [{ attempt: 1, artifact: { logicalKey, payload } }],
+  }, null, 2)}\n`, "utf8");
+}
+
+function semanticFinding(id) {
+  return {
+    findingId: id,
+    fingerprint: "a".repeat(64),
+    disposition: "must-fix",
+    rationale: "The behavior remains semantically incomplete.",
+  };
+}
+
+test("semantic retry deferral publishes flow.findings through the active Version catalog", () => {
+  tmp = createTmpDir("flow-findings-catalog-");
+  const flowManager = makeFlowManager(tmp);
+  const flow = new CanonicalFlowFixture({ flowManager, specId: "001-findings" })
+    .create()
+    .registerActive()
+    .activate("test-review");
+  const state = flow.state();
+  flowManager.publishArtifacts({
+    specId: state.specId,
+    nodeId: "test-review",
+    artifactWrites: [{
+      logicalKey: "test.review",
+      mediaType: "application/json",
+      bytes: attemptHistory("test.review", {
+        verdict: "REJECTED",
+        blockingFindings: [semanticFinding("semantic-1")],
+      }),
+    }],
+  });
+
+  const outcome = deferExhaustedSemanticFindings({
+    flowManager,
+    flowState: state,
+    nodeId: "test-review",
+    sourceStep: "test-review",
+    sourceArtifact: "test.review",
+    attempts: 5,
+  });
+
+  assert.equal(outcome.deferred.length, 1);
+  const findings = new CanonicalFlowFindingsStore({ flowManager, flowState: state, nodeId: "test-review" }).read();
+  assert.equal(findings.entries[0].sourceArtifact, "steps/test-review/result.json");
+  assert.equal(findings.entries[0].sourceFindingId, "semantic-1");
+  assert.equal(findings.entries[0].completionKind, "deferred");
+  const location = flowManager.specLocation(state.specId);
+  assert.equal(fs.existsSync(path.join(location.directory, "flow-findings.json")), false);
+});
+
+test("actual draft reopen starts a ledger-derived flow-finding cycle for both publication and reads", async () => {
+  tmp = createTmpDir("flow-findings-reopen-cycle-");
+  const flowManager = makeFlowManager(tmp);
+  const flow = new CanonicalFlowFixture({ flowManager, specId: "001-findings-reopen" })
+    .create()
+    .registerActive()
+    .activate("test-review");
+  const publishReview = () => {
+    const state = flow.state();
+    flowManager.publishArtifacts({
+      specId: state.specId,
+      nodeId: "test-review",
+      artifactWrites: [{
+        logicalKey: "test.review",
+        mediaType: "application/json",
+        bytes: attemptHistory("test.review", {
+          verdict: "REJECTED",
+          blockingFindings: [semanticFinding("semantic-reopen")],
+        }),
+      }],
+    });
+    return flow.state();
+  };
+  const defer = (state) => deferExhaustedSemanticFindings({
+    flowManager,
+    flowState: state,
+    nodeId: "test-review",
+    sourceStep: "test-review",
+    sourceArtifact: "test.review",
+    attempts: 5,
+  });
+
+  const beforeReopen = defer(publishReview());
+  assert.equal(beforeReopen.deferred.length, 1);
+  const reopen = await new RunReopenDraftCommand().execute({
+    root: tmp,
+    flowManager,
+    flowState: flow.state(),
+  });
+  assert.equal(reopen.ok, true, JSON.stringify(reopen));
+  const reopenedState = flow.state();
+  const reopenActivity = flowManager.activityLedger(reopenedState.specId).findLast((activity) => (
+    activity.transition.operation === "reopen_draft_preimplementation"
+  ));
+  assert.ok(reopenActivity);
+
+  const afterReopenStore = new CanonicalFlowFindingsStore({
+    flowManager,
+    flowState: reopenedState,
+    nodeId: "test-review",
+  });
+  assert.equal(afterReopenStore.cycle.planRewindAt, reopenActivity.timing.finishedAt);
+  assert.deepEqual(afterReopenStore.read({ filterCurrentRun: true }).entries, []);
+
+  flow.activate("test-review");
+  const afterReopen = defer(publishReview());
+  assert.equal(afterReopen.deferred.length, 1);
+  const currentState = flow.state();
+  const store = new CanonicalFlowFindingsStore({
+    flowManager,
+    flowState: currentState,
+    nodeId: "test-review",
+  });
+  const all = store.read();
+  const current = store.read({ filterCurrentRun: true });
+  assert.equal(all.entries.length, 2);
+  assert.equal(all.entries[0].planRewindAt, null);
+  assert.equal(all.entries[1].planRewindAt, reopenActivity.timing.finishedAt);
+  assert.deepEqual(current.entries.map((entry) => entry.findingId), [all.entries[1].findingId]);
+  assert.equal(current.entries[0].planRewindAt, store.cycle.planRewindAt);
+});
+
+test("nonblocking handoff binds its evidence and deferred finding to cataloged artifacts", () => {
+  tmp = createTmpDir("nonblocking-handoff-catalog-");
+  const flowManager = makeFlowManager(tmp);
+  const flow = new CanonicalFlowFixture({ flowManager, specId: "002-handoff" })
+    .create()
+    .registerActive()
+    .activate("scenario-validity");
+  const state = flow.state();
+  const evidence = attemptHistory("scenario.validity", { result: "unavailable", reason: "test runner unavailable" });
+  flowManager.publishArtifacts({
+    specId: state.specId,
+    nodeId: "scenario-validity",
+    artifactWrites: [{
+      logicalKey: "scenario.validity",
+      mediaType: "application/json",
+      bytes: evidence,
+    }],
+  });
+
+  const result = materializeNonblockingAcceptanceHandoff({
+    flowManager,
+    flowState: state,
+    nodeId: "scenario-validity",
+    sourceStep: "scenario-validity",
+    evidenceRef: "scenario.validity",
+    evidenceDigest: crypto.createHash("sha256").update(evidence).digest("hex"),
+    resultKind: "unavailable",
+    attempts: 1,
+  });
+
+  assert.equal(result.findingCount, 1);
+  const handoffs = new CanonicalNonBlockingHandoffStore({ flowManager, flowState: state, nodeId: "scenario-validity" }).read();
+  assert.equal(handoffs.findings.length, 1);
+  assert.equal(verifyNonblockingHandoffSource({
+    flowManager,
+    flowState: state,
+    nodeId: "scenario-validity",
+    value: handoffs.findings[0],
+  }), true);
+  const findings = new CanonicalFlowFindingsStore({ flowManager, flowState: state, nodeId: "scenario-validity" }).read();
+  assert.equal(findings.entries[0].sourceArtifact, "steps/nonblocking-handoffs.json");
+  assert.equal(fs.existsSync(path.join(flowManager.specLocation(state.specId).directory, "nonblocking-handoffs.json")), false);
+});

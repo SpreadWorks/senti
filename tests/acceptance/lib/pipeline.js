@@ -9,7 +9,8 @@
 import fs from "fs";
 import os from "node:os";
 import path from "path";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { removeTmpDir } from "../../support/builders/tmp-dir.js";
+import { SeedWorkRoot } from "../../support/builders/seed-work-root.js";
 import { validate, loadJsonFile } from "../../../src/lib/config.js";
 import { Agent } from "../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
@@ -31,6 +32,7 @@ export function copyFixtureInto(fixtureDir, dest, configOverrides) {
     const configPath = path.join(dest, ".sennel", "config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     Object.assign(config, configOverrides);
+    if (configOverrides.agent === null) delete config.agent;
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   }
 
@@ -48,8 +50,17 @@ export function copyFixtureInto(fixtureDir, dest, configOverrides) {
  * @returns {string} Absolute path to tmp dir
  */
 export function copyFixture(fixtureDir, configOverrides) {
-  const tmp = createTmpDir("acceptance-");
-  return copyFixtureInto(fixtureDir, tmp, configOverrides);
+  const workRoot = new SeedWorkRoot(fixtureDir, { prefix: "sennel-acceptance-" });
+  if (configOverrides) {
+    const configPath = path.join(workRoot.root, ".sennel", "config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    Object.assign(config, configOverrides);
+    if (configOverrides.agent === null) delete config.agent;
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  fs.mkdirSync(path.join(workRoot.root, ".sennel", "output"), { recursive: true });
+  fs.mkdirSync(path.join(workRoot.root, "docs"), { recursive: true });
+  return workRoot.root;
 }
 
 /**

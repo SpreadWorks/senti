@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
 import os from "os";
@@ -21,8 +21,17 @@ const ANALYSIS = {
   files: { summary: { total: 5 } },
 };
 
+const roots = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 function makeAgent(profile) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "init-test-"));
+  roots.push(root);
   const config = {
     agent: { default: "test/exec", providers: { "test/exec": profile }, timeout: 300 },
   };

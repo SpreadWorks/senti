@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
 import { execFileSync } from "child_process";
-import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../support/builders/tmp-dir.js";
 
 const SENNEL = join(process.cwd(), "src/sennel.js");
 

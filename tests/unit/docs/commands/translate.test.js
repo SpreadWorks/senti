@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile } from "../../../support/builders/tmp-dir.js";
 import { buildTranslationTasks } from "../../../../src/docs/commands/translate.js";
 
 describe("translate parallel", () => {

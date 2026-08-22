@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { globFilesSync } from "../helpers/test-file-glob.js";
+import { globFilesSync } from "../runner/test-file-glob.js";
 
 describe("globFilesSync", () => {
   let root;

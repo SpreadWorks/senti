@@ -38,6 +38,17 @@ function safeRelativePath(value, field) {
   return result;
 }
 
+class FlowArtifactRelativePath {
+  constructor(value, field) {
+    this.value = safeRelativePath(value, field);
+    Object.freeze(this);
+  }
+  static from(value, field) {
+    return value instanceof FlowArtifactRelativePath ? value : new FlowArtifactRelativePath(value, field);
+  }
+  toString() { return this.value; }
+}
+
 function people(values, field) {
   if (!Array.isArray(values) || values.length === 0) throw new Error(`${field} must name at least one actor`);
   const normalized = values.map((value) => identifier(value, field));
@@ -320,10 +331,13 @@ export class FlowArtifactInventoryExclusion {
 }
 
 export class FlowArtifactCanonicalPath {
+  #matchExpression;
+
   constructor(value) {
     this.value = safeRelativePath(value, "artifact canonical path");
     this.parameters = Object.freeze([...this.value.matchAll(/:\{([A-Za-z0-9][A-Za-z0-9._-]*)\}/g)].map((match) => match[1]));
     if (new Set(this.parameters).size !== this.parameters.length) throw new Error("artifact canonical path must not repeat a parameter");
+    this.#matchExpression = new RegExp(`^${this.#matchSource()}$`);
     Object.freeze(this);
   }
   resolve(parameters = {}) {
@@ -342,7 +356,10 @@ export class FlowArtifactCanonicalPath {
     return safeRelativePath(resolved, "resolved artifact canonical path");
   }
   matches(value) {
-    const candidate = safeRelativePath(value, "artifact path");
+    const candidate = FlowArtifactRelativePath.from(value, "artifact path").toString();
+    return this.#matchExpression.test(candidate);
+  }
+  #matchSource() {
     const expression = this.value.split("/").map((segment) => {
       const parameterPattern = /:\{([A-Za-z0-9][A-Za-z0-9._-]*)\}/g;
       let result = "";
@@ -355,7 +372,7 @@ export class FlowArtifactCanonicalPath {
       }
       return result + segment.slice(cursor).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }).join("/");
-    return new RegExp(`^${expression}$`).test(candidate);
+    return expression;
   }
   toString() { return this.value; }
 }
@@ -373,8 +390,9 @@ export class FlowArtifactLegacyPattern {
     Object.freeze(this);
   }
   matches(value) {
-    const candidate = safeRelativePath(value, "legacy artifact path");
-    return this.path.matches(candidate) && !this.excludedPrefixes.some((prefix) => (
+    const candidatePath = FlowArtifactRelativePath.from(value, "legacy artifact path");
+    const candidate = candidatePath.toString();
+    return this.path.matches(candidatePath) && !this.excludedPrefixes.some((prefix) => (
       candidate === prefix.slice(0, -1) || candidate.startsWith(prefix)
     ));
   }
@@ -408,10 +426,11 @@ export class FlowArtifactKnownFile {
     Object.freeze(this);
   }
   matches(value) {
-    const relativePath = safeRelativePath(value, "known Flow artifact path");
+    const candidatePath = FlowArtifactRelativePath.from(value, "known Flow artifact path");
+    const relativePath = candidatePath.toString();
     return this.legacyPath?.toString() === relativePath
-      || this.legacyPattern?.matches(relativePath) === true
-      || this.canonicalPath?.matches(relativePath) === true;
+      || this.legacyPattern?.matches(candidatePath) === true
+      || this.canonicalPath?.matches(candidatePath) === true;
   }
   toString() { return this.legacyPath?.toString() ?? this.legacyPattern?.toString() ?? this.canonicalPath.toString(); }
 }
@@ -764,7 +783,8 @@ export class FlowArtifactContract {
     return new ResolvedFlowArtifact(this, this.canonicalPath.resolve(parameters));
   }
   matchesCanonicalPath(relativePath) {
-    const candidate = safeRelativePath(relativePath, "artifact canonical path");
+    const candidatePath = FlowArtifactRelativePath.from(relativePath, "artifact canonical path");
+    const candidate = candidatePath.toString();
     const key = this.logicalKey.toString();
     if (key === "final.regression.raw-log") {
       const match = candidate.match(/^steps\/final-regression\/attempt-(\d+)\.log$/);
@@ -798,7 +818,7 @@ export class FlowArtifactContract {
     }
     if (key === "tests.source" && (candidate === "artifacts/tests/.raw" || candidate.startsWith("artifacts/tests/.raw/"))) return false;
     if (key === "plugin.lifecycle.artifact" && candidate === "artifacts/plugin-artifacts/workflow/ideas.json") return false;
-    return this.canonicalPath.matches(candidate);
+    return this.canonicalPath.matches(candidatePath);
   }
   authoritySlotFor(updater, memberId = null) {
     const actor = identifier(updater, "artifact updater");
@@ -806,8 +826,9 @@ export class FlowArtifactContract {
     return new FlowArtifactAuthoritySlot({ kind: this.authoritySlot.kind, authority: this.authoritySlot.authority, cardinality: this.authoritySlot.cardinality, publicationStep: actor }).resolve(memberId);
   }
   memberIdForPath(relativePath) {
-    const candidate = safeRelativePath(relativePath, "artifact authority path");
-    if (!this.matchesCanonicalPath(candidate)) throw new Error(`artifact authority path does not match logical contract ${this.logicalKey}`);
+    const candidatePath = FlowArtifactRelativePath.from(relativePath, "artifact authority path");
+    const candidate = candidatePath.toString();
+    if (!this.matchesCanonicalPath(candidatePath)) throw new Error(`artifact authority path does not match logical contract ${this.logicalKey}`);
     return this.authoritySlot.cardinality.value === "collection"
       ? crypto.createHash("sha256").update(candidate).digest("hex")
       : null;
@@ -1212,7 +1233,41 @@ export class FlowArtifactActivityEvidenceContent extends FlowArtifactContentCont
   }
 }
 
+class FlowArtifactContractPathIndex {
+  #contractsByStaticPrefix;
+
+  constructor(contracts) {
+    const grouped = new Map();
+    for (const contract of contracts) {
+      const segments = contract.canonicalPath.toString().split("/");
+      const parameterIndex = segments.findIndex((segment) => segment.includes(":{"));
+      const prefix = segments.slice(0, parameterIndex < 0 ? segments.length : parameterIndex).join("/");
+      const bucket = grouped.get(prefix) ?? [];
+      bucket.push(contract);
+      grouped.set(prefix, bucket);
+    }
+    this.#contractsByStaticPrefix = new Map(
+      [...grouped].map(([prefix, entries]) => [prefix, Object.freeze(entries)]),
+    );
+    Object.freeze(this);
+  }
+
+  candidates(relativePath) {
+    const segments = relativePath.toString().split("/");
+    const candidates = [];
+    for (let length = 0; length <= segments.length; length += 1) {
+      const bucket = this.#contractsByStaticPrefix.get(segments.slice(0, length).join("/"));
+      if (bucket) candidates.push(...bucket);
+    }
+    return candidates;
+  }
+}
+
 export class FlowArtifactRegistry {
+  #canonicalPathIndex;
+  #canonicalContractsByPath = new Map();
+  #knownFilesByPath = new Map();
+
   constructor({ contracts, legacyTargets = [], switchTargets = [], knownFiles = [] } = {}) {
     if (!Array.isArray(contracts) || contracts.some((contract) => !(contract instanceof FlowArtifactContract))) {
       throw new Error("artifact registry requires typed contracts");
@@ -1249,6 +1304,7 @@ export class FlowArtifactRegistry {
     const rootKeys = new Set(contracts.filter((contract) => !contract.canonicalPath.toString().includes("/")).map((contract) => contract.logicalKey.toString()));
     for (const key of ROOT_ARTIFACT_KEYS) if (!rootKeys.has(key)) throw new Error(`artifact registry is missing root contract: ${key}`);
     for (const key of rootKeys) if (!ROOT_ARTIFACT_KEYS.has(key)) throw new Error(`unclassified root artifact contract: ${key}`);
+    this.#canonicalPathIndex = new FlowArtifactContractPathIndex(contracts);
     this.legacyTargets = Object.freeze(legacyTargets.map((target) => target instanceof FlowArtifactLegacyTarget ? target : new FlowArtifactLegacyTarget(target)));
     if (new Set(this.legacyTargets.map(String)).size !== this.legacyTargets.length) throw new Error("duplicate legacy artifact target");
     if (this.legacyTargets.some((target) => this.byPath.has(target.toString()))) throw new Error("legacy artifact target must not be a canonical contract");
@@ -1359,8 +1415,13 @@ export class FlowArtifactRegistry {
   taskDirectory(taskId, segment) { return new FlowArtifactTaskOwner(taskId, segment).toString(); }
   finalRegressionRawLog(attempt) { return this.require("final.regression.raw-log").resolve({ attempt: attempt instanceof FlowArtifactAttempt ? attempt : new FlowArtifactAttempt(attempt) }); }
   classify(relativePath) {
-    const matches = [...this.byKey.values()].filter((contract) => contract.matchesCanonicalPath(relativePath));
+    const candidate = FlowArtifactRelativePath.from(relativePath, "artifact canonical path");
+    const cached = this.#canonicalContractsByPath.get(candidate.toString());
+    if (cached !== undefined) return cached;
+    const matches = this.#canonicalPathIndex.candidates(candidate)
+      .filter((contract) => contract.matchesCanonicalPath(candidate));
     if (matches.length !== 1) throw new Error(`artifact path is not uniquely classified: ${relativePath}`);
+    this.#canonicalContractsByPath.set(candidate.toString(), matches[0]);
     return matches[0];
   }
   isLegacyTarget(relativePath) { return this.legacyTargets.some((target) => target.toString() === safeRelativePath(relativePath, "legacy artifact target")); }
@@ -1372,8 +1433,12 @@ export class FlowArtifactRegistry {
     return target;
   }
   classifyKnownFile(relativePath) {
-    const matches = this.knownFiles.filter((entry) => entry.matches(relativePath));
+    const candidate = FlowArtifactRelativePath.from(relativePath, "known Flow artifact path");
+    const cached = this.#knownFilesByPath.get(candidate.toString());
+    if (cached !== undefined) return cached;
+    const matches = this.knownFiles.filter((entry) => entry.matches(candidate));
     if (matches.length !== 1) throw new Error(`known Flow artifact path is not uniquely classified: ${relativePath}`);
+    this.#knownFilesByPath.set(candidate.toString(), matches[0]);
     return matches[0];
   }
 }

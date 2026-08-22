@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const PRESETS_DIR = join(ROOT, "src", "presets");
-const TEST_SUFFIX = ["tests", "acceptance", "test.js"];
+const TEST_SUFFIX = ["tests", "acceptance", "base.acceptance.test.js"];
 const FIXTURE_SUFFIX = ["tests", "acceptance", "fixtures"];
 
 export function discoverAcceptanceTargets({ root = ROOT, readdirSync: readDirs = readdirSync, existsSync: pathExists = existsSync, maxDirectories = 1000, maxPathChecks = 2000 } = {}) {

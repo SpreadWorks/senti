@@ -6,11 +6,11 @@
  * and line number.
  */
 
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 // Import the functions under test
 import {
@@ -20,6 +20,10 @@ import {
 
 describe("detectUnfilledDirectives", () => {
   let tmp;
+  afterEach(() => {
+    if (tmp) removeTmpDir(tmp);
+    tmp = null;
+  });
 
   it("detects unfilled {{text}} blocks with file name and line number", () => {
     tmp = createTmpDir("assert-test-");
@@ -116,14 +120,14 @@ describe("detectUnfilledDirectives", () => {
     assert.equal(results.length, 0);
   });
 
-  // Cleanup after each test
-  it("cleanup", () => {
-    if (tmp) removeTmpDir(tmp);
-  });
 });
 
 describe("detectExposedDirectives", () => {
   let tmp;
+  afterEach(() => {
+    if (tmp) removeTmpDir(tmp);
+    tmp = null;
+  });
 
   it("detects exposed {{data:}} directives with file name and line number", () => {
     tmp = createTmpDir("assert-test-");
@@ -177,7 +181,4 @@ describe("detectExposedDirectives", () => {
     assert.equal(results.length, 0);
   });
 
-  it("cleanup", () => {
-    if (tmp) removeTmpDir(tmp);
-  });
 });

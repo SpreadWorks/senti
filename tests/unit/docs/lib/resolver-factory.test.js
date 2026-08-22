@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
 import { createResolver } from "../../../../src/docs/lib/resolver-factory.js";
-import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../../../support/builders/tmp-dir.js";
 
 describe("createResolver", () => {
   let tmp;

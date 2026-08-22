@@ -3,7 +3,7 @@ import os from "os";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../support/builders/tmp-dir.js";
 import { processTemplateFileBatch } from "../../../../src/docs/commands/text.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";

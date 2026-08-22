@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../../../support/builders/tmp-dir.js";
 
 /**
  * Tests for DataSource file hash detection in scan.

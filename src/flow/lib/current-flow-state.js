@@ -2106,6 +2106,9 @@ export class FlowDefinitionNode {
  * `Task.steps[]` template.
  */
 export class CurrentFlowDefinition {
+  #staticNodesById;
+  #taskTemplateNodesByKey;
+  #dynamicContainer;
   constructor({ root, taskTemplate, dynamicTaskContainerId = "impl", dynamicTaskInsertionAfterId = "implement" }) {
     this.root = root instanceof FlowDefinitionNode ? root : new FlowDefinitionNode(root);
     if (this.root.kind !== "flow") throw new CurrentFlowStateInvariantError("definition.root.kind must be flow");
@@ -2165,6 +2168,9 @@ export class CurrentFlowDefinition {
         );
       }
     }
+    this.#staticNodesById = new Map(staticNodes.map((node) => [node.id, node]));
+    this.#taskTemplateNodesByKey = new Map(taskTemplateNodes.map((node) => [node.key, node]));
+    this.#dynamicContainer = dynamicContainer;
     Object.freeze(this);
   }
 
@@ -2213,10 +2219,10 @@ export class CurrentFlowDefinition {
 
   definitionNodeFor(node) {
     if (!node) throw new CurrentFlowStateInvariantError("definition lookup requires a current-state node");
-    const staticNode = collectDefinitionNodes(this.root).find((candidate) => candidate.id === node.id);
+    const staticNode = this.#staticNodesById.get(node.id);
     if (staticNode) return staticNode;
     if (node instanceof TaskNode) return this.taskTemplate;
-    const template = collectDefinitionNodes(this.taskTemplate).find((step) => step.key === node.key);
+    const template = this.#taskTemplateNodesByKey.get(node.key);
     if (template) return template;
     throw new CurrentFlowStateInvariantError(`definition has no node for current state: ${node.id}`);
   }
@@ -2237,8 +2243,7 @@ export class CurrentFlowDefinition {
   }
 
   taskInsertionIndex(container) {
-    const staticContainer = collectDefinitionNodes(this.root)
-      .find((node) => node.id === this.dynamicTaskContainerId);
+    const staticContainer = this.#dynamicContainer;
     const anchor = staticContainer.steps.findIndex((node) => node.id === this.dynamicTaskInsertionAfterId);
     let index = anchor + 1;
     while (container.steps[index] instanceof TaskNode) index += 1;
@@ -2712,8 +2717,7 @@ function assertNodeLifecycle(node) {
   }
 }
 
-function assertExecutionFrontier(definition, root, currentPath) {
-  const leaves = definition.orderedLeaves(root);
+function assertExecutionFrontier(leaves, currentPath) {
   const finalizationDownstreamRoute = currentPath?.at(-1) === "finalize-merge";
   let frontier = null;
   let suffixStatus = null;
@@ -2750,6 +2754,9 @@ function assertExecutionFrontier(definition, root, currentPath) {
 }
 
 export class CurrentFlowState {
+  #nodes;
+  #leaves;
+
   constructor(value, { definition }) {
     if (!(definition instanceof CurrentFlowDefinition)) {
       throw new CurrentFlowStateInvariantError("CurrentFlowState requires a CurrentFlowDefinition");
@@ -2786,6 +2793,8 @@ export class CurrentFlowState {
       ? null
       : value.history instanceof CurrentFlowHistory ? value.history : new CurrentFlowHistory(value.history);
     if (this.history === null) definition.assertStateShape(this.root);
+    this.#nodes = Object.freeze(collectNodes(this.root));
+    this.#leaves = Object.freeze(this.#nodes.filter((node) => node.steps.length === 0));
     if (value.current !== null && typeof value.current !== "string") {
       throw new CurrentFlowStateInvariantError("current must be a stable node id or null");
     }
@@ -2866,7 +2875,7 @@ export class CurrentFlowState {
       this.#assertHistorical();
       return;
     }
-    const all = collectNodes(this.root);
+    const all = this.#nodes;
     const ids = new Set();
     for (const node of all) {
       if (ids.has(node.id)) throw new CurrentFlowStateInvariantError(`state duplicates stable id: ${node.id}`);
@@ -2878,7 +2887,7 @@ export class CurrentFlowState {
       }
     }
     assertNodeLifecycle(this.root);
-    assertExecutionFrontier(this.definition, this.root, this.current);
+    assertExecutionFrontier(this.#leaves, this.current);
     if (this.lifecycle.state === "finalized") {
       if (this.current !== null || this.attempt !== null) {
         throw new CurrentFlowStateInvariantError("finalized Flow must not retain an active Attempt");
@@ -2918,7 +2927,7 @@ export class CurrentFlowState {
   }
 
   #assertHistorical() {
-    const nodes = collectNodes(this.root);
+    const nodes = this.#nodes;
     const ids = new Set();
     for (const node of nodes) {
       if (ids.has(node.id)) throw new CurrentFlowStateInvariantError(`historical state duplicates stable id: ${node.id}`);
@@ -3063,7 +3072,7 @@ export class CurrentFlowState {
     if (this.current !== null || this.attempt !== null) {
       throw new CurrentFlowStateInvariantError("cannot finalize a Flow with an active Attempt");
     }
-    if (collectNodes(this.root).some((node) => node.steps.length === 0 && !TERMINAL_NODE_STATUSES.has(node.status))) {
+    if (this.#leaves.some((node) => !TERMINAL_NODE_STATUSES.has(node.status))) {
       throw new CurrentFlowStateInvariantError("cannot finalize a Flow with unfinished leaves");
     }
     return this.#replaceLifecycle("finalized");
@@ -3261,7 +3270,7 @@ export class CurrentFlowState {
     if ((consumer === null) !== (this.attempt === null)) {
       throw new CurrentFlowStateInvariantError("missing producer artifact recovery has an invalid active cursor");
     }
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const producerIndex = leaves.findIndex((node) => node.id === producer.id);
     if (producerIndex < 0) {
       throw new CurrentFlowStateInvariantError("missing producer artifact recovery requires a definition producer leaf");
@@ -3414,7 +3423,7 @@ export class CurrentFlowState {
       throw new CurrentFlowStateInvariantError("rewind requires a terminal recovery target");
     }
     const target = nodeAtPath(this.root, currentPath);
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === target.id);
     const downstreamIds = new Set(leaves.slice(targetIndex + 1).map((node) => node.id));
     let root = this.root;
@@ -3450,7 +3459,7 @@ export class CurrentFlowState {
     if (this.current === null || this.attempt === null || !new Set(["impl-gate", "retro"]).has(sourceId)) {
       throw new CurrentFlowStateInvariantError("test evidence rewind requires an active impl-gate or retro Attempt");
     }
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === target.id);
     const sourceIndex = leaves.findIndex((node) => node.id === sourceId);
     if (targetIndex < 0 || sourceIndex < targetIndex) {
@@ -3486,7 +3495,7 @@ export class CurrentFlowState {
     if (this.current === null || this.attempt === null || this.current.at(-1) !== "test-review") {
       throw new CurrentFlowStateInvariantError("test-review repair requires an active test-review Attempt");
     }
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === "test");
     const sourceIndex = leaves.findIndex((node) => node.id === "test-review");
     if (targetIndex < 0 || sourceIndex < targetIndex) {
@@ -3524,7 +3533,7 @@ export class CurrentFlowState {
     }
     const targetPath = this.definition.pathFor(this.root, "test-execute");
     if (targetPath === null) throw new CurrentFlowStateInvariantError("implementation repair route requires test-execute");
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === "test-execute");
     if (targetIndex < 0) throw new CurrentFlowStateInvariantError("implementation repair route is absent from the Flow definition");
     let root = this.root;
@@ -3618,7 +3627,7 @@ export class CurrentFlowState {
     }
     const targetPath = this.definition.pathFor(this.root, "impl-triage");
     if (targetPath === null) throw new CurrentFlowStateInvariantError("acceptance repair route requires impl-triage");
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const index = leaves.findIndex((node) => node.id === "impl-triage");
     // The acceptance result is retained by the producer Activity and its
     // catalog publication.  This fixed repair route reopens implementation,
@@ -3765,7 +3774,7 @@ export class CurrentFlowState {
     if (!new Set(["preimplementation", "task-addition", "spec-correction"]).has(route)) {
       throw new CurrentFlowStateInvariantError("draft reopen route is invalid");
     }
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === "draft");
     if (targetIndex < 0) throw new CurrentFlowStateInvariantError("draft reopen route is absent from the Flow definition");
     let root = this.root;
@@ -3812,7 +3821,7 @@ export class CurrentFlowState {
         );
       }
     }
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((node) => node.id === target.id);
     if (targetIndex < 0) throw new CurrentFlowStateInvariantError("plan gate repair target is not a Flow leaf");
     let root = this.root;
@@ -3990,7 +3999,7 @@ export class CurrentFlowState {
     const descriptor = this.nextAction();
     if (descriptor === null) return null;
     const node = this.findNode(descriptor.nodeId);
-    const leaves = this.definition.orderedLeaves(this.root);
+    const leaves = this.#leaves;
     const targetIndex = leaves.findIndex((leaf) => leaf.id === node.id);
     const targetTask = descriptor.path
       .map((id) => this.findNode(id))
@@ -5216,21 +5225,89 @@ class FlowActivityJournalRevision {
   }
 }
 
+class FlowActivityJournalPrefix {
+  constructor({ entryCount, bytes } = {}) {
+    if (!Number.isSafeInteger(entryCount) || entryCount < 0) {
+      throw new CurrentFlowStateInvariantError("activity journal prefix entry count must be a non-negative integer");
+    }
+    if (!Buffer.isBuffer(bytes)) throw new CurrentFlowStateInvariantError("activity journal prefix requires exact bytes");
+    this.entryCount = entryCount;
+    // The prefix is a view over a private immutable snapshot buffer. Keeping
+    // that view avoids copying the complete confirmed journal merely to make
+    // an exact comparison with the next secure read.
+    this.bytes = bytes;
+    Object.freeze(this);
+  }
+
+  matches(other) {
+    return other instanceof FlowActivityJournalPrefix
+      && this.entryCount === other.entryCount
+      && this.bytes.equals(other.bytes);
+  }
+}
+
 class FlowActivityJournalSnapshot {
-  constructor({ entries, revision = null }) {
+  constructor({ entries, revision = null, bytes = Buffer.alloc(0), entryEndOffsets = [] }) {
     if (!Array.isArray(entries) || entries.some((entry) => !(entry instanceof FlowActivity))) {
       throw new CurrentFlowStateInvariantError("activity journal snapshot requires typed Activities");
     }
     if (revision !== null && !(revision instanceof FlowActivityJournalRevision)) {
       throw new CurrentFlowStateInvariantError("activity journal snapshot requires a typed file revision or null");
     }
+    if (!Buffer.isBuffer(bytes)) {
+      throw new CurrentFlowStateInvariantError("activity journal snapshot requires exact journal bytes");
+    }
+    if (!Array.isArray(entryEndOffsets) || entryEndOffsets.length !== entries.length) {
+      throw new CurrentFlowStateInvariantError("activity journal snapshot requires one byte offset per Activity");
+    }
+    if (entryEndOffsets.some((offset, index) => (
+      !Number.isSafeInteger(offset)
+      || offset < 1
+      || offset > bytes.length
+      || (index > 0 && offset <= entryEndOffsets[index - 1])
+    ))) {
+      throw new CurrentFlowStateInvariantError("activity journal snapshot Activity byte offsets must be ordered within its bytes");
+    }
     this.entries = Object.freeze([...entries]);
     this.revision = revision;
+    this.bytes = Buffer.from(bytes);
+    this.entryEndOffsets = Object.freeze([...entryEndOffsets]);
     Object.freeze(this);
+  }
+
+  prefix(confirmationOrder) {
+    if (!Number.isSafeInteger(confirmationOrder) || confirmationOrder < 0 || confirmationOrder > this.entries.length) {
+      throw new CurrentFlowStateInvariantError("activity journal prefix confirmation order is outside the parsed journal");
+    }
+    const byteLength = confirmationOrder === 0 ? 0 : this.entryEndOffsets[confirmationOrder - 1];
+    return new FlowActivityJournalPrefix({
+      entryCount: confirmationOrder,
+      bytes: this.bytes.subarray(0, byteLength),
+    });
+  }
+}
+
+class FlowActivityJournalParseCache {
+  constructor(snapshot) {
+    if (!(snapshot instanceof FlowActivityJournalSnapshot)) {
+      throw new CurrentFlowStateInvariantError("activity journal parse cache requires a typed snapshot");
+    }
+    this.entries = snapshot.entries;
+    this.bytes = Buffer.from(snapshot.bytes);
+    this.entryEndOffsets = snapshot.entryEndOffsets;
+    Object.freeze(this);
+  }
+
+  matchesPrefix(bytes) {
+    return Buffer.isBuffer(bytes)
+      && bytes.length >= this.bytes.length
+      && bytes.subarray(0, this.bytes.length).equals(this.bytes);
   }
 }
 
 export class FlowActivityJournal {
+  #parseCache = null;
+
   constructor(filePath) {
     this.filePath = path.resolve(filePath);
     this.directoryAuthority = new RealDirectoryAuthority(path.dirname(this.filePath));
@@ -5244,22 +5321,66 @@ export class FlowActivityJournal {
   readSnapshot() {
     const opened = this.#openExisting(fs.constants.O_RDONLY);
     if (opened === null) return new FlowActivityJournalSnapshot({ entries: [] });
-    let content;
+    let bytes;
     try {
-      content = fs.readFileSync(opened.descriptor, "utf8");
+      bytes = fs.readFileSync(opened.descriptor);
     } finally {
       fs.closeSync(opened.descriptor);
     }
     this.#assertVisibleIdentity(opened.identity);
-    if (content === "") return new FlowActivityJournalSnapshot({ entries: [], revision: opened.revision });
+    const snapshot = this.#parseSnapshot(bytes, opened.revision);
+    this.#parseCache = new FlowActivityJournalParseCache(snapshot);
+    return snapshot;
+  }
+
+  #parseSnapshot(bytes, revision) {
+    const cached = this.#parseCache;
+    if (cached !== null && cached.matchesPrefix(bytes)) {
+      const tail = this.#parseEntries(
+        bytes.subarray(cached.bytes.length),
+        cached.entries.length,
+        cached.bytes.length,
+      );
+      const entries = [...cached.entries, ...tail.entries];
+      this.#assertEntries(entries);
+      return new FlowActivityJournalSnapshot({
+        entries,
+        revision,
+        bytes,
+        entryEndOffsets: [...cached.entryEndOffsets, ...tail.entryEndOffsets],
+      });
+    }
+    const parsed = this.#parseEntries(bytes, 0, 0);
+    this.#assertEntries(parsed.entries);
+    return new FlowActivityJournalSnapshot({
+      entries: parsed.entries,
+      revision,
+      bytes,
+      entryEndOffsets: parsed.entryEndOffsets,
+    });
+  }
+
+  #parseEntries(bytes, entryOffset, byteOffset) {
+    const content = bytes.toString("utf8");
+    if (content === "") return { entries: [], entryEndOffsets: [] };
     if (!content.endsWith("\n")) {
       throw new CurrentFlowStateInvariantError("activities.jsonl ends with a partial line");
     }
-    const entries = content.trimEnd().split("\n").map((line, index) => {
+    const lines = content.trimEnd().split("\n");
+    const entries = lines.map((line, index) => {
       try { return new FlowActivity(JSON.parse(line)); } catch (error) {
-        throw new CurrentFlowStateInvariantError(`invalid activities.jsonl line ${index + 1}: ${error.message}`);
+        throw new CurrentFlowStateInvariantError(`invalid activities.jsonl line ${entryOffset + index + 1}: ${error.message}`);
       }
     });
+    let offset = byteOffset;
+    const entryEndOffsets = lines.map((line) => {
+      offset += Buffer.byteLength(line, "utf8") + 1;
+      return offset;
+    });
+    return { entries, entryEndOffsets };
+  }
+
+  #assertEntries(entries) {
     const ids = new Set();
     let order = 0;
     for (const entry of entries) {
@@ -5269,7 +5390,6 @@ export class FlowActivityJournal {
       order = entry.confirmationOrder;
     }
     assertJournalAttemptIdentities(entries);
-    return new FlowActivityJournalSnapshot({ entries, revision: opened.revision });
   }
 
   append(activity, writerAuthority, snapshot = null) {
@@ -5416,11 +5536,69 @@ export class CurrentFlowStateSnapshot {
 }
 
 /**
+ * Process-local memo of one completely replayed state/journal pair. It is a
+ * performance hint only: every caller still reads and parses both authorities
+ * before this may be used, and any byte, semantic, or journal-prefix change
+ * rejects the memo.
+ */
+class CurrentFlowStateValidationCache {
+  constructor({ state, stateBytes, journalPrefix } = {}) {
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("validated current Flow cache requires a typed state");
+    }
+    if (!Buffer.isBuffer(stateBytes)) {
+      throw new CurrentFlowStateInvariantError("validated current Flow cache requires exact state bytes");
+    }
+    if (!(journalPrefix instanceof FlowActivityJournalPrefix)) {
+      throw new CurrentFlowStateInvariantError("validated current Flow cache requires an exact journal prefix");
+    }
+    if (journalPrefix.entryCount !== state.confirmationOrder) {
+      throw new CurrentFlowStateInvariantError("validated current Flow cache journal prefix must end at state confirmation");
+    }
+    this.state = state;
+    this.stateBytes = Buffer.from(stateBytes);
+    this.journalPrefix = journalPrefix;
+    Object.freeze(this);
+  }
+
+  matches(state, stateBytes, journalSnapshot) {
+    if (!(state instanceof CurrentFlowState) || !Buffer.isBuffer(stateBytes) || !(journalSnapshot instanceof FlowActivityJournalSnapshot)) {
+      return false;
+    }
+    if (!stateBytes.equals(this.stateBytes)) return false;
+    return this.journalPrefix.matches(journalSnapshot.prefix(state.confirmationOrder));
+  }
+
+  stateFor(stateBytes) {
+    return Buffer.isBuffer(stateBytes) && stateBytes.equals(this.stateBytes)
+      ? this.state
+      : null;
+  }
+
+  replayBaseFor(state, journalSnapshot) {
+    if (
+      !(state instanceof CurrentFlowState)
+      || state.history !== null
+      || this.state.history !== null
+      || !(journalSnapshot instanceof FlowActivityJournalSnapshot)
+      || state.confirmationOrder < this.state.confirmationOrder
+    ) {
+      return null;
+    }
+    return this.journalPrefix.matches(journalSnapshot.prefix(this.state.confirmationOrder))
+      ? this.state
+      : null;
+  }
+}
+
+/**
  * The only persistence API for the new flow.json contract.  The journal is
  * appended before the state CAS.  A crash in that window is resolved by
  * reapplying the same Activity id/order; a conflicting duplicate is rejected.
  */
 export class CurrentFlowStateStore {
+  #validatedState = null;
+
   constructor({ directory, definition, faultInjector = () => {}, processIdentitySource, runtimeLockLocation = null } = {}) {
     this.directory = path.resolve(requireString(directory, "store.directory"));
     if (!(definition instanceof CurrentFlowDefinition)) throw new CurrentFlowStateInvariantError("store requires a CurrentFlowDefinition");
@@ -5520,20 +5698,23 @@ export class CurrentFlowStateStore {
   }
 
   loadSnapshot() {
-    return this.#withLock(() => {
-      const bytes = this.#readStateBytes();
-      if (bytes === null) {
-        const entries = this.journal.read();
-        if (entries.length !== 0) {
-          throw new CurrentFlowStateConflictError("Activity journal exists without flow state");
-        }
-        return null;
+    return this.#withLock(() => this.#loadSnapshotUnlocked());
+  }
+
+  #loadSnapshotUnlocked() {
+    const bytes = this.#readStateBytes();
+    if (bytes === null) {
+      const entries = this.journal.read();
+      if (entries.length !== 0) {
+        throw new CurrentFlowStateConflictError("Activity journal exists without flow state");
       }
-      const state = this.#parse(bytes);
-      const activities = this.journal.read();
-      this.#assertJournalConsistency(state, activities);
-      return new CurrentFlowStateSnapshot({ state, revision: digest(bytes), activities });
-    });
+      return null;
+    }
+    const state = this.#validatedState?.stateFor(bytes) ?? this.#parse(bytes);
+    const journalSnapshot = this.journal.readSnapshot();
+    const activities = journalSnapshot.entries;
+    this.#assertJournalConsistency(state, activities, { stateBytes: bytes, journalSnapshot });
+    return new CurrentFlowStateSnapshot({ state, revision: digest(bytes), activities });
   }
 
   /**
@@ -5568,13 +5749,16 @@ export class CurrentFlowStateStore {
       if (originalBytes === null) {
         throw new CurrentFlowStateConflictError("current flow state does not exist");
       }
-      const original = this.#parse(originalBytes);
+      const original = this.#validatedState?.stateFor(originalBytes) ?? this.#parse(originalBytes);
       if (expectedRevision !== null && expectedRevision !== digest(originalBytes)) {
         throw new CurrentFlowStateConflictError("flow state changed before update");
       }
       const journalSnapshot = this.journal.readSnapshot();
       const entries = journalSnapshot.entries;
-      this.#assertJournalConsistency(original, entries);
+      this.#assertJournalConsistency(original, entries, {
+        stateBytes: originalBytes,
+        journalSnapshot,
+      });
       assertCurrentState?.(original);
       const existing = entries.find((entry) => entry.id === proposed.id);
       if (existing && !jsonEqual(existing.toJSON(), proposed.toJSON())) {
@@ -5621,7 +5805,14 @@ export class CurrentFlowStateStore {
     }
   }
 
-  #assertJournalConsistency(state, entries) {
+  #assertJournalConsistency(state, entries, { stateBytes = null, journalSnapshot = null } = {}) {
+    const cacheEligible = stateBytes !== null && journalSnapshot instanceof FlowActivityJournalSnapshot;
+    if (cacheEligible && this.#validatedState?.matches(state, stateBytes, journalSnapshot)) {
+      // A cache entry is recorded only for a fully confirmed journal. If a
+      // journal-first crash or append is visible, its changed prefix or extra
+      // entry takes the full replay path below.
+      if (entries.length === state.confirmationOrder) return;
+    }
     if (state.history !== null) {
       const orders = entries.map((entry) => entry.confirmationOrder);
       const expected = Array.from({ length: entries.length }, (_, index) => index + 1);
@@ -5638,6 +5829,7 @@ export class CurrentFlowStateStore {
       } else if (entries.some((entry) => entry.transition.operation === FLOW_CREATION_TRANSITION_OPERATION)) {
         throw new CurrentFlowStateConflictError("historical Flow without creation authority cannot claim a flow_created Activity");
       }
+      this.#rememberValidatedState(state, entries, stateBytes, journalSnapshot);
       return;
     }
     const journalOrder = entries.at(-1)?.confirmationOrder ?? 0;
@@ -5647,9 +5839,13 @@ export class CurrentFlowStateStore {
     if (journalOrder > state.confirmationOrder + 1) {
       throw new CurrentFlowStateConflictError("Activity journal is more than one transition ahead of flow state");
     }
-    let replayed = freshStateLike(state, this.definition);
+    const cachedBase = cacheEligible
+      ? this.#validatedState?.replayBaseFor(state, journalSnapshot) ?? null
+      : null;
+    let replayed = cachedBase ?? freshStateLike(state, this.definition);
+    const replayStart = cachedBase?.confirmationOrder ?? 0;
     try {
-      for (const entry of entries.slice(0, state.confirmationOrder)) {
+      for (const entry of entries.slice(replayStart, state.confirmationOrder)) {
         replayed = this.#applyActivity(replayed, entry);
       }
     } catch (error) {
@@ -5665,6 +5861,23 @@ export class CurrentFlowStateStore {
         throw new CurrentFlowStateConflictError(`pending Activity cannot advance flow state: ${error.message}`);
       }
     }
+    this.#rememberValidatedState(state, entries, stateBytes, journalSnapshot);
+  }
+
+  #rememberValidatedState(state, entries, stateBytes, journalSnapshot) {
+    if (
+      !Buffer.isBuffer(stateBytes)
+      || !(journalSnapshot instanceof FlowActivityJournalSnapshot)
+      || state.history !== null
+      || entries.length !== state.confirmationOrder
+    ) {
+      return;
+    }
+    this.#validatedState = new CurrentFlowStateValidationCache({
+      state,
+      stateBytes,
+      journalPrefix: journalSnapshot.prefix(state.confirmationOrder),
+    });
   }
 
   #applyActivity(state, activity) {

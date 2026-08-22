@@ -7,7 +7,7 @@ import {
   loadFullAnalysis,
   getChapterFiles,
 } from "../../../../src/docs/lib/command-context.js";
-import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../support/builders/tmp-dir.js";
 
 describe("loadAnalysisData", () => {
   let tmp;

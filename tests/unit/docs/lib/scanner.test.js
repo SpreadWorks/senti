@@ -4,7 +4,7 @@ import {
   findFiles, parseFile, parseJSFile, parsePHPFile,
   collectFiles,
 } from "../../../../src/docs/lib/scanner.js";
-import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile } from "../../../support/builders/tmp-dir.js";
 
 describe("scanner utilities", () => {
   let tmp;

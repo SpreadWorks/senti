@@ -4,8 +4,8 @@ import crypto from "node:crypto";
 import fs from "fs";
 import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
-import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
-import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../../../support/builders/tmp-dir.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../support/infrastructure/flow-setup.js";
 
 const CMD = join(process.cwd(), "src/sennel.js");
 

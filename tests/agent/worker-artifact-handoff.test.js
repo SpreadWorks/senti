@@ -17,13 +17,13 @@ import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../src/lib/flow-artifact-contract.js";
-import { CanonicalFlowFixture } from "../helpers/flow-setup.js";
-import { commitAll, initGitRepo } from "../helpers/git-repo.js";
-import { createTmpDir, removeTmpDir } from "../helpers/tmp-dir.js";
+import { CanonicalFlowFixture } from "../support/infrastructure/flow-setup.js";
+import { commitAll, initGitRepo } from "../support/infrastructure/git-repo.js";
+import { createTmpDir, removeTmpDir } from "../support/builders/tmp-dir.js";
 import {
   validWorkerHandoffSpec,
   workerArtifactJson,
-} from "../helpers/worker-artifact.js";
+} from "../support/infrastructure/worker-artifact.js";
 
 const SENNEL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/sennel.js");
 const WORKER_ARTIFACT_HANDOFF_SCHEMA = path.resolve(

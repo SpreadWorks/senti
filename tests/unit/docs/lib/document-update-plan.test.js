@@ -8,7 +8,7 @@ import {
   DocumentUpdateTransaction,
   DocumentValidationResult,
 } from "../../../../src/docs/lib/document-update-plan.js";
-import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js";
 
 function plan(filePath, before, after, validationResult = DocumentValidationResult.accepted()) {
   return new DocumentUpdatePlan({
