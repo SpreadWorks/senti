@@ -17,6 +17,7 @@ import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.j
 import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
+  AwaitDraftQuestionDirective,
   AwaitUserDecisionDirective,
   CompletedDirective,
   ExecuteCommandDirective,
@@ -56,6 +57,7 @@ import {
   inspectCanonicalTestReviewRepair,
 } from "./test-review-repair.js";
 import { captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
+import { DraftLifecycle } from "./draft-lifecycle.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -323,6 +325,30 @@ function acceptanceDecisionMessages({ root, config }) {
   ] });
 }
 
+function draftQuestionDirective({ ctx, state, target }) {
+  if (target.scope !== "flow" || target.stepId !== "draft-refine" || state.autoApprove === true) return null;
+  const source = ctx.flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "draft",
+    consumerNodeId: "draft-refine",
+    optional: true,
+  });
+  if (source === null) return null;
+  let draft;
+  try {
+    draft = new DraftLifecycle(JSON.parse(source.bytes.toString("utf8")));
+  } catch (cause) {
+    throw new NextActionPlanError("DRAFT_QUESTION_SOURCE_INVALID", `canonical draft question source is invalid: ${cause.message}`);
+  }
+  const question = draft.nextUnresolvedQuestion();
+  return question === null
+    ? null
+    : new AwaitDraftQuestionDirective({
+        questionId: question.id,
+        question: question.question,
+      });
+}
+
 /**
  * An ordinary Flow approval remains dispatcher-authorized, but it has a
  * first-class prompt so review is a concrete read-only action rather than an
@@ -427,6 +453,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, miss
     target,
     config: ctx.config,
   });
+  const draftDecisionDirective = draftQuestionDirective({ ctx, state, target });
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
   const missingRoute = missingProducerArtifactRoute
     ?? missingProducerArtifactRouteFor({ ctx, typedState });
@@ -456,7 +483,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, miss
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
-    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective).toJSON(),
+    directive: (userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective).toJSON(),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;

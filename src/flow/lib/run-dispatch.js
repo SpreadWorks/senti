@@ -25,6 +25,7 @@ import {
 } from "../../lib/process-owned-lock.js";
 import {
   AbortedDirective,
+  AwaitDraftQuestionDirective,
   AwaitUserDecisionDirective,
   BlockedDirective,
   CompletedDirective,
@@ -548,7 +549,8 @@ export class FlowDispatchAction {
   }
 
   get awaitsUserDecision() {
-    return this.directive instanceof AwaitUserDecisionDirective;
+    return this.directive instanceof AwaitUserDecisionDirective
+      || this.directive instanceof AwaitDraftQuestionDirective;
   }
 }
 

@@ -103,6 +103,56 @@ function failedFinalizationOutbox(scenario, stepId, failure) {
   return { identity, outbox };
 }
 
+function draftWithPendingQuestions() {
+  const question = (id, text) => ({
+    id,
+    status: "pending",
+    category: "user-visible-behavior",
+    question: text,
+    answer: "",
+    evidence: "",
+    why: "",
+    considered: "",
+    droppedReason: "",
+  });
+  return {
+    devType: "feature",
+    goal: "Exercise an explicit draft question boundary.",
+    analysis: {
+      problem: "A non-interactive worker cannot collect a user decision.",
+      proposedApproach: "The CLI must yield before starting that worker.",
+      validation: "The answer is stored before the worker action is returned.",
+    },
+    decisionMap: {
+      knownFacts: [],
+      decisionPoints: [],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: ["Choose the public behavior."],
+      deferredToSpec: [],
+    },
+    scopeVerification: { in: [], out: [] },
+    impactOnExisting: { affected: [], unchanged: [] },
+    qa: [
+      question("q1", "Which public behavior should the command guarantee?"),
+      question("q2", "Which compatibility boundary should remain explicit?"),
+    ],
+    openQuestions: [],
+    approval: { approved: false, confirmedAt: "", notes: "" },
+  };
+}
+
+function publishDraft(scenario, draft) {
+  managerFor(scenario).publishArtifacts({
+    specId: SPEC_ID,
+    nodeId: "draft",
+    artifactWrites: [{
+      logicalKey: "draft",
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(draft, null, 2)}\n`, "utf8"),
+    }],
+  });
+}
+
 describe("flow get next-action", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -137,6 +187,81 @@ describe("flow get next-action", () => {
       action: data.action,
     });
     assert.equal(stateFor(scenario).currentNodeId, "draft");
+  });
+
+  it("yields each manual draft question before starting the draft-refine worker", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp).atFlowStep("draft");
+    publishDraft(scenario, draftWithPendingQuestions());
+    scenario.atFlowStep("draft-refine");
+    const binding = FlowTargetBinding.capture({
+      flowState: stateFor(scenario),
+      mainRoot: tmp,
+      authorityRoot: tmp,
+    }).serialize();
+
+    const first = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
+    assert.equal(first.exitCode, 0);
+    assert.deepEqual(first.envelope.data.directive, {
+      kind: "await_draft_question",
+      terminal: false,
+      requiresUserAction: true,
+      questionId: "q1",
+      question: "Which public behavior should the command guarantee?",
+      reason: "Draft refinement requires an explicit user answer before its worker can run.",
+    });
+
+    const answered = runCli(tmp, [
+      "flow", "set", "draft-answer", "q1",
+      "--answer", "Return the stable public representation selected by the user.",
+      "--why", "The user selected this behavior after comparing the public alternatives.",
+      "--considered", "A repository-internal response shape was rejected.",
+      "--expect-binding", binding,
+    ]);
+    assert.equal(answered.exitCode, 0);
+    assert.equal(answered.envelope.data.status, "answered");
+    assert.equal(answered.envelope.data.nextQuestionId, "q2");
+
+    const second = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
+    assert.equal(second.envelope.data.directive.kind, "await_draft_question");
+    assert.equal(second.envelope.data.directive.questionId, "q2");
+
+    const dropped = runCli(tmp, [
+      "flow", "set", "draft-answer", "q2",
+      "--drop",
+      "--dropped-reason", "The project contract already fixes this compatibility boundary.",
+      "--expect-binding", binding,
+    ]);
+    assert.equal(dropped.exitCode, 0);
+    assert.equal(dropped.envelope.data.nextQuestionId, null);
+
+    const ready = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
+    assert.equal(ready.exitCode, 0);
+    assert.equal(ready.envelope.data.directive.kind, "execute_step");
+    assert.equal(ready.envelope.data.step, "draft-refine");
+
+    const stored = JSON.parse(managerFor(scenario).readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "draft",
+      consumerNodeId: "draft-refine",
+    }).bytes.toString("utf8"));
+    assert.deepEqual(stored.qa.map(({ id, status }) => ({ id, status })), [
+      { id: "q1", status: "answered" },
+      { id: "q2", status: "dropped" },
+    ]);
+  });
+
+  it("keeps autoApprove draft refinement inside the worker", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp, { autoApprove: true }).atFlowStep("draft");
+    publishDraft(scenario, draftWithPendingQuestions());
+    scenario.atFlowStep("draft-refine");
+
+    const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(exitCode, 0);
+    assert.equal(envelope.data.directive.kind, "execute_step");
+    assert.equal(envelope.data.directive.requiresUserAction, false);
   });
 
   it("returns idle when no active V1 Flow exists", () => {

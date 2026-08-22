@@ -23,6 +23,7 @@ const DIRECTIVE_KINDS = new Set([
   "execute_command",
   "repair_evidence",
   "await_user_decision",
+  "await_draft_question",
   "blocked",
   "completed",
   "aborted",
@@ -83,6 +84,7 @@ export class NextActionDirective {
     if (value.kind === "execute_command") return new ExecuteCommandDirective(value);
     if (value.kind === "repair_evidence") return new RepairEvidenceDirective(value);
     if (value.kind === "await_user_decision") return new AwaitUserDecisionDirective(value);
+    if (value.kind === "await_draft_question") return new AwaitDraftQuestionDirective(value);
     if (value.kind === "blocked") return new BlockedDirective(value);
     if (value.kind === "completed") return new CompletedDirective();
     if (value.kind === "aborted") return new AbortedDirective(value);
@@ -184,6 +186,25 @@ export class AwaitUserDecisionDirective extends NextActionDirective {
     return {
       ...super.toJSON(),
       actionPrompt: this.prompt.toJSON(),
+      reason: this.reason,
+    };
+  }
+}
+
+export class AwaitDraftQuestionDirective extends NextActionDirective {
+  constructor({ questionId, question, reason = "Draft refinement requires an explicit user answer before its worker can run." } = {}) {
+    super({ kind: "await_draft_question", terminal: false, requiresUserAction: true });
+    this.questionId = requireString(questionId, "directive.questionId", 100);
+    this.question = requireString(question, "directive.question");
+    this.reason = requireString(reason, "directive.reason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      questionId: this.questionId,
+      question: this.question,
       reason: this.reason,
     };
   }

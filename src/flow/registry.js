@@ -1007,6 +1007,24 @@ export const FLOW_COMMANDS = {
       args: { positional: ["json"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: sennel flow set summary '<json-array>'\n\nDeprecated: requirements are authoritative in spec.json.",
     },
+    "draft-answer": {
+      helpKey: "flow.set.draft-answer",
+      explicitTargetResolution: true,
+      targetNotFoundAsMismatch: true,
+      command: () => import("./lib/set-draft-answer.js"),
+      args: {
+        positional: ["questionId"],
+        flags: withTargetGuardFlags(["--drop"]),
+        options: withTargetGuardOptions(["--answer", "--why", "--considered", "--dropped-reason"]),
+      },
+      help: [
+        `Usage: sennel flow set draft-answer <questionId> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>) ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Record the explicit user's answer to the current draft question without completing draft-refine.",
+        "The question id and active Flow target are guarded; the next unresolved question remains the dispatcher boundary.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     req: {
       helpKey: "flow.set.req",
       command: () => import("./lib/set-req.js"),

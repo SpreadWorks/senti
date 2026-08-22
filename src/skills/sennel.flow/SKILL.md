@@ -234,6 +234,17 @@ Handle the returned `data.dispatch.boundary`:
    - For `ENABLE_NONBLOCKING`, record the bounded reason with
      `sennel flow set policy nonblocking --reason "<reason>" --expect-binding <token>`,
      then resume dispatch.
+   - When `nextAction.directive.kind` is `await_draft_question`, the CLI has
+     intentionally not started the non-interactive draft worker. Research only
+     enough current source/context to present the existing `question` in Choice
+     Format with materially different answers and one recommendation. After the
+     user selects, record that explicit response with
+     `sennel flow set draft-answer <questionId> --answer "<answer>" --why "<why>" [--considered "<alternatives>"] --expect-binding <token>`.
+     If the user explicitly decides that the question is unnecessary, use
+     `--drop --dropped-reason "<reason>"` instead. Never infer either response,
+     never edit canonical `draft.json` directly, and immediately resume dispatch
+     with the same binding so the CLI can return the next question or start the
+     worker after all questions are resolved.
 4. `blocked`: report the returned reason and resume instruction as the concrete
    blocker. `FLOW_DISPATCH_AGENT_FAILED`, `FLOW_DISPATCH_STALLED`, and
    `FLOW_DISPATCH_LIMIT_REACHED` are failures, not progress summaries and not

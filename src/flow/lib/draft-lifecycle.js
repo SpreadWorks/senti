@@ -60,6 +60,7 @@ const DRAFT_QA_FIELDS = Object.freeze([
   "droppedReason",
 ]);
 const DRAFT_QA_PENDING_APPROVED_EMPTY_FIELDS = Object.freeze([...DRAFT_QA_RESPONSE_FIELDS, "droppedReason"]);
+const DRAFT_QA_UNRESOLVED_STATUSES = new Set(["pending", "approved"]);
 
 const DRAFT_DECISION_MAP_FIELDS = Object.freeze([
   "knownFacts",
@@ -184,6 +185,26 @@ export class DraftQaEntry {
     }
     return issues;
   }
+
+  resolve({ answer = null, why = null, considered = "", droppedReason = null } = {}) {
+    if (!DRAFT_QA_UNRESOLVED_STATUSES.has(this.status)) {
+      throw new Error(`qa[${this.index}]: status ${this.status} cannot be resolved again`);
+    }
+    const dropping = droppedReason !== null;
+    const raw = {
+      ...structuredClone(this.raw),
+      status: dropping ? "dropped" : "answered",
+      answer: dropping ? "" : answer,
+      evidence: dropping ? "" : `Explicit user response recorded for ${this.id}.`,
+      why: dropping ? "" : why,
+      considered: dropping ? "" : considered,
+      droppedReason: dropping ? droppedReason : "",
+    };
+    const resolved = new DraftQaEntry(raw, this.index);
+    const issues = resolved.validate();
+    if (issues.length > 0) throw new Error(issues.join("; "));
+    return raw;
+  }
 }
 
 export class DraftApproval {
@@ -302,6 +323,21 @@ export class DraftLifecycle {
       .filter(Boolean)
       .map((match) => Number(match[1]));
     return `q${Math.max(0, ...nums) + 1}`;
+  }
+
+  nextUnresolvedQuestion() {
+    return this.qa.find((entry) => DRAFT_QA_UNRESOLVED_STATUSES.has(entry.status)) ?? null;
+  }
+
+  resolveQuestion({ questionId, answer = null, why = null, considered = "", droppedReason = null } = {}) {
+    const next = this.nextUnresolvedQuestion();
+    if (next === null) throw new Error("draft has no unresolved question");
+    if (questionId !== next.id) {
+      throw new Error(`draft question changed: expected ${next.id}, got ${questionId || "(empty)"}`);
+    }
+    const draft = structuredClone(this.raw);
+    draft.qa[next.index] = next.resolve({ answer, why, considered, droppedReason });
+    return draft;
   }
 }
 

@@ -9,9 +9,13 @@ import {
   FlowNode,
   resolveDispatcherOwnedFlowAction,
 } from "../../../src/flow/definition.js";
-import { DispatcherOwnedFlowCommand } from "../../../src/flow/lib/run-dispatch.js";
+import {
+  DispatcherOwnedFlowCommand,
+  FlowDispatchAction,
+} from "../../../src/flow/lib/run-dispatch.js";
 import { flowCommands } from "../../../src/lib/command-registry.js";
 import {
+  AwaitDraftQuestionDirective,
   ExecuteStepDirective,
   NextActionDirective,
 } from "../../../src/flow/lib/next-action-directive.js";
@@ -101,6 +105,22 @@ test("approval-bound execute-step directives preserve their user action prompt",
 
   assert.equal(restored.requiresUserAction, true);
   assert.deepEqual(restored.toJSON(), directive.toJSON());
+});
+
+test("draft question directives preserve the canonical question identity", () => {
+  const directive = new AwaitDraftQuestionDirective({
+    questionId: "q3",
+    question: "Which public behavior should remain stable?",
+  });
+
+  const restored = NextActionDirective.fromStored(directive.toJSON());
+
+  assert.equal(restored.requiresUserAction, true);
+  assert.deepEqual(restored.toJSON(), directive.toJSON());
+  assert.equal(new FlowDispatchAction({
+    requires_approval: false,
+    directive: directive.toJSON(),
+  }).awaitsUserDecision, true);
 });
 
 test("agent-owned steps do not manufacture a CLI transition", () => {
