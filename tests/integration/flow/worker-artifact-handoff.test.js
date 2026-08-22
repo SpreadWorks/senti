@@ -6,6 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
+import { Container } from "../../../src/lib/container.js";
+import { dispatch } from "../../../src/lib/dispatcher.js";
+import { flowCommands } from "../../../src/lib/command-registry.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import {
   buildInitialNestedSteps,
@@ -236,6 +239,63 @@ function rewriteSubmission(request, mutate) {
 }
 
 describe("worker artifact handoff", () => {
+  it("seals through the dispatcher without resolving ambient Flow authority", async () => {
+    const value = fixture();
+    const request = value.coordinator.createRequest({
+      ctx: value.ctx,
+      state: value.flowManager.load(),
+      invocation: value.invocation,
+    });
+    fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "sealed without ambient Flow context" }));
+    const previousRequestPath = process.env.SENNEL_FLOW_HANDOFF_REQUEST;
+    const previousInvocationId = process.env.SENNEL_FLOW_DISPATCH_INVOCATION_ID;
+    const output = [];
+    let contextBuilds = 0;
+    let exitCode = null;
+    const container = new Container();
+    container.register("paths", { root: value.executionRoot, agentWorkDir: path.join(value.executionRoot, ".agent-work") });
+    container.register("mainRoot", value.mainRoot);
+    container.register("config", {});
+    container.register("inWorktree", true);
+    container.register("flowManager", {
+      load() { throw new Error("seal-handoff must not load Flow state"); },
+      loadReadOnly() { throw new Error("seal-handoff must not read Flow state"); },
+      artifactCatalog() { throw new Error("seal-handoff must not read the artifact catalog"); },
+    });
+    process.env.SENNEL_FLOW_HANDOFF_REQUEST = request.requestPath;
+    process.env.SENNEL_FLOW_DISPATCH_INVOCATION_ID = request.dispatchInvocationId;
+    try {
+      await dispatch({
+        container,
+        entry: flowCommands.run["seal-handoff"],
+        argv: [],
+        envelopeType: "run",
+        envelopeKey: "seal-handoff",
+        runtimeLog: true,
+        stdout: (text) => output.push(text),
+        setExitCode: (code) => { exitCode = code; },
+        buildHookCtx: () => {
+          contextBuilds += 1;
+          throw new Error("seal-handoff must not build ambient Flow context");
+        },
+      });
+
+      const envelope = JSON.parse(output.join(""));
+      assert.equal(envelope.ok, true);
+      assert.equal(exitCode, 0);
+      assert.equal(contextBuilds, 0);
+      assert.equal(fs.existsSync(request.submissionPath), true);
+      assert.equal(envelope.data.handoffPath, request.submissionPath);
+      assert.equal(fs.existsSync(path.join(value.executionRoot, ".tmp")), false);
+    } finally {
+      if (previousRequestPath === undefined) delete process.env.SENNEL_FLOW_HANDOFF_REQUEST;
+      else process.env.SENNEL_FLOW_HANDOFF_REQUEST = previousRequestPath;
+      if (previousInvocationId === undefined) delete process.env.SENNEL_FLOW_DISPATCH_INVOCATION_ID;
+      else process.env.SENNEL_FLOW_DISPATCH_INVOCATION_ID = previousInvocationId;
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("seals source-worker upgrade evidence and publishes it only with the parent confirmation", () => {
     const value = fixture("implement", { specRecord: validSpec() });
     try {

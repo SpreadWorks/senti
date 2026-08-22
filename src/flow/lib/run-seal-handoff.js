@@ -13,7 +13,7 @@ import {
  */
 export default class RunSealHandoffCommand extends FlowCommand {
   constructor() {
-    super({ requiresFlow: false, targetGuard: false });
+    super({ requiresFlow: false, targetGuard: false, skipAmbientFlowContext: true });
   }
 
   execute() {

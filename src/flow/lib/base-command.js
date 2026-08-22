@@ -32,6 +32,7 @@ export class FlowCommand extends Command {
    * @param {boolean} [options.mismatchTargetResolution=false] - Resolve an identity match before reporting stale binding authority
    * @param {boolean} [options.positionalRunIdTarget=false] - Treat a positional runId as the target when no runId guard is supplied
    * @param {boolean} [options.specOptionAsTarget=false] - Treat a command's --spec selector as its explicit Flow target
+   * @param {boolean} [options.skipAmbientFlowContext=false] - Run without resolving ambient Flow state or target context
    */
   constructor({
     requiresFlow = true,
@@ -40,6 +41,7 @@ export class FlowCommand extends Command {
     mismatchTargetResolution = false,
     positionalRunIdTarget = false,
     specOptionAsTarget = false,
+    skipAmbientFlowContext = false,
   } = {}) {
     super();
     this.requiresFlow = requiresFlow;
@@ -48,6 +50,7 @@ export class FlowCommand extends Command {
     this.mismatchTargetResolution = mismatchTargetResolution;
     this.positionalRunIdTarget = positionalRunIdTarget;
     this.specOptionAsTarget = specOptionAsTarget;
+    this.skipAmbientFlowContext = skipAmbientFlowContext;
   }
 
   /**
@@ -60,6 +63,13 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
+    if (this.skipAmbientFlowContext) {
+      return this.execute({
+        container,
+        ...input,
+        flowCommandBoundary: true,
+      });
+    }
     const targetInput = this.specOptionAsTarget === true
       && input.expectSpec == null
       && input.spec != null

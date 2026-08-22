@@ -1174,6 +1174,8 @@ export const FLOW_COMMANDS = {
     "seal-handoff": {
       helpKey: "flow.run.seal-handoff",
       requiresFlow: false,
+      skipAmbientFlowContext: true,
+      runtimeLog: { stepMetadata: false, writeWhenNoFlow: false },
       command: () => import("./lib/run-seal-handoff.js"),
       args: { options: FLOW_RUN_RUNTIME_OPTIONS },
       help: [

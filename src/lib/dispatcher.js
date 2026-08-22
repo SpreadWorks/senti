@@ -360,9 +360,11 @@ export async function dispatch({
   };
   let closedRuntimeLogMetadata = null;
   let restoreStreams = null;
-  const buildRuntimeHookCtx = (parsedInput) => buildHookCtx
-    ? { ...buildHookCtx(container, parsedInput), ...parsedInput }
-    : { container, ...parsedInput };
+  const buildRuntimeHookCtx = (parsedInput) => {
+    const skipAmbientFlowContext = entry.skipAmbientFlowContext === true;
+    if (skipAmbientFlowContext || !buildHookCtx) return { container, ...parsedInput };
+    return { ...buildHookCtx(container, parsedInput), ...parsedInput };
+  };
   const openRuntimeLog = (hookCtx) => {
     if (
       runtimeLog
