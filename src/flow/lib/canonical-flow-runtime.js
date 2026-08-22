@@ -161,6 +161,7 @@ export class CanonicalFlowRuntime {
     specRecord,
     artifactWrites,
     artifactRemovals,
+    artifactBaselines,
     testSourceBaseline,
     sourceWorkerUpgrade,
     admission,
@@ -191,6 +192,7 @@ export class CanonicalFlowRuntime {
       ...(specRecord !== undefined && { specRecord }),
       ...(artifactWrites !== undefined && { artifactWrites }),
       ...(artifactRemovals !== undefined && { artifactRemovals }),
+      ...(artifactBaselines !== undefined && { artifactBaselines }),
       ...(testSourceBaseline !== undefined && { testSourceBaseline }),
       ...(sourceWorkerUpgrade !== undefined && { sourceWorkerUpgrade }),
       ...(admission !== undefined && { admission }),
@@ -320,7 +322,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline, sourceWorkerUpgrade = undefined, admission = undefined } = {}) {
+  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, artifactBaselines, testSourceBaseline, sourceWorkerUpgrade = undefined, admission = undefined } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -338,6 +340,7 @@ export class CanonicalFlowRuntime {
       specRecord,
       artifactWrites,
       artifactRemovals,
+      artifactBaselines,
       testSourceBaseline,
       sourceWorkerUpgrade,
       admission,
@@ -948,6 +951,7 @@ export class CanonicalFlowRuntime {
     specRecord = undefined,
     artifactWrites = undefined,
     artifactRemovals = undefined,
+    artifactBaselines = undefined,
     testSourceBaseline = undefined,
     sourceWorkerUpgrade = undefined,
     nonblocking = null,
@@ -997,6 +1001,7 @@ export class CanonicalFlowRuntime {
       specRecord,
       artifactWrites: resolvedArtifactWrites,
       artifactRemovals,
+      artifactBaselines,
       testSourceBaseline,
       sourceWorkerUpgrade,
       admission,

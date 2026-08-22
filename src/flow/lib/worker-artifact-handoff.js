@@ -6,7 +6,11 @@ import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { PRODUCT } from "../../lib/product.js";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
-import { CanonicalWorkerSpecPublication } from "./current-flow-state.js";
+import {
+  CanonicalFlowArtifactBaseline,
+  CanonicalWorkerSpecPublication,
+  CurrentAttemptIdentity,
+} from "./current-flow-state.js";
 import {
   captureRegularFile,
   sameFileIdentity,
@@ -1457,8 +1461,16 @@ export class WorkerArtifactMutationAuthoritySnapshot {
   }
 }
 
-function inputRevision(inputDigest, { planGateRepair = null, testReviewRepair = null, acceptanceRepairRoute = null } = {}) {
-  const baseRevision = inputDigest;
+function inputRevision(inputDigest, {
+  attempt,
+  planGateRepair = null,
+  testReviewRepair = null,
+  acceptanceRepairRoute = null,
+} = {}) {
+  const baseRevision = digest(stableStringify({
+    inputDigest,
+    attempt: CurrentAttemptIdentity.from(attempt).toJSON(),
+  }));
   if (acceptanceRepairRoute !== null) {
     return digest(stableStringify({ baseRevision, acceptanceRepairRoute: acceptanceRepairRoute.toJSON() }));
   }
@@ -1477,6 +1489,16 @@ function inputRevision(inputDigest, { planGateRepair = null, testReviewRepair = 
 
 function currentPlanGateRepair({ flowManager, state, stepId }) {
   return canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId: stepId });
+}
+
+function canonicalAttempt({ flowManager, state }) {
+  const canonical = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  if (canonical?.attempt == null || canonical.attempt.failure !== null) {
+    throw new Error("worker handoff requires an active unfailed Attempt");
+  }
+  return canonical.attempt;
 }
 
 function currentTestReviewRepair({ flowManager, state, stepId }) {
@@ -1709,7 +1731,12 @@ export class WorkerArtifactHandoffRequest {
       contextSnapshot,
       payloads,
       inputDigest: inputDigestValue,
-      inputRevision: inputRevision(inputDigestValue, { planGateRepair, testReviewRepair, acceptanceRepairRoute }),
+      inputRevision: inputRevision(inputDigestValue, {
+        attempt: canonicalAttempt({ flowManager, state }),
+        planGateRepair,
+        testReviewRepair,
+        acceptanceRepairRoute,
+      }),
       generatedAt: now().toISOString(),
       canonicalLocation: flowManager.specLocation(state.specId),
       flowManager,
@@ -1905,6 +1932,17 @@ export class WorkerArtifactHandoffRequest {
         "worker artifact handoff no longer matches the active Flow target or step",
       );
     }
+    let currentAttempt;
+    try {
+      currentAttempt = canonicalAttempt({ flowManager: this.flowManager, state });
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "stale",
+        "FLOW_ARTIFACT_HANDOFF_STALE",
+        `worker artifact handoff no longer matches an active Attempt: ${cause.message}`,
+        { cause },
+      );
+    }
     if (this.contextSnapshot) {
       try {
         this.contextSnapshot.assertBinding({
@@ -1915,6 +1953,19 @@ export class WorkerArtifactHandoffRequest {
           actionDigest: this.actionDigest,
           targetDigest: this.contextSnapshot.binding.targetDigest,
         });
+        const currentContext = DraftWorkerContextSnapshot.materialize({
+          executionRoot: this.executionRoot,
+          state,
+          invocation: {
+            id: this.dispatchInvocationId,
+            action: { digest: this.actionDigest },
+            target: { digest: this.contextSnapshot.binding.targetDigest },
+          },
+          issueText: canonicalIssueSnapshotText({ flowManager: this.flowManager, state }),
+        });
+        if (currentContext.digest !== this.contextSnapshot.digest) {
+          throw new Error("draft worker context content changed after handoff capture");
+        }
       } catch (cause) {
         throw new WorkerArtifactHandoffError(
           "stale",
@@ -1963,7 +2014,12 @@ export class WorkerArtifactHandoffRequest {
       digest: input.digest,
       byteLength: input.byteLength,
     })), this.contextSnapshot);
-    const currentRevision = inputRevision(currentDigest, { planGateRepair, testReviewRepair, acceptanceRepairRoute });
+    const currentRevision = inputRevision(currentDigest, {
+      attempt: currentAttempt,
+      planGateRepair,
+      testReviewRepair,
+      acceptanceRepairRoute,
+    });
     if (currentDigest !== this.inputDigest || currentRevision !== this.inputRevision) {
       throw new WorkerArtifactHandoffError(
         "stale",
@@ -3207,9 +3263,34 @@ function canonicalTestTreeBaselineForPublication(request) {
 function canonicalHandoffPublications(request, submission) {
   const artifactWrites = [];
   const artifactRemovals = [];
+  const artifactBaselines = new Map();
   let specRecord;
   let testSourceBaseline;
   const testEntries = [];
+  const addArtifactBaseline = (baseline) => {
+    const relativePath = baseline.artifact.relativePath;
+    const existing = artifactBaselines.get(relativePath) ?? null;
+    if (existing !== null && (
+      existing.digest !== baseline.digest
+      || existing.byteLength !== baseline.byteLength
+    )) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `handoff captured inconsistent baselines for ${relativePath}`,
+      );
+    }
+    artifactBaselines.set(relativePath, baseline);
+  };
+  for (const input of request.inputs) {
+    const address = CanonicalWorkerArtifactAddress.from(input.targetRelativePath);
+    addArtifactBaseline(new CanonicalFlowArtifactBaseline({
+      logicalKey: address.logicalKey,
+      parameters: address.parameters,
+      digest: input.digest,
+      byteLength: input.byteLength,
+    }));
+  }
   for (const entry of submission.payloadManifest) {
     const bytes = manifestPayloadBytes(request, entry, "canonical handoff payload");
     if (entry.targetRelativePath.startsWith("tests/")) {
@@ -3221,6 +3302,24 @@ function canonicalHandoffPublications(request, submission) {
       continue;
     }
     const address = new CanonicalWorkerArtifactAddress(entry.targetRelativePath);
+    const payload = request.payloads.find(({ rule }) => (
+      rule.kind === "file"
+      && rule.logicalName === entry.logicalName
+      && rule.targetRelativePath === entry.targetRelativePath
+    ));
+    if (!payload) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `handoff output has no captured target baseline: ${entry.targetRelativePath}`,
+      );
+    }
+    addArtifactBaseline(new CanonicalFlowArtifactBaseline({
+      logicalKey: address.logicalKey,
+      parameters: address.parameters,
+      digest: payload.baselineDigest,
+      byteLength: payload.baselineByteLength,
+    }));
     if (address.logicalKey === "spec.record") {
       if (specRecord !== undefined) {
         throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", "handoff publishes spec.json more than once");
@@ -3250,6 +3349,7 @@ function canonicalHandoffPublications(request, submission) {
     specRecord: specRecord ?? undefined,
     artifactWrites: Object.freeze(artifactWrites),
     artifactRemovals: Object.freeze(artifactRemovals),
+    artifactBaselines: Object.freeze([...artifactBaselines.values()]),
     testSourceBaseline: testSourceBaseline ?? undefined,
   });
 }
@@ -3679,6 +3779,7 @@ export class WorkerArtifactHandoffCoordinator {
         specRecord: publications.specRecord,
         artifactWrites: publications.artifactWrites,
         artifactRemovals: publications.artifactRemovals,
+        artifactBaselines: publications.artifactBaselines,
         testSourceBaseline: publications.testSourceBaseline,
       });
     } catch (cause) {

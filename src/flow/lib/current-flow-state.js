@@ -210,6 +210,60 @@ export class CanonicalFlowArtifactWrite {
 }
 
 /**
+ * The catalog value observed for one artifact used by a worker before it
+ * starts.  The Version Store compares it while holding the catalog
+ * publication lock, so unrelated artifacts may change while actual inputs
+ * and outputs retain compare-and-swap semantics.
+ */
+export class CanonicalFlowArtifactBaseline {
+  constructor({ logicalKey, parameters = {}, digest = null, byteLength = 0 } = {}) {
+    if (!isPlainObject(parameters)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact baseline parameters must be an object");
+    }
+    this.artifact = resolvedArtifact(requireString(logicalKey, "canonical artifact baseline logicalKey"), parameters);
+    if (["flow.state", "flow.activities", "artifact.catalog"].includes(this.artifact.logicalKey)) {
+      throw new CurrentFlowStateInvariantError("canonical Store authorities cannot be worker artifact baselines");
+    }
+    if (!this.artifact.contract.cataloged) {
+      throw new CurrentFlowStateInvariantError("canonical artifact baseline must target cataloged storage");
+    }
+    if (digest !== null && (typeof digest !== "string" || !/^[a-f0-9]{64}$/.test(digest))) {
+      throw new CurrentFlowStateInvariantError("canonical artifact baseline digest must be null or a SHA-256 digest");
+    }
+    if (!Number.isSafeInteger(byteLength) || byteLength < 0 || (digest === null && byteLength !== 0)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact baseline byteLength is invalid");
+    }
+    this.digest = digest;
+    this.byteLength = byteLength;
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof CanonicalFlowArtifactBaseline
+      ? value
+      : new CanonicalFlowArtifactBaseline(value);
+  }
+
+  assertCatalog(catalog) {
+    if (!(catalog instanceof FlowArtifactCatalog)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact baseline requires a FlowArtifactCatalog");
+    }
+    const actual = catalog.artifacts.find((entry) => entry.relativePath === this.artifact.relativePath) ?? null;
+    const unchanged = this.digest === null
+      ? actual === null
+      : actual !== null
+        && actual.logicalKey === this.artifact.logicalKey
+        && actual.hash === this.digest
+        && actual.size === this.byteLength;
+    if (!unchanged) {
+      throw new CurrentFlowStateConflictError(
+        `canonical worker artifact changed after handoff capture: ${this.artifact.relativePath}`,
+      );
+    }
+  }
+}
+
+/**
  * The dispatcher-owned publication of source-worker upgrade evidence.  The
  * bytes originate in a sealed handoff payload, but the only Store route that
  * accepts this value is a source Attempt confirmation.
@@ -5911,6 +5965,7 @@ export class CurrentFlowVersionStore {
       throw new CurrentFlowStateInvariantError("only add_task Activity may update canonical spec.json.tasks");
     }
     const replacementSpec = this.#replacementSpec(input?.specRecord, activity, taskAddition);
+    const artifactBaselines = this.#artifactBaselines(input?.artifactBaselines);
     const systemActivity = LIFECYCLE_TRANSITION_OPERATIONS.has(activity.transition.operation)
       || POLICY_TRANSITION_OPERATIONS.has(activity.transition.operation)
       || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(activity.transition.operation)
@@ -5972,6 +6027,7 @@ export class CurrentFlowVersionStore {
             },
           });
         }
+        for (const baseline of artifactBaselines) baseline.assertCatalog(catalog);
         testSourceBaseline?.assertCatalog(catalog);
       },
       write: () => {
@@ -6131,6 +6187,18 @@ export class CurrentFlowVersionStore {
     // Activity that cannot be cataloged.
     for (const write of writes) write.publication(activity);
     return Object.freeze(writes);
+  }
+  #artifactBaselines(value) {
+    if (value === undefined) return Object.freeze([]);
+    if (!Array.isArray(value)) {
+      throw new CurrentFlowStateInvariantError("canonical artifactBaselines must be an array");
+    }
+    const baselines = value.map((entry) => CanonicalFlowArtifactBaseline.from(entry));
+    const paths = new Set(baselines.map((entry) => entry.artifact.relativePath));
+    if (paths.size !== baselines.length) {
+      throw new CurrentFlowStateInvariantError("canonical artifactBaselines must not duplicate a path");
+    }
+    return Object.freeze(baselines);
   }
   #sourceWorkerUpgrade(value, activity, writes) {
     const upgrades = writes.filter((write) => write instanceof CanonicalSourceWorkerUpgradeResult);

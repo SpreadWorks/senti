@@ -1013,7 +1013,7 @@ export default class RunDispatchCommand extends FlowCommand {
     try {
       let workerArtifactAuthority = null;
       try {
-        workerArtifactAuthority = handoffRequest === null
+        workerArtifactAuthority = handoffRequest?.policy.kind !== "source"
           ? null
           : WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest);
       } catch (error) {
@@ -1049,21 +1049,6 @@ export default class RunDispatchCommand extends FlowCommand {
 
       if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
 
-      let mutationError = null;
-      try {
-        if (handoffRequest.policy.kind !== "source") workerArtifactAuthority.assertUnchanged();
-      } catch (error) {
-        mutationError = error;
-      }
-      if (mutationError) {
-        await deferredMetric.flush();
-        if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
-        return {
-          error: quarantineRejectedWorkerHandoff(this.handoffCoordinator, handoffRequest, mutationError),
-          handoffRequest,
-          agentError,
-        };
-      }
       try {
         this.handoffCoordinator.reconcile({
           ctx,

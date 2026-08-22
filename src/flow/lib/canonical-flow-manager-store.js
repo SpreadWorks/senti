@@ -82,6 +82,7 @@ const RAW_ACTIVITY_MUTATION_OPTION_FIELDS = Object.freeze([
   "specRecord",
   "artifactWrites",
   "artifactRemovals",
+  "artifactBaselines",
   "testSourceBaseline",
   "sourceWorkerUpgrade",
   "admission",
@@ -1857,7 +1858,7 @@ export class CanonicalFlowManagerStore {
    * and replaces the catalog descriptors.  It deliberately accepts no
    * mutable flow-state callback.
    */
-  confirmCurrentAttempt({ specId = null, status = "done", result = null, references = undefined, specRecord = undefined, artifactWrites = [], artifactRemovals = undefined, testSourceBaseline = undefined } = {}) {
+  confirmCurrentAttempt({ specId = null, status = "done", result = null, references = undefined, specRecord = undefined, artifactWrites = [], artifactRemovals = undefined, artifactBaselines = undefined, testSourceBaseline = undefined } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
@@ -1873,6 +1874,7 @@ export class CanonicalFlowManagerStore {
       specRecord,
       artifactWrites,
       artifactRemovals,
+      artifactBaselines,
       testSourceBaseline,
       ...(status === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
     });
