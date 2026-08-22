@@ -8,11 +8,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WORKFLOW = readFileSync(resolve(ROOT, ".github/workflows/ci.yml"), "utf8");
 
 describe("CI workflow contract", () => {
-  it("runs test:ci on the declared minimum and current LTS lanes", () => {
+  it("runs the deterministic test command on the declared minimum and current LTS lanes", () => {
     assert.match(WORKFLOW, /name: CI/);
     assert.match(WORKFLOW, /node-version: "18\.19\.0"/);
     assert.match(WORKFLOW, /node-version: "lts\/\*"/);
-    assert.match(WORKFLOW, /run: npm run test:ci/);
+    assert.match(WORKFLOW, /run: npm test/);
     assert.match(WORKFLOW, /fail-fast: false/);
     assert.match(WORKFLOW, /GIT_AUTHOR_NAME: sennel CI/);
     assert.match(WORKFLOW, /GIT_COMMITTER_EMAIL: sennel-ci@example\.invalid/);

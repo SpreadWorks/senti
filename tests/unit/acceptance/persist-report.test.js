@@ -4,15 +4,19 @@
  * Unit tests for persisting acceptance reports to project root.
  */
 
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { persistReport } from "../../acceptance/lib/test-template.js";
 
 describe("persistReport", () => {
   let tmp;
+  afterEach(() => {
+    if (tmp) removeTmpDir(tmp);
+    tmp = null;
+  });
 
   it("writes report to .sennel/output/acceptance-report-{preset}.json", () => {
     tmp = createTmpDir("persist-test-");
@@ -58,7 +62,4 @@ describe("persistReport", () => {
     assert.ok(fs.existsSync(outPath), "file should use preset name as suffix");
   });
 
-  it("cleanup", () => {
-    if (tmp) removeTmpDir(tmp);
-  });
 });

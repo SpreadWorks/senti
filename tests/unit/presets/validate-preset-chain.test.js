@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { validatePresetChain } from "../../../src/lib/presets.js";
-import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../support/builders/tmp-dir.js";
 
 function writePluginPreset(root, { key = "myext", chapters = [{ chapter: "missing.md" }] } = {}) {
   writeJson(root, ".sennel/config.json", {

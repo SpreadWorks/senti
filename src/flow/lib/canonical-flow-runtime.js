@@ -96,6 +96,8 @@ function requiredPositiveInteger(value, field) {
  * authority, and migration code uses the same `CurrentFlowVersionStore` API.
  */
 export class CanonicalFlowRuntime {
+  #stores = new Map();
+
   constructor({ repositoryRoot, executionRoot = repositoryRoot, specRoot = DEFAULT_FLOW_SPEC_DIR, definition, versionStoreFaultInjector = null } = {}) {
     if (!(definition instanceof CurrentFlowDefinition)) {
       throw new CurrentFlowStateInvariantError("CanonicalFlowRuntime requires a CurrentFlowDefinition");
@@ -114,15 +116,33 @@ export class CanonicalFlowRuntime {
   }
 
   store(specId) {
-    return new CurrentFlowVersionStore({
-      location: this.location(specId),
-      definition: this.definition,
-      ...(this.versionStoreFaultInjector && { faultInjector: this.versionStoreFaultInjector }),
-    });
+    const location = this.location(specId);
+    const key = location.specId.toString();
+    let store = this.#stores.get(key);
+    if (store === undefined) {
+      store = new CurrentFlowVersionStore({
+        location,
+        definition: this.definition,
+        ...(this.versionStoreFaultInjector && { faultInjector: this.versionStoreFaultInjector }),
+      });
+      this.#stores.set(key, store);
+    }
+    return store;
+  }
+
+  #freshStore(specId) {
+    const location = this.location(specId);
+    const key = location.specId.toString();
+    // A Version store captures directory identities once it has opened the
+    // root.  Creation may legitimately follow a cleanup/recreation of that
+    // root, so it must start with an uncaptured Store rather than reuse the
+    // old authority.
+    this.#stores.delete(key);
+    return this.store(key);
   }
 
   createFresh({ specId, flowId, flowVersionId, runId, request, issue = null, execution, lifecycle, policy, specRecord, issueSnapshot = null } = {}) {
-    return this.store(specId).createFresh({
+    return this.#freshStore(specId).createFresh({
       flowId,
       flowVersionId,
       runId,

@@ -7,11 +7,11 @@
  * Used by:
  *   - src/flow/lib/get-next-action.js — populates the `instructions.content`
  *     field of the next-action CLI envelope.
- *   - tests/unit/flow/get-step-instructions.test.js — contract tests.
+ *   - tests/integration/flow/get-step-instructions.test.js — contract tests.
  *
  * The loader fails loudly (throws Error with the offending key in the message)
  * for unknown keys or missing files. There is no silent empty-string fallback;
- * the coverage check (tests/unit/flow/instructions-coverage.test.js) is the
+ * the coverage check (tests/integration/flow/instructions-coverage.test.js) is the
  * structural guarantee that every registered key has a backing file.
  */
 

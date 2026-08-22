@@ -47,7 +47,7 @@ describe("ProductIdentity", () => {
     assert.deepEqual(packageJson.bin, { [PRODUCT.machineName]: `./${PRODUCT.entrypoint}` });
     assert.equal(packageJson.exports["."], `./${PRODUCT.entrypoint}`);
     assert.equal(packageJson.repository.url, PRODUCT.repositoryUrl);
-    assert.match(readme, new RegExp(`^# ${PRODUCT.displayName}$`, "m"));
+    assert.ok(readme.startsWith(`# <!-- {{data("cli.project.name")}} -->${PRODUCT.displayName}<!-- {{/data}} -->\n`));
     assert.ok(japaneseReadme.startsWith(`# <!-- {{data("cli.project.name")}} -->${PRODUCT.displayName}<!-- {{/data}} -->\n`));
     assert.doesNotMatch(readme, /@spreadworks\/sennel/i);
     assert.doesNotMatch(japaneseReadme, /@spreadworks\/sennel/i);

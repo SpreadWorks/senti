@@ -6,7 +6,7 @@ import {
 } from "../../../../src/docs/lib/source-selection.js";
 import { resolveDocumentationScanPatterns } from "../../../../src/docs/lib/scan-patterns.js";
 import { DocumentationBuildInputSelection } from "../../../../src/check/lib/documentation-build-input-selection.js";
-import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../../../support/builders/tmp-dir.js";
 
 describe("documentation source selection", () => {
   let tmp;

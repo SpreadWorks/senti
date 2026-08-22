@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import DocsTextCommand from "../../../../src/docs/commands/text.js";
-import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js";
 
 function template(title) {
   return [

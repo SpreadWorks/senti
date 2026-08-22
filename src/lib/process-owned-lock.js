@@ -106,6 +106,12 @@ export class RealDirectoryAuthority {
     errorFactory = defaultErrorFactory,
   } = {}) {
     this.directory = path.resolve(directory);
+    if (parentAuthority !== null && !(parentAuthority instanceof RealDirectoryAuthority)) {
+      throw new Error("lock directory parent authority must be a RealDirectoryAuthority");
+    }
+    if (parentAuthority !== null && path.dirname(this.directory) !== parentAuthority.directory) {
+      throw new Error("lock directory parent authority must own its direct parent");
+    }
     this.create = create;
     this.parentAuthority = parentAuthority;
     this.errorFactory = errorFactory;
@@ -159,7 +165,14 @@ export class RealDirectoryAuthority {
     let stat;
     try {
       stat = fs.lstatSync(this.directory);
-      if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(this.directory) !== this.directory) {
+      // A validated direct parent already proves every ancestor is real. The
+      // child lstat is therefore sufficient to exclude the only remaining
+      // symlink boundary without repeating a full realpath walk.
+      if (
+        !stat.isDirectory()
+        || stat.isSymbolicLink()
+        || (this.parentAuthority === null && fs.realpathSync(this.directory) !== this.directory)
+      ) {
         throw new Error("lock authority must be a real directory");
       }
     } catch (cause) {

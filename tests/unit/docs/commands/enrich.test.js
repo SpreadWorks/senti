@@ -420,5 +420,5 @@ describe("mergeEnrichment", () => {
   });
 });
 
-// getRetryCount and enrichBatchWithRetry tests moved to tests/unit/lib/agent.test.js
+// getRetryCount and enrichBatchWithRetry tests moved to tests/integration/lib/agent.test.js
 // (retry logic is now in callAgentAsync)

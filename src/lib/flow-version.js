@@ -971,8 +971,12 @@ export class FlowArtifactActivityIndex {
     Object.freeze(this);
   }
   static fromFile(file) {
+    return FlowArtifactActivityIndex.fromBytes(fs.readFileSync(file));
+  }
+  static fromBytes(bytes) {
+    if (!Buffer.isBuffer(bytes)) throw new Error("artifact Activity index requires file bytes");
     const activities = [];
-    const lines = fs.readFileSync(file, "utf8").split("\n").filter((line) => line.trim() !== "");
+    const lines = bytes.toString("utf8").split("\n").filter((line) => line.trim() !== "");
     for (const line of lines) {
       let value;
       try { value = JSON.parse(line); } catch (error) { throw new Error(`activities.jsonl contains malformed JSON: ${error.message}`); }
@@ -991,6 +995,25 @@ export class FlowArtifactActivityIndex {
     const activity = this.byId.get(id);
     if (!activity) throw new Error(`cataloged artifact references a missing Activity: ${id}`);
     return activity;
+  }
+}
+
+class FlowArtifactActivityIndexFile {
+  #bytes = null;
+  #index = null;
+
+  constructor(file) {
+    this.file = path.resolve(file);
+    Object.freeze(this);
+  }
+
+  read() {
+    const bytes = fs.readFileSync(this.file);
+    if (this.#bytes !== null && bytes.equals(this.#bytes)) return this.#index;
+    const index = FlowArtifactActivityIndex.fromBytes(bytes);
+    this.#bytes = Buffer.from(bytes);
+    this.#index = index;
+    return index;
   }
 }
 
@@ -1023,16 +1046,23 @@ export class FlowArtifactCatalog {
     if (!result) throw new Error(`artifact is not cataloged: ${file}`);
     return result;
   }
-  relatedActivity(file, location) {
+  relatedActivity(file, location, activityIndexFile = null) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required to resolve an artifact Activity");
+    if (activityIndexFile !== null && !(activityIndexFile instanceof FlowArtifactActivityIndexFile)) {
+      throw new Error("FlowArtifactActivityIndexFile is required to resolve an artifact Activity");
+    }
     location.requireScope("canonical");
     location.assertAuthority(FLOW_ACTIVITIES_RELATIVE_PATH, { mustExist: true });
     const artifact = this.resolve(file);
     if (artifact.activityId === null) return null;
-    return FlowArtifactActivityIndex.fromFile(location.activitiesFile).require(artifact.activityId).assertRelatedArtifact(artifact);
+    const activityIndex = activityIndexFile?.read() ?? FlowArtifactActivityIndex.fromFile(location.activitiesFile);
+    return activityIndex.require(artifact.activityId).assertRelatedArtifact(artifact);
   }
-  verify(location) {
+  verify(location, activityIndexFile = null) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required to verify an artifact catalog");
+    if (activityIndexFile !== null && !(activityIndexFile instanceof FlowArtifactActivityIndexFile)) {
+      throw new Error("FlowArtifactActivityIndexFile is required to verify an artifact catalog");
+    }
     location.requireScope("canonical");
     const actual = new Set(managedFiles(location));
     const cataloged = new Set(this.artifacts.map((artifact) => artifact.relativePath));
@@ -1042,7 +1072,7 @@ export class FlowArtifactCatalog {
     const associated = this.artifacts.filter((artifact) => artifact.activityId !== null);
     if (ledger || associated.length > 0) {
       if (!ledger) throw new Error(`cataloged Activity associations require ${FLOW_ACTIVITIES_RELATIVE_PATH}`);
-      const activityIndex = FlowArtifactActivityIndex.fromFile(location.activitiesFile);
+      const activityIndex = activityIndexFile?.read() ?? FlowArtifactActivityIndex.fromFile(location.activitiesFile);
       for (const artifact of associated) {
         const activity = activityIndex.require(artifact.activityId).assertRelatedArtifact(artifact);
         if (artifact.logicalKey !== null) {
@@ -1061,12 +1091,17 @@ export class FlowArtifactCatalog {
 }
 
 export class FlowArtifactCatalogStore {
+  #activityIndexFile;
+  #catalogBytes = null;
+  #catalog = null;
+
   constructor({ location, faultInjector } = {}) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for artifact catalog storage");
     location.requireScope("canonical");
     location.assertAuthority();
     this.location = location;
     this.file = new AtomicJsonFile(location.catalogFile, ...(faultInjector ? [{ faultInjector }] : []));
+    this.#activityIndexFile = new FlowArtifactActivityIndexFile(location.activitiesFile);
     Object.freeze(this);
   }
   load() {
@@ -1074,11 +1109,19 @@ export class FlowArtifactCatalogStore {
   }
   #loadUnlocked() {
     this.location.assertAuthority();
-    const value = this.file.read(null);
-    if (value === null) return null;
-    const catalog = new FlowArtifactCatalog(value);
-    if (value.hash !== catalog.hash) throw new Error("artifact catalog hash does not match its canonical content");
-    return catalog.verify(this.location);
+    const bytes = this.file.readBytes(null);
+    if (bytes === null) return null;
+    let catalog = this.#catalogBytes !== null && bytes.equals(this.#catalogBytes)
+      ? this.#catalog
+      : null;
+    if (catalog === null) {
+      const value = JSON.parse(bytes.toString("utf8"));
+      catalog = new FlowArtifactCatalog(value);
+      if (value.hash !== catalog.hash) throw new Error("artifact catalog hash does not match its canonical content");
+      this.#catalogBytes = Buffer.from(bytes);
+      this.#catalog = catalog;
+    }
+    return catalog.verify(this.location, this.#activityIndexFile);
   }
   require() {
     return this.#withPublicationLock(() => this.#requireUnlocked());
@@ -1111,8 +1154,11 @@ export class FlowArtifactCatalogStore {
     if (!(catalog instanceof FlowArtifactCatalog)) throw new Error("FlowArtifactCatalog is required");
     this.location.assertAuthority();
     fs.mkdirSync(this.location.directory, { recursive: true, mode: 0o755 });
-    catalog.verify(this.location);
-    this.file.write(catalog.toJSON());
+    catalog.verify(this.location, this.#activityIndexFile);
+    const value = catalog.toJSON();
+    this.file.write(value);
+    this.#catalogBytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+    this.#catalog = catalog;
     return catalog;
   }
   read({ relativePaths = [], read } = {}) {
@@ -1127,7 +1173,7 @@ export class FlowArtifactCatalogStore {
     const artifactPath = relativePath(file, "artifact relativePath");
     return this.read({
       relativePaths: [artifactPath, FLOW_ACTIVITIES_RELATIVE_PATH],
-      read: (catalog) => catalog.relatedActivity(artifactPath, this.location),
+      read: (catalog) => catalog.relatedActivity(artifactPath, this.location, this.#activityIndexFile),
     });
   }
   publish({ logicalKey = null, relativePath: file, authoritySlot, publicationClaim, mediaType, retention, activityId = null, precondition = null, write } = {}) {
@@ -1290,7 +1336,7 @@ export class FlowArtifactCatalogStore {
         }
         const associated = descriptors.filter((descriptor) => descriptor.activityId !== null);
         if (associated.length > 0) {
-          const activityIndex = FlowArtifactActivityIndex.fromFile(this.location.activitiesFile);
+          const activityIndex = this.#activityIndexFile.read();
           for (const descriptor of associated) {
             const nextActivity = activityIndex.require(descriptor.activityId).assertRelatedArtifact(descriptor);
             const prior = previous.artifacts.find((entry) => entry.relativePath === descriptor.relativePath);

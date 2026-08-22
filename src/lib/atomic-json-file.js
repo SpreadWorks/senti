@@ -22,8 +22,12 @@ export class AtomicJsonFile extends AtomicFile {
   }
 
   read(fallback) {
-    const content = super.read(null);
+    const content = this.readBytes(null);
     return content == null ? structuredClone(fallback) : JSON.parse(content.toString("utf8"));
+  }
+
+  readBytes(fallback = null) {
+    return super.read(fallback);
   }
 
   write(value) {

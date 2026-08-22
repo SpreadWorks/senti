@@ -6,7 +6,7 @@ import {
   resolveTemplates,
   mergeResolved,
 } from "../../../../src/docs/lib/template-merger.js";
-import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../support/builders/tmp-dir.js";
 
 function withPluginPresets(presets) {
   const tmpDir = createTmpDir("sennel-test-cross-chain-");

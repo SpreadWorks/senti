@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import os from "os";
 import assert from "node:assert/strict";
-import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js";
 import path from "path";
 import { processTemplateFileBatch, countFilledInBatch } from "../../../../src/docs/commands/text.js";
 import { Agent } from "../../../../src/lib/agent.js";

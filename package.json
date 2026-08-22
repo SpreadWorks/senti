@@ -34,11 +34,11 @@
     "release:version:validate": "node scripts/validate-alpha-version.js",
     "test": "node tests/run.js",
     "test:unit": "node tests/run.js --scope unit",
+    "test:integration": "node tests/run.js --scope integration",
     "test:e2e": "node tests/run.js --scope e2e",
-    "test:acceptance": "node tests/acceptance/run.js",
-    "test:agent": "node tests/run.js --agent",
-    "test:all": "node tests/run.js --all",
-    "test:ci": "node tests/ci.js"
+    "test:acceptance": "node tests/run.js --scope acceptance",
+    "test:agent": "node tests/run.js --scope agent",
+    "test:all": "node tests/run.js --all"
   },
   "license": "MIT",
   "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"

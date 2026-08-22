@@ -16,13 +16,6 @@ import {
   detectUnfilledDirectives,
   detectExposedDirectives,
 } from "./assertions.js";
-import { verifyWithAI } from "./ai-verify.js";
-import {
-  AcceptanceHostAgentConfiguration,
-  acceptanceHostRoot,
-} from "./host-agent-config.js";
-
-const PROJECT_ROOT = acceptanceHostRoot();
 
 function resolveFixtureDir(presetName, opts) {
   const fixtureDir = opts?.fixtureDir;
@@ -53,18 +46,15 @@ export function persistReport(projectRoot, report) {
 }
 
 /**
- * Preserve fixture-specific docs and scan settings while running AI steps with
- * the test host's effective provider/profile selection.
+ * Preserve fixture-specific docs and scan settings in deterministic acceptance
+ * tests. Real provider evaluation belongs exclusively to tests/agent.
  */
-export function acceptanceFixtureConfigOverrides(configOverrides = {}, hostRoot = PROJECT_ROOT) {
-  return {
-    ...configOverrides,
-    agent: AcceptanceHostAgentConfiguration.fromRoot(hostRoot).toFixtureAgent(),
-  };
+export function acceptanceFixtureConfigOverrides(configOverrides = {}) {
+  return { ...configOverrides, agent: null };
 }
 
 export function acceptanceTest(presetName, opts) {
-  const { configOverrides } = opts || {};
+  const { configOverrides, agent = null } = opts || {};
   const fixtureDir = resolveFixtureDir(presetName, opts);
 
   describe(`acceptance: ${presetName}`, { timeout: 600000 }, () => {
@@ -73,7 +63,7 @@ export function acceptanceTest(presetName, opts) {
     it("pipeline completes and passes all checks", async () => {
       tmp = copyFixture(fixtureDir, acceptanceFixtureConfigOverrides(configOverrides));
 
-      const { ctx, steps } = await runPipeline(tmp);
+      const { ctx, steps } = await runPipeline(tmp, { agent });
 
       const { files } = assertStructure(ctx.docsDir);
       const unfilled = detectUnfilledDirectives(ctx.docsDir, files);
@@ -92,22 +82,12 @@ export function acceptanceTest(presetName, opts) {
         }
       }
 
-      let quality = null;
-      let aiError = null;
-      try {
-        const aiResult = await verifyWithAI(tmp, ctx.config, presetName);
-        quality = aiResult.quality;
-      } catch (e) {
-        quality = e.quality || null;
-        aiError = e;
-      }
-
       const report = {
         preset: presetName,
         timestamp: new Date().toISOString(),
         pipeline: { steps },
         directives: { unfilled, exposed },
-        quality,
+        quality: "deterministic checks passed",
       };
 
       const reportPath = path.join(
@@ -119,10 +99,7 @@ export function acceptanceTest(presetName, opts) {
       writeReport(reportPath, report);
       console.log(`  [report] written to ${reportPath}`);
 
-      const persistPath = persistReport(PROJECT_ROOT, report);
-      console.log(`  [report] persisted to ${persistPath}`);
 
-      if (aiError) throw aiError;
     });
 
     it("cleanup", () => {

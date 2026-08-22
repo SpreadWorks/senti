@@ -7,7 +7,7 @@ import {
   getEnrichedContext,
   getAnalysisContext,
 } from "../../../../src/docs/lib/text-prompts.js";
-import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeFile } from "../../../support/builders/tmp-dir.js";
 
 // ---------------------------------------------------------------------------
 // getEnrichedContext

@@ -2,7 +2,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
-import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../support/builders/tmp-dir.js";
 
 /**
  * DocsSource.langSwitcher() tests.

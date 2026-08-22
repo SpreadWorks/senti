@@ -278,12 +278,11 @@ Container API に独立した version フィールドは設けない。外部 pr
 
 プリセットは `tests/` ディレクトリを含むこと。
 
-- `tests/unit/` — DataSource の `match` / `parse` I/O テスト。最小限のフィクスチャを `createTmpDir()` で作成し、入出力を検証する
-- `tests/e2e/` — preset.json の scan 設定検証、フルスキャンパイプラインテスト
-- `tests/acceptance/test.js` — preset ローカル fixture を使う acceptance テスト。共有処理は `tests/acceptance/lib/` を使う
+- root `tests/unit/presets/<name>/` — DataSource の `match` / `parse` I/O テスト。最小限の fixture を作成し、入出力を検証する
+- root `tests/integration/` — preset.json の scan 設定やフルスキャンなどの filesystem 境界シナリオ
+- `tests/acceptance/*.acceptance.test.js` — preset ローカル fixture を使う deterministic acceptance テスト。共有処理は root `tests/acceptance/lib/` を使う
 - テンプレートを作成・変更した場合は acceptance テストも実装し、実行すること
-- `npm test -- --preset <name>` でプリセット毎のテストを実行できること
-- `node tests/acceptance/run.js <name>` で acceptance テストを個別実行できること
+- `npm test -- --preset <name>` で preset の acceptance を含む suite を個別実行できること
 - テストファイルは npm パッケージには含まれない（package.json の `files` で除外済み）
 
 ### MUST: scan DataSource と data DataSource の対応

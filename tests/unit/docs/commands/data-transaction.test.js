@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 
 import { populateFromAnalysis } from "../../../../src/docs/commands/data.js";
 import { Paragraph } from "../../../../src/docs/lib/renderable.js";
-import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js";
 
 const TYPE = "sample-node-command";
 const CHAPTERS = ["overview", "cli_commands"];
