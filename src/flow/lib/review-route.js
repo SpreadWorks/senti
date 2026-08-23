@@ -15,6 +15,7 @@ export class FlowReviewRoute {
   constructor({
     phase,
     reviewStepId,
+    logicalKey,
     projectionFile,
     passNextStepId,
     downstreamGatePhase = null,
@@ -23,6 +24,7 @@ export class FlowReviewRoute {
   }) {
     this.phase = requireString(phase, "phase");
     this.reviewStepId = requireString(reviewStepId, "reviewStepId");
+    this.logicalKey = requireString(logicalKey, "logicalKey");
     this.projectionFile = requireString(projectionFile, "projectionFile");
     this.passNextStepId = requireString(passNextStepId, "passNextStepId");
     this.downstreamGatePhase = nullableString(downstreamGatePhase, "downstreamGatePhase");
@@ -39,6 +41,7 @@ export class FlowReviewRoute {
 const DRAFT_FLOW_REVIEW_ROUTES = DRAFT_REVIEW_ROUTES.map((route) => new FlowReviewRoute({
   phase: route.retryPhase,
   reviewStepId: route.reviewStepId,
+  logicalKey: route.reviewLogicalKey,
   projectionFile: route.reviewArtifact,
   passNextStepId: route.passNextStepId,
   downstreamGatePhase: route.passNextStepId === "draft-gate" ? "draft" : null,
@@ -51,6 +54,7 @@ export const FLOW_REVIEW_ROUTES = Object.freeze([
   new FlowReviewRoute({
     phase: "spec",
     reviewStepId: "spec-review",
+    logicalKey: "spec.review",
     projectionFile: "spec-review.json",
     passNextStepId: "spec-gate",
     downstreamGatePhase: "spec",
@@ -60,12 +64,14 @@ export const FLOW_REVIEW_ROUTES = Object.freeze([
   new FlowReviewRoute({
     phase: "test",
     reviewStepId: "test-review",
+    logicalKey: "test.review",
     projectionFile: "test-review.json",
     passNextStepId: "implement",
   }),
   new FlowReviewRoute({
     phase: "impl",
     reviewStepId: "impl-review",
+    logicalKey: "impl.review",
     projectionFile: "impl-review.json",
     passNextStepId: "impl-gate",
     downstreamGatePhase: "integration",

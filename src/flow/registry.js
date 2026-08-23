@@ -190,13 +190,14 @@ async function persistNonTerminalReviewResult(ctx, result) {
   const rejectedTaskReview = artifacts?.phase === "impl"
     && artifacts?.taskId != null
     && !["PASS", "ADVISORY"].includes(artifacts?.verdict);
-  if (!rejectedTestReview && !rejectedTaskReview) return;
+  const toolingReview = artifacts?.toolingOutcome != null;
+  if (!rejectedTestReview && !rejectedTaskReview && !toolingReview) return;
 
   const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
   if (attachedCanonicalCommandResultArtifact(result) === null) return;
 
   const specId = ctx.specId ?? ctx.flowState.specId;
-  if (rejectedTestReview || ctx.flowState?.policy?.nonblocking?.enabled === true) {
+  if (rejectedTestReview || toolingReview || ctx.flowState?.policy?.nonblocking?.enabled === true) {
     ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
   } else {
     ctx.flowManager.failCurrentAttempt({
@@ -503,14 +504,26 @@ class RegistryLifecycleAdapter {
 
   async incrementMetric(phase, counter) {
     if (counter === "reviewRetry") {
-      const reviewMod = await import("./lib/run-review.js");
-      reviewMod.updateReviewRetryCounter(this.ctx, this.result);
+      const reviewTransition = await import("./lib/review-transition-persistence.js");
+      reviewTransition.persistReviewTransitionFacts(this.ctx, this.result);
       return;
     }
     if (counter === "gateRetry") {
       const gateMod = await import("./lib/run-gate.js");
       gateMod.updateGateRetryCounter(this.ctx, this.result);
     }
+  }
+
+  async persistReviewResult() {
+    const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+    if (attachedCanonicalCommandResultArtifact(this.result) === null) {
+      throw new Error("definition-selected Review result persistence requires a canonical command result");
+    }
+    this.ctx.flowManager.publishCurrentAttemptResult({
+      specId: this.ctx.specId ?? this.ctx.flowState.specId,
+      commandResult: this.result,
+    });
+    this.refreshFlowState();
   }
 
   async appendIssueLog(source) {
@@ -1793,6 +1806,26 @@ export const FLOW_COMMANDS = {
         "",
         "Execute the definition-owned record or rewind transition for the current failed Attempt.",
         "The command derives the transition, failed result, and rewind target from canonical state; it accepts no route or result input.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
+    "settle-review-transition": {
+      helpKey: "flow.run.settle-review-transition",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-settle-review-transition.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: sennel flow run settle-review-transition ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Persist the active Review's definition-selected deferred transition and canonical finding handoff.",
+        "The command accepts no result, retry count, or route; definition-derived persisted facts are its only authority.",
         "",
         "Options:",
         ...FLOW_TARGET_GUARD_HELP_LINES,

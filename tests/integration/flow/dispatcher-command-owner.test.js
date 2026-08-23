@@ -98,6 +98,29 @@ test("dispatcher owns the typed historical missing-producer recovery command", a
   assert.deepEqual(calls, [{ commandName: "recover-missing-producer-artifact", args: [] }]);
 });
 
+test("dispatcher owns definition-selected Review settlement without starting a worker", async () => {
+  const dispatcher = new RunDispatchCommand();
+  const calls = [];
+  dispatcher.runRegisteredFlowCommand = async (_ctx, _target, commandName, args) => {
+    calls.push({ commandName, args });
+    return { ok: true, errors: [] };
+  };
+  const result = await dispatcher.runDispatcherOwnedRecovery(
+    {},
+    {},
+    {
+      directive: new ExecuteCommandDirective({
+        actionId: "SETTLE_REVIEW_DEFER",
+        nextAction: "sennel flow run settle-review-transition --expect-run-id review-run",
+        instruction: "Persist the definition-selected Review deferral.",
+        reason: "The semantic Review retry budget is exhausted.",
+      }),
+    },
+  );
+  assert.deepEqual(result, { ok: true, errors: [] });
+  assert.deepEqual(calls, [{ commandName: "settle-review-transition", args: [] }]);
+});
+
 test("dispatcher executes a definition-owned review in the parent without starting a worker", async () => {
   const root = createTmpDir("dispatcher-command-owner-");
   try {

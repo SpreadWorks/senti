@@ -39,6 +39,7 @@ import RunUpdateOverviewCommand from "../../../src/flow/lib/run-update-overview.
 import RunGateCommand, { executeGateSideEffects } from "../../../src/flow/lib/run-gate.js";
 import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
 import RunSettleFailureCommand from "../../../src/flow/lib/run-settle-failure.js";
+import RunSettleReviewTransitionCommand from "../../../src/flow/lib/run-settle-review-transition.js";
 import RunRepairTestReviewCommand from "../../../src/flow/lib/run-repair-test-review.js";
 import RunScenarioValidityCommand from "../../../src/flow/lib/run-scenario-validity.js";
 import RunTestResultReviewCommand from "../../../src/flow/lib/run-test-result-review.js";
@@ -194,29 +195,30 @@ function confirmFixtureStep(manager, stepId, opts = {}) {
   );
 }
 
-function attemptHistoryBytes(nodeId, logicalKey, payload) {
-  const history = new FlowArtifactAttemptHistory([
+function attemptHistoryBytes(nodeId, logicalKey, payload, attempt = 1) {
+  const history = new FlowArtifactAttemptHistory(Array.from({ length: attempt }, (_, index) => (
     new FlowArtifactAttemptRecord({
-      attempt: 1,
+      attempt: index + 1,
       payload: {
         nodeId,
         outcome: "completed",
         result: { result: "ok" },
         artifact: { logicalKey, payload },
       },
-    }),
-  ]);
+    })
+  )));
   return Buffer.from(`${JSON.stringify(history.toJSON(), null, 2)}\n`, "utf8");
 }
 
 function publishAttemptArtifact(manager, specId, nodeId, logicalKey, payload) {
+  const attempt = manager.canonicalState(specId).attempt.sequence;
   manager.publishArtifacts({
     specId,
     nodeId,
     artifactWrites: [{
       logicalKey,
       mediaType: "application/json",
-      bytes: attemptHistoryBytes(nodeId, logicalKey, payload),
+      bytes: attemptHistoryBytes(nodeId, logicalKey, payload, attempt),
     }],
   });
 }
@@ -2462,6 +2464,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
       findingId: "test-review-finding",
       fingerprint: "f".repeat(64),
       summary: "The test omits a required behavior.",
+      disposition: "must-fix",
+      rationale: "The test must cover the required behavior before acceptance.",
     };
     publishAttemptArtifact(manager, created.specId, "test-review", "test.review", {
       phase: "test",
@@ -2476,6 +2480,9 @@ describe("FlowManager canonical Version-1 runtime", () => {
         identity: { evidenceDigest },
       },
     });
+    for (let index = 0; index < 4; index += 1) {
+      manager.appendMetric({ phase: "test", counter: "reviewRetry", delta: 1 }, { specId: created.specId, taskId: null });
+    }
     const ctx = {
       root: repository,
       mainRoot: repository,
@@ -2486,7 +2493,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowCommandBoundary: true,
     };
     const next = await new GetNextActionCommand().execute(ctx);
-    assert.equal(next.directive.actionId, "REPAIR_TEST_REVIEW");
+    assert.equal(next.directive.actionId, "REPAIR_TEST_REVIEW", "four persisted retries remain below the definition maximum");
 
     const repaired = new RunRepairTestReviewCommand().execute({
       ...ctx,
@@ -2689,7 +2696,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       },
       {
         label: "invalid canonical evidence",
-        expectedCode: "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
+        expectedDirectiveCode: "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
         alter({ payload }) {
           return {
             ...payload,
@@ -2700,11 +2707,25 @@ describe("FlowManager canonical Version-1 runtime", () => {
           };
         },
       },
+      {
+        label: "exhausted stale source revision converges before repair validation",
+        exhausted: true,
+        alter({ payload }) {
+          return {
+            ...payload,
+            sourceTestArtifactRevision: {
+              ...payload.sourceTestArtifactRevision,
+              digest: "0".repeat(64),
+            },
+          };
+        },
+      },
     ];
 
     for (const testCase of cases) {
       const repository = root();
-      const specId = `001-current-review-guard-${testCase.expectedCode.toLowerCase()}`;
+      const caseId = testCase.expectedCode ?? testCase.expectedDirectiveCode ?? "exhausted-stale-revision";
+      const specId = `001-current-review-guard-${caseId.toLowerCase()}`;
       const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
       const created = manager.createFresh(request(specId, {
         specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
@@ -2725,6 +2746,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           });
         },
       });
+      const staleFlowState = manager.load(created.specId);
       const currentState = manager.canonicalState(created.specId);
       const revision = new CanonicalTestArtifactStore({
         flowManager: manager,
@@ -2734,6 +2756,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
         findingId: "test-review-finding",
         fingerprint: "f".repeat(64),
         summary: "The test omits a required behavior.",
+        disposition: "must-fix",
+        rationale: "The test must cover the required behavior before acceptance.",
       };
       const payload = testCase.alter({
         payload: {
@@ -2752,6 +2776,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
       });
       publishAttemptArtifact(manager, created.specId, "test-review", "test.review", payload);
       assert.equal(currentState.attempt.sequence, 1, `${testCase.label} fixture must own review Attempt 1`);
+      if (testCase.exhausted === true) {
+        for (let index = 0; index < 5; index += 1) {
+          manager.appendMetric({ phase: "test", counter: "reviewRetry", delta: 1 }, { specId: created.specId, taskId: null });
+        }
+      }
 
       const context = {
         root: repository,
@@ -2759,16 +2788,377 @@ describe("FlowManager canonical Version-1 runtime", () => {
         executionRoot: repository,
         specId: created.specId,
         flowManager: manager,
-        flowState: manager.load(created.specId),
+        flowState: staleFlowState,
         config: {},
         flowCommandBoundary: true,
       };
-      await assert.rejects(
-        () => new GetNextActionCommand().execute(context),
-        (error) => error.code === testCase.expectedCode,
-        testCase.label,
-      );
+      let workerCalls = 0;
+      const beforeDirectState = manager.canonicalState(created.specId).toJSON();
+      const beforeDirectActivities = manager.activityLedger(created.specId).length;
+      const deniedDirectReview = await new RunReviewCommand({
+        runCommand: async () => {
+          workerCalls += 1;
+          return { ok: true, stdout: "", stderr: "" };
+        },
+      }).execute({ ...context, phase: "test" });
+      assert.equal(deniedDirectReview.ok, false, testCase.label);
+      assert.equal(deniedDirectReview.errors[0].code, "REVIEW_DEFINITION_ACTION_REQUIRED", testCase.label);
+      assert.equal(workerCalls, 0, `${testCase.label} must not start a Review worker`);
+      assert.deepEqual(manager.canonicalState(created.specId).toJSON(), beforeDirectState, testCase.label);
+      assert.equal(manager.activityLedger(created.specId).length, beforeDirectActivities, testCase.label);
+      if (testCase.exhausted === true) {
+        const next = await new GetNextActionCommand().execute(context);
+        assert.equal(next.directive.actionId, "SETTLE_REVIEW_DEFER");
+        assert.match(next.directive.nextAction, /settle-review-transition/);
+      } else if (testCase.expectedDirectiveCode) {
+        const next = await new GetNextActionCommand().execute(context);
+        assert.equal(next.directive.code, testCase.expectedDirectiveCode, testCase.label);
+      } else {
+        await assert.rejects(
+          () => new GetNextActionCommand().execute(context),
+          (error) => error.code === testCase.expectedCode,
+          testCase.label,
+        );
+      }
     }
+  });
+
+  it("settles a definition-selected exhausted test-review deferral without rerunning review", async () => {
+    const repository = root();
+    const specId = "001-test-review-defer-settlement";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "test-review", {
+      onActive(nodeId) {
+        if (nodeId !== "test") return;
+        manager.publishArtifacts({
+          specId: created.specId,
+          nodeId: "test",
+          artifactWrites: [{
+            logicalKey: "tests.source",
+            parameters: { testPath: "deferred.test.js" },
+            mediaType: "text/javascript",
+            bytes: Buffer.from("// spec: R1\n", "utf8"),
+          }],
+        });
+      },
+    });
+    const revision = new CanonicalTestArtifactStore({
+      flowManager: manager,
+      state: manager.load(created.specId),
+    }).testSourceRevision().toJSON();
+    const finding = {
+      findingId: "deferred-test-review-finding",
+      fingerprint: "f".repeat(64),
+      summary: "The test omits a required behavior.",
+      disposition: "must-fix",
+      rationale: "The test must cover the required behavior before acceptance.",
+    };
+    publishAttemptArtifact(manager, created.specId, "test-review", "test.review", {
+      phase: "test",
+      verdict: "REJECTED",
+      blockingFindings: [finding],
+      sourceTestArtifactRevision: revision,
+      canonicalEvidence: {
+        disposition: "REJECTED",
+        blockingFindings: [finding],
+        advisoryFindings: [],
+        identity: { evidenceDigest: "e".repeat(64) },
+      },
+    });
+    for (let index = 0; index < 5; index += 1) {
+      manager.appendMetric({ phase: "test", counter: "reviewRetry", delta: 1 }, { specId: created.specId, taskId: null });
+    }
+    const context = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      flowCommandBoundary: true,
+    };
+    const before = await new GetNextActionCommand().execute(context);
+    assert.equal(before.directive.actionId, "SETTLE_REVIEW_DEFER");
+    assert.match(before.directive.nextAction, /settle-review-transition/);
+
+    const settled = new RunSettleReviewTransitionCommand().execute(context);
+    assert.equal(settled.ok, true, JSON.stringify(settled));
+    const reloaded = manager.load(created.specId);
+    assert.equal(leaves(reloaded.steps).find((entry) => entry.id === "test-review").status, "done");
+    const deferred = manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "flow.findings",
+      consumerNodeId: "acceptance-review",
+    });
+    assert.equal(JSON.parse(deferred.bytes.toString("utf8")).entries.length, 1);
+    const first = await new GetNextActionCommand().execute({ ...context, flowState: reloaded });
+    const second = await new GetNextActionCommand().execute({ ...context, flowState: manager.load(created.specId) });
+    assert.deepEqual(second, first, "reloaded Flow projects one stable next Action after review deferral");
+  });
+
+  it("routes an exhausted Task Review through the same definition-owned settlement", async () => {
+    const repository = root();
+    const specId = "001-task-review-defer-settlement";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    manager.addTask({
+      id: "T-1",
+      title: "Review transition task",
+      goal: "Exercise Task Review settlement.",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }, { specId: created.specId });
+    advanceTo(manager, created.specId, "T-1-review");
+    const reject = () => manager.failCurrentAttempt({
+      specId: created.specId,
+      failure: {
+        category: "semantic",
+        code: "REVIEW_REJECTED",
+        message: "Task Review rejected the current implementation Attempt.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+    });
+    for (let attempt = 1; attempt < 4; attempt += 1) {
+      reject();
+      manager.retryCurrentAttempt({ specId: created.specId });
+    }
+    const finding = {
+      findingId: "task-review-deferred-finding",
+      fingerprint: "d".repeat(64),
+      disposition: "must-fix",
+      rationale: "The implementation omits required behavior.",
+    };
+    manager.publishArtifacts({
+      specId: created.specId,
+      nodeId: "T-1-review",
+      artifactWrites: [{
+        logicalKey: "task.review",
+        parameters: { taskId: "T-1" },
+        mediaType: "application/json",
+        bytes: attemptHistoryBytes("T-1-review", "task.review", {
+          phase: "impl",
+          verdict: "REJECTED",
+          blockingFindings: [finding],
+          canonicalEvidence: {
+            disposition: "REJECTED",
+            blockingFindings: [finding],
+            advisoryFindings: [],
+            identity: { evidenceDigest: "e".repeat(64) },
+          },
+        }, manager.canonicalState(created.specId).attempt.sequence),
+      }],
+    });
+    reject();
+    const context = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      flowCommandBoundary: true,
+    };
+
+    const next = await new GetNextActionCommand().execute(context);
+    assert.equal(next.taskId, "T-1");
+    assert.equal(next.step, "task-review");
+    assert.equal(next.directive.actionId, "SETTLE_REVIEW_DEFER");
+    const settled = new RunSettleReviewTransitionCommand().execute(context);
+    assert.equal(settled.ok, true, JSON.stringify(settled));
+    const reloaded = manager.load(created.specId);
+    assert.equal(reloaded.tasks[0].steps.find((step) => step.id === "T-1-review").status, "done");
+    const findings = manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "flow.findings",
+      consumerNodeId: "acceptance-review",
+    });
+    assert.equal(JSON.parse(findings.bytes.toString("utf8")).entries[0].sourceStep, "task-review");
+    const repeated = new RunSettleReviewTransitionCommand().execute({ ...context, flowState: reloaded });
+    assert.equal(repeated.ok, false);
+    assert.equal(repeated.errors[0].code, "REVIEW_TRANSITION_SETTLEMENT_UNAVAILABLE");
+  });
+
+  it("settles exhausted flow impl-review from current persisted evidence and resumes after partial publication", async () => {
+    const repository = root();
+    const specId = "001-impl-review-partial-settlement";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "impl-review");
+    const finding = {
+      findingId: "impl-review-must-fix",
+      fingerprint: "a".repeat(64),
+      summary: "The implementation leaves a required behavior unresolved.",
+      rationale: "The unresolved behavior is required by the accepted specification.",
+      evidenceRefs: ["src/example.js:1"],
+      disposition: "must-fix",
+    };
+    publishAttemptArtifact(manager, created.specId, "impl-review", "impl.review", {
+      phase: "impl",
+      verdict: "REJECTED",
+      blockingFindings: [finding],
+      advisoryFindings: [],
+      canonicalEvidence: {
+        disposition: "REJECTED",
+        blockingFindings: [finding],
+        advisoryFindings: [],
+        identity: { evidenceDigest: "e".repeat(64) },
+      },
+    });
+    for (let index = 0; index < 4; index += 1) {
+      manager.appendMetric({ phase: "impl", counter: "reviewRetry", delta: 1 }, { specId: created.specId, taskId: null });
+    }
+    const context = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      flowCommandBoundary: true,
+    };
+    const next = await new GetNextActionCommand().execute(context);
+    assert.equal(next.step, "impl-review");
+    assert.equal(next.directive.actionId, "SETTLE_REVIEW_DEFER");
+
+    let interrupted = false;
+    const interruptedManager = new Proxy(manager, {
+      get(target, property) {
+        if (property === "updateStepStatus") {
+          return (...args) => {
+            if (!interrupted) {
+              interrupted = true;
+              throw new Error("simulated crash after flow.findings publication");
+            }
+            return target.updateStepStatus(...args);
+          };
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const partial = new RunSettleReviewTransitionCommand().execute({
+      ...context,
+      flowManager: interruptedManager,
+    });
+    assert.equal(partial.ok, false);
+    assert.match(partial.errors[0].messages.join("\n"), /simulated crash/);
+    assert.equal(manager.canonicalState(created.specId).current.at(-1), "impl-review");
+    const publishedBeforeRetry = manager.activityLedger(created.specId)
+      .filter((activity) => activity.type === "artifacts_published" && activity.nodeId === "impl-review").length;
+
+    const settled = new RunSettleReviewTransitionCommand().execute({
+      ...context,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+    });
+    assert.equal(settled.ok, true, JSON.stringify(settled));
+    assert.equal(manager.canonicalState(created.specId).findNode("impl-review").status, "done");
+    assert.equal(manager.canonicalState(created.specId).findNode("impl-triage").status, "done");
+    assert.equal(manager.canonicalState(created.specId).findNode("impl-repair").status, "done");
+    const findings = manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "flow.findings",
+      consumerNodeId: "acceptance-review",
+    });
+    assert.deepEqual(
+      JSON.parse(findings.bytes.toString("utf8")).entries.map((entry) => entry.fingerprint),
+      [finding.fingerprint],
+    );
+    const publishedAfterRetry = manager.activityLedger(created.specId)
+      .filter((activity) => activity.type === "artifacts_published" && activity.nodeId === "impl-review").length;
+    assert.equal(publishedAfterRetry, publishedBeforeRetry, "idempotent retry must not republish unchanged flow.findings");
+    const afterSettlement = await new GetNextActionCommand().execute({
+      ...context,
+      flowState: manager.load(created.specId),
+    });
+    assert.equal(afterSettlement.step, "impl-gate");
+  });
+
+  it("blocks non-deferrable exhausted test-review evidence with a stable identity", async () => {
+    const repository = root();
+    const specId = "001-test-review-blocked-settlement";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "test-review", {
+      onActive(nodeId) {
+        if (nodeId !== "test") return;
+        manager.publishArtifacts({
+          specId: created.specId,
+          nodeId: "test",
+          artifactWrites: [{
+            logicalKey: "tests.source",
+            parameters: { testPath: "blocked.test.js" },
+            mediaType: "text/javascript",
+            bytes: Buffer.from("// spec: R1\n", "utf8"),
+          }],
+        });
+      },
+    });
+    const revision = new CanonicalTestArtifactStore({ flowManager: manager, state: manager.load(created.specId) }).testSourceRevision().toJSON();
+    const finding = {
+      findingId: "mechanical-test-review-finding",
+      fingerprint: "f".repeat(64),
+      summary: "The review evidence is mechanically malformed.",
+      failureKind: "schema_error",
+    };
+    publishAttemptArtifact(manager, created.specId, "test-review", "test.review", {
+      phase: "test",
+      verdict: "REJECTED",
+      blockingFindings: [finding],
+      sourceTestArtifactRevision: revision,
+      canonicalEvidence: {
+        disposition: "REJECTED",
+        blockingFindings: [finding],
+        advisoryFindings: [],
+        identity: { evidenceDigest: "e".repeat(64) },
+      },
+    });
+    for (let index = 0; index < 5; index += 1) {
+      manager.appendMetric({ phase: "test", counter: "reviewRetry", delta: 1 }, { specId: created.specId, taskId: null });
+    }
+    const context = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      flowCommandBoundary: true,
+    };
+    let workerCalls = 0;
+    const beforeDirectState = manager.canonicalState(created.specId).toJSON();
+    const beforeDirectActivities = manager.activityLedger(created.specId).length;
+    const deniedDirectReview = await new RunReviewCommand({
+      runCommand: async () => {
+        workerCalls += 1;
+        return { ok: true, stdout: "", stderr: "" };
+      },
+    }).execute({ ...context, phase: "test" });
+    assert.equal(deniedDirectReview.ok, false);
+    assert.equal(deniedDirectReview.errors[0].code, "REVIEW_DEFINITION_ACTION_REQUIRED");
+    assert.equal(workerCalls, 0);
+    assert.deepEqual(manager.canonicalState(created.specId).toJSON(), beforeDirectState);
+    assert.equal(manager.activityLedger(created.specId).length, beforeDirectActivities);
+    const first = await new GetNextActionCommand().execute(context);
+    const second = await new GetNextActionCommand().execute({ ...context, flowState: manager.load(created.specId) });
+    assert.equal(first.directive.code, "REVIEW_MAX_ATTEMPTS_EXCEEDED");
+    assert.deepEqual(second, first);
   });
 
   it("derives every cataloged test member finalization from durable test confirmations", () => {

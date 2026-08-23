@@ -24,7 +24,6 @@ import {
   ExecuteStepDirective,
   IdleDirective,
   NextActionDirectiveResolver,
-  RepairEvidenceDirective,
 } from "./next-action-directive.js";
 import { TaskNode } from "./current-flow-state.js";
 import {
@@ -58,6 +57,7 @@ import {
 } from "./test-review-repair.js";
 import { captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { resolveCurrentReviewTransition } from "./review-transition-persistence.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -138,24 +138,14 @@ function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
   });
 }
 
-function buildCanonicalTestReviewRepairDirective(ctx, state, target, binding) {
+function canonicalTestReviewRepairFact(ctx, state, target) {
   if (target.stepId !== "test-review") return null;
-  let source;
   try {
-    source = inspectCanonicalTestReviewRepair({ flowManager: ctx.flowManager, state });
+    return inspectCanonicalTestReviewRepair({ flowManager: ctx.flowManager, state });
   } catch (error) {
     if (/absent from catalog/.test(error.message)) return null;
     throw error;
   }
-  if (source === null) return null;
-  return new RepairEvidenceDirective({
-    actionId: "REPAIR_TEST_REVIEW",
-    evidenceKind: "test",
-    phase: "test",
-    instruction: "Run the guarded test-review repair transition. It binds the rejected review Attempt and current cataloged test revision, then starts a replacement test worker Attempt.",
-    reason: "The cataloged test-review contains blocking findings that require changed test evidence.",
-    nextAction: guardedCommand("sennel flow run repair-test-review", state, binding),
-  });
 }
 
 function completedNextAction() {
@@ -418,6 +408,29 @@ function acceptanceDecisionDirective({ root, state, binding, target, config }) {
 function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, missingProducerArtifactRoute = null) {
   const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
   const binding = captureNextActionBinding(ctx, state);
+  // First select a disposition from bounded result facts and accounting.  The
+  // repair revision is an execution precondition, not a competing policy:
+  // exhausted persisted evidence must therefore converge to defer/blocked
+  // before a stale repair revision can be observed.
+  const reviewSelection = ["resume", "retry", "record", "blocked"].includes(descriptor.operation)
+    ? resolveCurrentReviewTransition({
+        flowManager: ctx.flowManager,
+        flowState: state,
+        typedState,
+        scope: target.scope,
+        stepId: target.stepId,
+      })
+    : { facts: null, disposition: null };
+  const repairEvidence = reviewSelection.disposition?.operation === "repair-test-review"
+    ? canonicalTestReviewRepairFact(ctx, state, target)
+    : null;
+  if (reviewSelection.disposition?.operation === "repair-test-review" && repairEvidence === null) {
+    throw new NextActionPlanError(
+      "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
+      "definition-selected test-review repair evidence is unavailable for the current Attempt",
+    );
+  }
+  const definitionDescriptor = descriptor.withReviewDisposition(reviewSelection.disposition);
   const derived = deriveNextAction({
     scope: target.scope,
     stepId: target.stepId,
@@ -436,7 +449,6 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, miss
     : null;
   const strictDirective = target.scope === "flow"
     ? buildPreimplementationBootstrapDirective(ctx, state, target, binding)
-      || buildCanonicalTestReviewRepairDirective(ctx, state, target, binding)
     : null;
   const approvalDirective = approvalDecisionDirective({
     root: ctx.root,
@@ -465,7 +477,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, miss
     state,
     binding,
     action: derived.action,
-    descriptor,
+    descriptor: definitionDescriptor,
     recoveryCommand,
     missingProducerArtifactRoute: missingRoute,
     planGateRepairRoute: planGateRepair?.route ?? null,
@@ -516,6 +528,7 @@ export default class GetNextActionCommand extends FlowCommand {
         "active Flow must be backed by the canonical Version Store",
       );
     }
+    ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
     const interruptedSync = recoverInterruptedFinalizeSync(ctx);
     if (interruptedSync.recovered) {
       ctx.flowState = ctx.flowManager.load(ctx.specId);
@@ -543,8 +556,6 @@ export default class GetNextActionCommand extends FlowCommand {
     const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, missingRoute);
     if (["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
       ctx.flowManager.beginNextAction(ctx.specId);
-      // Downstream dispatcher hooks and injected test effects must observe the
-      // Activity-confirmed state, never the planner's temporary projection.
       ctx.flowState = ctx.flowManager.load(ctx.specId);
     }
     return result;

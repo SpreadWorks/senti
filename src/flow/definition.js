@@ -13,6 +13,7 @@
 
 import {
   CurrentFlowDefinition,
+  DefinitionReviewDisposition,
   DefinitionFailurePolicy,
   FlowDefinitionNode as CurrentFlowDefinitionNode,
   NodeContract as CurrentFlowNodeContract,
@@ -25,6 +26,11 @@ import {
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
+import { ReviewTransitionFacts } from "./lib/review-transition-facts.js";
+import {
+  flowReviewRouteForPhase,
+  reviewPhaseForFlowStepId,
+} from "./lib/review-route.js";
 
 const MAX_DEPTH = 3;
 
@@ -195,6 +201,17 @@ export class IncrementMetric {
   }
 }
 
+/** Persist a non-terminal current Review result selected by definition lifecycle. */
+export class PersistReviewResult {
+  constructor() {
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.persistReviewResult();
+  }
+}
+
 export class AppendIssueLog {
   constructor({ source }) {
     this.source = requireString(source, "source");
@@ -289,13 +306,6 @@ export function applyLifecycleActions(adapter, actions) {
 }
 
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
-const REVIEW_STEP_BY_PHASE = Object.freeze({
-  "draft-questions": "draft-questions-review",
-  "draft-coverage": "draft-coverage-review",
-  spec: "spec-review",
-  test: "test-review",
-  impl: "impl-review",
-});
 const IMPL_REVIEW_RESET_RANGE = Object.freeze([
   "test-execute",
   "test-result-review",
@@ -317,6 +327,99 @@ const REJECTED_IMPL_REVIEW_RESET_STEPS = Object.freeze([
   "impl-repair",
   "impl-gate",
 ]);
+
+export function countReviewAttempts(metrics, phase) {
+  if (!Array.isArray(metrics)) return 0;
+  let count = 0;
+  for (const entry of metrics) {
+    if (entry?.phase !== phase || entry?.counter !== "reviewRetry" || entry?.taskId != null) continue;
+    count = entry.reset === true ? 0 : count + (entry.delta ?? 1);
+  }
+  return count;
+}
+
+/**
+ * The definition owns the only policy that turns persisted review facts into
+ * a recovery route. Readers may establish whether canonical evidence exists;
+ * they must not choose between repair and an exhausted retry disposition.
+ */
+export function resolveReviewTransition({
+  stepId,
+  flowState,
+  facts,
+} = {}) {
+  const phase = stepId === "task-review" ? "impl" : reviewPhaseForFlowStepId(stepId);
+  if (phase === null || !(facts instanceof ReviewTransitionFacts)) return null;
+  if (facts.phase !== phase) throw new Error("review transition facts phase does not match step");
+  if (flowState?.policy?.nonblocking?.enabled === true) return null;
+  if (facts.toolingOutcome) {
+    return new DefinitionReviewDisposition({ operation: "external-blocked", phase });
+  }
+  if (facts.verdict !== "REJECTED") {
+    return null;
+  }
+  const maxAttempts = resolveMaxAttempts({ scope: facts.scope, stepId, context: flowState }) ?? 1;
+  const attempts = facts.scope === "task"
+    ? facts.attemptCount
+    : countReviewAttempts(flowState?.metrics, phase);
+  if (!Number.isSafeInteger(attempts) || attempts < 0) {
+    throw new Error("review transition facts have no usable attempt count");
+  }
+  if (attempts < maxAttempts) {
+    if (facts.scope === "flow" && phase === "test") {
+      return new DefinitionReviewDisposition({
+        operation: facts.repairEvidence.available ? "repair-test-review" : "repair-evidence-blocked",
+        phase,
+      });
+    }
+    return new DefinitionReviewDisposition({ operation: "retry", phase });
+  }
+  if (facts.deferralEvidence.available) {
+    return new DefinitionReviewDisposition({
+      operation: "defer",
+      phase,
+      attempts,
+      maxAttempts,
+      sourceFingerprints: facts.deferralEvidence.sourceFingerprints,
+    });
+  }
+  if (attempts >= maxAttempts) {
+    return new DefinitionReviewDisposition({ operation: "blocked", phase, attempts, maxAttempts });
+  }
+  return null;
+}
+
+/** Definition-owned completion statuses for an exhausted deferred Review. */
+export function resolveReviewDeferralLifecycle({ scope, stepId, disposition } = {}) {
+  if (!(disposition instanceof DefinitionReviewDisposition) || disposition.operation !== "defer") return [];
+  if (scope === "task") return [];
+  if (scope !== "flow") throw new Error("review deferral lifecycle scope is invalid");
+  const phase = reviewPhaseForFlowStepId(stepId);
+  if (phase === null || phase !== disposition.phase) {
+    throw new Error("review deferral lifecycle does not match the definition disposition");
+  }
+  const actions = [new SetStepStatus({ step: stepId, status: "done" })];
+  if (phase === "impl") {
+    actions.push(
+      new SetStepStatus({ step: "impl-triage", status: "done" }),
+      new SetStepStatus({ step: "impl-repair", status: "done" }),
+    );
+  }
+  return actions;
+}
+
+/** Compatibility projection for review command envelopes; it is not routing authority. */
+export function resolveReviewResultNextStep({ phase, verdict, retryPhase = null, next = null, failNext = null } = {}) {
+  if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) {
+    throw new Error(`unknown review verdict: ${verdict}`);
+  }
+  if (phase !== "draft") {
+    return verdict === "PASS" || verdict === "ADVISORY" ? next : failNext;
+  }
+  const route = draftReviewRouteForRetryPhase(retryPhase || "draft-questions");
+  if (!route) throw new Error(`unknown draft review retry phase: ${retryPhase}`);
+  return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
+}
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || result?.data?.status || ""));
 }
@@ -331,12 +434,24 @@ function draftReviewRouteForInput(input = {}) {
   return draftReviewRouteForRetryPhase(retryPhase || "draft-questions");
 }
 
+/**
+ * Review result persistence records the current result before lifecycle
+ * actions run. Definition therefore projects this result as the next metric
+ * entry and retains an exhausted rejected flow Review for guarded settlement.
+ */
+function rejectedFlowReviewReachesExhaustion(input, phase, stepId) {
+  if (input.result?.artifacts?.verdict !== "REJECTED") return false;
+  if (input.result?.artifacts?.taskId != null) return false;
+  const maxAttempts = resolveMaxAttempts({ scope: "flow", stepId, context: input.flowState }) ?? 1;
+  return countReviewAttempts(input.flowState?.metrics, phase) + 1 >= maxAttempts;
+}
+
 function reviewStepIdForInput(input = {}) {
   const phase = input.result?.artifacts?.phase || input.phase;
   if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
     return draftReviewRouteForInput(input).reviewStepId;
   }
-  return REVIEW_STEP_BY_PHASE[phase] || input.currentStepId || null;
+  return flowReviewRouteForPhase(phase)?.reviewStepId || input.currentStepId || null;
 }
 
 export function resolveRuntimeStep(input = {}) {
@@ -351,14 +466,16 @@ export function resolveRuntimeStep(input = {}) {
 function resolveDraftReviewLifecycle(input) {
   const route = draftReviewRouteForInput(input);
   const verdict = input.result?.artifacts?.verdict;
-  const actions = [];
+  const actions = [new IncrementMetric({ phase: route.retryPhase, counter: "reviewRetry" })];
   if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) return actions;
+  if (rejectedFlowReviewReachesExhaustion(input, route.retryPhase, route.reviewStepId)) {
+    return [new PersistReviewResult(), ...actions];
+  }
   actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
   if (verdict === "PASS") {
     actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
     actions.push(new SetStepStatus({ step: route.repairStepId, status: "done" }));
   }
-  actions.push(new IncrementMetric({ phase: route.retryPhase, counter: "reviewRetry" }));
   return actions;
 }
 
@@ -374,10 +491,17 @@ function resolvePlanReviewLifecycle(input) {
     return resolveDraftReviewLifecycle(input);
   }
   const actions = [];
-  const recordRetry = !toolingOutcome;
+  // Tooling observations also need their typed ExternalBlocked persistence;
+  // the persistence adapter deliberately does not consume semantic budget.
+  const recordRetry = true;
   if (phase === "spec") {
     if (input.flowState?.policy?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) return [];
-    if (verdict === "PASS" || verdict === "ADVISORY") {
+    if (rejectedFlowReviewReachesExhaustion(input, phase, "spec-review")) {
+      return [
+        new PersistReviewResult(),
+        new IncrementMetric({ phase, counter: "reviewRetry" }),
+      ];
+    } else if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
         new SetStepStatus({ step: "spec-review", status: "done" }),
         new SetStepStatus({ step: "spec-triage", status: "done" }),
@@ -386,7 +510,7 @@ function resolvePlanReviewLifecycle(input) {
     } else if (verdict === "REJECTED") {
       actions.push(new SetStepStatus({ step: "spec-review", status: "done" }));
     }
-    if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
+    if (recordRetry) actions.unshift(new IncrementMetric({ phase, counter: "reviewRetry" }));
     return actions;
   }
   if (phase === "test") {
@@ -400,7 +524,7 @@ function resolvePlanReviewLifecycle(input) {
     } else if (toolingOutcome) {
       actions.push(new AppendIssueLog({ source: "test-review-tooling-failure" }));
     }
-    if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
+    if (recordRetry) actions.unshift(new IncrementMetric({ phase, counter: "reviewRetry" }));
     return actions;
   }
   if (recordRetry) actions.push(new IncrementMetric({ phase, counter: "reviewRetry" }));
@@ -429,13 +553,26 @@ function resolveImplReviewLifecycle(input) {
     return actions;
   }
   if (input.result?.artifacts?.phase === "impl") {
-    if (toolingOutcome) return actions;
+    if (toolingOutcome) {
+      actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
+      return actions;
+    }
     if (!flowScoped) {
       if (verdict === "PASS" || verdict === "ADVISORY") {
         actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
       }
-      actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
+      actions.unshift(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
       return actions;
+    }
+    if (flowScoped && rejectedFlowReviewReachesExhaustion(
+      input,
+      "impl",
+      input.currentStepId || "impl-review",
+    )) {
+      return [
+        new PersistReviewResult(),
+        new IncrementMetric({ phase: "impl", counter: "reviewRetry" }),
+      ];
     }
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
@@ -451,7 +588,7 @@ function resolveImplReviewLifecycle(input) {
         new SetStepStatus({ step: "impl-triage", status: "in_progress" }),
       );
     }
-    actions.push(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
+    actions.unshift(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
     return actions;
   }
   if (!input.dryRun && proposalCount > 0) {

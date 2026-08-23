@@ -22,6 +22,7 @@ export class DraftReviewRoute {
     triageStepId,
     repairStepId,
     reviewArtifact,
+    reviewLogicalKey,
     triageArtifact,
     repairArtifact,
     passNextStepId,
@@ -34,6 +35,7 @@ export class DraftReviewRoute {
     this.triageStepId = requireNonEmptyString(triageStepId, "triageStepId");
     this.repairStepId = requireNonEmptyString(repairStepId, "repairStepId");
     this.reviewArtifact = requireNonEmptyString(reviewArtifact, "reviewArtifact");
+    this.reviewLogicalKey = requireNonEmptyString(reviewLogicalKey, "reviewLogicalKey");
     this.triageArtifact = requireNonEmptyString(triageArtifact, "triageArtifact");
     this.repairArtifact = requireNonEmptyString(repairArtifact, "repairArtifact");
     this.passNextStepId = requireNonEmptyString(passNextStepId, "passNextStepId");
@@ -57,6 +59,7 @@ export const DRAFT_REVIEW_ROUTES = Object.freeze([
     triageStepId: "draft-questions-triage",
     repairStepId: "draft-questions-repair",
     reviewArtifact: "draft-review-questions.json",
+    reviewLogicalKey: "draft.questions.review",
     triageArtifact: "draft-questions-triage.json",
     repairArtifact: "draft-questions-repair.json",
     passNextStepId: "draft-refine",
@@ -70,6 +73,7 @@ export const DRAFT_REVIEW_ROUTES = Object.freeze([
     triageStepId: "draft-coverage-triage",
     repairStepId: "draft-coverage-repair",
     reviewArtifact: "draft-review-coverage.json",
+    reviewLogicalKey: "draft.coverage.review",
     triageArtifact: "draft-coverage-triage.json",
     repairArtifact: "draft-coverage-repair.json",
     passNextStepId: "draft-gate",

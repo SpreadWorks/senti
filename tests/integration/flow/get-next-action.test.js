@@ -22,9 +22,16 @@ import {
   deriveNextAction,
   getFlowDefinitionOrder,
   getTaskDefinitionOrder,
+  resolveLifecycle,
+  resolveReviewTransition,
 } from "../../../src/flow/definition.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
+import {
+  ReviewDeferralEvidence,
+  ReviewRepairEvidence,
+  ReviewTransitionFacts,
+} from "../../../src/flow/lib/review-transition-facts.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
@@ -156,6 +163,180 @@ function publishDraft(scenario, draft) {
 describe("flow get next-action", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
+
+  it("projects test-review retry exhaustion from definition-owned persisted facts", () => {
+    const rejected = { phase: "test", counter: "reviewRetry", delta: 1 };
+    const repair = resolveReviewTransition({
+      stepId: "test-review",
+      flowState: { metrics: [rejected, rejected, rejected, rejected], policy: { nonblocking: null } },
+      facts: new ReviewTransitionFacts({
+        scope: "flow",
+        phase: "test",
+        verdict: "REJECTED",
+        repairEvidence: new ReviewRepairEvidence({ status: "available" }),
+      }),
+    });
+    const blocked = resolveReviewTransition({
+      stepId: "test-review",
+      flowState: { metrics: [rejected, rejected, rejected, rejected, rejected], policy: { nonblocking: null } },
+      facts: new ReviewTransitionFacts({ scope: "flow", phase: "test", verdict: "REJECTED" }),
+    });
+
+    assert.equal(repair.operation, "repair-test-review");
+    assert.equal(blocked.operation, "blocked");
+    assert.deepEqual(blocked.toJSON(), {
+      operation: "blocked", phase: "test", attempts: 5, maxAttempts: 5,
+    });
+  });
+
+  it("resolves task-review exhaustion from task Attempt accounting, not flow metrics", () => {
+    const flowState = { metrics: [], policy: { nonblocking: null } };
+    const retry = resolveReviewTransition({
+      stepId: "task-review",
+      flowState,
+      facts: new ReviewTransitionFacts({
+        scope: "task",
+        phase: "impl",
+        verdict: "REJECTED",
+        attemptCount: 3,
+      }),
+    });
+    const exhausted = resolveReviewTransition({
+      stepId: "task-review",
+      flowState,
+      facts: new ReviewTransitionFacts({
+        scope: "task",
+        phase: "impl",
+        verdict: "REJECTED",
+        attemptCount: 4,
+        deferralEvidence: new ReviewDeferralEvidence({
+          status: "available",
+          sourceFingerprints: ["d".repeat(64)],
+        }),
+      }),
+    });
+
+    assert.equal(retry.operation, "retry");
+    assert.deepEqual(exhausted.toJSON(), {
+      operation: "defer", phase: "impl", attempts: 4, maxAttempts: 4,
+      sourceFingerprints: ["d".repeat(64)],
+    });
+  });
+
+  it("keeps exhausted flow Reviews active before draft/spec/impl rejection routes leave Review", () => {
+    const metric = (phase) => ({ phase, counter: "reviewRetry", delta: 1 });
+    const cases = [
+      { phase: "draft-questions", stepId: "draft-questions-review", previous: 0, retained: true },
+      { phase: "draft-coverage", stepId: "draft-coverage-review", previous: 0, retained: true },
+      { phase: "spec", stepId: "spec-review", previous: 2, retained: false },
+      { phase: "spec", stepId: "spec-review", previous: 3, retained: true },
+      { phase: "impl", stepId: "impl-review", previous: 2, retained: false },
+      { phase: "impl", stepId: "impl-review", previous: 3, retained: true },
+    ];
+    for (const testCase of cases) {
+      const actions = resolveLifecycle({
+        event: "review:post",
+        phase: testCase.phase.startsWith("draft-") ? "draft" : testCase.phase,
+        currentStepId: testCase.stepId,
+        flowState: {
+          metrics: Array.from({ length: testCase.previous }, () => metric(testCase.phase)),
+          policy: { nonblocking: null },
+        },
+        result: {
+          artifacts: {
+            phase: testCase.phase.startsWith("draft-") ? "draft" : testCase.phase,
+            retryPhase: testCase.phase.startsWith("draft-") ? testCase.phase : undefined,
+            verdict: "REJECTED",
+          },
+        },
+      });
+      const leavesReview = actions.some((action) => (
+        action.constructor.name === "SetStepStatus"
+        && action.step === testCase.stepId
+        && action.status === "done"
+      ));
+      assert.equal(leavesReview, !testCase.retained, `${testCase.phase} previous=${testCase.previous}`);
+      assert.equal(actions.filter((action) => action.constructor.name === "IncrementMetric").length, 1);
+      assert.equal(
+        actions.filter((action) => action.constructor.name === "PersistReviewResult").length,
+        testCase.retained ? 1 : 0,
+        `${testCase.phase} result persistence`,
+      );
+    }
+  });
+
+  it("lets definition select only acceptance-relevant semantic finding fingerprints", () => {
+    const finding = (fingerprint, disposition, extra = {}) => ({
+      findingId: `finding-${fingerprint[0]}`,
+      fingerprint,
+      summary: "Review finding",
+      rationale: "The finding is tied to a required behavior.",
+      evidenceRefs: ["src/example.js:1"],
+      ...(disposition === null ? {} : { disposition }),
+      ...extra,
+    });
+    const mustFix = finding("a".repeat(64), "must-fix");
+    const deferred = finding("b".repeat(64), "deferred");
+    const informational = finding("c".repeat(64), "informational");
+    const facts = (blockingFindings, rawFindings = blockingFindings) => new ReviewTransitionFacts({
+      scope: "flow",
+      phase: "impl",
+      verdict: "REJECTED",
+      artifact: {
+        phase: "impl",
+        verdict: "REJECTED",
+        blockingFindings: rawFindings,
+        canonicalEvidence: {
+          disposition: "REJECTED",
+          blockingFindings,
+          advisoryFindings: [],
+          identity: { evidenceDigest: "e".repeat(64) },
+        },
+      },
+    });
+    const flowState = {
+      metrics: Array.from({ length: 4 }, () => ({ phase: "impl", counter: "reviewRetry", delta: 1 })),
+      policy: { nonblocking: null },
+    };
+
+    const canonicalWithoutRationale = [mustFix, informational, deferred]
+      .map(({ rationale, ...finding }) => finding);
+    const selected = resolveReviewTransition({
+      stepId: "impl-review",
+      flowState,
+      facts: facts(canonicalWithoutRationale, [mustFix, informational, deferred]),
+    });
+    assert.equal(selected.operation, "defer");
+    assert.deepEqual(selected.sourceFingerprints, [mustFix.fingerprint, deferred.fingerprint]);
+
+    for (const blockedFacts of [
+      facts([informational]),
+      facts([{ ...mustFix, disposition: undefined }]),
+      facts([{ ...mustFix, rationale: "" }]),
+      facts([mustFix], [{ ...mustFix, disposition: "informational" }]),
+      facts([{ ...mustFix, fingerprint: "malformed" }]),
+      facts([mustFix], [{ ...mustFix, failureKind: "schema_error" }]),
+    ]) {
+      assert.equal(resolveReviewTransition({
+        stepId: "impl-review",
+        flowState,
+        facts: blockedFacts,
+      }).operation, "blocked");
+    }
+  });
+
+  it("keeps tooling observations as definition-owned external stops", () => {
+    const transition = resolveReviewTransition({
+      stepId: "test-review",
+      flowState: { metrics: [], policy: { nonblocking: null } },
+      facts: new ReviewTransitionFacts({
+        scope: "flow",
+        phase: "test",
+        toolingOutcome: { reason: "provider unavailable" },
+      }),
+    });
+    assert.equal(transition.operation, "external-blocked");
+  });
 
   it("returns the established worker envelope for a V1 Flow Step", () => {
     tmp = createTmpDir();

@@ -1,4 +1,4 @@
-import { countReviewRetry } from "./run-review.js";
+import { countReviewAttempts } from "../definition.js";
 import { resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 
 export function assertReviewRecoveryAuthority({ root, flowState, phase, resolvedMax }) {
@@ -7,7 +7,7 @@ export function assertReviewRecoveryAuthority({ root, flowState, phase, resolved
     flowState,
     kind: "review",
     phase,
-    attempts: countReviewRetry(flowState.metrics, phase),
+    attempts: countReviewAttempts(flowState.metrics, phase),
     resolvedMax,
   });
 }

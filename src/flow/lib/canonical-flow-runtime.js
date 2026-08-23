@@ -66,6 +66,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   record_nonblocking: "nonblocking_recorded",
   continue_nonblocking: "nonblocking_recorded",
   accept_final_regression_failure: "failure_accepted",
+  defer_failed_review: "failure_accepted",
   skip_finalize_downstream: "finalization_downstream_updated",
   reset_finalize_downstream: "finalization_downstream_updated",
 });
@@ -891,6 +892,17 @@ export class CanonicalFlowRuntime {
     });
   }
 
+  deferFailedReview({ specId, activityId, nodeId, attempt, result } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "defer_failed_review",
+      attempt: requiredAttempt(attempt, "Review deferral settlement"),
+      result,
+    });
+  }
+
   /** Read-only restart resolution; callers decide whether a resume Activity is needed. */
   restart(specId) {
     const state = this.#state(specId);
@@ -1006,10 +1018,10 @@ export class CanonicalFlowRuntime {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(operation)
       ? attempt
       : null;
-    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact"]).has(operation)
+    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]).has(operation)
       ? state.attempt ?? attempt
       : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt

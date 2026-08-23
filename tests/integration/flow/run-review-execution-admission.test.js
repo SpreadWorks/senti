@@ -34,14 +34,27 @@ function reviewContext(root) {
     current: ["spec-review"],
     attempt: { id: "spec-review-attempt-1", failure: null },
   };
+  const flowState = {
+    schemaRevision: 3,
+    specId: "review-admission-spec",
+    currentNodeId: "spec-review",
+    currentTaskId: null,
+  };
   return {
     root,
     mainRoot: root,
     executionRoot: root,
     phase: "spec",
     specId: "review-admission-spec",
-    flowState: { schemaRevision: 3, specId: "review-admission-spec" },
-    flowManager: { canonicalState: () => state },
+    flowState,
+    flowManager: {
+      canonicalState: () => state,
+      loadReadOnly: () => flowState,
+      activityLedger: () => [],
+      readArtifact: () => null,
+      readProducerArtifact: () => null,
+      publishArtifacts: () => { throw new Error("admission must not publish artifacts"); },
+    },
   };
 }
 

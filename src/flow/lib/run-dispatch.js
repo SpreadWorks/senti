@@ -69,6 +69,7 @@ const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
 ]);
 const DISPATCHER_OWNED_RECOVERY_COMMANDS = new Set([
   "recover-missing-producer-artifact",
+  "settle-review-transition",
 ]);
 const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([
   "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
@@ -855,7 +856,7 @@ export default class RunDispatchCommand extends FlowCommand {
   /**
    * Historical state reconciliation is a Store-owned transition, never a
    * worker instruction. Keep this deliberately small: unlike repair commands,
-   * only the one no-input typed recovery command is safe to run automatically.
+   * only no-input typed Store transitions are safe to run automatically.
    */
   async runDispatcherOwnedRecovery(ctx, target, action) {
     if (!(action.directive instanceof ExecuteCommandDirective)) return null;

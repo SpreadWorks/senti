@@ -93,8 +93,9 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "recover_attempt",
   "recover_missing_producer_artifact",
   "accept_final_regression_failure",
+  "defer_failed_review",
 ]);
-const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact"]);
+const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
   "repair_implementation",
@@ -2639,8 +2640,51 @@ export class CurrentFailureDisposition {
   }
 }
 
+/** A definition-owned review continuation projected from persisted facts. */
+export class DefinitionReviewDisposition {
+  constructor({ operation, phase = null, attempts = null, maxAttempts = null, sourceFingerprints = [] } = {}) {
+    if (!["repair-test-review", "repair-evidence-blocked", "retry", "defer", "external-blocked", "blocked"].includes(operation)) {
+      throw new CurrentFlowStateInvariantError("review disposition operation is invalid");
+    }
+    this.operation = operation;
+    this.phase = phase == null ? null : requireString(phase, "review disposition phase");
+    if (["blocked", "defer"].includes(operation)) {
+      if (!Number.isSafeInteger(attempts) || attempts < 0) {
+        throw new CurrentFlowStateInvariantError("blocked review disposition attempts must be non-negative");
+      }
+      if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+        throw new CurrentFlowStateInvariantError("blocked review disposition maxAttempts must be positive");
+      }
+    } else if (attempts !== null || maxAttempts !== null) {
+      throw new CurrentFlowStateInvariantError("non-exhausted review disposition must not include retry accounting");
+    }
+    if (!Array.isArray(sourceFingerprints) || sourceFingerprints.some((value) => (
+      typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)
+    )) || new Set(sourceFingerprints).size !== sourceFingerprints.length) {
+      throw new CurrentFlowStateInvariantError("review disposition source fingerprints are invalid");
+    }
+    if ((operation === "defer") !== (sourceFingerprints.length > 0)) {
+      throw new CurrentFlowStateInvariantError("deferred review disposition requires source fingerprints");
+    }
+    this.attempts = attempts;
+    this.maxAttempts = maxAttempts;
+    this.sourceFingerprints = Object.freeze([...sourceFingerprints]);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      operation: this.operation,
+      phase: this.phase,
+      attempts: this.attempts,
+      maxAttempts: this.maxAttempts,
+      ...(this.sourceFingerprints.length === 0 ? {} : { sourceFingerprints: [...this.sourceFingerprints] }),
+    };
+  }
+}
+
 export class CurrentNextActionDescriptor {
-  constructor({ path: currentPath, node, operation, action, failureDisposition = null }) {
+  constructor({ path: currentPath, node, operation, action, failureDisposition = null, reviewDisposition = null }) {
     if (!Array.isArray(currentPath) || currentPath.length === 0) {
       throw new CurrentFlowStateInvariantError("next action path must be a non-empty stable-id array");
     }
@@ -2659,14 +2703,37 @@ export class CurrentNextActionDescriptor {
     if (["retry", "record", "rewind", "blocked"].includes(operation) !== (failureDisposition !== null)) {
       throw new CurrentFlowStateInvariantError("failed next action requires exactly one typed failure disposition");
     }
+    if (reviewDisposition !== null && !(reviewDisposition instanceof DefinitionReviewDisposition)) {
+      throw new CurrentFlowStateInvariantError("next action review disposition is invalid");
+    }
+    if (reviewDisposition !== null && (
+      !node.id.endsWith("review")
+      || !["resume", "retry", "record", "blocked"].includes(operation)
+    )) {
+      throw new CurrentFlowStateInvariantError("review disposition requires an active review descriptor");
+    }
     this.path = Object.freeze([...currentPath]);
+    this.node = node;
     this.nodeId = node.id;
     this.nodeKey = node.key;
     this.status = node.status;
     this.operation = operation;
     this.action = action;
     this.failureDisposition = failureDisposition;
+    this.reviewDisposition = reviewDisposition;
     Object.freeze(this);
+  }
+
+  withReviewDisposition(reviewDisposition) {
+    if (reviewDisposition === null) return this;
+    return new CurrentNextActionDescriptor({
+      path: this.path,
+      node: this.node,
+      operation: this.operation,
+      action: this.action,
+      failureDisposition: this.failureDisposition,
+      reviewDisposition,
+    });
   }
 
   toJSON() {
@@ -2678,6 +2745,7 @@ export class CurrentNextActionDescriptor {
       operation: this.operation,
       action: this.action.toJSON(),
       failureDisposition: this.failureDisposition?.toJSON() ?? null,
+      ...(this.reviewDisposition === null ? {} : { reviewDisposition: this.reviewDisposition.toJSON() }),
     };
   }
 }
@@ -3604,6 +3672,43 @@ export class CurrentFlowState {
       replaceNode(this.root, leaf.id, transitionNode(leaf, "done", this.definition, {
         attemptSequence: acceptedAttempt.sequence,
         result: accepted,
+      })),
+      this.definition,
+    );
+    return this.#replaceRoot(root, null, null);
+  }
+
+  /** Complete a failed Task Review through a distinct deferred settlement Attempt. */
+  deferFailedReview({ attempt, result }) {
+    this.#assertExecutionActive();
+    if (this.current === null || this.attempt?.failure === null) {
+      throw new CurrentFlowStateInvariantError("Review deferral requires a failed active Attempt");
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    if (!leaf.id.endsWith("-review")) {
+      throw new CurrentFlowStateInvariantError("Review deferral requires an active Review leaf");
+    }
+    const settlementAttempt = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (
+      settlementAttempt.nodeId !== leaf.id
+      || settlementAttempt.sequence !== this.attempt.sequence + 1
+      || settlementAttempt.sequence !== leaf.attemptSequence + 1
+      || settlementAttempt.id === this.attempt.id
+      || settlementAttempt.failure !== null
+      || settlementAttempt.consumption.semantic !== 0
+      || settlementAttempt.consumption.tooling !== 0
+    ) {
+      throw new CurrentFlowStateInvariantError("Review deferral settlement Attempt identity is invalid");
+    }
+    this.#assertAttemptContractForLeaf(leaf, settlementAttempt);
+    const settled = result instanceof NodeResult ? result : new NodeResult(result);
+    if (settled.outcome !== "passed") {
+      throw new CurrentFlowStateInvariantError("Review deferral requires a passed lifecycle result");
+    }
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, leaf.id, transitionNode(leaf, "done", this.definition, {
+        attemptSequence: settlementAttempt.sequence,
+        result: settled,
       })),
       this.definition,
     );
@@ -4698,7 +4803,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -4912,6 +5017,12 @@ export class ActivityTransition {
         throw new CurrentFlowStateInvariantError("accept_final_regression_failure Activity requires a result");
       }
       return state.acceptFinalRegressionFailure({ attempt: this.attempt, result: activity.result });
+    }
+    if (this.operation === "defer_failed_review") {
+      if (activity.result == null) {
+        throw new CurrentFlowStateInvariantError("defer_failed_review Activity requires a result");
+      }
+      return state.deferFailedReview({ attempt: this.attempt, result: activity.result });
     }
     if (["add_task", "add_approval_task"].includes(this.operation)) {
       if (target.id !== state.definition.dynamicTaskContainerId) {
@@ -5138,6 +5249,7 @@ export class FlowActivity {
       record_nonblocking: "nonblocking_recorded",
       continue_nonblocking: "nonblocking_recorded",
       accept_final_regression_failure: "failure_accepted",
+      defer_failed_review: "failure_accepted",
       skip_finalize_downstream: "finalization_downstream_updated",
       reset_finalize_downstream: "finalization_downstream_updated",
     };
@@ -5155,10 +5267,10 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
@@ -5187,7 +5299,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5375,7 +5487,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review"]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);

@@ -180,6 +180,11 @@ function jsonFromArtifact(bytes, field) {
 function sourceLogicalKey(sourceArtifact) {
   const normalized = normalizeSourceArtifactPath(sourceArtifact);
   try {
+    return FLOW_ARTIFACT_CONTRACTS.require(normalized).logicalKey.toString();
+  } catch {
+    // Collection logical keys require parameters only when resolving a path.
+  }
+  try {
     return FLOW_ARTIFACT_CONTRACTS.resolve(normalized).logicalKey;
   } catch {
     // A recorded finding stores the descriptor's canonical relative path,
@@ -258,7 +263,10 @@ export class CanonicalFlowFindingsStore {
     const parameters = logicalKey === "task.review"
       ? { taskId: this.flowState.currentTaskId }
       : {};
-    const resolved = contract.ownership.producers.includes(this.nodeId)
+    const ownsTaskProducer = logicalKey === "task.review"
+      && this.nodeId === `${this.flowState.currentTaskId}-review`
+      && contract.ownership.producers.includes("task-review");
+    const resolved = (contract.ownership.producers.includes(this.nodeId) || ownsTaskProducer)
       ? this.flowManager.readProducerArtifact({
         specId: this.flowState.specId,
         nodeId: this.nodeId,
@@ -277,6 +285,7 @@ export class CanonicalFlowFindingsStore {
     return Object.freeze({
       logicalKey,
       relativePath: resolved.relativePath,
+      descriptor: resolved.descriptor,
       bytes: Buffer.from(resolved.bytes),
       payload: sourcePayload({ logicalKey, bytes: resolved.bytes }),
     });
@@ -346,6 +355,7 @@ export function appendDeferredFlowFinding({
       finalDisposition: current.finalDisposition ?? finalDisposition,
       planRewindAt,
     });
+    if (JSON.stringify(entry.toJSON()) === JSON.stringify(current.toJSON())) return current;
     const entries = existing.entries.map((item, index) => (index === existingIndex ? entry : item));
     store.publish(new FlowFindingsArtifact({ entries }));
     return entry;
@@ -408,7 +418,7 @@ function reviewBlockingFindings(artifact, sourceStep) {
     artifact?.proposals,
     artifact?.advisoryFindings,
   ];
-  return candidates.find(Array.isArray) || [];
+  return candidates.find((candidate) => Array.isArray(candidate) && candidate.length > 0) || [];
 }
 
 function sourceFindingsForArtifact(artifact, sourceStep) {
@@ -473,7 +483,7 @@ export function deferExhaustedSemanticFindings({
   const artifact = source?.payload ?? null;
   const selectedFingerprints = fingerprints instanceof Set ? fingerprints : null;
   const sourceFindings = sourceFindingsForArtifact(artifact, sourceStep).filter((finding) => (
-    selectedFingerprints === null || selectedFingerprints.has(finding?.fingerprint)
+    selectedFingerprints === null || selectedFingerprints.has(sourceFindingFingerprint(sourceStep, finding))
   ));
   const byFingerprint = new Map();
   sourceFindings.forEach((finding, index) => {

@@ -55,6 +55,9 @@ const FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS = new Set([
   "flow.activities",
   "spec.record",
   "issue.log",
+  // Task Review can defer semantic findings to the one flow-wide acceptance
+  // handoff without manufacturing a task-local copy.
+  "flow.findings",
   // Task implementation contributes the flow-wide requirement map.  Its
   // bytes intentionally remain at the implementation owner path so every
   // later task and the flow-level gate resolve one authoritative catalog key.

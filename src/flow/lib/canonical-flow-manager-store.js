@@ -2306,6 +2306,29 @@ export class CanonicalFlowManagerStore {
     });
   }
 
+  deferFailedReview({ specId = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    const nodeId = state.current?.at(-1) ?? null;
+    if (nodeId === null || !nodeId.endsWith("-review") || state.attempt?.failure === null) {
+      throw new CurrentFlowStateInvariantError("canonical Review deferral requires its failed active Attempt");
+    }
+    const attempt = commandContextAttempt(state, nodeId);
+    return this.runtime.deferFailedReview({
+      specId: resolved,
+      activityId: activityId("review-failure-deferred"),
+      nodeId,
+      attempt,
+      result: {
+        outcome: "passed",
+        summary: "Review findings deferred to acceptance",
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [],
+      },
+    });
+  }
+
   /**
    * Persist a current Attempt's typed result before a non-terminal command
    * outcome (for example a rejected review) returns control to the planner.

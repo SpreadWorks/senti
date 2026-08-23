@@ -693,6 +693,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  deferFailedReview(input = {}) {
+    return this._store.deferFailedReview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   setAutoApprove(autoApprove, opts) {
     return this._store.setAutoApprove(autoApprove, withSpecIdDefault(opts, this._boundSpecId));
   }

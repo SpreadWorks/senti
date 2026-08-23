@@ -338,6 +338,48 @@ export class NextActionDirectiveResolver {
         resumeInstruction: "Record changed canonical evidence and use the guarded retry-reset recovery, or repair a historical consumer claim with recover-missing-producer-artifact. Do not create an artifact manually.",
       });
     }
+    const reviewDisposition = this.descriptor.reviewDisposition;
+    if (reviewDisposition?.operation === "repair-test-review") {
+      return new RepairEvidenceDirective({
+        actionId: "REPAIR_TEST_REVIEW",
+        evidenceKind: "test",
+        phase: "test",
+        instruction: "Run the guarded test-review repair transition. It binds the rejected review Attempt and current cataloged test revision, then starts a replacement test worker Attempt.",
+        reason: "The definition selected the repair route from the current canonical test-review evidence.",
+        nextAction: guardedCommand("sennel flow run repair-test-review", this.state, this.binding),
+      });
+    }
+    if (reviewDisposition?.operation === "repair-evidence-blocked") {
+      return new BlockedDirective({
+        code: "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
+        reason: "The definition rejected the current test-review evidence as structurally unavailable for repair.",
+        resumeInstruction: "Produce a canonical REJECTED test-review result with typed blocking findings and a current test revision; do not rerun or repair stale evidence directly.",
+      });
+    }
+    if (reviewDisposition?.operation === "blocked") {
+      const reason = `The definition exhausted ${reviewDisposition.phase} review retries (${reviewDisposition.attempts}/${reviewDisposition.maxAttempts}) for the current canonical evidence.`;
+      return new BlockedDirective({
+        code: "REVIEW_MAX_ATTEMPTS_EXCEEDED",
+        reason,
+        resumeInstruction: "Record changed canonical evidence and use the definition-owned retry recovery; do not rerun or repair this rejected review directly.",
+      });
+    }
+    if (reviewDisposition?.operation === "defer") {
+      return new ExecuteCommandDirective({
+        actionId: "SETTLE_REVIEW_DEFER",
+        nextAction: guardedCommand("sennel flow run settle-review-transition", this.state, this.binding),
+        instruction: "Persist the definition-selected exhausted-review deferral and its canonical finding handoff, then refresh next-action. Do not rerun the active review.",
+        reason: `The definition selected deferred disposition for exhausted ${reviewDisposition.phase} review evidence.`,
+      });
+    }
+    if (reviewDisposition?.operation === "external-blocked") {
+      const reason = `The definition classified the current ${reviewDisposition.phase} review result as an external tooling stop.`;
+      return new BlockedDirective({
+        code: "REVIEW_TOOLING_EXTERNAL_BLOCKED",
+        reason,
+        resumeInstruction: "Resolve the review tooling failure through its existing guarded recovery; do not treat it as a successful review decision.",
+      });
+    }
     if (this.planGateRepairRoute !== null) {
       return new RepairEvidenceDirective({
         actionId: "REPAIR_PLAN_GATE_EVIDENCE",
