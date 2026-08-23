@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -11,6 +12,7 @@ import {
   ActivityFindingReference,
   ActivityReferences,
   ActivityRepairReference,
+  ActivityTask,
   ActivityTransition,
   CurrentAttempt,
   CurrentFlowDefinition,
@@ -65,6 +67,24 @@ function skippedResult(summary = "Skipped.") {
   return { outcome: "skipped", summary, confirmedAt: LATER, artifactRefs: [{ kind: "artifact", id: "skipped-artifact" }] };
 }
 
+function approvalActivityTask(id, key) {
+  const taskDocument = { id, parent: null };
+  const taskDigest = crypto.createHash("sha256")
+    .update(JSON.stringify(taskDocument))
+    .digest("hex");
+  return new ActivityTask({
+    id,
+    key,
+    approvalSource: {
+      specRecordHash: "a".repeat(64),
+      specRecordActivityId: "approval-source-activity",
+      taskDigest,
+      taskKey: key,
+      taskDocument,
+    },
+  });
+}
+
 function failedResult(summary = "Attempt failed.") {
   return { outcome: "failed", summary, confirmedAt: LATER, artifactRefs: [] };
 }
@@ -106,7 +126,7 @@ function attemptFor(state, currentPath, id, sequence = null, {
 function startDescriptor(state, id, options = {}) {
   const descriptor = state.nextAction();
   assert.ok(descriptor, "expected a definition-owned next action");
-  const attempt = attemptFor(state, descriptor.path, id, 1, options);
+  const attempt = attemptFor(state, descriptor.path, id, undefined, options);
   if (descriptor.operation === "start") {
     return state.startAttempt({ path: descriptor.path, attempt });
   }
@@ -150,11 +170,12 @@ function flowActivity({
   failure = null,
 }) {
   const node = state.findNode(currentPath.at(-1));
-  const activityAttempt = operation === "add_task"
+  const activityAttempt = ["add_task", "add_approval_task"].includes(operation)
     ? null
     : operation === "retry_attempt" ? state.attempt : attempt ?? state.attempt;
   const type = {
     add_task: "task_added",
+    add_approval_task: "task_added",
     start_attempt: "attempt_started",
     retry_attempt: "attempt_retried",
     update_attempt: "attempt_updated",
@@ -567,6 +588,45 @@ describe("Current Flow state foundation", () => {
     let idle = CurrentFlowState.create({ definition: definition() });
     idle = completeNext(idle, "branch-complete");
     assert.ok(idle.addTask({ id: "task-at-idle-boundary", key: "idle" }).findNode("task-at-idle-boundary"));
+  });
+
+  it("admits approval Tasks after a plan-gate recovery while retaining generic rewind closure", () => {
+    let state = CurrentFlowState.create({ definition: definition() });
+    state = advanceUntil(state, "spec-gate", "before-plan-repair");
+    const gatePath = state.nextAction().path;
+    state = state.startAttempt({ path: gatePath, attempt: attemptFor(state, gatePath, "spec-gate-failed") });
+    state = state.failCurrentAttempt({
+      result: failedResult("Spec gate rejected the plan."),
+      failure: {
+        category: "semantic",
+        code: "GATE_REJECTED",
+        message: "Spec gate rejected the plan.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+    });
+    const repairPath = state.definition.pathFor(state.root, "spec");
+    state = state.repairPlanGate({
+      path: repairPath,
+      attempt: attemptFor(state, repairPath, "spec-plan-repair"),
+    });
+    state = state.confirmCurrentAttempt({ status: "done", result: passedResult("Spec repaired.") });
+    state = advanceUntil(state, "approval", "after-plan-repair");
+    state = startDescriptor(state, "recovered-approval");
+
+    const admitted = state.admitApprovalTask(
+      approvalActivityTask("task-after-plan-repair", "recovered-task"),
+      { priorActivities: [{ id: "approval-source-activity", transition: { operation: "plan_gate_repair" } }] },
+    );
+    assert.ok(admitted.findNode("task-after-plan-repair"));
+    assert.equal(admitted.findNode("test-execute").status, "invalidated");
+    assert.throws(
+      () => state.admitApprovalTask(
+        approvalActivityTask("task-after-generic-rewind", "rejected-task"),
+        { priorActivities: [{ id: "approval-source-activity", transition: { operation: "rewind" } }] },
+      ),
+      /requires a definition-owned plan recovery route/,
+    );
   });
 
   it("keeps active facts in an immutable typed Attempt replacement and covers required resources with claims or incomplete work", () => {
@@ -1115,6 +1175,29 @@ describe("Current Flow state foundation", () => {
     });
 
     assert.ok(transition("add_task", { task: { id: "task-payload", key: "payload" } }));
+    const approvalTask = {
+      id: "approval-task-payload",
+      key: "approval-payload",
+      approvalSource: {
+        specRecordHash: "a".repeat(64),
+        specRecordActivityId: "approval-source-activity",
+        taskDigest: "5ce551c30e6a80c2b9440f7e7496826946027d048b52c7b6d873c8af91d11dab",
+        taskKey: "approval-payload",
+        taskDocument: { id: "approval-task-payload", parent: null },
+      },
+    };
+    assert.ok(transition("add_approval_task", { task: approvalTask }));
+    assert.throws(
+      () => transition("add_approval_task", { task: {
+        ...approvalTask,
+        approvalSource: { ...approvalTask.approvalSource, taskDigest: "c".repeat(64) },
+      } }),
+      /source digest does not match its Task document/,
+    );
+    assert.throws(
+      () => transition("add_task", { task: approvalTask }),
+      /only add_approval_task requires a durable approval Task source binding/,
+    );
     for (const operation of ["start_attempt", "retry_attempt", "update_attempt", "rewind", "plan_gate_repair", "recover_attempt"]) {
       assert.ok(transition(operation, { attempt }));
       assert.throws(() => transition(operation), /requires an Attempt payload/);

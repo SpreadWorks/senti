@@ -10,6 +10,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRuntimeLockLocation, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
@@ -126,6 +127,26 @@ const OUTBOX_TRANSITION_OPERATIONS = new Set(["begin_outbox", "reopen_outbox", "
 // field on flow.json.  Its append-only Activity can be replayed and checked
 // against the exact action digest on a later dispatcher process.
 const DISPATCH_APPROVAL_TRANSITION_OPERATIONS = new Set(["record_dispatch_approval"]);
+// A normal Task insertion closes as soon as the definition-owned suffix is
+// invalidated.  Approval continuation is the sole exception: its dedicated
+// Activity may replay Task admission after one of these definition-owned
+// planning recovery routes.  The Activity operation is itself durable, while
+// the preceding recovery Activity supplies the route authority.
+const APPROVAL_TASK_ADMISSION_RECOVERY_OPERATIONS = new Set([
+  "plan_gate_repair",
+  "reopen_draft_preimplementation",
+  "reopen_draft_task_addition",
+  "reopen_draft_spec_correction",
+]);
+const FLOW_SUFFIX_INVALIDATION_OPERATIONS = new Set([
+  "rewind",
+  "rewind_test_evidence",
+  "repair_test_review",
+  "repair_implementation",
+  "repair_acceptance_review",
+  ...APPROVAL_TASK_ADMISSION_RECOVERY_OPERATIONS,
+  "recover_missing_producer_artifact",
+]);
 // Metrics and notes are durable observations, not fields on flow.json.  Their
 // append-only home is the same Activity ledger that records every state
 // transition, which preserves a single recovery and ordering mechanism.
@@ -834,6 +855,169 @@ export class CurrentFlowStateConflictError extends Error {
     this.name = "CurrentFlowStateConflictError";
     this.code = "CURRENT_FLOW_STATE_CONFLICT";
   }
+}
+
+/**
+ * Typed catalog-lock admission for the approval-only Task insertion route.
+ * It is intentionally separate from generic Task insertion: callers must
+ * name this authority, and the resulting `add_approval_task` Activity is
+ * replayed against the same recovery history before it can change state.
+ */
+function canonicalApprovalTaskDocument(value) {
+  if (!isPlainObject(value)) {
+    throw new CurrentFlowStateInvariantError("approval Task admission source Task must be an object");
+  }
+  const document = structuredClone(value);
+  const id = requireString(document.id, "approval Task admission source Task.id");
+  requireString(document.key ?? id, "approval Task admission source Task.key");
+  delete document.key;
+  document.id = id;
+  document.parent ??= null;
+  return Object.freeze(document);
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
+}
+
+function approvalTaskDigest(value) {
+  return crypto.createHash("sha256").update(JSON.stringify(stableJsonValue(value))).digest("hex");
+}
+
+class ApprovalTaskSourceBinding {
+  constructor(value = {}) {
+    requireExactFields(
+      value,
+      new Set(["specRecordHash", "specRecordActivityId", "taskDigest", "taskKey", "taskDocument"]),
+      "approval Task source",
+    );
+    const { specRecordHash, specRecordActivityId, taskDigest, taskKey, taskDocument } = value;
+    for (const [field, value] of Object.entries({ specRecordHash, taskDigest })) {
+      if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) {
+        throw new CurrentFlowStateInvariantError(`approval Task source ${field} must be a SHA-256 digest`);
+      }
+    }
+    this.specRecordHash = specRecordHash;
+    this.specRecordActivityId = requireString(
+      specRecordActivityId,
+      "approval Task source specRecordActivityId",
+    );
+    this.taskKey = requireString(taskKey, "approval Task source taskKey");
+    this.taskDocument = canonicalApprovalTaskDocument(taskDocument);
+    if (taskDigest !== approvalTaskDigest(this.taskDocument)) {
+      throw new CurrentFlowStateInvariantError("approval Task source digest does not match its Task document");
+    }
+    this.taskDigest = taskDigest;
+    Object.freeze(this);
+  }
+
+  assertPriorActivities(activities) {
+    if (!activities.some((activity) => activity.id === this.specRecordActivityId)) {
+      throw new CurrentFlowStateInvariantError("approval Task source Activity is absent from the prior ledger");
+    }
+  }
+
+  toJSON() {
+    return {
+      specRecordHash: this.specRecordHash,
+      specRecordActivityId: this.specRecordActivityId,
+      taskDigest: this.taskDigest,
+      taskKey: this.taskKey,
+      taskDocument: structuredClone(this.taskDocument),
+    };
+  }
+}
+
+export class ApprovalTaskAdmission {
+  constructor({ sourceDescriptor, sourceTask } = {}) {
+    this.sourceDescriptor = sourceDescriptor instanceof FlowArtifactDescriptor
+      ? sourceDescriptor
+      : new FlowArtifactDescriptor(sourceDescriptor);
+    if (this.sourceDescriptor.logicalKey !== "spec.record") {
+      throw new CurrentFlowStateInvariantError("approval Task admission source must be canonical spec.record");
+    }
+    this.canonicalTask = canonicalApprovalTaskDocument(sourceTask);
+    this.sourceTask = Object.freeze(structuredClone(sourceTask));
+    this.taskId = this.canonicalTask.id;
+    this.taskKey = requireString(sourceTask.key ?? sourceTask.id, "approval Task admission source Task.key");
+    this.activitySource = new ApprovalTaskSourceBinding({
+      specRecordHash: this.sourceDescriptor.hash,
+      specRecordActivityId: this.sourceDescriptor.activityId,
+      taskDigest: approvalTaskDigest(this.canonicalTask),
+      taskKey: this.taskKey,
+      taskDocument: this.canonicalTask,
+    });
+    Object.freeze(this);
+  }
+
+  assertTask({ task, taskSpec }) {
+    if (!(task instanceof ActivityTask) || !isPlainObject(taskSpec)) {
+      throw new CurrentFlowStateInvariantError("approval Task admission requires typed Activity and Spec Tasks");
+    }
+    if (task.id !== this.taskId || task.key !== this.taskKey
+      || taskSpec.id !== this.taskId || (taskSpec.key ?? taskSpec.id) !== this.taskKey) {
+      throw new CurrentFlowStateInvariantError("approval Task admission does not match its bound Spec Task");
+    }
+    if (!(task.approvalSource instanceof ApprovalTaskSourceBinding)
+      || !isDeepStrictEqual(task.approvalSource.toJSON(), this.activitySource.toJSON())
+      || !isDeepStrictEqual(canonicalApprovalTaskDocument(taskSpec), this.canonicalTask)) {
+      throw new CurrentFlowStateInvariantError("approval Task admission Task document does not match its durable source binding");
+    }
+  }
+
+  assert({ state, catalog, activities, readCatalogedArtifact }) {
+    approvalTaskAdmissionRoute(state, activities);
+    if (!(catalog instanceof FlowArtifactCatalog) || typeof readCatalogedArtifact !== "function") {
+      throw new CurrentFlowStateInvariantError("approval Task admission requires the canonical artifact catalog");
+    }
+    const current = catalog.resolve(this.sourceDescriptor.relativePath);
+    if (!isDeepStrictEqual(current.toJSON(), this.sourceDescriptor.toJSON())) {
+      throw new CurrentFlowStateInvariantError("approval Task admission spec.record descriptor changed");
+    }
+    let specRecord;
+    try {
+      specRecord = CurrentFlowSpecRecord.from(
+        JSON.parse(readCatalogedArtifact(current).toString("utf8")),
+        { specId: state.specId },
+      );
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`approval Task admission spec.record is invalid: ${cause.message}`);
+    }
+    const source = specRecord.task(this.taskId);
+    if (source === null || !isDeepStrictEqual(source.document, this.sourceTask)) {
+      throw new CurrentFlowStateInvariantError("approval Task admission source Task changed");
+    }
+  }
+}
+
+function approvalTaskAdmissionRoute(state, priorActivities) {
+  if (!(state instanceof CurrentFlowState)) {
+    throw new CurrentFlowStateInvariantError("approval Task admission requires a current Flow state");
+  }
+  if (!Array.isArray(priorActivities)) {
+    throw new CurrentFlowStateInvariantError("approval Task admission requires an Activity ledger prefix");
+  }
+  if (state.current?.at(-1) !== "approval" || state.attempt === null) {
+    throw new CurrentFlowStateInvariantError("approval Task admission requires the active approval Attempt");
+  }
+  if (state.definition.canAddTask(state.root)) return "fresh";
+  const container = state.findNode(state.definition.dynamicTaskContainerId);
+  if (container === null) throw new CurrentFlowStateInvariantError("dynamic Task container is missing");
+  const insertionIndex = state.definition.taskInsertionIndex(container);
+  const suffixLeaves = container.steps.slice(insertionIndex)
+    .flatMap((node) => collectNodes(node).filter((candidate) => candidate.steps.length === 0));
+  if (suffixLeaves.length === 0 || suffixLeaves.some((leaf) => leaf.status !== "invalidated")) {
+    throw new CurrentFlowStateInvariantError("approval Task admission requires a pending or wholly invalidated definition-owned suffix");
+  }
+  const invalidation = [...priorActivities].reverse().find((activity) => (
+    FLOW_SUFFIX_INVALIDATION_OPERATIONS.has(activity.transition.operation)
+  )) ?? null;
+  if (invalidation === null || !APPROVAL_TASK_ADMISSION_RECOVERY_OPERATIONS.has(invalidation.transition.operation)) {
+    throw new CurrentFlowStateInvariantError("approval Task admission requires a definition-owned plan recovery route");
+  }
+  return invalidation.transition.operation;
 }
 
 /**
@@ -2227,6 +2411,10 @@ export class CurrentFlowDefinition {
     throw new CurrentFlowStateInvariantError(`definition has no node for current state: ${node.id}`);
   }
 
+  isDynamicTaskNode(node) {
+    return node instanceof TaskNode || this.#taskTemplateNodesByKey.has(node?.key);
+  }
+
   pathFor(root, nodeId) {
     const pathIds = findPathInRoot(root, nodeId);
     if (pathIds === null) throw new CurrentFlowStateInvariantError(`definition path lookup requires a current-state node: ${nodeId}`);
@@ -2717,7 +2905,7 @@ function assertNodeLifecycle(node) {
   }
 }
 
-function assertExecutionFrontier(leaves, currentPath) {
+function assertExecutionFrontier(leaves, currentPath, definition) {
   const finalizationDownstreamRoute = currentPath?.at(-1) === "finalize-merge";
   let frontier = null;
   let suffixStatus = null;
@@ -2740,6 +2928,15 @@ function assertExecutionFrontier(leaves, currentPath) {
     }
     if (frontier.status === "in_progress" && index === frontier.index) continue;
     if (suffixStatus === null) suffixStatus = leaf.status;
+    // A dedicated add_approval_task Activity may insert pending dynamic Tasks
+    // into an invalidated definition-owned suffix. Those Tasks remain valid
+    // after approval confirms and while the earlier invalidated leaves recover.
+    // Generic add_task cannot create this shape because its guard is unchanged;
+    // the Activity journal proves the dedicated admission route.
+    const approvalRecoveryTask = suffixStatus === "invalidated"
+      && leaf.status === "pending"
+      && definition.isDynamicTaskNode(leaf);
+    if (approvalRecoveryTask) continue;
     if (!EXECUTABLE_NODE_STATUSES.has(suffixStatus) || leaf.status !== suffixStatus) {
       throw new CurrentFlowStateInvariantError("execution frontier must have one active leaf and a uniform pending or invalidated suffix");
     }
@@ -2887,7 +3084,7 @@ export class CurrentFlowState {
       }
     }
     assertNodeLifecycle(this.root);
-    assertExecutionFrontier(this.#leaves, this.current);
+    assertExecutionFrontier(this.#leaves, this.current, this.definition);
     if (this.lifecycle.state === "finalized") {
       if (this.current !== null || this.attempt !== null) {
         throw new CurrentFlowStateInvariantError("finalized Flow must not retain an active Attempt");
@@ -3089,6 +3286,30 @@ export class CurrentFlowState {
     if (this.current !== null && this.current.at(-1) !== "approval") {
       throw new CurrentFlowStateInvariantError("dynamic Task insertion requires no active Attempt outside approval");
     }
+    return this.#insertTask(container, { id, key });
+  }
+
+  /**
+   * Replay the one parent-owned Task admission route that is available while
+   * an approval Attempt is active.  Its Activity carries the durable intent;
+   * the preceding recovery Activity is verified before this transition is
+   * committed and again while the journal is replayed.
+   */
+  admitApprovalTask(task, { priorActivities = [] } = {}) {
+    const { id, key, approvalSource } = task;
+    this.#assertExecutionActive();
+    const container = this.findNode(this.definition.dynamicTaskContainerId);
+    if (!container) throw new CurrentFlowStateInvariantError("dynamic Task container is missing");
+    if (this.findNode(id)) throw new CurrentFlowStateInvariantError(`dynamic Task duplicates stable id: ${id}`);
+    approvalTaskAdmissionRoute(this, priorActivities);
+    if (!(approvalSource instanceof ApprovalTaskSourceBinding)) {
+      throw new CurrentFlowStateInvariantError("approval Task admission requires its durable source binding");
+    }
+    approvalSource.assertPriorActivities(priorActivities);
+    return this.#insertTask(container, { id, key });
+  }
+
+  #insertTask(container, { id, key }) {
     const task = this.definition.taskFrom({ id, key });
     const insertionIndex = this.definition.taskInsertionIndex(container);
     return this.#replaceRoot(replaceNode(this.root, container.id, container.withSteps([
@@ -4267,14 +4488,30 @@ export class ActivityReferences {
 
 export class ActivityTask {
   constructor(value) {
-    requireExactFields(value, new Set(["id", "key"]), "activity.task");
-    const { id, key } = value;
+    const hasApprovalSource = isPlainObject(value) && Object.hasOwn(value, "approvalSource");
+    requireExactFields(value, new Set(hasApprovalSource ? ["id", "key", "approvalSource"] : ["id", "key"]), "activity.task");
+    const { id, key, approvalSource = null } = value;
     this.id = requireString(id, "activity.task.id");
     this.key = requireString(key, "activity.task.key");
+    this.approvalSource = approvalSource === null
+      ? null
+      : approvalSource instanceof ApprovalTaskSourceBinding
+        ? approvalSource
+        : new ApprovalTaskSourceBinding(approvalSource);
+    if (this.approvalSource !== null
+      && (this.approvalSource.taskDocument.id !== this.id || this.approvalSource.taskKey !== this.key)) {
+      throw new CurrentFlowStateInvariantError("approval Task source binding does not match its Activity Task");
+    }
     Object.freeze(this);
   }
 
-  toJSON() { return { id: this.id, key: this.key }; }
+  toJSON() {
+    return {
+      id: this.id,
+      key: this.key,
+      ...(this.approvalSource === null ? {} : { approvalSource: this.approvalSource.toJSON() }),
+    };
+  }
 }
 
 /**
@@ -4461,16 +4698,24 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
     this.nodeId = requireString(nodeId, "activity.transition.nodeId");
     this.task = task == null ? null : task instanceof ActivityTask ? task : new ActivityTask(task);
     this.attempt = attempt == null ? null : attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
-    const taskRequired = operation === "add_task";
+    const taskRequired = ["add_task", "add_approval_task"].includes(operation);
     if (taskRequired !== (this.task !== null)) {
-      throw new CurrentFlowStateInvariantError("add_task is the only transition that requires a Task payload");
+      throw new CurrentFlowStateInvariantError(this.task === null
+        ? "Task admission transitions require a Task payload"
+        : "add_task is the only transition that requires a Task payload outside approval continuation");
+    }
+    const approvalSourceRequired = operation === "add_approval_task";
+    if (taskRequired && approvalSourceRequired !== (this.task.approvalSource !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        "only add_approval_task requires a durable approval Task source binding",
+      );
     }
     this.policy = policy == null ? null : policy instanceof CurrentFlowPolicy ? policy : new CurrentFlowPolicy(policy);
     const policyRequired = operation === "set_policy";
@@ -4571,7 +4816,7 @@ export class ActivityTransition {
     Object.freeze(this);
   }
 
-  apply(state, activity) {
+  apply(state, activity, { priorActivities = [] } = {}) {
     const targetId = this.nodeId;
     if (activity.nodeId !== targetId) throw new CurrentFlowStateInvariantError("Activity nodeId must match transition nodeId");
     if (this.operation !== FLOW_CREATION_TRANSITION_OPERATION) state.assertTransitionHandler(targetId);
@@ -4668,11 +4913,13 @@ export class ActivityTransition {
       }
       return state.acceptFinalRegressionFailure({ attempt: this.attempt, result: activity.result });
     }
-    if (this.operation === "add_task") {
+    if (["add_task", "add_approval_task"].includes(this.operation)) {
       if (target.id !== state.definition.dynamicTaskContainerId) {
-        throw new CurrentFlowStateInvariantError("add_task Activity must target the definition dynamic Task container");
+        throw new CurrentFlowStateInvariantError("Task admission Activity must target the definition dynamic Task container");
       }
-      return state.addTask(this.task);
+      return this.operation === "add_task"
+        ? state.addTask(this.task)
+        : state.admitApprovalTask(this.task, { priorActivities });
     }
     if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
@@ -4849,6 +5096,7 @@ export class FlowActivity {
     const typeForOperation = {
       [FLOW_CREATION_TRANSITION_OPERATION]: FLOW_CREATION_ACTIVITY_TYPE,
       add_task: "task_added",
+      add_approval_task: "task_added",
       start_attempt: "attempt_started",
       retry_attempt: "attempt_retried",
       retry_recovery_attempt: "attempt_recovered",
@@ -4918,7 +5166,7 @@ export class FlowActivity {
     }
     if (
       flowCreated
-      || this.transition.operation === "add_task"
+      || ["add_task", "add_approval_task"].includes(this.transition.operation)
       || LIFECYCLE_TRANSITION_OPERATIONS.has(this.transition.operation)
       || POLICY_TRANSITION_OPERATIONS.has(this.transition.operation)
       || (ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.transition.operation)
@@ -5680,7 +5928,7 @@ export class CurrentFlowStateStore {
       } else {
         throw new CurrentFlowStateConflictError("current flow creation requires an empty or sole flow_created Activity journal");
       }
-      const materialized = this.#applyActivity(next, created);
+      const materialized = this.#applyActivity(next, created, []);
       this.faultInjector({ phase: "activity-ready-to-append", activity: created, state: next });
       const appended = this.journal.append(created, JOURNAL_WRITER_AUTHORITY, journalSnapshot);
       if (appended.appended) {
@@ -5777,7 +6025,7 @@ export class CurrentFlowStateStore {
       // The update is carried by the Activity itself.  This is important for
       // journal-first crash recovery: a replay cannot silently substitute a
       // different callback for a persisted Activity id/order.
-      const next = this.#applyActivity(original, proposed);
+      const next = this.#applyActivity(original, proposed, entries.slice(0, original.confirmationOrder));
       this.faultInjector({ phase: "activity-ready-to-append", activity: proposed, state: original });
       this.journal.append(proposed, JOURNAL_WRITER_AUTHORITY, journalSnapshot);
       this.faultInjector({ phase: "activity-appended", activity: proposed, state: original });
@@ -5845,8 +6093,10 @@ export class CurrentFlowStateStore {
     let replayed = cachedBase ?? freshStateLike(state, this.definition);
     const replayStart = cachedBase?.confirmationOrder ?? 0;
     try {
-      for (const entry of entries.slice(replayStart, state.confirmationOrder)) {
-        replayed = this.#applyActivity(replayed, entry);
+      const priorActivities = entries.slice(0, replayStart);
+      for (let index = replayStart; index < state.confirmationOrder; index += 1) {
+        replayed = this.#applyActivity(replayed, entries[index], priorActivities);
+        priorActivities.push(entries[index]);
       }
     } catch (error) {
       throw new CurrentFlowStateConflictError(`Activity journal cannot reproduce flow state: ${error.message}`);
@@ -5856,7 +6106,7 @@ export class CurrentFlowStateStore {
     }
     if (journalOrder === state.confirmationOrder + 1) {
       try {
-        this.#applyActivity(replayed, entries.at(-1));
+        this.#applyActivity(replayed, entries.at(-1), entries.slice(0, state.confirmationOrder));
       } catch (error) {
         throw new CurrentFlowStateConflictError(`pending Activity cannot advance flow state: ${error.message}`);
       }
@@ -5880,12 +6130,12 @@ export class CurrentFlowStateStore {
     });
   }
 
-  #applyActivity(state, activity) {
+  #applyActivity(state, activity, priorActivities = []) {
     const activityNode = state.findNode(activity.nodeId);
     if (!activityNode || activityNode.key !== activity.nodeKey) {
       throw new CurrentFlowStateInvariantError("Activity must reference a current-state node by stable id and semantic key");
     }
-    return activity.transition.apply(state, activity).withConfirmationOrder(activity.confirmationOrder);
+    return activity.transition.apply(state, activity, { priorActivities }).withConfirmationOrder(activity.confirmationOrder);
   }
 
   #write(state, expectedBytes) {
@@ -6170,12 +6420,19 @@ export class CurrentFlowVersionStore {
     if (admission !== null && typeof admission.assert !== "function") {
       throw new CurrentFlowStateInvariantError("canonical admission must provide assert()");
     }
-    const taskAddition = activity.transition.operation === "add_task";
+    const approvalTaskAddition = activity.transition.operation === "add_approval_task";
+    if (approvalTaskAddition && !(admission instanceof ApprovalTaskAdmission)) {
+      throw new CurrentFlowStateInvariantError("approval Task Activity requires typed approval admission");
+    }
+    if (approvalTaskAddition) {
+      admission.assertTask({ task: activity.transition.task, taskSpec: input?.taskSpec });
+    }
+    const taskAddition = ["add_task", "add_approval_task"].includes(activity.transition.operation);
     const taskSpec = taskAddition
       ? this.#nextTaskSpec(activity, input?.taskSpec)
       : null;
     if (!taskAddition && input?.taskSpec !== undefined) {
-      throw new CurrentFlowStateInvariantError("only add_task Activity may update canonical spec.json.tasks");
+      throw new CurrentFlowStateInvariantError("only Task admission Activities may update canonical spec.json.tasks");
     }
     const replacementSpec = this.#replacementSpec(input?.specRecord, activity, taskAddition);
     const artifactBaselines = this.#artifactBaselines(input?.artifactBaselines);
@@ -6295,10 +6552,10 @@ export class CurrentFlowVersionStore {
       ? { id: task.id, key: task.key }
       : supplied;
     if (!isPlainObject(nextTask)) {
-      throw new CurrentFlowStateInvariantError("add_task canonical Task specification must be an object");
+      throw new CurrentFlowStateInvariantError("Task admission canonical Task specification must be an object");
     }
     if (nextTask.id !== task.id || (nextTask.key != null && nextTask.key !== task.key)) {
-      throw new CurrentFlowStateInvariantError("add_task canonical Task specification must match the Activity Task id and key");
+      throw new CurrentFlowStateInvariantError("Task admission canonical Task specification must match the Activity Task id and key");
     }
     return this.#readSpecRecord().withTask(nextTask);
   }
@@ -6310,7 +6567,7 @@ export class CurrentFlowVersionStore {
       return null;
     }
     if (taskAddition) {
-      throw new CurrentFlowStateInvariantError("add_task cannot replace canonical spec.json");
+      throw new CurrentFlowStateInvariantError("Task admission cannot replace canonical spec.json");
     }
     const isTypedSpecUpdate = activity.transition.operation === "update_spec_record";
     const sourceCompletion = value instanceof CanonicalSourceWorkerSpecCompletion;
@@ -6354,7 +6611,7 @@ export class CurrentFlowVersionStore {
     if (!(specRecord instanceof CurrentFlowSpecRecord)) {
       throw new CurrentFlowStateInvariantError("admitted Task lookup requires the current typed Spec record");
     }
-    // TaskNodes are the rehydrated projection of confirmed add_task Activities.
+    // TaskNodes are the rehydrated projection of confirmed Task-admission Activities.
     // The State Store has already checked that its journal and flow.json agree,
     // so traversing the journal again would duplicate that validation and make
     // every worker publication scale with the complete Flow history.
@@ -6479,7 +6736,7 @@ export class CurrentFlowVersionStore {
   }
   #materializeTaskWorkspace(task) {
     if (!(task instanceof ActivityTask)) {
-      throw new CurrentFlowStateInvariantError("Task workspace requires the typed add_task payload");
+      throw new CurrentFlowStateInvariantError("Task workspace requires the typed Task-admission payload");
     }
     // Task result files are produced and cataloged by their owning Steps.
     // Creation reserves only the canonical directory topology; it never

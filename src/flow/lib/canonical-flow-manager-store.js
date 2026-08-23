@@ -38,7 +38,9 @@ import {
   CanonicalSourceWorkerUpgradeResult,
   CurrentFlowNonBlockingPolicy,
   CurrentFlowState,
+  CurrentFlowStateConflictError,
   CurrentFlowStateInvariantError,
+  ApprovalTaskAdmission,
   FlowActivity,
   TaskNode,
 } from "./current-flow-state.js";
@@ -115,6 +117,17 @@ function requiredText(value, field) {
     throw new CurrentFlowStateInvariantError(`${field} must be a non-empty string`);
   }
   return value;
+}
+
+function canonicalTaskAddition(task) {
+  if (task === null || typeof task !== "object" || Array.isArray(task)) {
+    throw new CurrentFlowStateInvariantError("canonical Task must be an object");
+  }
+  const id = requiredText(task.id, "canonical Task.id");
+  const key = requiredText(task.key ?? task.id, "canonical Task.key");
+  const taskSpec = structuredClone(task);
+  delete taskSpec.key;
+  return Object.freeze({ id, key, taskSpec: { ...taskSpec, id } });
 }
 
 function canonicalSpecId(value) {
@@ -1344,23 +1357,32 @@ export class CanonicalFlowManagerStore {
   }
 
   addTask(task, opts = {}) {
-    if (task === null || typeof task !== "object" || Array.isArray(task)) {
-      throw new CurrentFlowStateInvariantError("canonical Task must be an object");
-    }
     const specId = this.#resolveSpecId(opts.specId);
     if (specId === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
-    const id = requiredText(task.id, "canonical Task.id");
-    const key = requiredText(task.key ?? task.id, "canonical Task.key");
+    const addition = canonicalTaskAddition(task);
     return this.runtime.addTask({
       specId,
       activityId: activityId("task-added"),
-      taskId: id,
-      key,
-      taskSpec: (() => {
-        const document = structuredClone(task);
-        delete document.key;
-        return { ...document, id };
-      })(),
+      taskId: addition.id,
+      key: addition.key,
+      taskSpec: addition.taskSpec,
+    });
+  }
+
+  /**
+   * Parent-only Task admission used by approval continuation.  The runtime
+   * persists a distinct Activity and checks the typed recovery authority
+   * under the catalog lock before adding the Task or updating spec.json.
+   */
+  #addApprovalTask(task, { specId, sourceDescriptor, sourceTask }) {
+    const addition = canonicalTaskAddition(task);
+    return this.runtime.addApprovalTask({
+      specId,
+      activityId: activityId("approval-task-added"),
+      taskId: addition.id,
+      key: addition.key,
+      taskSpec: addition.taskSpec,
+      admission: new ApprovalTaskAdmission({ sourceDescriptor, sourceTask }),
     });
   }
 
@@ -1542,17 +1564,35 @@ export class CanonicalFlowManagerStore {
       consumerNodeId: "approval",
     });
     const document = JSON.parse(source.bytes.toString("utf8"));
+    const sourceHash = source.descriptor.hash;
     const taskContainer = state.findNode(state.definition.dynamicTaskContainerId);
     const existing = new Set((taskContainer?.steps || []).map((task) => task.id));
     const added = [];
     for (const task of new TaskCollection(document.tasks ?? []).admissionOrder()) {
       if (existing.has(task.id.value)) continue;
+      const currentSource = this.readArtifact({
+        specId: resolved,
+        logicalKey: "spec.record",
+        consumerNodeId: "approval",
+      });
+      if (currentSource.descriptor.hash !== sourceHash) {
+        throw new CurrentFlowStateConflictError("canonical spec.record changed during approval Task admission");
+      }
+      const currentDocument = JSON.parse(currentSource.bytes.toString("utf8"));
+      const sourceTask = (currentDocument.tasks ?? []).find((candidate) => candidate.id === task.id.value) ?? null;
+      if (sourceTask === null) {
+        throw new CurrentFlowStateConflictError(`canonical spec.record lost approval Task: ${task.id.value}`);
+      }
       const { id, parent, ...taskDocument } = task;
-      this.addTask({
+      this.#addApprovalTask({
         id: id.value,
         parent: parent === null ? null : parent.value,
         ...structuredClone(taskDocument),
-      }, { specId: resolved });
+      }, {
+        specId: resolved,
+        sourceDescriptor: currentSource.descriptor,
+        sourceTask,
+      });
       existing.add(id.value);
       added.push(id.value);
       state = this.runtime.load(resolved);

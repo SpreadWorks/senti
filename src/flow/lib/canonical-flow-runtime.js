@@ -24,6 +24,7 @@ import {
 
 const TYPE_FOR_OPERATION = Object.freeze({
   add_task: "task_added",
+  add_approval_task: "task_added",
   start_attempt: "attempt_started",
   retry_attempt: "attempt_retried",
   retry_recovery_attempt: "attempt_recovered",
@@ -234,6 +235,30 @@ export class CanonicalFlowRuntime {
         nonblocking: null,
       },
     }), { taskSpec });
+  }
+
+  /** Persist one approval-owned Task admission with its typed authority. */
+  addApprovalTask({ specId, activityId, taskId, key, taskSpec = undefined, admission } = {}) {
+    const state = this.#state(specId);
+    const nodeId = state.definition.dynamicTaskContainerId;
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId,
+      transition: {
+        operation: "add_approval_task",
+        nodeId,
+        task: {
+          id: requiredText(taskId, "taskId"),
+          key: requiredText(key, "task key"),
+          ...(admission?.activitySource === undefined
+            ? {}
+            : { approvalSource: admission.activitySource.toJSON() }),
+        },
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { taskSpec, admission });
   }
 
   startAttempt({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, admission = undefined, retryRecoveryPublication = undefined } = {}) {
