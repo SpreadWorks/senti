@@ -48,6 +48,110 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function isIsoTimestamp(value) {
+  return typeof value === "string" && value.trim() !== "" && Number.isFinite(Date.parse(value));
+}
+
+/**
+ * The catalog owns test-source membership, while the Activity ledger owns
+ * whether that membership was successfully finalized.  Consumers must not
+ * manufacture a revision timestamp when those two authorities cannot be
+ * joined.
+ */
+export class CanonicalTestSourceProvenanceError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "CanonicalTestSourceProvenanceError";
+    this.code = "CANONICAL_TEST_SOURCE_REVISION_UNAVAILABLE";
+  }
+}
+
+class CanonicalTestSourceMemberFinalization {
+  constructor({ descriptor, activities } = {}) {
+    if (descriptor === null || typeof descriptor !== "object" || Array.isArray(descriptor)) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source requires a catalog descriptor");
+    }
+    if (!Array.isArray(activities)) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source requires an Activity ledger");
+    }
+    if (descriptor.logicalKey !== "tests.source" || descriptor.slot?.publicationStep !== "test") {
+      throw new CanonicalTestSourceProvenanceError("canonical test source descriptor has invalid publication provenance");
+    }
+    if (typeof descriptor.activityId !== "string" || descriptor.activityId.trim() === "") {
+      throw new CanonicalTestSourceProvenanceError("canonical test source descriptor has no producer Activity");
+    }
+    const producers = activities.filter((activity) => activity?.id === descriptor.activityId);
+    if (producers.length !== 1) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source descriptor has an ambiguous producer Activity");
+    }
+    const producer = producers[0];
+    if (this.#isConfirmation(producer)) {
+      this.finalizedAt = this.#confirmedAt(producer);
+    } else if (this.#isPublication(producer)) {
+      this.finalizedAt = this.#publicationConfirmation(producer, activities);
+    } else {
+      throw new CanonicalTestSourceProvenanceError("canonical test source producer Activity is not a test confirmation or publication");
+    }
+    Object.freeze(this);
+  }
+
+  #isConfirmation(activity) {
+    return activity?.type === "result_confirmed" && activity.transition?.operation === "confirm_attempt";
+  }
+
+  #isPublication(activity) {
+    return activity?.type === "artifacts_published" && activity.transition?.operation === "publish_artifacts";
+  }
+
+  #confirmedAt(activity) {
+    if (
+      activity.nodeId !== "test"
+      || activity.transition?.nodeId !== "test"
+      || activity.transition?.status !== "done"
+      || typeof activity.attemptId !== "string"
+      || activity.attemptId.trim() === ""
+      || !Number.isSafeInteger(activity.sequence)
+      || activity.sequence < 1
+      || activity.result?.outcome !== "passed"
+      || !isIsoTimestamp(activity.result?.confirmedAt)
+    ) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source has no successful test confirmation");
+    }
+    return activity.result.confirmedAt;
+  }
+
+  #publicationConfirmation(publication, activities) {
+    if (
+      publication.nodeId !== "test"
+      || publication.transition?.nodeId !== "test"
+      || typeof publication.attemptId !== "string"
+      || publication.attemptId.trim() === ""
+      || !Number.isSafeInteger(publication.sequence)
+      || publication.sequence < 1
+      || !Number.isSafeInteger(publication.confirmationOrder)
+      || publication.confirmationOrder < 1
+    ) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source publication has no test Attempt identity");
+    }
+    const confirmations = activities.filter((activity) => (
+      this.#isConfirmation(activity)
+      && activity.nodeId === "test"
+      && activity.transition?.nodeId === "test"
+      && activity.attemptId === publication.attemptId
+      && activity.sequence === publication.sequence
+      && Number.isSafeInteger(activity.confirmationOrder)
+      && activity.confirmationOrder > publication.confirmationOrder
+    ));
+    if (confirmations.length === 0) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source publication has no subsequent successful confirmation");
+    }
+    if (confirmations.length > 1) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source publication has an ambiguous successful confirmation");
+    }
+    return this.#confirmedAt(confirmations[0]);
+  }
+}
+
 /**
  * Immutable revision of the cataloged spec-local test tree.
  *
@@ -94,31 +198,34 @@ export class CanonicalTestSourceRevision {
     Object.freeze(this);
   }
 
-  static fromCatalog({ state, catalog, activities = [], now = () => new Date().toISOString() } = {}) {
+  static fromCatalog({ state, catalog, activities = [] } = {}) {
     const canonical = canonicalState(state);
     if (catalog === null || typeof catalog !== "object" || !Array.isArray(catalog.artifacts)) {
       throw new Error("canonical test source revision requires an artifact catalog");
     }
     if (!Array.isArray(activities)) throw new Error("canonical test source revision activities must be an array");
-    const activityById = new Map(activities.map((activity) => [activity?.id, activity]));
-    const members = catalog.artifacts
+    const descriptors = catalog.artifacts
       .filter((descriptor) => descriptor?.logicalKey === "tests.source")
       .map((descriptor) => {
         if (typeof descriptor.relativePath !== "string" || !descriptor.relativePath.startsWith(TEST_SOURCE_PREFIX)) {
           throw new Error("canonical test source catalog path is invalid");
         }
-        return {
+        return Object.freeze({
+          descriptor,
           testPath: descriptor.relativePath.slice(TEST_SOURCE_PREFIX.length),
           hash: descriptor.hash,
           size: descriptor.size,
           activityId: descriptor.activityId ?? null,
-        };
+        });
       });
-    const finalizedAt = members
-      .map((member) => activityById.get(member.activityId)?.timing?.finishedAt ?? null)
-      .filter(Boolean)
-      .sort()
-      .at(-1) ?? now();
+    if (descriptors.length === 0) {
+      throw new CanonicalTestSourceProvenanceError("canonical test source revision has no cataloged test sources");
+    }
+    const members = descriptors.map(({ descriptor, ...member }) => member);
+    const finalizedAt = descriptors
+      .map(({ descriptor }) => new CanonicalTestSourceMemberFinalization({ descriptor, activities }).finalizedAt)
+      .sort((left, right) => Date.parse(left) - Date.parse(right))
+      .at(-1);
     return new CanonicalTestSourceRevision({
       runId: canonical.runId,
       specId: canonical.specId,

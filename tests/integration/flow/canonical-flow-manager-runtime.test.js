@@ -77,7 +77,11 @@ import {
 } from "../../support/infrastructure/flow-setup.js";
 import { validateCanonicalUpgradeEvidence } from "../../../src/flow/lib/test-artifacts.js";
 import { ReviewTargetAuthority } from "../../../src/flow/lib/review-target-authority.js";
-import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import {
+  CanonicalTestArtifactStore,
+  CanonicalTestSourceProvenanceError,
+  CanonicalTestSourceRevision,
+} from "../../../src/flow/lib/canonical-test-artifacts.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 
 const roots = [];
@@ -2443,10 +2447,16 @@ describe("FlowManager canonical Version-1 runtime", () => {
         });
       },
     });
-    const sourceRevision = new CanonicalTestArtifactStore({
+    const testArtifactStore = new CanonicalTestArtifactStore({
       flowManager: manager,
       state: manager.load(created.specId),
-    }).testSourceRevision().toJSON();
+    });
+    const sourceRevision = testArtifactStore.testSourceRevision().toJSON();
+    assert.deepEqual(
+      testArtifactStore.testSourceRevision().toJSON(),
+      sourceRevision,
+      "a cataloged test source revision is stable across repeated reads",
+    );
     const evidenceDigest = "e".repeat(64);
     const finding = {
       findingId: "test-review-finding",
@@ -2488,6 +2498,13 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(state.currentNodeId, "test");
     assert.equal(leaves(state.steps).find((entry) => entry.id === "scenario-validity").status, "invalidated");
     assert.equal(leaves(state.steps).find((entry) => entry.id === "test-review").status, "invalidated");
+    const firstTestAction = await new GetNextActionCommand().execute({ ...ctx, flowState: state });
+    const secondTestAction = await new GetNextActionCommand().execute({ ...ctx, flowState: state });
+    assert.deepEqual(
+      secondTestAction,
+      firstTestAction,
+      "repair-test-review produces a stable next action for dispatcher identity verification",
+    );
 
     const handoff = new WorkerArtifactHandoffCoordinator().createRequest({
       ctx,
@@ -2501,6 +2518,131 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.deepEqual(handoff.inputs.map((entry) => entry.name), ["spec.json", "test-review.json"]);
     assert.equal(handoff.inputs[1].document.verdict, "REJECTED");
     assert.equal(fs.existsSync(path.join(manager.specLocation(created.specId).directory, "test-review.json")), false);
+  });
+
+  it("derives every cataloged test member finalization from durable test confirmations", () => {
+    const state = { schemaRevision: 3, runId: "test-source-run", specId: "001-test-source-provenance" };
+    const descriptor = (testPath, activityId) => ({
+      logicalKey: "tests.source",
+      slot: { publicationStep: "test" },
+      relativePath: `artifacts/tests/${testPath}`,
+      hash: "a".repeat(64),
+      size: 12,
+      activityId,
+    });
+    const confirmation = (id, attemptId, sequence, confirmedAt, confirmationOrder) => ({
+      id,
+      type: "result_confirmed",
+      nodeId: "test",
+      attemptId,
+      sequence,
+      confirmationOrder,
+      transition: { operation: "confirm_attempt", nodeId: "test", status: "done" },
+      result: { outcome: "passed", confirmedAt },
+      timing: null,
+    });
+    const publication = (id, attemptId, sequence, confirmationOrder) => ({
+      id,
+      type: "artifacts_published",
+      nodeId: "test",
+      attemptId,
+      sequence,
+      confirmationOrder,
+      transition: { operation: "publish_artifacts", nodeId: "test", status: null },
+      result: null,
+      timing: null,
+    });
+    const catalog = {
+      artifacts: [
+        descriptor("direct.test.js", "confirm-direct"),
+        descriptor("published-first.test.js", "publish-first"),
+        descriptor("published-last.test.js", "publish-last"),
+      ],
+    };
+    const activities = [
+      confirmation("confirm-direct", "test-attempt-direct", 1, "2026-08-23T00:00:00.000Z", 1),
+      publication("publish-first", "test-attempt-first", 2, 2),
+      confirmation("confirm-first", "test-attempt-first", 2, "2026-08-23T00:01:00.000Z", 3),
+      publication("publish-last", "test-attempt-last", 3, 4),
+      confirmation("confirm-last", "test-attempt-last", 3, "2026-08-23T00:02:00.000Z", 5),
+    ];
+
+    const first = CanonicalTestSourceRevision.fromCatalog({ state, catalog, activities }).toJSON();
+    const second = CanonicalTestSourceRevision.fromCatalog({ state, catalog, activities }).toJSON();
+
+    assert.equal(first.finalizedAt, "2026-08-23T00:02:00.000Z");
+    assert.deepEqual(second, first, "rebuilding the same canonical revision must not use read time");
+  });
+
+  it("rejects test-source revisions without complete durable provenance", () => {
+    const state = { schemaRevision: 3, runId: "test-source-run", specId: "001-test-source-provenance-errors" };
+    const descriptor = (activityId) => ({
+      logicalKey: "tests.source",
+      slot: { publicationStep: "test" },
+      relativePath: "artifacts/tests/requirement.test.js",
+      hash: "a".repeat(64),
+      size: 12,
+      activityId,
+    });
+    const invalidConfirmation = {
+      id: "failed-confirmation",
+      type: "result_confirmed",
+      nodeId: "test",
+      attemptId: "test-attempt",
+      sequence: 1,
+      confirmationOrder: 2,
+      transition: { operation: "confirm_attempt", nodeId: "test", status: "done" },
+      result: { outcome: "failed", confirmedAt: "2026-08-23T00:00:00.000Z" },
+    };
+    const assertUnavailable = ({ artifacts, activities }) => {
+      assert.throws(
+        () => CanonicalTestSourceRevision.fromCatalog({ state, catalog: { artifacts }, activities }),
+        (error) => error instanceof CanonicalTestSourceProvenanceError
+          && error.code === "CANONICAL_TEST_SOURCE_REVISION_UNAVAILABLE",
+      );
+    };
+
+    assertUnavailable({ artifacts: [], activities: [] });
+    assertUnavailable({ artifacts: [descriptor(null)], activities: [] });
+    assertUnavailable({ artifacts: [descriptor("missing-activity")], activities: [] });
+    assertUnavailable({ artifacts: [descriptor("failed-confirmation")], activities: [invalidConfirmation] });
+    assertUnavailable({
+      artifacts: [descriptor("invalid-confirmation")],
+      activities: [{ ...invalidConfirmation, id: "invalid-confirmation", result: { outcome: "passed", confirmedAt: "not-a-timestamp" } }],
+    });
+    assertUnavailable({
+      artifacts: [descriptor("publish-after-confirmation")],
+      activities: [
+        {
+          id: "publish-after-confirmation",
+          type: "artifacts_published",
+          nodeId: "test",
+          attemptId: "test-attempt",
+          sequence: 1,
+          confirmationOrder: 2,
+          transition: { operation: "publish_artifacts", nodeId: "test", status: null },
+          result: null,
+        },
+        { ...invalidConfirmation, id: "earlier-confirmation", confirmationOrder: 1, result: { outcome: "passed", confirmedAt: "2026-08-23T00:00:00.000Z" } },
+      ],
+    });
+    assertUnavailable({
+      artifacts: [descriptor("publish-ambiguous")],
+      activities: [
+        {
+          id: "publish-ambiguous",
+          type: "artifacts_published",
+          nodeId: "test",
+          attemptId: "test-attempt",
+          sequence: 1,
+          confirmationOrder: 1,
+          transition: { operation: "publish_artifacts", nodeId: "test", status: null },
+          result: null,
+        },
+        { ...invalidConfirmation, id: "confirmation-one", result: { outcome: "passed", confirmedAt: "2026-08-23T00:00:00.000Z" } },
+        { ...invalidConfirmation, id: "confirmation-two", confirmationOrder: 3, result: { outcome: "passed", confirmedAt: "2026-08-23T00:01:00.000Z" } },
+      ],
+    });
   });
 
   it("publishes a rejected test review before repair while retaining its active Attempt", async () => {
