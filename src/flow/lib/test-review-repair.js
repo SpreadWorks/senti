@@ -1,4 +1,5 @@
 import { CanonicalTestArtifactStore } from "./canonical-test-artifacts.js";
+import { canonicalRepairAttemptOwner } from "./repair-attempt-lineage.js";
 import { WorkerArtifactRevision } from "./worker-artifact-revision.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -163,11 +164,16 @@ export function inspectCanonicalTestReviewRepair({ flowManager, state } = {}) {
 
 export function canonicalTestReviewRepairForTarget({ flowManager, state, targetStepId } = {}) {
   if (state?.schemaRevision !== 3 || targetStepId !== "test" || state.currentNodeId !== "test") return null;
-  const activity = [...flowManager.activityLedger(state.specId)].reverse().find((entry) => (
-    entry?.transition?.operation === "repair_test_review" && entry?.nodeId === "test"
-  ));
-  if (!activity) return null;
-  const repair = repairFromCatalog({ flowManager, state, consumerNodeId: "test" });
+  const typedState = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  const activity = canonicalRepairAttemptOwner({
+    state: typedState,
+    activities: flowManager.activityLedger(state.specId),
+    targetStepId,
+  });
+  if (activity?.transition?.operation !== "repair_test_review") return null;
+  const repair = repairFromCatalog({ flowManager, state: typedState, consumerNodeId: "test" });
   if (!activity.references?.artifacts?.some((reference) => reference.id === repair.sourceArtifactDigest)) {
     throw new TestReviewRepairError(
       "TEST_REVIEW_REPAIR_STALE",

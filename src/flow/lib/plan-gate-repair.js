@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { CanonicalGateInputStore } from "./canonical-gate-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
+import { canonicalRepairAttemptOwner } from "./repair-attempt-lineage.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_TEXT_LENGTH = 4000;
@@ -495,9 +496,9 @@ export class PlanGateRepairRecord {
 
   /**
    * Resolve the one repair record governing the currently active replacement
-   * Attempt.  A historical issue-log entry is never enough by itself: it
-   * must be referenced by that exact rewind Activity and its source evidence
-   * must still be present, which prevents stale repair context leaking into a
+   * Attempt lineage. A historical issue-log entry is never enough by itself:
+   * it must be referenced by the lineage owner and its source evidence must
+   * still be present, which prevents stale repair context leaking into a
    * later visit to the same Step.
    */
   static resolveCanonical({ state, targetStepId, activities, issueLog }) {
@@ -506,14 +507,11 @@ export class PlanGateRepairRecord {
     }
     if (!Array.isArray(activities)) throw new Error("canonical plan gate repair requires an Activity ledger");
     const document = issueLogDocument(issueLog);
-    const rewind = [...activities].reverse().find((activity) => (
-      activity?.transition?.operation === "plan_gate_repair"
-      && activity.nodeId === targetStepId
-      && activity.attemptId === state.attempt.id
-      && Array.isArray(activity.references?.repairs)
-      && activity.references.repairs.length === 1
-    )) ?? null;
-    if (rewind === null) return null;
+    const rewind = canonicalRepairAttemptOwner({ state, activities, targetStepId });
+    if (rewind?.transition?.operation !== "plan_gate_repair") return null;
+    if (!Array.isArray(rewind.references?.repairs) || rewind.references.repairs.length !== 1) {
+      throw new Error("canonical plan gate repair Activity requires exactly one repair reference");
+    }
     const reference = rewind.references.repairs[0];
     const entry = document.entries.find((candidate) => candidate?.issueLogId === reference?.id) ?? null;
     if (entry === null) {

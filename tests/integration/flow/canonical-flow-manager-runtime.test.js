@@ -2520,6 +2520,110 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(fs.existsSync(path.join(manager.specLocation(created.specId).directory, "test-review.json")), false);
   });
 
+  it("does not mix stale test-review repair into a later scenario gate test replacement", async () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-repair-lineage-plan-gate", {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, {
+        specId: "001-repair-lineage-plan-gate",
+      }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "test-review", {
+      onActive(nodeId) {
+        if (nodeId !== "test") return;
+        manager.publishArtifacts({
+          specId: created.specId,
+          nodeId: "test",
+          artifactWrites: [{
+            logicalKey: "tests.source",
+            parameters: { testPath: "scenario.test.js" },
+            mediaType: "text/javascript",
+            bytes: Buffer.from([
+              'import test from "node:test";',
+              'test("R1: exposes an invalid scenario premise", () => {});',
+              "",
+            ].join("\n"), "utf8"),
+          }],
+        });
+      },
+    });
+    const testStore = new CanonicalTestArtifactStore({ flowManager: manager, state: manager.load(created.specId) });
+    const revision = testStore.testSourceRevision().toJSON();
+    const finding = {
+      findingId: "test-review-finding",
+      fingerprint: "f".repeat(64),
+      summary: "The test omits a required behavior.",
+    };
+    publishAttemptArtifact(manager, created.specId, "test-review", "test.review", {
+      phase: "test",
+      verdict: "REJECTED",
+      blockingFindings: [finding],
+      advisoryFindings: [],
+      sourceTestArtifactRevision: revision,
+      canonicalEvidence: {
+        disposition: "REJECTED",
+        blockingFindings: [finding],
+        advisoryFindings: [],
+        identity: { evidenceDigest: "e".repeat(64) },
+      },
+    });
+    const context = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      config: {},
+      flowCommandBoundary: true,
+    };
+    const reviewRepair = new RunRepairTestReviewCommand().execute(context);
+    assert.equal(reviewRepair.ok, true, JSON.stringify(reviewRepair));
+    confirmFixtureStep(manager, "test", { specId: created.specId });
+    manager.updateStepStatus({ stepId: "scenario-validity", requestedStatus: "in_progress" }, { specId: created.specId });
+    context.flowState = manager.load(created.specId);
+    const scenario = new RunScenarioValidityCommand({
+      scenarioTestExecutor: async ({ executions }) => executions.map((execution) => ({
+        file: execution.file,
+        requirementId: execution.requirementId,
+        command: `node --test ${execution.file}`,
+        process: {
+          started: true,
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          spawnError: null,
+          stdout: "",
+          stderr: "",
+        },
+      })),
+    });
+    const blocked = await scenario.execute(context);
+    assert.equal(blocked.result, "block");
+    await FLOW_COMMANDS.run["scenario-validity"].post(context, blocked);
+    context.flowState = manager.load(created.specId);
+    const gateRepair = new RunRepairPlanGateCommand().execute(context);
+    assert.equal(gateRepair.ok, true, JSON.stringify(gateRepair));
+
+    const state = manager.load(created.specId);
+    const next = await new GetNextActionCommand().execute({ ...context, flowState: state });
+    assert.equal(next.step, "test");
+    assert.ok(next.context.planGateRepair);
+    assert.equal(Object.hasOwn(next.context, "testReviewRepair"), false);
+    const handoff = new WorkerArtifactHandoffCoordinator().createRequest({
+      ctx: context,
+      state,
+      invocation: {
+        id: "repair-lineage-plan-gate",
+        target: { digest: "b".repeat(64) },
+        action: { digest: "a".repeat(64), nextAction: { step: "test" } },
+      },
+    });
+    assert.ok(handoff);
+    assert.doesNotThrow(() => handoff.assertCurrent(state));
+  });
+
   it("derives every cataloged test member finalization from durable test confirmations", () => {
     const state = { schemaRevision: 3, runId: "test-source-run", specId: "001-test-source-provenance" };
     const descriptor = (testPath, activityId) => ({
