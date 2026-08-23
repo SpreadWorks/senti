@@ -94,6 +94,33 @@ function initializeReviewSource(rootPath) {
   commitAll(rootPath, "review source");
 }
 
+function rejectedTestReviewCommand(onOutputDirectory) {
+  return new RunReviewCommand({
+    resolveTreeSha: () => "a".repeat(40),
+    resolveTargetStateDigest: () => "b".repeat(64),
+    runCommand(_command, _args, options) {
+      const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+      onOutputDirectory(outputDirectory);
+      fs.writeFileSync(path.join(outputDirectory, "test-review.json"), `${JSON.stringify({
+        version: 1,
+        phase: "test",
+        generatedAt: "2026-08-23T00:00:00.000Z",
+        verdict: "REJECTED",
+        coverageArtifact: "test-coverage.json",
+        sourceTestArtifactRevision: JSON.parse(options.env.SENNEL_REVIEW_TEST_ARTIFACT_REVISION),
+        blockingFindings: [{
+          findingId: "test-review-finding",
+          fingerprint: "f".repeat(64),
+          summary: "The test omits a required behavior.",
+        }],
+        advisoryFindings: [],
+      })}\n`);
+      ReviewWorkUnit.fromEnvironment(options.env).seal();
+      return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+    },
+  });
+}
+
 function request(specId = "001-canonical-manager", overrides = {}) {
   return new CanonicalFlowCreateRequest({
     specId,
@@ -2474,6 +2501,110 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.deepEqual(handoff.inputs.map((entry) => entry.name), ["spec.json", "test-review.json"]);
     assert.equal(handoff.inputs[1].document.verdict, "REJECTED");
     assert.equal(fs.existsSync(path.join(manager.specLocation(created.specId).directory, "test-review.json")), false);
+  });
+
+  it("publishes a rejected test review before repair while retaining its active Attempt", async () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-canonical-test-review-publication", {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, {
+        specId: "001-canonical-test-review-publication",
+      }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "test-review", {
+      onActive(nodeId) {
+        if (nodeId !== "test") return;
+        manager.publishArtifacts({
+          specId: created.specId,
+          nodeId: "test",
+          artifactWrites: [{
+            logicalKey: "tests.source",
+            parameters: { testPath: "requirement.test.js" },
+            mediaType: "text/javascript",
+            bytes: Buffer.from("// spec: R1\n", "utf8"),
+          }],
+        });
+      },
+    });
+    let outputDirectory = null;
+    const review = rejectedTestReviewCommand((directory) => { outputDirectory = directory; });
+    const ctx = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      phase: "test",
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      flowCommandBoundary: true,
+      config: {},
+    };
+    const result = await review.execute(ctx);
+    assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "test.review");
+
+    await FLOW_COMMANDS.run.review.post(ctx, result);
+
+    const catalog = manager.artifactCatalog(created.specId);
+    assert.ok(catalog.artifacts.some((artifact) => artifact.logicalKey === "test.review"));
+    assert.ok(catalog.artifacts.some((artifact) => artifact.logicalKey === "review.evidence"));
+    const active = manager.canonicalState(created.specId);
+    assert.equal(active.current.at(-1), "test-review");
+    assert.equal(active.attempt.failure, null);
+    assert.equal(fs.existsSync(outputDirectory), false, "publication confirmation cleans the sealed worker surface");
+
+    const next = await new GetNextActionCommand().execute({ ...ctx, flowState: manager.load(created.specId) });
+    assert.equal(next.directive.actionId, "REPAIR_TEST_REVIEW");
+    const repaired = new RunRepairTestReviewCommand().execute({ ...ctx, flowState: manager.load(created.specId) });
+    assert.equal(repaired.ok, true, JSON.stringify(repaired));
+    assert.equal(manager.canonicalState(created.specId).current.at(-1), "test");
+  });
+
+  it("retains a rejected test-review work unit when its canonical publication fails", async () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-canonical-test-review-publication-failure", {
+      specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, {
+        specId: "001-canonical-test-review-publication-failure",
+      }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "test-review", {
+      onActive(nodeId) {
+        if (nodeId !== "test") return;
+        manager.publishArtifacts({
+          specId: created.specId,
+          nodeId: "test",
+          artifactWrites: [{
+            logicalKey: "tests.source",
+            parameters: { testPath: "requirement.test.js" },
+            mediaType: "text/javascript",
+            bytes: Buffer.from("// spec: R1\n", "utf8"),
+          }],
+        });
+      },
+    });
+    let outputDirectory = null;
+    const review = rejectedTestReviewCommand((directory) => { outputDirectory = directory; });
+    const ctx = {
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId: created.specId,
+      phase: "test",
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      config: {},
+    };
+    const result = await review.execute(ctx);
+    manager.publishCurrentAttemptResult = () => { throw new Error("simulated publication failure"); };
+
+    await assert.rejects(
+      () => FLOW_COMMANDS.run.review.post(ctx, result),
+      /simulated publication failure/,
+    );
+    assert.equal(fs.existsSync(outputDirectory), true, "failed publication retains the sealed worker surface");
+    assert.equal(manager.canonicalState(created.specId).current.at(-1), "test-review");
   });
 
   it("records a material impl repair and invalidates to one replacement test-execute Attempt", () => {

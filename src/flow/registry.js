@@ -176,6 +176,51 @@ function canonicalResultProducerStep(provenance, result) {
 }
 
 /**
+ * Persist non-terminal review results before their sealed work unit is
+ * cleaned up.  A flow-scoped rejected test review remains active so the
+ * definition-owned repair transition can consume its cataloged evidence.
+ * Task-scoped implementation reviews instead retain their existing retryable
+ * failure semantics.
+ */
+async function persistNonTerminalReviewResult(ctx, result) {
+  const artifacts = result?.artifacts;
+  const rejectedTestReview = artifacts?.phase === "test"
+    && artifacts?.taskId == null
+    && artifacts?.verdict === "REJECTED";
+  const rejectedTaskReview = artifacts?.phase === "impl"
+    && artifacts?.taskId != null
+    && !["PASS", "ADVISORY"].includes(artifacts?.verdict);
+  if (!rejectedTestReview && !rejectedTaskReview) return;
+
+  const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+  if (attachedCanonicalCommandResultArtifact(result) === null) return;
+
+  const specId = ctx.specId ?? ctx.flowState.specId;
+  if (rejectedTestReview || ctx.flowState?.policy?.nonblocking?.enabled === true) {
+    ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+  } else {
+    ctx.flowManager.failCurrentAttempt({
+      specId,
+      failure: {
+        category: "semantic",
+        code: "REVIEW_REJECTED",
+        message: "Task review rejected the current implementation Attempt.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+      result: {
+        outcome: "failed",
+        summary: "Task review rejected the current implementation Attempt.",
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [],
+      },
+      commandResult: result,
+    });
+  }
+  ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+}
+
+/**
  * Best-effort step status update. Hooks may fire after `cleanup` removes
  * flow.json (and during early init before it exists), so a missing-file
  * error is the expected non-failure mode. Any other error is operationally
@@ -1435,42 +1480,7 @@ export const FLOW_COMMANDS = {
           result?.result === "recovered"
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
-        // A rejected Task review closes the current Attempt as a retryable
-        // semantic failure. Its result and immutable evidence are committed
-        // in that same Store transaction so the next action can start a new
-        // Attempt without losing the finding-to-repair binding.
-        if (
-          result?.artifacts?.phase === "impl"
-          && result?.artifacts?.taskId != null
-          && !["PASS", "ADVISORY"].includes(result?.artifacts?.verdict)
-        ) {
-          const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
-          if (attachedCanonicalCommandResultArtifact(result) !== null) {
-            const specId = ctx.specId ?? ctx.flowState.specId;
-            if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
-              ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
-            } else {
-              ctx.flowManager.failCurrentAttempt({
-                specId,
-                failure: {
-                  category: "semantic",
-                  code: "REVIEW_REJECTED",
-                  message: "Task review rejected the current implementation Attempt.",
-                  retryable: true,
-                  retryKind: "semantic",
-                },
-                result: {
-                  outcome: "failed",
-                  summary: "Task review rejected the current implementation Attempt.",
-                  confirmedAt: new Date().toISOString(),
-                  artifactRefs: [],
-                },
-                commandResult: result,
-              });
-            }
-            ctx.flowState = ctx.flowManager.loadReadOnly(specId);
-          }
-        }
+        await persistNonTerminalReviewResult(ctx, result);
         try {
           await applyLifecycleActionsFromRegistry(ctx, {
             event: "review:post",
