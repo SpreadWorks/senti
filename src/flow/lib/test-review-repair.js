@@ -121,9 +121,16 @@ export class CanonicalTestReviewRepair {
   }
 }
 
-function repairFromCatalog({ flowManager, state, consumerNodeId }) {
+function repairFromCatalog({ flowManager, state, consumerNodeId, reviewAttemptSequence = null }) {
   const store = new CanonicalTestArtifactStore({ flowManager, state });
   const current = store.readCurrentAttempt({ logicalKey: "test.review", consumerNodeId });
+  if (reviewAttemptSequence !== null && current.attempt < reviewAttemptSequence) return null;
+  if (reviewAttemptSequence !== null && current.attempt > reviewAttemptSequence) {
+    throw new TestReviewRepairError(
+      "TEST_REVIEW_REPAIR_ATTEMPT_MISMATCH",
+      "cataloged test-review evidence belongs to a future review Attempt",
+    );
+  }
   const artifact = current.payload;
   const evidence = artifact?.canonicalEvidence;
   if (
@@ -159,7 +166,15 @@ function repairFromCatalog({ flowManager, state, consumerNodeId }) {
 
 export function inspectCanonicalTestReviewRepair({ flowManager, state } = {}) {
   if (state?.schemaRevision !== 3 || state.currentNodeId !== "test-review") return null;
-  return repairFromCatalog({ flowManager, state, consumerNodeId: "test-review" });
+  const typedState = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  return repairFromCatalog({
+    flowManager,
+    state: typedState,
+    consumerNodeId: "test-review",
+    reviewAttemptSequence: typedState.attempt.sequence,
+  });
 }
 
 export function canonicalTestReviewRepairForTarget({ flowManager, state, targetStepId } = {}) {

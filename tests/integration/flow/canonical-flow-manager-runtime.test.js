@@ -2622,6 +2622,153 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
     assert.ok(handoff);
     assert.doesNotThrow(() => handoff.assertCurrent(state));
+
+    manager.publishArtifacts({
+      specId: created.specId,
+      nodeId: "test",
+      artifactWrites: [{
+        logicalKey: "tests.source",
+        parameters: { testPath: "scenario.test.js" },
+        mediaType: "text/javascript",
+        bytes: Buffer.from([
+          'import test from "node:test";',
+          'test("R1: covers the repaired scenario", () => {});',
+          "",
+        ].join("\n"), "utf8"),
+      }],
+    });
+    confirmFixtureStep(manager, "test", { specId: created.specId });
+    manager.updateStepStatus(
+      { stepId: "scenario-validity", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
+    confirmFixtureStep(manager, "scenario-validity", { specId: created.specId });
+    manager.updateStepStatus(
+      { stepId: "test-review", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
+
+    const resumedReviewState = manager.load(created.specId);
+    const resumedCanonicalReviewState = manager.canonicalState(created.specId);
+    const resumedReview = await new GetNextActionCommand().execute({
+      ...context,
+      flowState: resumedReviewState,
+    });
+    assert.equal(resumedCanonicalReviewState.attempt.nodeId, "test-review");
+    assert.ok(
+      resumedCanonicalReviewState.attempt.sequence > 1,
+      "the replacement test must enter a new test-review Attempt",
+    );
+    assert.equal(resumedReview.step, "test-review");
+    assert.notEqual(resumedReview.directive.actionId, "REPAIR_TEST_REVIEW");
+
+    const stateBeforeRejectedRepair = resumedCanonicalReviewState.toJSON();
+    const rejectedHistoricalRepair = new RunRepairTestReviewCommand().execute({
+      ...context,
+      flowState: resumedReviewState,
+    });
+    assert.equal(rejectedHistoricalRepair.ok, false);
+    assert.equal(rejectedHistoricalRepair.errors[0].code, "TEST_REVIEW_REPAIR_STAGE_UNSUPPORTED");
+    assert.deepEqual(manager.canonicalState(created.specId).toJSON(), stateBeforeRejectedRepair);
+  });
+
+  it("preserves current test-review Attempt evidence and revision guards", async () => {
+    const cases = [
+      {
+        label: "stale source revision",
+        expectedCode: "TEST_REVIEW_REPAIR_REVISION_MISMATCH",
+        alter({ payload }) {
+          return {
+            ...payload,
+            sourceTestArtifactRevision: {
+              ...payload.sourceTestArtifactRevision,
+              digest: "0".repeat(64),
+            },
+          };
+        },
+      },
+      {
+        label: "invalid canonical evidence",
+        expectedCode: "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
+        alter({ payload }) {
+          return {
+            ...payload,
+            canonicalEvidence: {
+              ...payload.canonicalEvidence,
+              blockingFindings: [],
+            },
+          };
+        },
+      },
+    ];
+
+    for (const testCase of cases) {
+      const repository = root();
+      const specId = `001-current-review-guard-${testCase.expectedCode.toLowerCase()}`;
+      const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      const created = manager.createFresh(request(specId, {
+        specRecord: new CurrentFlowSpecRecord({ ...validWorkerHandoffSpec(), tasks: [] }, { specId }),
+      }));
+      manager.addActiveFlow(created.specId, "direct");
+      advanceTo(manager, created.specId, "test-review", {
+        onActive(nodeId) {
+          if (nodeId !== "test") return;
+          manager.publishArtifacts({
+            specId: created.specId,
+            nodeId: "test",
+            artifactWrites: [{
+              logicalKey: "tests.source",
+              parameters: { testPath: "requirement.test.js" },
+              mediaType: "text/javascript",
+              bytes: Buffer.from("// spec: R1\n", "utf8"),
+            }],
+          });
+        },
+      });
+      const currentState = manager.canonicalState(created.specId);
+      const revision = new CanonicalTestArtifactStore({
+        flowManager: manager,
+        state: currentState,
+      }).testSourceRevision().toJSON();
+      const finding = {
+        findingId: "test-review-finding",
+        fingerprint: "f".repeat(64),
+        summary: "The test omits a required behavior.",
+      };
+      const payload = testCase.alter({
+        payload: {
+          phase: "test",
+          verdict: "REJECTED",
+          blockingFindings: [finding],
+          advisoryFindings: [],
+          sourceTestArtifactRevision: revision,
+          canonicalEvidence: {
+            disposition: "REJECTED",
+            blockingFindings: [finding],
+            advisoryFindings: [],
+            identity: { evidenceDigest: "e".repeat(64) },
+          },
+        },
+      });
+      publishAttemptArtifact(manager, created.specId, "test-review", "test.review", payload);
+      assert.equal(currentState.attempt.sequence, 1, `${testCase.label} fixture must own review Attempt 1`);
+
+      const context = {
+        root: repository,
+        mainRoot: repository,
+        executionRoot: repository,
+        specId: created.specId,
+        flowManager: manager,
+        flowState: manager.load(created.specId),
+        config: {},
+        flowCommandBoundary: true,
+      };
+      await assert.rejects(
+        () => new GetNextActionCommand().execute(context),
+        (error) => error.code === testCase.expectedCode,
+        testCase.label,
+      );
+    }
   });
 
   it("derives every cataloged test member finalization from durable test confirmations", () => {
