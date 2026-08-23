@@ -126,7 +126,7 @@ export class DraftQaEntry {
     this.droppedReason = raw.droppedReason;
   }
 
-  validate() {
+  validateStructure() {
     const issues = [];
     for (const field of unknownFields(this.raw, DRAFT_QA_FIELDS)) {
       issues.push(`qa[${this.index}]: unknown field "${field}"`);
@@ -143,6 +143,11 @@ export class DraftQaEntry {
     if (typeof this.raw.considered !== "string") {
       issues.push(`qa[${this.index}]: considered must be a string`);
     }
+    return issues;
+  }
+
+  validateLifecycle() {
+    const issues = [];
 
     if (this.status === "pending" || this.status === "approved") {
       issues.push(`qa[${this.index}]: status ${this.status} blocks spec generation`);
@@ -184,6 +189,10 @@ export class DraftQaEntry {
       }
     }
     return issues;
+  }
+
+  validate() {
+    return [...this.validateStructure(), ...this.validateLifecycle()];
   }
 
   resolve({ answer = null, why = null, considered = "", droppedReason = null } = {}) {
@@ -248,6 +257,31 @@ export class DraftDecisionMap {
   }
 }
 
+function validateQuestionCollection(raw, entries, validateEntry) {
+  if (!Array.isArray(raw)) return ["missing qa array"];
+  const issues = [];
+  const ids = new Set();
+  const questions = new Set();
+  for (const entry of entries) {
+    issues.push(...validateEntry(entry));
+    if (!/^q\d+$/.test(entry.id)) {
+      issues.push(`qa[${entry.index}]: id must match q<N>`);
+    }
+    if (ids.has(entry.id)) {
+      issues.push(`qa[${entry.index}]: duplicate id "${entry.id}"`);
+    }
+    ids.add(entry.id);
+    if (entry.status !== "dropped") {
+      const normalizedQuestion = normalizeText(entry.question);
+      if (normalizedQuestion && questions.has(normalizedQuestion)) {
+        issues.push(`qa[${entry.index}]: duplicate question`);
+      }
+      questions.add(normalizedQuestion);
+    }
+  }
+  return issues;
+}
+
 export class DraftLifecycle {
   constructor(raw) {
     if (!isObject(raw)) throw new Error("draft must be a non-null object");
@@ -283,32 +317,14 @@ export class DraftLifecycle {
 
     issues.push(...this.decisionMap.validate());
 
-    if (!Array.isArray(this.raw.qa)) {
-      issues.push("missing qa array");
-    } else {
-      const ids = new Set();
-      const questions = new Set();
-      for (const entry of this.qa) issues.push(...entry.validate());
-      for (const entry of this.qa) {
-        if (!/^q\d+$/.test(entry.id)) {
-          issues.push(`qa[${entry.index}]: id must match q<N>`);
-        }
-        if (ids.has(entry.id)) {
-          issues.push(`qa[${entry.index}]: duplicate id "${entry.id}"`);
-        }
-        ids.add(entry.id);
-        if (entry.status !== "dropped") {
-          const normalizedQuestion = normalizeText(entry.question);
-          if (normalizedQuestion && questions.has(normalizedQuestion)) {
-            issues.push(`qa[${entry.index}]: duplicate question`);
-          }
-          questions.add(normalizedQuestion);
-        }
-      }
-    }
+    issues.push(...validateQuestionCollection(this.raw.qa, this.qa, (entry) => entry.validate()));
 
     issues.push(...this.approval.validate());
     return issues;
+  }
+
+  validateQuestionStructure() {
+    return validateQuestionCollection(this.raw.qa, this.qa, (entry) => entry.validateStructure());
   }
 
   countByStatus() {
@@ -330,6 +346,8 @@ export class DraftLifecycle {
   }
 
   resolveQuestion({ questionId, answer = null, why = null, considered = "", droppedReason = null } = {}) {
+    const structureIssues = this.validateQuestionStructure();
+    if (structureIssues.length > 0) throw new Error(structureIssues.join("; "));
     const next = this.nextUnresolvedQuestion();
     if (next === null) throw new Error("draft has no unresolved question");
     if (questionId !== next.id) {

@@ -32,6 +32,46 @@ export function makeFlowManager(root, options = {}) {
   return makeContainer(root, options).get("flowManager");
 }
 
+export function draftDocumentWithPendingQuestions({
+  questions = [
+    ["q1", "Which public behavior should the command guarantee?"],
+    ["q2", "Which compatibility boundary should remain explicit?"],
+  ],
+} = {}) {
+  const question = ([id, text]) => ({
+    id,
+    status: "pending",
+    category: "user-visible-behavior",
+    question: text,
+    answer: "",
+    evidence: "",
+    why: "",
+    considered: "",
+    droppedReason: "",
+  });
+  return {
+    devType: "feature",
+    goal: "Exercise an explicit draft question boundary.",
+    analysis: {
+      problem: "A non-interactive worker cannot collect a user decision.",
+      proposedApproach: "The CLI must yield before starting that worker.",
+      validation: "The answer is stored before the worker action is returned.",
+    },
+    decisionMap: {
+      knownFacts: [],
+      decisionPoints: [],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: ["Choose the public behavior."],
+      deferredToSpec: [],
+    },
+    scopeVerification: { in: [], out: [] },
+    impactOnExisting: { affected: [], unchanged: [] },
+    qa: questions.map(question),
+    openQuestions: [],
+    approval: { approved: false, confirmedAt: "", notes: "" },
+  };
+}
+
 export function makeNormalStepTransition(state, stepId, requestedStatus = "done") {
   const step = findStepById(state.steps || [], stepId);
   if (!step) throw new Error(`unknown fixture step: ${stepId}`);

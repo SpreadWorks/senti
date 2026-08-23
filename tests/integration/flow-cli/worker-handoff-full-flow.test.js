@@ -16,6 +16,7 @@ import {
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
@@ -259,6 +260,13 @@ describe("deterministic full Flow worker handoff", () => {
         flowManager, specId, runId: "run-worker-handoff-full-flow",
         execution: { mode: "worktree", baseBranch: "main", featureBranch: "feature/worker-handoff-full-flow" },
       }).create().activate("draft");
+      const binding = FlowTargetBinding.capture({
+        flowState: fixture.state(),
+        mainRoot,
+        authorityRoot: executionRoot,
+        worktreePath: executionRoot,
+      }).serialize();
+      const guardedAction = (entry) => ({ ...actionFor(entry), binding });
 
       const staticRoute = fixture.leaves().map((step) => step.id).filter((id) => !PREPARATION_LEAVES.has(id));
       const taskRoute = ["task-impl", "task-review", "task-gate"].map((stepId) => ({ stepId, taskId: TASK_ID }));
@@ -332,16 +340,16 @@ describe("deterministic full Flow worker handoff", () => {
         nextAction: {
           async run() {
             const entry = route[position];
-            if (!entry) return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false, directive: { kind: "completed", terminal: true, requiresUserAction: false } };
+            if (!entry) return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false, binding, directive: { kind: "completed", terminal: true, requiresUserAction: false } };
             const nodeId = routeNodeId(entry);
             if (flowManager.load().currentNodeId !== nodeId && entry.stepId === "approval") {
               // The parent continuation already confirmed the approval Attempt.
               position += 1;
               activate(route[position]);
-              return actionFor(route[position]);
+              return guardedAction(route[position]);
             }
             activate(entry);
-            return actionFor(entry);
+            return guardedAction(entry);
           },
         },
         agent: {
@@ -397,19 +405,22 @@ describe("deterministic full Flow worker handoff", () => {
       dispatcher.container = {};
       const baseCtx = {
         root: executionRoot, executionRoot, mainRoot, specId, flowManager,
-        flowState: flowManager.load(), expectRunId: "run-worker-handoff-full-flow", expectSpec: specId,
+        flowState: flowManager.load(), expectBinding: binding,
         _envelopeType: "run", _envelopeKey: "dispatch",
       };
 
       const beforeApproval = await dispatcher.execute(baseCtx);
       assert.equal(beforeApproval.dispatch?.boundary, "approval_required", JSON.stringify(beforeApproval, null, 2));
+      assert.equal(beforeApproval.dispatch.binding, binding);
       assert.equal(workerSteps.includes("approval"), false);
       const afterApproval = await dispatcher.execute({ ...baseCtx, approve: beforeApproval.dispatch.approvalToken });
       assert.equal(afterApproval.dispatch?.boundary, "await_user_decision", JSON.stringify({ afterApproval, workerSteps, parentCommands, position }, null, 2));
+      assert.equal(afterApproval.dispatch.binding, binding);
       assert.equal(workerSteps.includes(USER_DECISION_LEAF), false);
       advance(route[position]); // Explicit user decision is outside dispatcher/worker ownership.
       const beforeFinalize = await dispatcher.execute(baseCtx);
       assert.equal(beforeFinalize.dispatch?.boundary, "approval_required", JSON.stringify(beforeFinalize));
+      assert.equal(beforeFinalize.dispatch.binding, binding);
       const completed = await dispatcher.execute({ ...baseCtx, approve: beforeFinalize.dispatch.approvalToken });
 
       const artifactWorkers = workerSteps.filter((stepId) => WORKER_ARTIFACT_HANDOFF_STEPS.includes(stepId));

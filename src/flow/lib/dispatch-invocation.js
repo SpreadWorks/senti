@@ -91,6 +91,24 @@ export class FlowDispatchTarget {
     return this.binding?.dispatchLockRoot ?? null;
   }
 
+  get bindingToken() {
+    return this.binding?.serialize() ?? null;
+  }
+
+  assertNextActionBinding(nextAction) {
+    if (this.binding === null) return nextAction;
+    if (!nextAction || typeof nextAction !== "object" || Array.isArray(nextAction)) {
+      throw new Error("guarded next-action must be an object");
+    }
+    if (nextAction.binding !== this.bindingToken) {
+      const error = new Error("guarded next-action omitted or changed the dispatcher target binding");
+      error.code = "FLOW_NEXT_ACTION_BINDING_INVALID";
+      throw error;
+    }
+    const { binding: _binding, ...action } = nextAction;
+    return action;
+  }
+
   guardInput() {
     if (this.binding) return { expectBinding: this.binding.serialize() };
     return {

@@ -63,6 +63,12 @@ import { reconcileCompletedReviewWorkUnits } from "./review-work-unit.js";
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
 const DISPATCH_LOCK_KIND = "flow-dispatch";
+const RESUMABLE_DISPATCH_BOUNDARIES = new Set([
+  "approval_required",
+  "auto_upgrade_decision",
+  "await_user_decision",
+  "blocked",
+]);
 const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
   "repair-plan-gate",
   "repair-test-review",
@@ -556,10 +562,14 @@ export class FlowDispatchAction {
 }
 
 export class FlowDispatchBoundary {
-  constructor({ kind, nextAction, dispatchCount, approvalToken = null, message = null }) {
+  constructor({ kind, nextAction, dispatchCount, target = null, approvalToken = null, message = null }) {
+    if (target != null && !(target instanceof FlowDispatchTarget)) {
+      throw new Error("FlowDispatchBoundary target must be a FlowDispatchTarget");
+    }
     this.kind = kind;
     this.nextAction = nextAction;
     this.dispatchCount = dispatchCount;
+    this.binding = RESUMABLE_DISPATCH_BOUNDARIES.has(kind) ? target?.bindingToken ?? null : null;
     this.approvalToken = approvalToken;
     this.message = message;
     Object.freeze(this);
@@ -570,6 +580,7 @@ export class FlowDispatchBoundary {
       dispatch: {
         boundary: this.kind,
         dispatchCount: this.dispatchCount,
+        ...(this.binding && { binding: this.binding }),
         ...(this.approvalToken && { approvalToken: this.approvalToken }),
         ...(this.message && { message: this.message }),
       },
@@ -698,7 +709,7 @@ export class FlowDispatchWork {
   }
 }
 
-function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError = null) {
+function workerHandoffFailureData(ctx, target, error, request, dispatchCount, agentError = null) {
   const state = readFlowState(ctx);
   const stepId = request?.stepId || error.data?.stepId || state?.currentStep || "flow-dispatch";
   const actionDigest = request?.actionDigest || error.data?.actionDigest || null;
@@ -738,6 +749,7 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
   }
   return {
     ...blockedBoundary({
+      target,
       nextAction: request?.invocation?.action?.nextAction || null,
       dispatchCount,
       message: error.recoveryPossible
@@ -777,9 +789,13 @@ function quarantineRejectedWorkerHandoff(coordinator, request, error) {
   }
 }
 
-function blockedBoundary({ nextAction, dispatchCount, message }) {
+function blockedBoundary({ target, nextAction, dispatchCount, message }) {
+  if (!(target instanceof FlowDispatchTarget)) {
+    throw new Error("blocked Flow dispatch boundary requires its captured target");
+  }
   return new FlowDispatchBoundary({
     kind: "blocked",
+    target,
     nextAction,
     dispatchCount,
     message,
@@ -811,7 +827,29 @@ export default class RunDispatchCommand extends FlowCommand {
   }
 
   async fetchNextAction(target) {
-    return this.nextAction.run(this.container, targetGuardInput(target));
+    let result;
+    try {
+      result = await this.nextAction.run(this.container, targetGuardInput(target));
+    } catch (error) {
+      return Envelope.fail(
+        "get",
+        "next-action",
+        error.code || "FLOW_NEXT_ACTION_FAILED",
+        error.message || String(error),
+        error.data,
+      );
+    }
+    if (result instanceof Envelope) return result;
+    try {
+      return target.assertNextActionBinding(result);
+    } catch (error) {
+      return Envelope.fail(
+        "get",
+        "next-action",
+        error.code || "FLOW_NEXT_ACTION_BINDING_INVALID",
+        error.message || String(error),
+      );
+    }
   }
 
   captureAction(ctx, session, nextAction, dispatchCount, phase) {
@@ -941,6 +979,7 @@ export default class RunDispatchCommand extends FlowCommand {
           "FLOW_DISPATCH_STALLED",
           `the dispatcher-owned ${owner} returned ${nextStalledDispatches} time(s) without durable progress`,
           blockedBoundary({
+            target,
             nextAction: refreshed,
             dispatchCount,
             message: `The dispatcher-owned ${owner} returned successfully, but the guarded Flow and repository state did not change.`,
@@ -1098,6 +1137,7 @@ export default class RunDispatchCommand extends FlowCommand {
         error.code || "FLOW_DISPATCH_LOCK_FAILED",
         error.message || String(error),
         blockedBoundary({
+          target,
           nextAction: null,
           dispatchCount: 0,
           message: error.code === "FLOW_DISPATCH_BUSY"
@@ -1124,6 +1164,7 @@ export default class RunDispatchCommand extends FlowCommand {
           error.message,
           {
             ...blockedBoundary({
+              target,
               nextAction: error.nextAction,
               dispatchCount: error.dispatchCount,
               message: boundaryMessage,
@@ -1156,7 +1197,7 @@ export default class RunDispatchCommand extends FlowCommand {
         ctx,
         error.code,
         error.message,
-        workerHandoffFailureData(ctx, error, null, dispatchCount),
+        workerHandoffFailureData(ctx, target, error, null, dispatchCount),
       );
     }
     let current = await this.fetchNextAction(target);
@@ -1177,6 +1218,7 @@ export default class RunDispatchCommand extends FlowCommand {
           code,
           errorMessages(current),
           blockedBoundary({
+            target,
             nextAction: null,
             dispatchCount,
             message: "The guarded next action could not be resolved.",
@@ -1194,6 +1236,7 @@ export default class RunDispatchCommand extends FlowCommand {
             "the supplied approval token no longer targets an approval boundary",
             new FlowDispatchBoundary({
               kind: "await_user_decision",
+              target,
               nextAction: current,
               dispatchCount,
             }).toJSON(),
@@ -1201,6 +1244,7 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         return new FlowDispatchBoundary({
           kind: "await_user_decision",
+          target,
           nextAction: current,
           dispatchCount,
         }).toJSON();
@@ -1214,6 +1258,7 @@ export default class RunDispatchCommand extends FlowCommand {
             "the supplied approval token no longer targets an active approval boundary",
             new FlowDispatchBoundary({
               kind: action.directive.kind,
+              target,
               nextAction: current,
               dispatchCount,
             }).toJSON(),
@@ -1221,6 +1266,7 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         return new FlowDispatchBoundary({
           kind: action.directive.kind,
+          target,
           nextAction: current,
           dispatchCount,
         }).toJSON();
@@ -1232,6 +1278,7 @@ export default class RunDispatchCommand extends FlowCommand {
           "FLOW_DISPATCH_DIRECTIVE_INVALID",
           `flow dispatch cannot execute directive kind ${action.directive.kind}`,
           blockedBoundary({
+            target,
             nextAction: current,
             dispatchCount,
             message: "The next-action directive is not dispatchable.",
@@ -1266,6 +1313,7 @@ export default class RunDispatchCommand extends FlowCommand {
             "the supplied approval token does not match the current guarded next action",
             new FlowDispatchBoundary({
               kind: "approval_required",
+              target,
               nextAction: current,
               dispatchCount,
               approvalToken: expectedApproval,
@@ -1296,6 +1344,7 @@ export default class RunDispatchCommand extends FlowCommand {
         if (!invocation.approved) {
           return new FlowDispatchBoundary({
             kind: "approval_required",
+            target,
             nextAction: current,
             dispatchCount,
             approvalToken: expectedApproval,
@@ -1307,6 +1356,7 @@ export default class RunDispatchCommand extends FlowCommand {
           "FLOW_DISPATCH_APPROVAL_STALE",
           "the supplied approval token targets a different Flow action",
           blockedBoundary({
+            target,
             nextAction: current,
             dispatchCount,
             message: "Refresh the approval boundary before continuing.",
@@ -1345,6 +1395,7 @@ export default class RunDispatchCommand extends FlowCommand {
           error.message || String(error),
           {
             ...blockedBoundary({
+              target,
               nextAction: validated,
               dispatchCount,
               message: "The action or repository changed before worker handoff. Refresh the guarded invocation before continuing.",
@@ -1362,7 +1413,7 @@ export default class RunDispatchCommand extends FlowCommand {
           ctx,
           error.code || "FLOW_DISPATCH_APPROVAL_CONTINUATION_FAILED",
           error.message || String(error),
-          blockedBoundary({ nextAction: validated, dispatchCount, message: "The parent could not commit the approved Spec continuation." }),
+          blockedBoundary({ target, nextAction: validated, dispatchCount, message: "The parent could not commit the approved Spec continuation." }),
         );
       }
       if (approvalContinuation !== null) {
@@ -1385,6 +1436,7 @@ export default class RunDispatchCommand extends FlowCommand {
           error.code || "FLOW_DISPATCH_REPAIR_COMMAND_FAILED",
           error.message || String(error),
           blockedBoundary({
+            target,
             nextAction: validated,
             dispatchCount,
             message: "The dispatcher-owned repair command failed before the worker handoff could begin.",
@@ -1399,6 +1451,7 @@ export default class RunDispatchCommand extends FlowCommand {
             errorCode(dispatcherOwnedRepair),
             errorMessages(dispatcherOwnedRepair),
             blockedBoundary({
+              target,
               nextAction: validated,
               dispatchCount,
               message: "The dispatcher-owned repair command did not complete the guarded Flow transition.",
@@ -1429,6 +1482,7 @@ export default class RunDispatchCommand extends FlowCommand {
           error.code || "FLOW_DISPATCH_RECOVERY_COMMAND_FAILED",
           error.message || String(error),
           blockedBoundary({
+            target,
             nextAction: validated,
             dispatchCount,
             message: "The dispatcher-owned missing producer artifact recovery failed before worker handoff could begin.",
@@ -1443,6 +1497,7 @@ export default class RunDispatchCommand extends FlowCommand {
             errorCode(dispatcherOwnedRecovery),
             errorMessages(dispatcherOwnedRecovery),
             blockedBoundary({
+              target,
               nextAction: validated,
               dispatchCount,
               message: "The dispatcher-owned missing producer artifact recovery did not complete its guarded Flow transition.",
@@ -1473,6 +1528,7 @@ export default class RunDispatchCommand extends FlowCommand {
           error.code || "FLOW_DISPATCH_COMMAND_FAILED",
           error.message || String(error),
           blockedBoundary({
+            target,
             nextAction: validated,
             dispatchCount,
             message: "The dispatcher-owned Flow command failed before it could complete the canonical transition.",
@@ -1487,6 +1543,7 @@ export default class RunDispatchCommand extends FlowCommand {
             errorCode(dispatcherOwnedCommand.result),
             errorMessages(dispatcherOwnedCommand.result),
             blockedBoundary({
+              target,
               nextAction: validated,
               dispatchCount,
               message: "The dispatcher-owned Flow command did not complete the guarded Flow transition.",
@@ -1502,6 +1559,7 @@ export default class RunDispatchCommand extends FlowCommand {
               error.code,
               error.message,
               blockedBoundary({
+                target,
                 nextAction: validated,
                 dispatchCount,
                 message: "Finalize cleanup returned without durable canonical completion evidence.",
@@ -1539,6 +1597,7 @@ export default class RunDispatchCommand extends FlowCommand {
             attempt.error.message,
             workerHandoffFailureData(
               ctx,
+              target,
               attempt.error,
               attempt.handoffRequest,
               dispatchCount,
@@ -1562,6 +1621,7 @@ export default class RunDispatchCommand extends FlowCommand {
             attempt.error.message,
             workerHandoffFailureData(
               ctx,
+              target,
               attempt.error,
               attempt.handoffRequest,
               dispatchCount,
@@ -1589,6 +1649,7 @@ export default class RunDispatchCommand extends FlowCommand {
             exhausted.message,
             workerHandoffFailureData(
               ctx,
+              target,
               exhausted,
               attempt.handoffRequest,
               dispatchCount,
@@ -1612,6 +1673,7 @@ export default class RunDispatchCommand extends FlowCommand {
           continue;
         }
         const boundary = blockedBoundary({
+          target,
           nextAction: refreshed,
           dispatchCount,
           message: "The worker process ended and guarded authority was refreshed. Resolve the provider failure before resuming this non-terminal action.",
@@ -1641,6 +1703,7 @@ export default class RunDispatchCommand extends FlowCommand {
           "FLOW_DISPATCH_STALLED",
           `the configured Flow worker returned ${stalledDispatches} time(s) without durable progress`,
           blockedBoundary({
+            target,
             nextAction: refreshed,
             dispatchCount,
             message: "The worker response was not accepted as completion because the guarded Flow and repository state did not change.",
@@ -1655,6 +1718,7 @@ export default class RunDispatchCommand extends FlowCommand {
       "FLOW_DISPATCH_LIMIT_REACHED",
       `flow dispatch exceeded its ${this.maxDispatches}-action safety limit`,
       blockedBoundary({
+        target,
         nextAction: current instanceof Envelope ? null : current,
         dispatchCount,
         message: "Resume after inspecting why the finite Flow exceeded the dispatcher safety limit.",

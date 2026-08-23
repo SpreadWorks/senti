@@ -148,8 +148,12 @@ function canonicalTestReviewRepairFact(ctx, state, target) {
   }
 }
 
-function completedNextAction() {
-  return {
+function nextActionWithBinding(result, binding) {
+  return binding === null ? result : { ...result, binding: binding.serialize() };
+}
+
+function completedNextAction(binding = null) {
+  return nextActionWithBinding({
     taskId: null,
     step: null,
     action: "completed",
@@ -158,11 +162,11 @@ function completedNextAction() {
     output_schema: null,
     requires_approval: false,
     directive: new CompletedDirective().toJSON(),
-  };
+  }, binding);
 }
 
-function abortedNextAction() {
-  return {
+function abortedNextAction(binding = null) {
+  return nextActionWithBinding({
     taskId: null,
     step: null,
     action: "aborted",
@@ -171,7 +175,7 @@ function abortedNextAction() {
     output_schema: null,
     requires_approval: false,
     directive: new AbortedDirective().toJSON(),
-  };
+  }, binding);
 }
 
 export class NextActionPlanError extends Error {
@@ -330,6 +334,13 @@ function draftQuestionDirective({ ctx, state, target }) {
   } catch (cause) {
     throw new NextActionPlanError("DRAFT_QUESTION_SOURCE_INVALID", `canonical draft question source is invalid: ${cause.message}`);
   }
+  const structureIssues = draft.validateQuestionStructure();
+  if (structureIssues.length > 0) {
+    throw new NextActionPlanError(
+      "DRAFT_SCHEMA_INVALID",
+      `canonical draft question schema is invalid: ${structureIssues.join("; ")}. Run the guarded reopen-draft command to regenerate the draft`,
+    );
+  }
   const question = draft.nextUnresolvedQuestion();
   return question === null
     ? null
@@ -405,9 +416,8 @@ function acceptanceDecisionDirective({ root, state, binding, target, config }) {
  * established field order; only the source of identity and lifecycle facts
  * changes from mutable state to the Version Store.
  */
-function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, missingProducerArtifactRoute = null) {
+function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, binding, missingProducerArtifactRoute = null) {
   const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
-  const binding = captureNextActionBinding(ctx, state);
   // First select a disposition from bounded result facts and accounting.  The
   // repair revision is an execution precondition, not a competing policy:
   // exhausted persisted evidence must therefore converge to defer/blocked
@@ -491,6 +501,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, miss
     context: canonicalWorkerContext(ctx, derived, target, state, typedState),
     output_schema: outputSchema,
     requires_approval: derived.requiresApproval === true,
+    ...(binding && { binding: binding.serialize() }),
     ...(derived.autoApproveChoiceId && {
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
@@ -543,17 +554,18 @@ export default class GetNextActionCommand extends FlowCommand {
     if (!typedState) {
       throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical Flow state is unavailable");
     }
+    const binding = captureNextActionBinding(ctx, ctx.flowState);
     if (typedState.lifecycle.state !== "active") {
-      return typedState.lifecycle.state === "finalized" ? completedNextAction() : abortedNextAction();
+      return typedState.lifecycle.state === "finalized" ? completedNextAction(binding) : abortedNextAction(binding);
     }
 
     const descriptor = typedState.nextAction();
 
     if (descriptor === null) {
-      return completedNextAction();
+      return completedNextAction(binding);
     }
     const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
-    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, missingRoute);
+    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute);
     if (["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
       ctx.flowManager.beginNextAction(ctx.specId);
       ctx.flowState = ctx.flowManager.load(ctx.specId);

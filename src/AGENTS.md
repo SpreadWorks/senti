@@ -108,6 +108,12 @@ flow get/set/run コマンドは「状態クエリ系」と「操作系」の2�
 
 flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.log`; commands without an active flow use `.tmp/logs/no-flow.log`. Use `sennel flow get runtime-log` for flow command failure diagnosis. Explicit shell redirection is only needed for non-flow commands or special cases outside the flow dispatcher.
 
+### Flow 状態遷移の責務境界
+
+**MUST:** `src/flow/` または Flow の状態遷移に関係する `src/lib/` のコードを変更する場合は、[`flow/AGENTS.md`](flow/AGENTS.md) を読み、その責務境界、不変条件、検証要件に従うこと。
+
+Flow の状態から次の遷移方針を決める責務は definition layer に一元化する。実行コマンド、registry、状態読取り、`get-next-action` が独自に遷移方針を決めてはならない。Gate の既存経路を段階的に移行する場合に限る一時例外と、その撤去条件も `flow/AGENTS.md` に定義する。
+
 ### flow step 命名規則
 
 `src/flow/definition.js` の leaf step id は **`<phase>-<concern>-<action>`** 規則に従う。step id 単体から所属 phase が読めるようにするための規約であり、**phase 接頭辞は必須（例外なし）**とする。bare な `review` / `gate` / `gate-impl` のような phase 文脈依存の名前は使わない。

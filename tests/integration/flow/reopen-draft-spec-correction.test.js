@@ -44,6 +44,28 @@ describe("canonical reopen draft routes", () => {
     assert.equal(flowManager.activityLedger(SPEC_ID).at(-2).transition.operation, "reopen_draft_preimplementation");
   });
 
+  it("reopens draft-refine when the persisted draft cannot accept a question answer", async () => {
+    root = createTmpDir("reopen-draft-refine-");
+    const flowManager = makeFlowManager(root);
+    const fixture = new FlowAtStepFixture({
+      flowManager, specId: SPEC_ID, runId: "run-reopen-refine", request: "recover invalid draft questions",
+      execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
+      specRecord: { goal: "fixture", requirements: [] }, targetStep: "draft-refine",
+    }).create();
+
+    const result = await new RunReopenDraftCommand().execute(commandContext(flowManager, fixture.state(), {
+      reason: "regenerate an invalid persisted draft question schema",
+    }));
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.data.previousActiveStep, "draft-refine");
+    assert.equal(result.data.destinationStep, "draft");
+    const refreshed = flowManager.loadReadOnly(SPEC_ID);
+    assert.equal(refreshed.currentNodeId, "draft");
+    assert.equal(findStepById(refreshed.steps, "draft").status, "in_progress");
+    assert.equal(findStepById(refreshed.steps, "draft-refine").status, "invalidated");
+  });
+
   it("requires a completed Task before entering the task-addition route", async () => {
     root = createTmpDir("reopen-draft-task-");
     const flowManager = makeFlowManager(root);

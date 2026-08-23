@@ -14,6 +14,7 @@ import path from "node:path";
 
 import {
   CanonicalNextActionScenario,
+  draftDocumentWithPendingQuestions,
   makeFlowManager,
 } from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
@@ -108,44 +109,6 @@ function failedFinalizationOutbox(scenario, stepId, failure) {
   outbox.beginCommand(identity);
   outbox.fail(identity, new Error(failure));
   return { identity, outbox };
-}
-
-function draftWithPendingQuestions() {
-  const question = (id, text) => ({
-    id,
-    status: "pending",
-    category: "user-visible-behavior",
-    question: text,
-    answer: "",
-    evidence: "",
-    why: "",
-    considered: "",
-    droppedReason: "",
-  });
-  return {
-    devType: "feature",
-    goal: "Exercise an explicit draft question boundary.",
-    analysis: {
-      problem: "A non-interactive worker cannot collect a user decision.",
-      proposedApproach: "The CLI must yield before starting that worker.",
-      validation: "The answer is stored before the worker action is returned.",
-    },
-    decisionMap: {
-      knownFacts: [],
-      decisionPoints: [],
-      resolvedByProjectRules: [],
-      requiresUserJudgment: ["Choose the public behavior."],
-      deferredToSpec: [],
-    },
-    scopeVerification: { in: [], out: [] },
-    impactOnExisting: { affected: [], unchanged: [] },
-    qa: [
-      question("q1", "Which public behavior should the command guarantee?"),
-      question("q2", "Which compatibility boundary should remain explicit?"),
-    ],
-    openQuestions: [],
-    approval: { approved: false, confirmedAt: "", notes: "" },
-  };
 }
 
 function publishDraft(scenario, draft) {
@@ -361,6 +324,11 @@ describe("flow get next-action", () => {
     assert.equal(data.taskId, null);
     assert.equal(data.step, "draft");
     assert.equal(data.action, "write-draft");
+    const returnedBinding = FlowTargetBinding.deserialize(data.binding);
+    assert.equal(returnedBinding.runId, RUN_ID);
+    assert.equal(returnedBinding.specId, SPEC_ID);
+    assert.equal(returnedBinding.authority.mainRoot, tmp);
+    assert.equal(returnedBinding.authority.executionRoot, tmp);
     assert.deepEqual(data.directive, {
       kind: "execute_step",
       terminal: false,
@@ -373,7 +341,7 @@ describe("flow get next-action", () => {
   it("yields each manual draft question before starting the draft-refine worker", () => {
     tmp = createTmpDir();
     const scenario = createScenario(tmp).atFlowStep("draft");
-    publishDraft(scenario, draftWithPendingQuestions());
+    publishDraft(scenario, draftDocumentWithPendingQuestions());
     scenario.atFlowStep("draft-refine");
     const binding = FlowTargetBinding.capture({
       flowState: stateFor(scenario),
@@ -383,6 +351,7 @@ describe("flow get next-action", () => {
 
     const first = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
     assert.equal(first.exitCode, 0);
+    assert.equal(first.envelope.data.binding, binding);
     assert.deepEqual(first.envelope.data.directive, {
       kind: "await_draft_question",
       terminal: false,
@@ -404,6 +373,7 @@ describe("flow get next-action", () => {
     assert.equal(answered.envelope.data.nextQuestionId, "q2");
 
     const second = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
+    assert.equal(second.envelope.data.binding, binding);
     assert.equal(second.envelope.data.directive.kind, "await_draft_question");
     assert.equal(second.envelope.data.directive.questionId, "q2");
 
@@ -418,6 +388,7 @@ describe("flow get next-action", () => {
 
     const ready = runCli(tmp, ["flow", "get", "next-action", "--expect-binding", binding]);
     assert.equal(ready.exitCode, 0);
+    assert.equal(ready.envelope.data.binding, binding);
     assert.equal(ready.envelope.data.directive.kind, "execute_step");
     assert.equal(ready.envelope.data.step, "draft-refine");
 
@@ -432,10 +403,40 @@ describe("flow get next-action", () => {
     ]);
   });
 
+  it("rejects an invalid persisted question schema before offering an unusable decision", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp).atFlowStep("draft");
+    const draft = draftDocumentWithPendingQuestions();
+    draft.qa[0].priority = "must";
+    publishDraft(scenario, draft);
+    scenario.atFlowStep("draft-refine");
+
+    const result = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.notEqual(result.exitCode, 0);
+    assert.equal(result.envelope.errors[0].code, "DRAFT_SCHEMA_INVALID");
+    assert.match(result.envelope.errors[0].messages.join(" "), /unknown field "priority"/);
+    assert.match(result.envelope.errors[0].messages.join(" "), /reopen-draft/);
+
+    const dispatch = runCli(tmp, [
+      "flow", "run", "dispatch",
+      "--expect-run-id", RUN_ID,
+      "--expect-spec", SPEC_ID,
+      "--expect-no-issue",
+    ]);
+    assert.notEqual(dispatch.exitCode, 0);
+    assert.equal(dispatch.envelope.errors[0].code, "DRAFT_SCHEMA_INVALID");
+    assert.equal(dispatch.envelope.data.dispatch.boundary, "blocked");
+    assert.equal(
+      FlowTargetBinding.deserialize(dispatch.envelope.data.dispatch.binding).runId,
+      RUN_ID,
+    );
+  });
+
   it("keeps autoApprove draft refinement inside the worker", () => {
     tmp = createTmpDir();
     const scenario = createScenario(tmp, { autoApprove: true }).atFlowStep("draft");
-    publishDraft(scenario, draftWithPendingQuestions());
+    publishDraft(scenario, draftDocumentWithPendingQuestions());
     scenario.atFlowStep("draft-refine");
 
     const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
@@ -935,6 +936,7 @@ describe("flow get next-action", () => {
     assert.equal(exitCode, 0);
     assert.equal(envelope.data.step, null);
     assert.equal(envelope.data.action, "completed");
+    assert.equal(FlowTargetBinding.deserialize(envelope.data.binding).runId, RUN_ID);
     assert.ok(flattenSteps(stateFor(scenario).steps)
       .every((step) => ["done", "skipped"].includes(step.status)));
     assert.equal(findStepById(stateFor(scenario).steps, "finalize-cleanup").status, "done");

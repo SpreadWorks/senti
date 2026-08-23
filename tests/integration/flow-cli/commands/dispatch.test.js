@@ -9,6 +9,7 @@ import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js
 import { commitAll, initGitRepo } from "../../../support/infrastructure/git-repo.js";
 import {
   CanonicalFlowFixture,
+  draftDocumentWithPendingQuestions,
   FlowAtStepFixture,
   makeFlowManager,
 } from "../../../support/infrastructure/flow-setup.js";
@@ -320,6 +321,37 @@ function acceptanceDecisionScenario(root) {
   };
 }
 
+function draftQuestionScenario(root) {
+  const manager = makeFlowManager(root);
+  const created = new CanonicalFlowFixture({
+    flowManager: manager,
+    specId: "003-draft-question",
+    runId: "run-draft-question",
+    request: "Verify guarded draft-question continuation.",
+    execution: { mode: "direct" },
+  }).create().registerActive().activate("draft");
+  manager.publishArtifacts({
+    specId: created.specId,
+    nodeId: "draft",
+    artifactWrites: [{
+      logicalKey: "draft",
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(draftDocumentWithPendingQuestions(), null, 2)}\n`, "utf8"),
+    }],
+  });
+  created.activate("draft-refine");
+  const state = created.state();
+  return {
+    manager,
+    state,
+    binding: FlowTargetBinding.capture({
+      flowState: state,
+      mainRoot: root,
+      authorityRoot: root,
+    }).serialize(),
+  };
+}
+
 function relativeTree(directory, { excludeViews = false } = {}) {
   const values = [];
   const walk = (current, prefix = "") => {
@@ -449,10 +481,13 @@ function invokeViewChoice(root, choice, { binding = null } = {}) {
 }
 
 function approvalBoundaryBinding(boundary) {
-  return parsedViewChoice(viewChoice(
+  const binding = boundary.envelope.data.dispatch.binding;
+  assert.match(binding, /^[A-Za-z0-9_-]+$/);
+  assert.equal(parsedViewChoice(viewChoice(
     actionPrompt(boundary.envelope),
     "REVIEW_SPECIFICATION_SUMMARY",
-  )).binding;
+  )).binding, binding);
+  return binding;
 }
 
 function approveApprovalBoundary(root, boundary) {
@@ -528,6 +563,7 @@ function assertReadOnlyDecisionViewLifecycle({
   assert.equal(summaryCommand.logicalKey, logicalKey);
   assert.equal(fullCommand.binding, summaryCommand.binding);
   const binding = fullCommand.binding;
+  assert.equal(boundary.envelope.data.dispatch.binding, binding);
   const approvalToken = boundary.envelope.data.dispatch.approvalToken;
   const before = decisionSnapshot(location);
   const viewsBefore = viewSnapshot(location);
@@ -730,6 +766,83 @@ describe("flow dispatch CLI", () => {
     assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
   });
 
+  it("rejects next-action data that omits or changes the captured binding", () => {
+    root = createTmpDir("sennel-flow-dispatch-next-action-binding-");
+    const scenario = new DispatchFlowScenario(root);
+    const expectation = new FlowTargetExpectation({ expectBinding: scenario.binding() });
+    const target = new FlowDispatchTarget({ expectation, binding: expectation.binding });
+    const action = { step: "draft", binding: scenario.binding() };
+
+    assert.deepEqual(target.assertNextActionBinding(action), { step: "draft" });
+    assert.throws(
+      () => target.assertNextActionBinding({ step: "draft" }),
+      (error) => error.code === "FLOW_NEXT_ACTION_BINDING_INVALID",
+    );
+    assert.throws(
+      () => target.assertNextActionBinding({ step: "draft", binding: staleBinding(root, scenario.state) }),
+      (error) => error.code === "FLOW_NEXT_ACTION_BINDING_INVALID",
+    );
+  });
+
+  it("returns and reuses one opaque binding across draft-question decisions", () => {
+    root = createTmpDir("sennel-flow-dispatch-draft-question-");
+    const scenario = draftQuestionScenario(root);
+    const first = invokeFlow(root, [
+      "run", "dispatch",
+      "--expect-run-id", scenario.state.runId,
+      "--expect-spec", scenario.state.specId,
+    ]);
+
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(first.envelope.data.dispatch.boundary, "await_user_decision");
+    assert.equal(first.envelope.data.dispatch.binding, scenario.binding);
+    assert.equal(first.envelope.data.nextAction.directive.kind, "await_draft_question");
+    assert.equal(first.envelope.data.nextAction.directive.questionId, "q1");
+
+    const stale = invokeFlow(root, [
+      "set", "draft-answer", "q1",
+      "--answer", "A stale target must not write this answer.",
+      "--why", "This invocation deliberately uses the wrong authority.",
+      "--expect-binding", staleBinding(root, scenario.state),
+    ]);
+    assert.notEqual(stale.status, 0);
+    assert.equal(stale.envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
+
+    const firstAnswer = invokeFlow(root, [
+      "set", "draft-answer", "q1",
+      "--answer", "Return the stable public representation selected by the user.",
+      "--why", "The explicit user decision is part of the canonical draft.",
+      "--expect-binding", first.envelope.data.dispatch.binding,
+    ]);
+    assert.equal(firstAnswer.status, 0, firstAnswer.stderr);
+
+    const second = invokeFlow(root, [
+      "run", "dispatch",
+      "--expect-binding", first.envelope.data.dispatch.binding,
+    ]);
+    assert.equal(second.status, 0, second.stderr);
+    assert.equal(second.envelope.data.dispatch.boundary, "await_user_decision");
+    assert.equal(second.envelope.data.dispatch.binding, scenario.binding);
+    assert.equal(second.envelope.data.nextAction.directive.questionId, "q2");
+
+    const secondAnswer = invokeFlow(root, [
+      "set", "draft-answer", "q2",
+      "--drop",
+      "--dropped-reason", "The project contract already fixes this compatibility boundary.",
+      "--expect-binding", second.envelope.data.dispatch.binding,
+    ]);
+    assert.equal(secondAnswer.status, 0, secondAnswer.stderr);
+
+    const ready = invokeFlow(root, [
+      "get", "next-action",
+      "--expect-binding", second.envelope.data.dispatch.binding,
+    ]);
+    assert.equal(ready.status, 0, ready.stderr);
+    assert.equal(ready.envelope.data.binding, scenario.binding);
+    assert.equal(ready.envelope.data.directive.kind, "execute_step");
+    assert.equal(ready.envelope.data.step, "draft-refine");
+  });
+
   it("reclaims a lease whose dispatcher owner exited", () => {
     root = createTmpDir("sennel-flow-dispatch-stale-");
     const worker = installWorker(root);
@@ -764,6 +877,7 @@ describe("flow dispatch CLI", () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.envelope.data.dispatch.boundary, "approval_required");
+    assert.equal(result.envelope.data.dispatch.binding, scenario.binding());
     assert.match(result.envelope.data.dispatch.approvalToken, /^[a-f0-9]{64}$/);
     assert.equal(result.envelope.data.nextAction.directive.kind, "execute_step");
     assert.equal(result.envelope.data.nextAction.directive.requiresUserAction, true);
@@ -1064,6 +1178,7 @@ describe("flow dispatch CLI", () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.envelope.data.dispatch.boundary, "await_user_decision");
+    assert.equal(result.envelope.data.dispatch.binding, scenario.binding());
     assert.equal(result.envelope.data.dispatch.approvalToken, undefined);
     assert.equal(result.envelope.data.nextAction.requires_approval, false);
     assert.deepEqual(

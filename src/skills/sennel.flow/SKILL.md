@@ -149,6 +149,10 @@ B.4. **Prepare spec (silent)**
      - Set `targetSpec = <spec>` from the prepare/status response when known.
      - Use only CLI-returned opaque binding tokens for normal dispatcher
        continuation. Do not assemble runId, Issue, or spec guards yourself.
+     - The first dispatcher call after verification is the bootstrap exception:
+       pass the same explicit runId / Issue / spec guards used by the successful
+       target-aware status call. Every resumable dispatcher boundary returns the
+       resulting opaque token as `data.dispatch.binding`.
    - All subsequent target-sensitive dispatcher commands for this flow MUST use
      the current CLI-generated binding until `finalize-cleanup` completes and
      releases the flow.
@@ -168,11 +172,19 @@ Note:
 
 ### C. Dispatcher loop
 
-Run the CLI-returned `sennel flow run dispatch --expect-binding <token>` command as the only owner of
+Run `sennel flow run dispatch` as the only owner of
 `execute_step`, `execute_command`, and `repair_evidence` directives. Do not
 manually dispatch those directives outside this command. The command invokes
 the configured agent abstraction, not an agent-host hook, and verifies the
 durable Flow and repository state after every worker finishes.
+
+For the first call after exact target verification, use that verified explicit
+runId / Issue / spec guard set. For every continuation, read the opaque token
+directly from `data.dispatch.binding` and run
+`sennel flow run dispatch --expect-binding <token>`. A direct guarded
+`sennel flow get next-action` response exposes the same token as `data.binding`.
+Never reconstruct a token or scrape one from a choice command. If a resumable
+boundary omits `data.dispatch.binding`, STOP without executing the choice.
 
 The command is strictly serial: one worker and every review/gate/test command
 it starts must finish in the foreground before the dispatcher refreshes
@@ -190,7 +202,7 @@ continuation.
 Handle the returned `data.dispatch.boundary`:
 
 1. `approval_required`: retain both the private `approvalToken` and the exact
-   CLI-generated binding. Present the current localized approval choices from
+   `data.dispatch.binding`. Present the current localized approval choices from
    `nextAction.directive.actionPrompt`. If the user selects the specification
    summary or full-review choice, run exactly one of:
    - `sennel flow get artifact spec.record --mode summary --expect-binding <binding>`
@@ -210,11 +222,11 @@ Handle the returned `data.dispatch.boundary`:
    same process. A stale token is not permission to execute anything. When
    autoApprove advances an approval-required action, it has no approval scene;
    never generate a view, cache entry, or summary call for it.
-2. `auto_upgrade_decision`: present the standard auto-mode choice. If the user
+2. `auto_upgrade_decision`: retain the exact `data.dispatch.binding` and present the standard auto-mode choice. If the user
    explicitly selects auto, run `sennel flow set auto on --expect-binding <token>`;
    otherwise run `sennel flow set auto off --expect-binding <token>`. Immediately
    resume `sennel flow run dispatch --expect-binding <token>` in the same turn.
-3. `await_user_decision`: explain every materially different choice in the
+3. `await_user_decision`: retain the exact `data.dispatch.binding` and explain every materially different choice in the
    user's language without exposing raw action IDs or commands. Wait for the
    user's choice, execute only its current exact action, then immediately
    resume `sennel flow run dispatch --expect-binding <token>`. Adoption/reconciliation,
@@ -245,7 +257,7 @@ Handle the returned `data.dispatch.boundary`:
      never edit canonical `draft.json` directly, and immediately resume dispatch
      with the same binding so the CLI can return the next question or start the
      worker after all questions are resolved.
-4. `blocked`: report the returned reason and resume instruction as the concrete
+4. `blocked`: retain the exact `data.dispatch.binding`, then report the returned reason and resume instruction as the concrete
    blocker. `FLOW_DISPATCH_AGENT_FAILED`, `FLOW_DISPATCH_STALLED`, and
    `FLOW_DISPATCH_LIMIT_REACHED` are failures, not progress summaries and not
    permission to mark a step complete manually.
