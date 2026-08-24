@@ -242,7 +242,8 @@ describe("ReviewWorkUnit", () => {
               : parseImplReviewOutput(response, "", stderr);
         parsed.artifacts.phase = phase;
         if (taskId !== null) parsed.artifacts.taskId = taskId;
-        assert.equal(recovered.next, parsed.next, `${phase}/${verdict} next`);
+        assert.equal(Object.hasOwn(recovered, "next"), false, `${phase}/${verdict} recovered route projection`);
+        assert.equal(Object.hasOwn(parsed, "next"), false, `${phase}/${verdict} subprocess route projection`);
         assert.equal(recovered.artifacts.verdict, parsed.artifacts.verdict, `${phase}/${verdict} verdict`);
         assert.equal(recovered.artifacts.taskId || null, parsed.artifacts.taskId || null, `${phase}/${verdict} task`);
         if (phase.startsWith("draft-")) assert.equal(recovered.artifacts.issueCount, parsed.artifacts.issueCount);

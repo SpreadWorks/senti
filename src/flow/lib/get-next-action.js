@@ -20,6 +20,7 @@ import {
   deriveNextAction,
   resolveDefinitionRoute,
   resolveDraftTransition,
+  selectedNonGateUserAction,
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
   testResultReviewTransitionDefinition,
@@ -54,6 +55,7 @@ import {
   captureFinalRegressionChangedSnapshotDigest,
   resolveCanonicalFinalRegressionTransition,
 } from "./final-regression-transition-facts.js";
+import { FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID } from "./final-regression-transition.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 import { inspectInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
@@ -102,7 +104,7 @@ const TEST_CHAIN_RESULT_KEYS = Object.freeze({
 function blockedTestChainProjection(ctx, typedState, descriptor) {
   const definition = TEST_CHAIN_NEXT_ACTION_DEFINITIONS[descriptor.nodeId] ?? null;
   const resultKey = TEST_CHAIN_RESULT_KEYS[descriptor.nodeId] ?? null;
-  if (definition === null || resultKey === null || descriptor.operation !== "resume") return null;
+  if (definition === null || resultKey === null || typedState.attempt === null) return null;
   const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(typedState.specId);
   if (snapshot?.stepId !== descriptor.nodeId || !hasCurrentTestChainPublication(snapshot, resultKey)) return null;
   const selected = resolveNonGateNextAction({
@@ -182,8 +184,9 @@ function captureNextActionBinding(ctx, state) {
 }
 
 class FinalRegressionNextAction {
-  constructor({ decision = null, directive } = {}) {
+  constructor({ decision = null, userAction = null, directive } = {}) {
     this.decision = decision;
+    this.userAction = userAction;
     this.directive = directive;
     Object.freeze(this);
   }
@@ -212,14 +215,24 @@ function finalRegressionNextAction(ctx, state, typedState, binding) {
     return new FinalRegressionNextAction({ decision, directive: new ExecuteCommandDirective({ actionId: "FINAL_REGRESSION_REPAIR", nextAction: guardedCommand("sennel flow run claim-next-action", state, binding), instruction: "Claim the Definition-selected repair episode, then repair the current regression failure and rerun final-regression through the next guarded directive.", reason: "The final-regression Definition selected bounded repair from canonical current-change evidence." }) });
   }
   if (operation === "await-user-input") {
-    return new FinalRegressionNextAction({ decision, directive: new AwaitUserDecisionDirective({
-      reason: "The final-regression Definition classified this failure as existing work and requires an explicit decision.",
+    let userAction;
+    try {
+      userAction = selectedNonGateUserAction(decision, FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID);
+    } catch (error) {
+      return new FinalRegressionNextAction({ decision, directive: new BlockedDirective({
+        code: "FINAL_REGRESSION_USER_ACTION_UNAVAILABLE",
+        reason: error.message,
+        resumeInstruction: "Refresh canonical final-regression evidence; do not invoke record-and-proceed directly.",
+      }) });
+    }
+    return new FinalRegressionNextAction({ decision, userAction, directive: new AwaitUserDecisionDirective({
+      reason: "The final-regression Definition selected an explicit, evidence-bound decision for this failed Attempt.",
       prompt: new UserActionPrompt({
-        question: "Accept the recorded existing regression failure?",
+        question: "Accept the recorded final-regression failure?",
         choices: [
-          new UserActionChoice({ actionId: "ACCEPT_EXISTING_REGRESSION", label: "Record and proceed", nextAction: guardedCommand("sennel flow run final-regression --record-and-proceed", state, binding), impact: new UserActionImpact({ retains: ["the immutable failed regression Attempt"], changes: ["the explicit acceptance record"] }) }),
+          new UserActionChoice({ actionId: userAction.actionId, label: "Record and proceed", nextAction: guardedCommand("sennel flow run final-regression --record-and-proceed", state, binding), impact: new UserActionImpact({ retains: ["the immutable failed regression Attempt"], changes: ["the explicit acceptance record"] }) }),
           new UserActionChoice({ actionId: "KEEP_BLOCKED", label: "Keep blocked", stateTransition: "remain-blocked", impact: new UserActionImpact({ retains: ["the failed regression evidence"], changes: ["the Flow remains blocked"] }) }),
-        ], recommendedActionId: "KEEP_BLOCKED", recommendationReason: "Existing failures require explicit acceptance evidence; leaving the Flow blocked preserves the failure by default.",
+        ], recommendedActionId: "KEEP_BLOCKED", recommendationReason: "Explicit acceptance requires durable evidence; leaving the Flow blocked preserves the failure by default.",
       }),
     }) });
   }
@@ -668,6 +681,12 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     }),
     maxAttempts: derived.maxAttempts,
     directive: claimDirective.toJSON(),
+    ...(selectedFinalRegressionAction?.decision && {
+      definitionTransition: {
+        action: selectedFinalRegressionAction.decision.plan.action.toJSON(),
+        ...(selectedFinalRegressionAction.userAction && { userAction: selectedFinalRegressionAction.userAction.toJSON() }),
+      },
+    }),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;

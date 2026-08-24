@@ -5,6 +5,11 @@ import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunClaimNextActionCommand from "../../../src/flow/lib/run-claim-next-action.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "../../../src/flow/lib/final-regression-transition-facts.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
@@ -69,18 +74,18 @@ function readFinalRegressionArtifact(ctx) {
   return validateFinalRegressionResult(history.attempts.at(-1).artifact.payload);
 }
 
-function assertFinalRegressionCommandFailure(result, { failureKind, retryable, nextAction }) {
+function assertFinalRegressionCommandFailure(result, { failureKind }) {
   assert.equal(result.result, "fail");
   assert.equal(result.artifacts.failureKind, failureKind);
-  assert.equal(result.artifacts.retryable, retryable);
-  assert.equal(result.artifacts.nextAction, nextAction);
+  assert.equal(Object.hasOwn(result.artifacts, "retryable"), false);
+  assert.equal(Object.hasOwn(result.artifacts, "nextAction"), false);
 }
 
-function assertFinalRegressionArtifactFailure(artifact, { failureKind, retryable, nextAction }) {
+function assertFinalRegressionArtifactFailure(artifact, { failureKind }) {
   assert.equal(artifact.result, "fail");
   assert.equal(artifact.failureKind, failureKind);
-  assert.equal(artifact.retryable, retryable);
-  assert.equal(artifact.nextAction, nextAction);
+  assert.equal(Object.hasOwn(artifact, "retryable"), false);
+  assert.equal(Object.hasOwn(artifact, "nextAction"), false);
 }
 
 function assertFinalRegressionFailure(ctx, result, expected) {
@@ -92,29 +97,40 @@ function assertFinalRegressionFailure(ctx, result, expected) {
 
 async function executeFinalRegression(ctx) {
   const result = await new RunFinalRegressionCommand().execute(ctx);
-  if (["pass", "skipped"].includes(result.result)) {
-    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
-    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
-  }
+  await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+  ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
   return result;
+}
+
+function resolveFinalRegressionDecision(ctx) {
+  const state = ctx.flowManager.canonicalState(SPEC_ID);
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  return resolveCanonicalFinalRegressionTransition({
+    flowManager: ctx.flowManager,
+    specId: SPEC_ID,
+    changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+      root: ctx.executionRoot,
+      relativeSpecFile: store.location.relativeSpecFile,
+    }),
+  });
 }
 
 describe("flow run final-regression", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("writes a pass artifact and returns report as next action", async () => {
+  it("writes a pass artifact and leaves route selection to Definition", async () => {
     tmp = createTmpDir("final-regression-pass-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
 
     const result = await executeFinalRegression(ctx);
 
     assert.equal(result.result, "pass");
-    assert.equal(result.next, "report");
+    assert.equal(Object.hasOwn(result, "next"), false);
     const artifact = readFinalRegressionArtifact(ctx);
     assert.equal(artifact.result, "pass");
     assert.equal(artifact.failureKind, null);
-    assert.equal(artifact.nextAction, "report");
+    assert.equal(Object.hasOwn(artifact, "nextAction"), false);
     assert.equal(artifact.completed, true);
     assert.equal(artifact.rawOutputPath, "specs/001-test/001/steps/final-regression/attempt-001.log");
     assert.ok(fs.existsSync(path.join(tmp, artifact.rawOutputPath)));
@@ -176,7 +192,27 @@ describe("flow run final-regression", () => {
     }), null);
   });
 
-  it("classifies current-change failure and records one retryable failed Attempt", async () => {
+  it("leaves a failed observation un-routed until the registry applies the Definition plan", async () => {
+    tmp = createTmpDir("final-regression-producer-boundary-");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeChangedFileReferencingFailureFixture(tmp, "producer only");
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    assert.equal(result.result, "fail");
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure, null);
+    assert.equal(ctx.flowManager.readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "final.regression",
+      consumerNodeId: "report",
+      optional: true,
+    }), null);
+
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure.code, "FINAL_REGRESSION_FAILED");
+  });
+
+  it("classifies current-change failure and lets the Definition plan record the failed Attempt", async () => {
     tmp = createTmpDir("final-regression-fail-");
     const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
     writeChangedFileReferencingFailureFixture(tmp, "boom");
@@ -185,26 +221,38 @@ describe("flow run final-regression", () => {
 
     assertFinalRegressionFailure(ctx, result, {
       failureKind: "caused_by_current_change",
-      retryable: true,
-      nextAction: "regression-repair",
     });
     const failed = ctx.flowManager.canonicalState(SPEC_ID).attempt.failure;
     assert.equal(failed.code, "FINAL_REGRESSION_FAILED");
     assert.equal(failed.retryable, true);
     assert.equal(failed.retryKind, "semantic");
 
-    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
     assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure.code, "FINAL_REGRESSION_FAILED");
     assert.equal(
       ctx.flowManager.canonicalState(SPEC_ID).nextAction().operation,
-      "blocked",
-      "the generic compatibility policy must not authorize the repair Attempt",
+      "resolve-step-definition",
+      "CurrentFlowState exposes a route-neutral cursor while the Step Definition owns canonical final-regression routing",
     );
+    const restart = ctx.flowManager.restartFlow(SPEC_ID);
+    assert.equal(restart.nextAction.operation, "resolve-step-definition");
+    const beforeRejectedClaim = ctx.flowManager.canonicalState(SPEC_ID);
+    const beforeRejectedActivities = ctx.flowManager.activityLedger(SPEC_ID).length;
+    const beforeRejectedCatalog = ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length;
+    assert.throws(
+      () => ctx.flowManager.beginNextAction(SPEC_ID),
+      /requires its canonical Definition-selected Action/,
+    );
+    const afterRejectedClaim = ctx.flowManager.canonicalState(SPEC_ID);
+    assert.equal(afterRejectedClaim.attempt.id, beforeRejectedClaim.attempt.id);
+    assert.equal(ctx.flowManager.activityLedger(SPEC_ID).length, beforeRejectedActivities);
+    assert.equal(ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length, beforeRejectedCatalog);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const next = await new GetNextActionCommand().execute(ctx);
     assert.equal(next.directive.kind, "execute_command");
     assert.equal(next.directive.actionId, "FINAL_REGRESSION_REPAIR");
     assert.match(next.directive.nextAction, /flow run claim-next-action/);
+    const decision = resolveFinalRegressionDecision(ctx);
+    assert.deepEqual(next.definitionTransition.action, decision.plan.action.toJSON());
     const projected = ctx.flowManager.canonicalState(SPEC_ID).attempt;
     assert.equal(projected.sequence, 1);
     assert.equal(projected.failure.code, "FINAL_REGRESSION_FAILED");
@@ -225,7 +273,6 @@ describe("flow run final-regression", () => {
     writeChangedFileReferencingFailureFixture(tmp, "first failure snapshot");
 
     const result = await executeFinalRegression(ctx);
-    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
     writeChangedFileReferencingFailureFixture(tmp, "changed after failure");
 
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
@@ -251,17 +298,20 @@ describe("flow run final-regression", () => {
 
     assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_existing_failure",
-      retryable: false,
-      nextAction: "user-confirmation",
     });
-
-    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const next = await new GetNextActionCommand().execute(ctx);
     assert.equal(next.directive.kind, "await_user_decision");
     assert.deepEqual(
       next.directive.actionPrompt.choices.map((choice) => choice.actionId),
-      ["ACCEPT_EXISTING_REGRESSION", "KEEP_BLOCKED"],
+      ["ACCEPT_FINAL_REGRESSION_FAILURE", "KEEP_BLOCKED"],
+    );
+    const decision = resolveFinalRegressionDecision(ctx);
+    assert.deepEqual(next.definitionTransition.action, decision.plan.action.toJSON());
+    assert.deepEqual(next.definitionTransition.userAction, decision.plan.userActions[0].toJSON());
+    assert.deepEqual(
+      next.definitionTransition.userAction.identity.transition,
+      next.definitionTransition.action.identity,
     );
     assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
   });
@@ -288,8 +338,6 @@ describe("flow run final-regression", () => {
 
     const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_existing_failure",
-      retryable: false,
-      nextAction: "user-confirmation",
     });
     assert.equal(artifact.failureCategory, "existing_failure");
     assert.equal(artifact.failureNature, "assertion");
@@ -331,8 +379,6 @@ describe("flow run final-regression", () => {
 
     const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "caused_by_current_change",
-      retryable: true,
-      nextAction: "regression-repair",
     });
     assert.equal(artifact.failureCategory, "caused_by_current_change");
     assert.equal(artifact.failureNature, "assertion");
@@ -351,8 +397,6 @@ describe("flow run final-regression", () => {
 
     assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_unknown_failure",
-      retryable: false,
-      nextAction: "stop",
     });
   });
 
@@ -370,8 +414,6 @@ describe("flow run final-regression", () => {
 
     const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_unknown_failure",
-      retryable: false,
-      nextAction: "stop",
     });
     assert.equal(artifact.failureCategory, "unknown");
     assert.equal(artifact.failureNature, "execution");
@@ -393,8 +435,6 @@ describe("flow run final-regression", () => {
 
     assertFinalRegressionFailure(ctx, result, {
       failureKind: "child_process_eperm",
-      retryable: false,
-      nextAction: "stop",
     });
 
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
@@ -409,18 +449,16 @@ describe("flow run final-regression", () => {
     const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
     writeChangedFileReferencingFailureFixture(tmp, "still failing");
 
-    await new RunFinalRegressionCommand().execute(ctx);
+    await executeFinalRegression(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     await new GetNextActionCommand().execute(ctx);
     const claim = await new RunClaimNextActionCommand().execute(ctx);
     assert.equal(claim.ok, true, JSON.stringify(claim));
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
-    const second = await new RunFinalRegressionCommand().execute(ctx);
+    const second = await executeFinalRegression(ctx);
 
     const artifact = assertFinalRegressionFailure(ctx, second, {
       failureKind: "caused_by_current_change",
-      retryable: false,
-      nextAction: "stop",
     });
     assert.ok(!Object.hasOwn(artifact, "previousFailureKind"), "previousFailureKind must not appear in the artifact");
     assert.match(artifact.rawOutputPath, /steps\/final-regression\/attempt-002\.log$/);
@@ -431,7 +469,7 @@ describe("flow run final-regression", () => {
     const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
     writeChangedFileReferencingFailureFixture(tmp, "first attempt fails");
 
-    await new RunFinalRegressionCommand().execute(ctx);
+    await executeFinalRegression(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     await new GetNextActionCommand().execute(ctx);
     const claim = await new RunClaimNextActionCommand().execute(ctx);

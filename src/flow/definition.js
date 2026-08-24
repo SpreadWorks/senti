@@ -67,6 +67,7 @@ import {
   FinalRegressionFailureProfileFact,
   FinalRegressionNonblockingPolicy,
   FinalRegressionProceedEvidence,
+  FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID,
   FinalRegressionRetryHistory,
   FinalRegressionStepFacts,
 } from "./lib/final-regression-transition.js";
@@ -592,7 +593,7 @@ class NonGateDisposition extends NonGateTransitionDisposition {
 
 export class NonGateAdvanceDisposition extends NonGateDisposition { constructor(token) { super(token, "advance"); } }
 export class NonGateKeepInProgressDisposition extends NonGateDisposition { constructor(token) { super(token, "keep-in-progress"); } }
-export class NonGateAwaitUserInputDisposition extends NonGateDisposition { constructor(token) { super(token, "await-user-input"); } }
+export class NonGateAwaitUserInputDisposition extends NonGateDisposition { constructor(token, reason = null) { super(token, "await-user-input", reason); } }
 export class NonGateRetryDisposition extends NonGateDisposition { constructor(token) { super(token, "retry"); } }
 export class NonGateRepairDisposition extends NonGateDisposition { constructor(token) { super(token, "repair"); } }
 export class NonGateRecordAndProceedDisposition extends NonGateDisposition { constructor(token) { super(token, "record-and-proceed"); } }
@@ -600,13 +601,26 @@ export class NonGateExternalBlockedDisposition extends NonGateDisposition { cons
 export class NonGateBlockedDisposition extends NonGateDisposition { constructor(token, reason) { super(token, "blocked", reason); } }
 export class NonGateParkDisposition extends NonGateDisposition { constructor(token, reason = null) { super(token, "park", reason); } }
 
+/** A Definition-declared, guarded operator choice; it is not a route field. */
+export class NonGateUserActionSelection {
+  constructor({ actionId } = {}) {
+    this.actionId = requireString(actionId, "non-Gate user action id");
+    if (!/^[A-Z][A-Z0-9_]{2,79}$/.test(this.actionId)) {
+      throw new Error("non-Gate user action id is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return { actionId: this.actionId }; }
+}
+
 /**
  * A Step-specific Definition returns this declaration after interpreting its
  * own typed facts.  It is deliberately not a transition plan: only the
  * common Definition reducer below mints a sealed decision, plan and Action.
  */
 export class NonGateTransitionSelection {
-  constructor({ operation, reason = null, beforeActions = [], actions = [], exhaustedActions = [] } = {}) {
+  constructor({ operation, reason = null, beforeActions = [], actions = [], exhaustedActions = [], userActions = [] } = {}) {
     this.operation = requireString(operation, "non-Gate selection operation");
     if (!NON_GATE_OPERATIONS.has(this.operation)) throw new Error("non-Gate selection operation is invalid");
     this.reason = reason == null ? null : requireString(reason, "non-Gate selection reason");
@@ -621,6 +635,13 @@ export class NonGateTransitionSelection {
     this.beforeActions = Object.freeze([...beforeActions]);
     this.actions = Object.freeze([...actions]);
     this.exhaustedActions = Object.freeze([...exhaustedActions]);
+    if (!Array.isArray(userActions) || userActions.some((action) => !(action instanceof NonGateUserActionSelection))) {
+      throw new Error("non-Gate selection user actions must be typed");
+    }
+    if (new Set(userActions.map((action) => action.actionId)).size !== userActions.length) {
+      throw new Error("non-Gate selection user actions must be unique");
+    }
+    this.userActions = Object.freeze([...userActions]);
     Object.freeze(this);
   }
 }
@@ -692,15 +713,53 @@ function selectFinalRegressionTransition(stepFacts, facts = null) {
     return new NonGateTransitionSelection({ operation: "record-and-proceed" });
   }
   if (stepFacts.failure.tooling) {
-    return new NonGateTransitionSelection({ operation: "external-blocked", reason: stepFacts.failure.kind || "tooling_failure" });
+    return new NonGateTransitionSelection({
+      operation: "external-blocked",
+      reason: stepFacts.failure.kind || "tooling_failure",
+      beforeActions: finalRegressionFailureActions(stepFacts),
+    });
   }
   if (stepFacts.failure.currentChange) {
-    return new NonGateTransitionSelection({ operation: stepFacts.retryHistory.exhausted ? "blocked" : "repair", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : null });
+    if (stepFacts.retryHistory.exhausted) {
+      return new NonGateTransitionSelection({
+        operation: "await-user-input",
+        reason: "retry_exhausted",
+        beforeActions: finalRegressionFailureActions(stepFacts),
+        userActions: [new NonGateUserActionSelection({ actionId: FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID })],
+      });
+    }
+    return new NonGateTransitionSelection({
+      operation: "repair",
+      beforeActions: finalRegressionFailureActions(stepFacts, { retryable: true }),
+    });
   }
   if (stepFacts.failure.existing) {
-    return new NonGateTransitionSelection({ operation: "await-user-input" });
+    return new NonGateTransitionSelection({
+      operation: "await-user-input",
+      beforeActions: finalRegressionFailureActions(stepFacts),
+      userActions: [new NonGateUserActionSelection({ actionId: FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID })],
+    });
   }
-  return new NonGateTransitionSelection({ operation: "blocked", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure" });
+  return new NonGateTransitionSelection({
+    operation: "blocked",
+    reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure",
+    beforeActions: finalRegressionFailureActions(stepFacts),
+  });
+}
+
+/** The producer records the failure profile; Definition owns its settlement. */
+function finalRegressionFailureAction(stepFacts, { retryable = false } = {}) {
+  return new NonGateFailCurrentAttemptAction(NON_GATE_TRANSITION_TOKEN, {
+    category: stepFacts.failure.category || "unknown",
+    code: "FINAL_REGRESSION_FAILED",
+    retryable,
+    retryKind: retryable ? "semantic" : null,
+    message: `final-regression failed (${stepFacts.failure.kind || "unknown"})`,
+  });
+}
+
+function finalRegressionFailureActions(stepFacts, options = {}) {
+  return stepFacts.failureRecorded ? [] : [finalRegressionFailureAction(stepFacts, options)];
 }
 
 export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
@@ -708,20 +767,6 @@ export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
   factsType: FinalRegressionStepFacts,
   select: selectFinalRegressionTransition,
 });
-
-/** Compatibility-only artifact projection of the Definition's selected route. */
-export function projectFinalRegressionTransition(stepFacts) {
-  const selection = selectFinalRegressionTransition(stepFacts);
-  const compatibility = {
-    "advance": { retryable: false, nextAction: "report" },
-    "repair": { retryable: true, nextAction: "regression-repair" },
-    "await-user-input": { retryable: false, nextAction: "user-confirmation" },
-    "record-and-proceed": { retryable: false, nextAction: "report" },
-    "external-blocked": { retryable: false, nextAction: "stop" },
-    "blocked": { retryable: false, nextAction: "stop" },
-  }[selection.operation];
-  return Object.freeze({ ...compatibility, operation: selection.operation, reason: selection.reason });
-}
 
 /** Stable Action identity; it intentionally contains no clock or caller data. */
 export class NonGateActionIdentity {
@@ -763,12 +808,49 @@ export class NonGateActionIdentity {
   }
 }
 
+/** Stable identity for one Definition-selected guarded operator choice. */
+export class NonGateUserActionIdentity {
+  constructor(token, { transition, actionId } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(transition instanceof NonGateActionIdentity)) {
+      throw new Error("non-Gate user Action identities are created only by the definition resolver");
+    }
+    this.transition = transition;
+    this.actionId = requireString(actionId, "non-Gate user Action id");
+    if (!/^[A-Z][A-Z0-9_]{2,79}$/.test(this.actionId)) {
+      throw new Error("non-Gate user Action id is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  matches(other) {
+    return other instanceof NonGateUserActionIdentity
+      && this.actionId === other.actionId
+      && this.transition.matches(other.transition);
+  }
+
+  toJSON() { return { transition: this.transition.toJSON(), actionId: this.actionId }; }
+}
+
 export class NonGateTransitionAction {
   constructor(token, { identity } = {}) {
     if (token !== NON_GATE_TRANSITION_TOKEN || !(identity instanceof NonGateActionIdentity)) {
       throw new Error("non-Gate Actions are created only by the definition resolver");
     }
     this.identity = identity;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { identity: this.identity.toJSON() }; }
+}
+
+/** A guarded user action bound to the same immutable transition identity. */
+export class NonGateUserAction {
+  constructor(token, { identity } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(identity instanceof NonGateUserActionIdentity)) {
+      throw new Error("non-Gate user Actions are created only by the definition resolver");
+    }
+    this.identity = identity;
+    this.actionId = identity.actionId;
     Object.freeze(this);
   }
 
@@ -864,7 +946,7 @@ export class NonGateAppendRepairEvidenceAction extends NonGateStepAction {
 
 /** Sealed typed authority consumed by persistence and command admission only. */
 export class NonGateTransitionPlan {
-  constructor(token, { action, actions } = {}) {
+  constructor(token, { action, actions, userActions = [] } = {}) {
     if (token !== NON_GATE_TRANSITION_TOKEN) {
       throw new Error("non-Gate transition plans are created only by the definition resolver");
     }
@@ -872,14 +954,27 @@ export class NonGateTransitionPlan {
     if (!Array.isArray(actions) || actions.some((entry) => !(entry instanceof NonGateStepAction))) {
       throw new Error("non-Gate plan requires typed actions");
     }
+    if (!Array.isArray(userActions) || userActions.some((entry) => !(entry instanceof NonGateUserAction))) {
+      throw new Error("non-Gate plan requires typed user actions");
+    }
+    if (new Set(userActions.map((entry) => entry.actionId)).size !== userActions.length) {
+      throw new Error("non-Gate plan user actions must be unique");
+    }
     this.action = action;
     this.actions = Object.freeze([...actions]);
+    this.userActions = Object.freeze([...userActions]);
     Object.freeze(this);
+  }
+
+  userActionFor(actionId) {
+    const id = requireString(actionId, "non-Gate user Action lookup id");
+    return this.userActions.find((action) => action.actionId === id) ?? null;
   }
 
   toJSON() {
     return {
       action: this.action.toJSON(), actions: this.actions.map((entry) => entry.toJSON()),
+      userActions: this.userActions.map((entry) => entry.toJSON()),
     };
   }
 }
@@ -902,16 +997,34 @@ export class NonGateTransitionDecision {
   toJSON() { return { facts: this.facts.toJSON(), disposition: this.disposition.toJSON(), plan: this.plan.toJSON() }; }
 }
 
-function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetry = false, beforeActions = [], stepActions = [], noEffects = false } = {}) {
+/** Retrieve only a user action sealed into the selected Definition plan. */
+export function selectedNonGateUserAction(decision, actionId) {
+  if (!(decision instanceof NonGateTransitionDecision)) {
+    throw new Error("non-Gate user action requires a Definition decision");
+  }
+  const action = decision.plan.userActionFor(actionId);
+  if (action === null) {
+    throw new Error("Definition does not select the requested non-Gate user action");
+  }
+  if (!action.identity.transition.matches(decision.plan.action.identity)) {
+    throw new Error("non-Gate user action does not match the selected Definition Action");
+  }
+  return action;
+}
+
+function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetry = false, beforeActions = [], stepActions = [], userActions = [], noEffects = false } = {}) {
   if (noEffects) {
     const identity = new NonGateActionIdentity(NON_GATE_TRANSITION_TOKEN, {
       runId: facts.runId, specId: facts.specId, stepId: facts.stepId, attempt: facts.currentAttempt,
       catalogFingerprint: facts.catalogPublication.fingerprint, factsFingerprint: nonGateFactsFingerprint(facts),
-      selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: [] })).digest("hex"),
+      selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: [], userActions: userActions.map((entry) => entry.toJSON()) })).digest("hex"),
       operation: disposition.operation,
     });
     return new NonGateTransitionPlan(NON_GATE_TRANSITION_TOKEN, {
       action: new NonGateTransitionAction(NON_GATE_TRANSITION_TOKEN, { identity }), actions: [],
+      userActions: userActions.map((entry) => new NonGateUserAction(NON_GATE_TRANSITION_TOKEN, {
+        identity: new NonGateUserActionIdentity(NON_GATE_TRANSITION_TOKEN, { transition: identity, actionId: entry.actionId }),
+      })),
     });
   }
   const update = new NonGateStepUpdate({ stepId: facts.stepId, status });
@@ -928,12 +1041,15 @@ function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetr
     attempt: facts.currentAttempt,
     catalogFingerprint: facts.catalogPublication.fingerprint,
     factsFingerprint: nonGateFactsFingerprint(facts),
-    selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: actions.map((entry) => entry.toJSON()) })).digest("hex"),
+    selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: actions.map((entry) => entry.toJSON()), userActions: userActions.map((entry) => entry.toJSON()) })).digest("hex"),
     operation: disposition.operation,
   });
   return new NonGateTransitionPlan(NON_GATE_TRANSITION_TOKEN, {
     action: new NonGateTransitionAction(NON_GATE_TRANSITION_TOKEN, { identity }),
     actions,
+    userActions: userActions.map((entry) => new NonGateUserAction(NON_GATE_TRANSITION_TOKEN, {
+      identity: new NonGateUserActionIdentity(NON_GATE_TRANSITION_TOKEN, { transition: identity, actionId: entry.actionId }),
+    })),
   });
 }
 
@@ -976,13 +1092,14 @@ export function resolveNonGateTransition(facts, stepDefinition) {
     ...options,
     beforeActions: options.beforeActions ?? selection.beforeActions,
     stepActions: options.stepActions ?? selection.actions,
+    userActions: options.userActions ?? selection.userActions,
   });
   if (selection.operation === "advance") {
     if (!facts.completion.completed) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "completion_unconfirmed"));
     return selectedDecision(new NonGateAdvanceDisposition(NON_GATE_TRANSITION_TOKEN), { status: "done" });
   }
   if (selection.operation === "keep-in-progress") return selectedDecision(new NonGateKeepInProgressDisposition(NON_GATE_TRANSITION_TOKEN));
-  if (selection.operation === "await-user-input") return selectedDecision(new NonGateAwaitUserInputDisposition(NON_GATE_TRANSITION_TOKEN));
+  if (selection.operation === "await-user-input") return selectedDecision(new NonGateAwaitUserInputDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason));
   if (selection.operation === "retry") {
     if (facts.retry.exhausted) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "retry_exhausted"), {
       stepActions: selection.exhaustedActions,
@@ -1738,18 +1855,6 @@ export function resolveReviewDeferralLifecycle({ scope, stepId, disposition } = 
   return actions;
 }
 
-/** Compatibility projection for review command envelopes; it is not routing authority. */
-export function resolveReviewResultNextStep({ phase, verdict, retryPhase = null, next = null, failNext = null } = {}) {
-  if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) {
-    throw new Error(`unknown review verdict: ${verdict}`);
-  }
-  if (phase !== "draft") {
-    return verdict === "PASS" || verdict === "ADVISORY" ? next : failNext;
-  }
-  const route = draftReviewRouteForRetryPhase(retryPhase || "draft-questions");
-  if (!route) throw new Error(`unknown draft review retry phase: ${retryPhase}`);
-  return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
-}
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || result?.data?.status || ""));
 }
@@ -2650,11 +2755,10 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
-        // Final-regression retry/repair meaning belongs to the typed
-        // FINAL_REGRESSION_STEP_DEFINITION above.  The generic failure policy
-        // is deliberately inert and remains only as a compatibility
-        // descriptor for CurrentFlowState.nextAction().
-        failurePolicy: "block",
+        // CurrentFlowState has no cataloged artifact facts.  It exposes a
+        // route-neutral cursor only; FINAL_REGRESSION_STEP_DEFINITION owns
+        // every failed route once the canonical facts boundary is available.
+        failurePolicy: "step-definition",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("final-regression"),
         failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),

@@ -121,8 +121,6 @@ function canonicalReportResults(store) {
       fixAttempts: artifact.fixAttempts ?? null,
       selectedAction: artifact.selectedAction || null,
       remainingRisk: artifact.remainingRisk || null,
-      retryable: artifact.retryable,
-      nextAction: artifact.nextAction,
       recordAndProceed: artifact.recordAndProceed || null,
       humanSummary: artifact.humanSummary || null,
     };

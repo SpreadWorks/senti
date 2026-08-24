@@ -86,6 +86,7 @@ export function readFinalRegressionTransitionFacts({
         retry,
         changedFileSnapshot: { digest: recordedSnapshotDigest, current: currentSnapshotDigest === recordedSnapshotDigest },
         nonblocking: snapshot.state.policy?.nonblocking?.enabled === true,
+        failureRecorded: snapshot.state.attempt.failure !== null,
       });
       return new NonGateTransitionFacts({
         runId: snapshot.runId, specId: snapshot.specId, stepId: "final-regression", snapshotRevision: snapshot.revision,

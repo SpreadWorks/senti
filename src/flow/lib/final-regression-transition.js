@@ -6,6 +6,9 @@
 import crypto from "node:crypto";
 import { NonGateStepFacts } from "./non-gate-transition.js";
 
+/** Stable guarded user-action name; Definition binds it to canonical facts. */
+export const FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID = "ACCEPT_FINAL_REGRESSION_FAILURE";
+
 function text(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
   return value;
@@ -102,7 +105,7 @@ export class FinalRegressionNonblockingPolicy {
 }
 
 export class FinalRegressionStepFacts extends NonGateStepFacts {
-  constructor({ result, artifactDigest, failure = {}, retry = {}, changedFileSnapshot, recordAndProceed = {}, nonblocking = {} } = {}) {
+  constructor({ result, artifactDigest, failure = {}, retry = {}, changedFileSnapshot, recordAndProceed = {}, nonblocking = {}, failureRecorded = false } = {}) {
     if (!new Set(["pass", "skipped", "fail"]).has(result)) throw new Error("final-regression result is invalid");
     const digest = artifactDigest instanceof FinalRegressionArtifactDigest ? artifactDigest : new FinalRegressionArtifactDigest(artifactDigest);
     const profile = failure instanceof FinalRegressionFailureProfileFact ? failure : new FinalRegressionFailureProfileFact(failure);
@@ -110,7 +113,8 @@ export class FinalRegressionStepFacts extends NonGateStepFacts {
     const snapshot = changedFileSnapshot instanceof FinalRegressionChangedFileSnapshot ? changedFileSnapshot : new FinalRegressionChangedFileSnapshot(changedFileSnapshot);
     const evidence = recordAndProceed instanceof FinalRegressionProceedEvidence ? recordAndProceed : new FinalRegressionProceedEvidence(recordAndProceed);
     const policy = nonblocking instanceof FinalRegressionNonblockingPolicy ? nonblocking : new FinalRegressionNonblockingPolicy(nonblocking);
-    super({ kind: "final-regression", values: { result, artifactDigest: digest.toJSON(), failure: profile.toJSON(), retry: history.toJSON(), changedFileSnapshot: snapshot.toJSON(), recordAndProceed: evidence.toJSON(), nonblocking: policy.toJSON() } });
+    if (typeof failureRecorded !== "boolean") throw new Error("final-regression failureRecorded must be boolean");
+    super({ kind: "final-regression", values: { result, artifactDigest: digest.toJSON(), failure: profile.toJSON(), retry: history.toJSON(), changedFileSnapshot: snapshot.toJSON(), recordAndProceed: evidence.toJSON(), nonblocking: policy.toJSON(), failureRecorded } });
   }
   get result() { return this.value("result"); }
   get artifactDigest() { return new FinalRegressionArtifactDigest(this.value("artifactDigest")); }
@@ -119,7 +123,8 @@ export class FinalRegressionStepFacts extends NonGateStepFacts {
   get changedFileSnapshot() { return new FinalRegressionChangedFileSnapshot(this.value("changedFileSnapshot")); }
   get recordAndProceed() { return new FinalRegressionProceedEvidence(this.value("recordAndProceed")); }
   get nonblockingPolicy() { return new FinalRegressionNonblockingPolicy(this.value("nonblocking")); }
-  toJSON() { return { kind: this.kind, values: { result: this.result, artifactDigest: this.artifactDigest.toJSON(), failure: this.failure.toJSON(), retry: this.retryHistory.toJSON(), changedFileSnapshot: this.changedFileSnapshot.toJSON(), recordAndProceed: this.recordAndProceed.toJSON(), nonblocking: this.nonblockingPolicy.toJSON() } }; }
+  get failureRecorded() { return this.value("failureRecorded"); }
+  toJSON() { return { kind: this.kind, values: { result: this.result, artifactDigest: this.artifactDigest.toJSON(), failure: this.failure.toJSON(), retry: this.retryHistory.toJSON(), changedFileSnapshot: this.changedFileSnapshot.toJSON(), recordAndProceed: this.recordAndProceed.toJSON(), nonblocking: this.nonblockingPolicy.toJSON(), failureRecorded: this.failureRecorded } }; }
 
   static fromPersisted(value) {
     if (value?.kind !== "final-regression" || value.values === null || typeof value.values !== "object") {
@@ -133,11 +138,12 @@ export class FinalRegressionStepFacts extends NonGateStepFacts {
       changedFileSnapshot: value.values.changedFileSnapshot,
       recordAndProceed: value.values.recordAndProceed,
       nonblocking: value.values.nonblocking,
+      failureRecorded: value.values.failureRecorded,
     });
   }
 
   /** Builds facts from persisted artifact bytes plus canonical snapshot values. */
-  static fromCanonicalArtifact({ artifact, artifactDigest, retry, changedFileSnapshot, nonblocking = false } = {}) {
+  static fromCanonicalArtifact({ artifact, artifactDigest, retry, changedFileSnapshot, nonblocking = false, failureRecorded = false } = {}) {
     if (artifact === null || typeof artifact !== "object" || Array.isArray(artifact)) throw new Error("final-regression canonical artifact is required");
     return new FinalRegressionStepFacts({
       result: artifact.result,
@@ -147,6 +153,7 @@ export class FinalRegressionStepFacts extends NonGateStepFacts {
       changedFileSnapshot,
       recordAndProceed: FinalRegressionProceedEvidence.fromRecord(artifact.recordAndProceed),
       nonblocking: { enabled: nonblocking },
+      failureRecorded,
     });
   }
 }

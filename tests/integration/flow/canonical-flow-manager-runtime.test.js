@@ -95,6 +95,7 @@ import {
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 import { decisionContextForActiveFlow } from "../../../src/flow/lib/nonblocking.js";
 import { readCurrentTestChainTransitionFacts } from "../../../src/flow/lib/test-chain-transition-facts.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 const roots = [];
 
@@ -1287,7 +1288,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowManager: manager,
       flowState: manager.load(created.specId),
     });
-    assert.equal(result.next, "final-regression");
+    assert.equal(Object.hasOwn(result, "next"), false);
     const reviewHistory = JSON.parse(manager.readArtifact({
       specId: created.specId,
       logicalKey: "acceptance.review",
@@ -1335,7 +1336,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
     });
 
-    assert.equal(result.next, "parked");
+    assert.equal(Object.hasOwn(result, "next"), false);
     const state = manager.load(created.specId);
     assert.equal(state.lifecycle, "parked");
     assert.equal(state.currentNodeId, null);
@@ -2205,7 +2206,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
     assert.equal(result.result, "pass");
-    assert.equal(result.next, "report");
+    assert.equal(Object.hasOwn(result, "next"), false);
     await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
 
     const location = manager.specLocation(created.specId);
@@ -2852,7 +2853,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
   }
 
-  for (const [verdict, expectedNext] of [["PASS", "draft-refine"], ["ADVISORY", "draft-questions-triage"]]) {
+  for (const verdict of ["PASS", "ADVISORY"]) {
     it(`replays a sealed draft-questions ${verdict} result without rerunning the worker`, async () => {
       const repository = root();
       const executionRoot = path.join(repository, "execution");
@@ -2909,13 +2910,18 @@ describe("FlowManager canonical Version-1 runtime", () => {
       };
 
       const beforeCrash = await command.execute(ctx);
-      assert.equal(beforeCrash.next, expectedNext);
+      assert.equal(Object.hasOwn(beforeCrash, "next"), false);
       assert.equal(workerRuns, 1);
       const recovered = await command.execute({ ...ctx, flowState: manager.load(created.specId) });
       assert.equal(workerRuns, 1, "a sealed work unit must not invoke the Agent again");
       assert.equal(recovered.artifacts.verdict, verdict);
-      assert.equal(recovered.next, expectedNext);
+      assert.equal(Object.hasOwn(recovered, "next"), false);
       await FLOW_COMMANDS.run.review.post({ ...ctx, flowState: manager.load(created.specId) }, recovered);
+      assert.equal(
+        findStepById(manager.load(created.specId).steps, "draft-questions-review").status,
+        "done",
+        "the Definition lifecycle, not the producer result, completes the review evidence",
+      );
       assert.equal(fs.existsSync(outputDirectory), false, "publication confirmation cleans the sealed worker surface");
     });
   }

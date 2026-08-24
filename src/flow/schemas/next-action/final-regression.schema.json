@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["completed", "result_path", "raw_output_path", "result", "failureKind", "retryable", "nextAction"],
+  "required": ["completed", "result_path", "raw_output_path", "result", "failureKind"],
   "properties": {
     "completed": { "type": "boolean" },
     "result_path": { "type": "string" },
@@ -28,17 +28,6 @@
         "invalid_project_test",
         null
       ]
-    },
-    "retryable": { "type": "boolean" },
-    "nextAction": {
-      "type": "string",
-      "enum": [
-        "report",
-        "regression-repair",
-        "user-confirmation",
-        "test-repair",
-        "stop"
-      ]
     }
   },
   "allOf": [
@@ -49,9 +38,7 @@
       },
       "then": {
         "properties": {
-          "failureKind": { "const": null },
-          "retryable": { "const": false },
-          "nextAction": { "const": "report" }
+          "failureKind": { "const": null }
         }
       }
     },
@@ -63,9 +50,7 @@
       "then": {
         "required": ["skipKind"],
         "properties": {
-          "failureKind": { "const": null },
-          "retryable": { "const": false },
-          "nextAction": { "const": "report" }
+          "failureKind": { "const": null }
         }
       }
     },
@@ -88,15 +73,6 @@
               "permission_error",
               "child_process_eperm",
               "invalid_project_test"
-            ]
-          },
-          "nextAction": {
-            "enum": [
-              "report",
-              "regression-repair",
-              "user-confirmation",
-              "test-repair",
-              "stop"
             ]
           }
         }

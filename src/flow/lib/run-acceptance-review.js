@@ -418,13 +418,6 @@ async function executeCanonicalAcceptanceReview(ctx) {
     mechanicalBlockers: artifact.mechanicalBlockers,
     hardBlockers: artifact.hardBlockers,
     evidenceRefresh: null,
-    next: artifact.verdict === "pass"
-      ? "final-regression"
-      : artifact.verdict === "repair_required"
-        ? "impl-triage"
-        : artifact.verdict === "user_decision_required"
-          ? "acceptance-decision"
-          : null,
   };
   return new CanonicalAcceptanceReviewPromotion({
     state,

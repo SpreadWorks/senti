@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
 import {
   captureFinalRegressionChangedSnapshotDigest,
@@ -56,6 +57,13 @@ function resolveTransition(ctx, flowManager = ctx.flowManager) {
   });
 }
 
+async function executeAndApply(ctx) {
+  const result = await new RunFinalRegressionCommand().execute(ctx);
+  await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+  ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+  return result;
+}
+
 describe("final-regression terminal replay guard", () => {
   let root;
   let invocationFile;
@@ -74,15 +82,14 @@ describe("final-regression terminal replay guard", () => {
       "",
     ].join("\n"));
 
-    const first = await new RunFinalRegressionCommand().execute(ctx);
-    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const first = await executeAndApply(ctx);
     const decision = resolveTransition(ctx);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
     assert.equal(first.result, "fail");
-    assert.equal(first.artifacts.retryable, false);
+    assert.equal(Object.hasOwn(first.artifacts, "retryable"), false);
     assert.equal(second.result, "fail");
-    assert.equal(second.artifacts.retryable, false);
+    assert.equal(Object.hasOwn(second.artifacts, "retryable"), false);
     assert.equal(second.artifacts.replayed, true);
     assert.equal(decision.disposition.operation, "blocked");
 
@@ -119,7 +126,7 @@ describe("final-regression terminal replay guard", () => {
     ].join("\n");
     const ctx = setupCanonical(root, script);
 
-    const first = await new RunFinalRegressionCommand().execute(ctx);
+    const first = await executeAndApply(ctx);
     writeFile(root, SCRIPT_PATH, `# changed input\n${script}`);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const decision = resolveTransition(ctx);

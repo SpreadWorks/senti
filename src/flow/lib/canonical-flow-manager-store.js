@@ -988,6 +988,11 @@ export class CanonicalFlowManagerStore {
     const next = state.nextAction();
     if (next === null) return state;
     if (next.operation === "resume") return state;
+    if (next.operation === "resolve-step-definition") {
+      throw new CurrentFlowStateInvariantError(
+        "the active Step requires its canonical Definition-selected Action before it can be claimed",
+      );
+    }
     if (next.operation === "start") {
       const attempt = commandContextAttempt(state, next.nodeId);
       this.runtime.startAttempt({

@@ -50,6 +50,25 @@ class FinalRegressionTransitionPersistenceAdapter {
     return null;
   }
 
+  failCurrentAttempt(action) {
+    return this.flowManager.failCurrentAttempt({
+      specId: this.specId,
+      failure: {
+        category: action.category,
+        code: action.code,
+        message: action.message,
+        retryable: action.retryable,
+        retryKind: action.retryKind,
+      },
+      result: {
+        outcome: "failed",
+        summary: action.message,
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [],
+      },
+    });
+  }
+
   incrementRetry() {
     throw new Error("final-regression retry requires a Definition-selected retry episode");
   }

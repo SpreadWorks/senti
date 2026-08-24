@@ -128,8 +128,6 @@ function fixtureFinalRegressionResult(flowManager, specId) {
     changedFiles: [],
     changedFileFingerprints: [],
     changedFileSnapshotDigest: "0".repeat(64),
-    retryable: false,
-    nextAction: "report",
     proof: {
       kind: "skipped_by_project_policy",
       commandDiscovery: {

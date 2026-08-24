@@ -510,7 +510,6 @@ export class CanonicalAcceptanceDecision {
       verdict: acceptance.verdict,
       choice: this.choice,
       userDecision,
-      next: this.choice === "accept_risk_and_continue" ? "final-regression" : "parked",
     };
     attachCanonicalCommandResultArtifact(result, new CanonicalCommandResultArtifact({
       logicalKey: "acceptance.decision",

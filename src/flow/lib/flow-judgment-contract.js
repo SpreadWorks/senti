@@ -52,11 +52,6 @@ function normalizeFindings(findings) {
   return Object.freeze(findings.map((finding) => Object.freeze({ ...(finding || {}) })));
 }
 
-function normalizeNextAction(value) {
-  if (value === undefined) throw new Error("nextAction is required");
-  return value;
-}
-
 export class FlowJudgmentContract {
   constructor(input = {}) {
     requireOwn(input, "targetStep");
@@ -64,7 +59,6 @@ export class FlowJudgmentContract {
     requireOwn(input, "verdict");
     requireOwn(input, "blockingFindings");
     requireOwn(input, "failureKind");
-    requireOwn(input, "nextAction");
     requireOwn(input, "rawArtifactPath");
     requireOwn(input, "inputFingerprint");
     requireOwn(input, "artifactFingerprint");
@@ -77,7 +71,6 @@ export class FlowJudgmentContract {
       throw new Error("failureKind must be a string or null");
     }
     this.failureKind = input.failureKind;
-    this.nextAction = normalizeNextAction(input.nextAction);
     this.rawArtifactPath = input.rawArtifactPath === null
       ? null
       : requireNonEmptyString(input.rawArtifactPath, "rawArtifactPath");
@@ -99,7 +92,6 @@ export class FlowJudgmentContract {
       result: this.verdict,
       blockingCount: this.blockingCount,
       failureKind: this.failureKind,
-      nextAction: this.nextAction,
       completionKind: policy?.allowsNormal(this) ? "normal" : "non_normal",
       progressSignature: progressSignature(this),
     });
@@ -112,7 +104,6 @@ export class FlowJudgmentContract {
       verdict: this.verdict,
       blockingFindings: this.blockingFindings,
       failureKind: this.failureKind,
-      nextAction: this.nextAction,
       rawArtifactPath: this.rawArtifactPath,
       inputFingerprint: this.inputFingerprint,
       artifactFingerprint: this.artifactFingerprint,
@@ -132,7 +123,6 @@ export class JudgmentContractSummary {
       throw new Error("blockingCount must be a non-negative integer");
     }
     this.failureKind = input.failureKind;
-    this.nextAction = normalizeNextAction(input.nextAction);
     this.completionKind = requireNonEmptyString(input.completionKind, "completionKind");
     this.progressSignature = requireNonEmptyString(input.progressSignature, "progressSignature");
     Object.freeze(this);
@@ -146,7 +136,6 @@ export class JudgmentContractSummary {
       result: this.result,
       blockingCount: this.blockingCount,
       failureKind: this.failureKind,
-      nextAction: this.nextAction,
       completionKind: this.completionKind,
       progressSignature: this.progressSignature,
     };
@@ -154,7 +143,7 @@ export class JudgmentContractSummary {
 }
 
 export class StepCompletionPolicy {
-  constructor({ stepId, allowedVerdicts, requireNoBlocking = true, failureKind = undefined, nextAction = undefined }) {
+  constructor({ stepId, allowedVerdicts, requireNoBlocking = true, failureKind = undefined }) {
     this.stepId = requireNonEmptyString(stepId, "stepId");
     if (!Array.isArray(allowedVerdicts) || allowedVerdicts.length === 0) {
       throw new Error("allowedVerdicts must be a non-empty array");
@@ -162,7 +151,6 @@ export class StepCompletionPolicy {
     this.allowedVerdicts = Object.freeze(allowedVerdicts.map((value) => requireNonEmptyString(value, "allowedVerdicts[]")));
     this.requireNoBlocking = Boolean(requireNoBlocking);
     this.requiredFailureKind = failureKind;
-    this.requiredNextAction = nextAction;
     Object.freeze(this);
   }
 
@@ -171,17 +159,15 @@ export class StepCompletionPolicy {
     if (contract.targetStep !== this.stepId) return false;
     if (this.stepId === "final-regression") {
       if (contract.verdict === "pass" || contract.verdict === "skipped") {
-        return contract.failureKind === null && contract.nextAction === "report";
+        return contract.failureKind === null;
       }
       return contract.verdict === "fail"
         && contract.blockingCount === 0
-        && typeof contract.failureKind === "string"
-        && contract.nextAction === "report";
+        && typeof contract.failureKind === "string";
     }
     if (!this.allowedVerdicts.includes(contract.verdict)) return false;
     if (this.requireNoBlocking && contract.blockingCount !== 0) return false;
     if (this.requiredFailureKind !== undefined && contract.failureKind !== this.requiredFailureKind) return false;
-    if (this.requiredNextAction !== undefined && contract.nextAction !== this.requiredNextAction) return false;
     return true;
   }
 
@@ -200,14 +186,12 @@ export class StepCompletionPolicy {
         allowedVerdicts: ["pass"],
         requireNoBlocking: true,
         failureKind: null,
-        nextAction: "final-regression",
       })],
       ["final-regression", new StepCompletionPolicy({
         stepId: "final-regression",
         allowedVerdicts: ["pass", "skipped"],
         requireNoBlocking: false,
         failureKind: null,
-        nextAction: "report",
       })],
     ]);
   }
@@ -331,7 +315,6 @@ export function progressSignature(contract) {
     verdict: contract.verdict,
     blockingCount: contract.blockingCount,
     failureKind: contract.failureKind,
-    nextAction: contract.nextAction,
     inputFingerprint: contract.inputFingerprint,
     artifactFingerprint: contract.artifactFingerprint,
   });
@@ -357,7 +340,6 @@ export function contractFromTestReviewArtifact(artifact, opts = {}) {
     verdict: artifact.verdict,
     blockingFindings: artifact.blockingFindings || [],
     failureKind: null,
-    nextAction: artifact.verdict === "PASS" || artifact.verdict === "ADVISORY" ? "implement" : null,
   });
 }
 
@@ -381,7 +363,6 @@ export function contractFromImplReviewArtifact(artifact, opts = {}) {
     verdict: artifact.verdict,
     blockingFindings: artifact.blockingFindings,
     failureKind: null,
-    nextAction: artifact.verdict === "PASS" || artifact.verdict === "ADVISORY" ? "impl-gate" : null,
   });
 }
 
@@ -394,7 +375,6 @@ export function contractFromTestResultReviewArtifact(artifact, opts = {}) {
     verdict: artifact.verdict,
     blockingFindings: failed,
     failureKind: artifact.verdict === "pass" ? null : "invalid_test_result",
-    nextAction: artifact.verdict === "pass" ? "impl-review" : null,
     rawArtifactPath: opts.rawArtifactPath || artifact.raw_output_path,
   });
 }
@@ -403,17 +383,15 @@ export function contractFromFinalRegressionArtifact(artifact, opts = {}) {
   const failedRecorded = artifact.result === "fail"
     && artifact.completed === true
     && artifact.selectedAction === "explicit-record-and-proceed"
-    && artifact.recordAndProceed?.validated === true
-    && artifact.nextAction === "report";
+    && artifact.recordAndProceed?.validated === true;
   const blockingFindings = artifact.result === "pass" || artifact.result === "skipped" || failedRecorded
     ? []
-    : [{ failureKind: artifact.failureKind, nextAction: artifact.nextAction }];
+    : [{ failureKind: artifact.failureKind }];
   return new FlowJudgmentContract({
     ...contractInput("final-regression", artifact, opts),
     verdict: artifact.result,
     blockingFindings,
     failureKind: artifact.failureKind,
-    nextAction: artifact.nextAction,
     rawArtifactPath: opts.rawArtifactPath || artifact.rawOutputPath,
   });
 }
@@ -426,7 +404,6 @@ export function contractFromAcceptanceReviewArtifact(artifact, opts = {}) {
     verdict: artifact.verdict,
     blockingFindings: [...mechanical, ...hard],
     failureKind: artifact.verdict === "pass" ? null : "acceptance_review_not_pass",
-    nextAction: artifact.verdict === "pass" ? "final-regression" : null,
     rawArtifactPath: opts.rawArtifactPath || opts.artifactPath || TARGET_ARTIFACT_FILE_BY_STEP["acceptance-review"],
   });
 }
@@ -443,7 +420,6 @@ export function contractFromGateArtifact(artifact, opts = {}) {
     verdict: artifact.verdict || artifact.result,
     blockingFindings: [...issues.map((issue) => ({ issue })), ...failedEvaluations],
     failureKind: artifact.verdict === "pass" || artifact.result === "pass" ? null : "gate_failure",
-    nextAction: artifact.nextAction ?? null,
     rawArtifactPath: opts.rawArtifactPath || opts.artifactPath || TARGET_ARTIFACT_FILE_BY_STEP[targetStep],
   });
 }

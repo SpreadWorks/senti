@@ -1557,7 +1557,6 @@ async function runImplReviewWithPersistence({
       repairFingerprint: fingerprint.hash,
       ...(taskSpec ? { taskId: taskSpec.task.id, target: taskSpec.relPath } : {}),
     },
-    next: artifact.verdict === "REJECTED" ? null : (taskSpec ? "task-gate" : "impl-gate"),
     output: "",
   };
 }
@@ -2095,7 +2094,6 @@ async function runReviewWithDependencies(options) {
         failureKind: result.failureKind,
         toolingOutcome: result.toolingOutcome.toJSON(),
       },
-      next: null,
       output: result.toolingOutcome.reason,
     };
   }

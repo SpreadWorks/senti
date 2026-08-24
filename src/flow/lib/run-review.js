@@ -13,7 +13,6 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import {
   flowLeafIdsBetween,
-  resolveReviewResultNextStep,
 } from "../definition.js";
 import { flattenSteps } from "./step-tree.js";
 import path from "path";
@@ -30,7 +29,6 @@ import {
   resolveImplReviewScope,
   taskScopeViolationMessages,
 } from "./task-scope.js";
-import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
 import { normalizeDraftReviewArtifactDocument } from "./draft-review-artifacts.js";
 import {
   ReviewToolingOutcome,
@@ -117,9 +115,9 @@ function reviewPhaseKeyForCtx(ctx, phase) {
 export { REVIEW_PHASE_KEYS };
 
 const PHASE_REVIEW_PARSERS = {
-  test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
-  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "spec-gate", failNext: "spec-triage", commandId: "flow.spec.review.propose" },
-  draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "draft-gate", commandId: "flow.draft.review" },
+  test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review", commandId: "flow.test.review" },
+  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review", commandId: "flow.spec.review.propose" },
+  draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", commandId: "flow.draft.review" },
 };
 
 function parseToolingOutcome(stderr) {
@@ -137,7 +135,7 @@ function parseToolingOutcome(stderr) {
   });
 }
 
-function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next, failNext = null }) {
+function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label }) {
   const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
   const toolingOutcome = parseToolingOutcome(stderr);
   const countMatch = stderr.match(countPattern);
@@ -160,7 +158,6 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
       result: "tooling-error",
       changed,
       artifacts,
-      next: null,
       output: stdout,
     };
   }
@@ -176,10 +173,6 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
     );
   }
 
-  // `next` remains an envelope compatibility projection.  Lifecycle and
-  // canonical next-action routing resolve their transition from definition
-  // facts, never from this subprocess-facing field.
-  const resolvedNext = resolveReviewResultNextStep({ phase, verdict, retryPhase, next, failNext });
   const artifacts = { phase, verdict, [countKey]: count ?? 0 };
   if (retryPhase) artifacts.retryPhase = retryPhase;
 
@@ -187,7 +180,6 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
     result: "ok",
     changed,
     artifacts,
-    next: resolvedNext,
     output: stdout,
   };
 }
@@ -231,7 +223,6 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
         blockingCount: 0,
         nonBlockingCount: 0,
       },
-      next: null,
       output: stdout,
     };
   }
@@ -269,7 +260,6 @@ function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
     result: "ok",
     changed,
     artifacts,
-    next: resolveReviewResultNextStep({ phase: "impl", verdict, next: "impl-gate", failNext: null }),
     output: stdout,
   };
 }
