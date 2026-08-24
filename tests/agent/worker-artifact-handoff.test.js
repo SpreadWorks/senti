@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import GetNextActionCommand from "../../src/flow/lib/get-next-action.js";
+import RunClaimNextActionCommand from "../../src/flow/lib/run-claim-next-action.js";
 import RunDispatchCommand from "../../src/flow/lib/run-dispatch.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 import { WorkerArtifactHandoffCoordinator } from "../../src/flow/lib/worker-artifact-handoff.js";
@@ -310,9 +311,22 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       });
       assert.equal(downstream.step, "draft-refine");
       assert.equal(downstream.context.workerArtifactHandoff.required, true);
+      assert.equal(downstream.directive.actionId, "CLAIM_NEXT_ACTION");
+      const claim = await new RunClaimNextActionCommand().execute({
+        root: executionRoot,
+        executionRoot,
+        mainRoot,
+        specId,
+        flowManager,
+        flowState: completed,
+      });
+      assert.equal(claim.ok, true, JSON.stringify(claim));
+      const claimed = flowManager.load();
+      assert.equal(claimed.currentNodeId, "draft-refine");
+      assert.equal(flowManager.canonicalState(specId).attempt.failure, null);
       const downstreamRequest = new WorkerArtifactHandoffCoordinator().createRequest({
         ctx: { root: executionRoot, executionRoot, mainRoot, specId, flowManager },
-        state: completed,
+        state: claimed,
         invocation: {
           id: "downstream-draft-refine",
           target: { digest: "e".repeat(64) },
