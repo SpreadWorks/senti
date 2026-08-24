@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-08-24T02:38:16.693Z",
+  "analyzedAt": "2026-08-24T04:04:17.744Z",
   "package": {
     "entries": [
       {
@@ -3192,11 +3192,24 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "fe29a3d2286deb4677b0263fbb2b87b6",
-        "lines": 1916,
-        "mtime": "2026-08-23T19:52:32.064Z",
+        "hash": "8c7feaa05d02714689dc51b4913b7c38",
+        "lines": 2136,
+        "mtime": "2026-08-24T04:03:26.730Z",
         "className": "definition",
         "methods": [
+          "GateTransitionDisposition",
+          "GatePassDisposition",
+          "GateRetryDisposition",
+          "GateRepairDisposition",
+          "GateDeferDisposition",
+          "GateExternalBlockedDisposition",
+          "GateBlockedDisposition",
+          "GateRecoveryDisposition",
+          "GateAdvanceDisposition",
+          "GateStepUpdate",
+          "GateStepUpdatePlan",
+          "GateTransitionDecision",
+          "resolveGateTransition",
           "SetStepStatus",
           "DefinitionLifecyclePlan",
           "KeepInProgress",
@@ -3255,6 +3268,8 @@
           "createMaxAttempts",
           "requireString",
           "requireStepList",
+          "gateActivePlan",
+          "gateSettledPlan",
           "isFinalizeSuccess",
           "gateStepIdForPhase",
           "draftReviewRouteForInput",
@@ -3288,9 +3303,23 @@
           "./lib/definition-failure-ownership.js",
           "./lib/review-transition-facts.js",
           "./lib/draft-transition-facts.js",
-          "./lib/review-route.js"
+          "./lib/review-route.js",
+          "./lib/gate-transition.js"
         ],
         "exports": [
+          "GateTransitionDisposition",
+          "GatePassDisposition",
+          "GateRetryDisposition",
+          "GateRepairDisposition",
+          "GateDeferDisposition",
+          "GateExternalBlockedDisposition",
+          "GateBlockedDisposition",
+          "GateRecoveryDisposition",
+          "GateAdvanceDisposition",
+          "GateStepUpdate",
+          "GateStepUpdatePlan",
+          "GateTransitionDecision",
+          "resolveGateTransition",
           "SetStepStatus",
           "DefinitionLifecyclePlan",
           "KeepInProgress",
@@ -3344,31 +3373,40 @@
           "buildInitialTaskSteps",
           "derivePrereqs",
           "findBranchForLeaf",
+          "GateAttemptIdentity",
+          "GateCatalogPublication",
+          "GateFailureCategory",
+          "GateLineage",
+          "GateRecoveryEvidence",
+          "GateRetryMetrics",
+          "GateProducerOwnership",
+          "GateTargetBinding",
+          "GateTransitionFacts",
           "FlowNode",
           "DEFINITION_FAILURE_OWNERS"
         ],
-        "extends": null,
+        "extends": "GateTransitionDisposition",
         "usedBy": [
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Defines the flow and task graphs, including node metadata, review routes, lifecycle ownership, retry limits, and execution commands. Provides utilities for resolving transitions, lifecycle actions, prerequisites, active steps, definition order, and initial runtime state.",
-        "detail": "The module validates flow-node configuration such as statuses, step identifiers, attempt limits, failure ownership, execution commands, and approval behavior. It models review and draft transitions with phase-specific retry, blocking, deferral, reset, and routing logic, then translates those decisions into typed lifecycle actions. Immutable definitions for flow and task nodes are traversed to derive leaf IDs, phase maps, prerequisites, branches, gate mappings, and current definitions. Runtime helpers locate active or latest in-progress leaves, resolve dispatcher actions and side effects, and construct initial nested step state.",
+        "summary": "Defines the flow and task state machines, lifecycle actions, transition resolvers, and step metadata used to coordinate execution.",
+        "detail": "The module validates configuration values, max-attempt policies, step identifiers, and typed gate dispositions through private construction tokens. It resolves gate, draft, review, finalize, report, and acceptance transitions into immutable lifecycle plans and typed step updates. FlowNode instances encode hierarchy, execution ownership, failure policies, retry limits, side effects, and routing metadata for both flow and task definitions. Helper functions derive leaf ordering, phase maps, prerequisites, active steps, nested initial state, and next actions while enforcing maximum depth and scan limits.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-08-24T00:21:37.104Z",
+          "processedAt": "2026-08-24T04:04:44.521Z",
           "attempts": 1
         },
         "keywords": [
           "flow definition",
-          "task graph",
-          "lifecycle actions",
-          "review transitions",
-          "retry limits",
+          "task state machine",
+          "lifecycle resolver",
+          "gate transition",
+          "retry policy",
+          "step metadata",
           "prerequisites",
-          "active step resolution",
-          "failure ownership"
+          "execution routing"
         ]
       },
       {
@@ -4228,7 +4266,8 @@
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/run-test-result-review.js",
           "src/flow/registry.js",
-          "src/flow/lib/review-transition-facts.js"
+          "src/flow/lib/review-transition-facts.js",
+          "src/flow/lib/gate-transition-facts.js"
         ],
         "id": "ee25f72a",
         "summary": "Defines immutable canonical command-result artifacts, publications, and attempt histories. It provides attachment helpers for passing structured artifacts and publications through command results and validates persisted attempt sequences.",
@@ -4446,9 +4485,9 @@
       },
       {
         "file": "src/flow/lib/canonical-gate-artifacts.js",
-        "hash": "5e495c9261cf774a7e3234f8344af84a",
-        "lines": 211,
-        "mtime": "2026-08-18T15:08:32.809Z",
+        "hash": "d8a26ffbc8a1ec6a49891a3198af4204",
+        "lines": 241,
+        "mtime": "2026-08-24T04:03:26.730Z",
         "className": "canonical-gate-artifacts",
         "methods": [
           "CanonicalGateInputStore",
@@ -4461,9 +4500,12 @@
           "taskId",
           "gateNodeId",
           "gateLogicalKeys",
-          "sourcePayload"
+          "sourcePayload",
+          "gateRevision"
         ],
         "imports": [
+          "node:crypto",
+          "./gate-transition.js",
           "./canonical-command-result.js",
           "../../spec/commands/render.js"
         ],
@@ -4474,27 +4516,28 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/gate-transition-facts.js",
           "src/flow/lib/plan-gate-repair.js",
           "src/flow/lib/run-gate.js"
         ],
         "id": "a1402c7f",
-        "summary": "Defines the input reader and promotion value objects used to construct canonical implementation gate artifacts. It reads catalog-resolved JSON and task data, then derives phase-specific gate identities, source payloads, and promotion results.",
-        "detail": "The module restricts gate phases to draft, specification, task specification, task implementation, and integration stages. CanonicalGateInputStore reads JSON artifacts such as issue logs, specifications, file maps, and attempt histories through the manager's artifact API, preserving catalog authority and validating document shapes. It also loads task documents and rendered Markdown for gate inputs, while exposing current command-attempt payloads. CanonicalGatePromotion validates that a gate has an active Attempt before accepting its result, and helper functions generate stable gate node IDs and logical artifact keys.",
+        "summary": "Builds canonical, content-addressed artifacts and promotion inputs for gate processing across flow phases.",
+        "detail": "The module validates canonical Version-1 Flow state, supported gate phases, task identifiers, and structured JSON payloads before producing immutable artifact representations. It derives stable gate node identifiers, logical artifact keys, source payloads, and SHA-256 revisions from gate state and active producer attempts. CanonicalGateInputStore reads persisted artifacts through FlowManager catalog APIs and exposes normalized issue logs, task documents, command attempts, and gate histories. CanonicalGatePromotion verifies phase ownership and active Attempt requirements before publishing a canonical gate result.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:50.985Z",
+          "processedAt": "2026-08-24T04:04:44.521Z",
           "attempts": 1
         },
         "keywords": [
-          "gate artifacts",
-          "canonical gate",
-          "phase validation",
-          "artifact inputs",
-          "task rendering",
-          "attempt history",
-          "promotion",
-          "logical keys"
+          "canonical artifacts",
+          "gate input store",
+          "artifact lineage",
+          "SHA-256 revision",
+          "gate promotion",
+          "flow state",
+          "catalog API",
+          "task scope"
         ]
       },
       {
@@ -6742,6 +6785,154 @@
           "active gate",
           "Flow state",
           "step resolution"
+        ]
+      },
+      {
+        "file": "src/flow/lib/gate-transition-application.js",
+        "hash": "56940d8cba13db0041514b22fab6f176",
+        "lines": 77,
+        "mtime": "2026-08-24T04:03:26.730Z",
+        "className": "gate-transition-application",
+        "methods": [
+          "GateTransitionActionProjection",
+          "applyGateTransitionDecision",
+          "admitGateTransition",
+          "projectGateTransitionDecision"
+        ],
+        "imports": [
+          "../definition.js"
+        ],
+        "exports": [
+          "GateTransitionActionProjection",
+          "applyGateTransitionDecision",
+          "admitGateTransition",
+          "projectGateTransitionDecision"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "beea7942",
+        "summary": "Projects and applies validated gate transition decisions to persistence adapters while preventing stale or bypassed transitions.",
+        "detail": "GateTransitionActionProjection wraps a definition-generated decision behind a private token and exposes a serializable action projection. applyGateTransitionDecision validates the adapter, decision type, required persistence methods, and retry support before applying typed step updates and retry increments. admitGateTransition recomputes the current transition facts and compares serialized decisions to reject stale, altered, or directly bypassed decisions. The module therefore separates decision projection, persistence execution, and admission-time consistency checks.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-08-24T04:04:44.521Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate transition application",
+          "persistence adapter",
+          "decision projection",
+          "stale decision",
+          "admission control",
+          "step update",
+          "retry increment"
+        ]
+      },
+      {
+        "file": "src/flow/lib/gate-transition-facts.js",
+        "hash": "4a8d1d7942afb30d1ec92e1998facb7f",
+        "lines": 165,
+        "mtime": "2026-08-24T04:03:26.730Z",
+        "className": "gate-transition-facts",
+        "methods": [
+          "readCurrentGateTransitionFacts",
+          "required",
+          "gateKeys",
+          "scopeFor",
+          "resultFailure",
+          "currentGateActivity"
+        ],
+        "imports": [
+          "./gate-transition.js",
+          "./canonical-command-result.js",
+          "./canonical-gate-artifacts.js"
+        ],
+        "exports": [
+          "readCurrentGateTransitionFacts"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "16206052",
+        "summary": "Reconstructs canonical gate transition facts from persisted flow artifacts, catalog publications, and command attempt history.",
+        "detail": "The module derives gate artifact keys and ownership scope from the phase and optional task identifier, distinguishing task-scoped implementation gates from flow-scoped gates. It reads current gate activity and validates persisted identities, attempt sequencing, producer ownership, phase compatibility, and canonical node ownership. Canonical result and source artifacts are parsed and cross-checked for matching failure categories, lineage bindings, and projected state. Validated data is assembled into GateTransitionFacts for deterministic transition resolution.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-08-24T04:04:44.521Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate transition facts",
+          "artifact validation",
+          "producer ownership",
+          "attempt history",
+          "lineage binding",
+          "flow manager",
+          "canonical result",
+          "scope resolution"
+        ]
+      },
+      {
+        "file": "src/flow/lib/gate-transition.js",
+        "hash": "bbae188b97e1870221f192709ec7f738",
+        "lines": 320,
+        "mtime": "2026-08-24T04:03:26.730Z",
+        "className": "gate-transition",
+        "methods": [
+          "GateAttemptIdentity",
+          "GateCatalogPublication",
+          "GateFailureCategory",
+          "GateLineage",
+          "GateRecoveryEvidence",
+          "GateRetryMetrics",
+          "GateProducerOwnership",
+          "GateTargetBinding",
+          "GateTransitionFacts",
+          "requiredText",
+          "optionalText",
+          "nonNegativeInteger",
+          "positiveInteger",
+          "requireObject"
+        ],
+        "imports": [],
+        "exports": [
+          "GateAttemptIdentity",
+          "GateCatalogPublication",
+          "GateFailureCategory",
+          "GateLineage",
+          "GateRecoveryEvidence",
+          "GateRetryMetrics",
+          "GateProducerOwnership",
+          "GateTargetBinding",
+          "GateTransitionFacts"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/definition.js",
+          "src/flow/lib/canonical-gate-artifacts.js",
+          "src/flow/lib/gate-transition-facts.js"
+        ],
+        "id": "19b512ff",
+        "summary": "Provides the typed domain model for gate outcomes, failure categories, retries, recovery evidence, ownership, targets, and transition facts.",
+        "detail": "The module defines constrained value objects for supported gate phases, scopes, results, failure categories, and recovery kinds with strict text and integer validation. GateAttemptIdentity, GateCatalogPublication, GateLineage, and GateRecoveryEvidence bind persisted outcomes to producer attempts and fingerprints. GateRetryMetrics, GateProducerOwnership, and GateTargetBinding capture retry state, scope ownership, and transition targets as immutable structured data. GateTransitionFacts enforces cross-field invariants, including failed-result failure facts, recovered-result evidence, and semantic-failure requirements for repair or defer recovery.",
+        "chapter": "internal_design",
+        "role": "model",
+        "enrich": {
+          "processedAt": "2026-08-24T04:04:44.521Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate domain model",
+          "transition facts",
+          "failure category",
+          "recovery evidence",
+          "attempt identity",
+          "lineage",
+          "retry metrics",
+          "target binding"
         ]
       },
       {
@@ -10326,9 +10517,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "a4e9726d19d62ad6939bbe93c692dbcc",
-        "lines": 4602,
-        "mtime": "2026-08-15T13:08:50.047Z",
+        "hash": "a2dd903d284d7669ec6d32a5a481317c",
+        "lines": 4628,
+        "mtime": "2026-08-24T04:03:26.731Z",
         "className": "run-gate",
         "methods": [
           "parsePublicGateArguments",
@@ -10517,6 +10708,7 @@
           "./spec-test-coverage.js",
           "./canonical-gate-artifacts.js",
           "./canonical-test-artifacts.js",
+          "./gate-transition-facts.js",
           "../definition.js"
         ],
         "exports": [
@@ -10612,25 +10804,24 @@
           "src/flow/lib/gate-recovery-display.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the Flow gate orchestration layer for draft, specification, task implementation, and integration phases. It combines repository evidence, guardrail evaluation, retry handling, canonical state transitions, and structured failure recovery.",
-        "detail": "The module collects committed, uncommitted, and untracked Git changes, filters generated or lifecycle artifacts, and builds bounded evaluation prompts. It validates strict JSON responses from agents, supports guardrail and requirement evaluations, and records pass, fail, skip, retry, escalation, and semantic-deferral outcomes. Retry budgets, no-progress detection, repeated-failure checks, flip overrides, stale test evidence, and same-spec contract context provide durable consistency controls. Gate results are represented as envelopes and artifacts and can promote canonical Flow state through guarded lifecycle transitions.",
+        "summary": "Implements the flow gate runner for validating drafts, specifications, task implementations, and integration results through guarded AI evaluation and deterministic artifact checks.",
+        "detail": "The module builds bounded prompts and parses strict JSON responses for guardrail articles and implementation requirements, including schema validation, unknown-ID rejection, violation normalization, and pass/fail reporting. It gathers committed, uncommitted, and untracked Git changes, filters generated or lifecycle artifacts, and derives per-file and requirement-scoped evidence for gate evaluation. Retry handling tracks attempts, detects repeated failures or unchanged Git state, records recovery and escalation outcomes, and emits durable issue-log evidence. Gate results are represented as envelopes and artifacts, with canonical flow-state validation, lifecycle transitions, file-map reconciliation, semantic deferral inspection, and promotion support enforcing consistent state changes.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:51.169Z",
+          "processedAt": "2026-08-24T04:04:44.541Z",
           "attempts": 1
         },
         "keywords": [
           "flow gates",
           "guardrails",
-          "Git diff analysis",
           "AI evaluation",
-          "retry budget",
+          "Git diff analysis",
+          "retry handling",
+          "artifact validation",
           "canonical state",
-          "lifecycle transitions",
-          "requirement validation",
-          "failure recovery",
-          "structured artifacts"
+          "requirement evidence",
+          "JSON schema"
         ]
       },
       {
@@ -20209,10 +20400,10 @@
       }
     ],
     "summary": {
-      "total": 362,
-      "totalMethods": 3686
+      "total": 365,
+      "totalMethods": 3726
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-08-24T02:38:36.000Z"
+  "enrichedAt": "2026-08-24T04:04:44.541Z"
 }
