@@ -12,7 +12,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
 import { getStepInstructions } from "./get-step-instructions.js";
-import { deriveNextAction } from "../definition.js";
+import { deriveNextAction, resolveDraftTransition } from "../definition.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { PRODUCT } from "../../lib/product.js";
 import {
@@ -56,8 +56,11 @@ import {
   inspectCanonicalTestReviewRepair,
 } from "./test-review-repair.js";
 import { captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
-import { DraftLifecycle } from "./draft-lifecycle.js";
 import { resolveCurrentReviewTransition } from "./review-transition-persistence.js";
+import {
+  DraftTransitionFactsError,
+  readDraftTransitionFacts,
+} from "./draft-transition-facts.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -319,35 +322,12 @@ function acceptanceDecisionMessages({ root, config }) {
   ] });
 }
 
-function draftQuestionDirective({ ctx, state, target }) {
-  if (target.scope !== "flow" || target.stepId !== "draft-refine" || state.autoApprove === true) return null;
-  const source = ctx.flowManager.readArtifact({
-    specId: state.specId,
-    logicalKey: "draft",
-    consumerNodeId: "draft-refine",
-    optional: true,
+function draftQuestionDirective(disposition) {
+  if (disposition?.operation !== "await-user-answer") return null;
+  return new AwaitDraftQuestionDirective({
+    questionId: disposition.questionId,
+    question: disposition.question,
   });
-  if (source === null) return null;
-  let draft;
-  try {
-    draft = new DraftLifecycle(JSON.parse(source.bytes.toString("utf8")));
-  } catch (cause) {
-    throw new NextActionPlanError("DRAFT_QUESTION_SOURCE_INVALID", `canonical draft question source is invalid: ${cause.message}`);
-  }
-  const structureIssues = draft.validateQuestionStructure();
-  if (structureIssues.length > 0) {
-    throw new NextActionPlanError(
-      "DRAFT_SCHEMA_INVALID",
-      `canonical draft question schema is invalid: ${structureIssues.join("; ")}. Run the guarded reopen-draft command to regenerate the draft`,
-    );
-  }
-  const question = draft.nextUnresolvedQuestion();
-  return question === null
-    ? null
-    : new AwaitDraftQuestionDirective({
-        questionId: question.id,
-        question: question.question,
-      });
 }
 
 /**
@@ -440,7 +420,27 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
       "definition-selected test-review repair evidence is unavailable for the current Attempt",
     );
   }
-  const definitionDescriptor = descriptor.withReviewDisposition(reviewSelection.disposition);
+  let draftDisposition = null;
+  if (
+    target.scope === "flow"
+    && target.stepId === "draft-refine"
+    && ["start", "recover", "resume", "retry"].includes(descriptor.operation)
+  ) {
+    try {
+      const facts = readDraftTransitionFacts({ flowManager: ctx.flowManager, flowState: state });
+      draftDisposition = facts === null
+        ? null
+        : resolveDraftTransition({ stepId: target.stepId, flowState: state, facts });
+    } catch (error) {
+      if (error instanceof DraftTransitionFactsError) {
+        throw new NextActionPlanError(error.code, error.message);
+      }
+      throw error;
+    }
+  }
+  const definitionDescriptor = descriptor
+    .withReviewDisposition(reviewSelection.disposition)
+    .withDraftDisposition(draftDisposition);
   const derived = deriveNextAction({
     scope: target.scope,
     stepId: target.stepId,
@@ -475,7 +475,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     target,
     config: ctx.config,
   });
-  const draftDecisionDirective = draftQuestionDirective({ ctx, state, target });
+  const draftDecisionDirective = draftQuestionDirective(definitionDescriptor.draftDisposition);
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
   const missingRoute = missingProducerArtifactRoute
     ?? missingProducerArtifactRouteFor({ ctx, typedState });

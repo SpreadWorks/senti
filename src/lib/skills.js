@@ -9,6 +9,7 @@ import { resolveIncludes } from "./include.js";
 import { stripDataMarkers } from "../docs/lib/directive-parser.js";
 import { loadRules, expandSkillRulesDirectives } from "./skill-rules.js";
 import { PRODUCT } from "./product.js";
+import { SkillManifest } from "./skill-manifest.js";
 
 /** Canonical path to the bundled main skill source directory. */
 export const MAIN_SKILLS_DIR = path.join(PKG_DIR, "skills");
@@ -56,6 +57,28 @@ function resolveSkillFile(skillDir) {
   return null;
 }
 
+function loadSkillSources(skillsDir) {
+  const sources = [];
+  for (const name of listSkillDirNames(skillsDir)) {
+    const srcPath = resolveSkillFile(path.join(skillsDir, name));
+    if (!srcPath) continue;
+    const rawContent = fs.readFileSync(srcPath, "utf8");
+    const manifest = SkillManifest.parse(rawContent, { directoryName: name, sourcePath: srcPath });
+    sources.push({ name, srcPath, rawContent, manifest });
+  }
+  return sources;
+}
+
+/**
+ * Validate all deployable skill manifests in a source directory.
+ *
+ * @param {string} skillsDir
+ * @returns {SkillManifest[]}
+ */
+export function validateSkillsFromDir(skillsDir) {
+  return loadSkillSources(skillsDir).map(({ manifest }) => manifest);
+}
+
 /**
  * Remove a file if it is a symbolic link (no-op otherwise).
  */
@@ -81,17 +104,14 @@ function removeIfSymlink(filePath) {
  * @returns {{ name: string, status: "updated" | "unchanged", targets: string[] }[]}
  */
 export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false, force = false }) {
-  const skillDirs = listSkillDirNames(skillsDir);
-  if (skillDirs.length === 0) return [];
+  const skillSources = loadSkillSources(skillsDir);
+  if (skillSources.length === 0) return [];
 
   // Phase 1: pre-expand all skills in memory. Throws on any rule expansion error
   // (atomicity per R24/R30: no file is written if any expansion fails).
   const rules = loadRules();
   const planned = [];
-  for (const name of skillDirs) {
-    const srcPath = resolveSkillFile(path.join(skillsDir, name));
-    if (!srcPath) continue;
-    const rawContent = fs.readFileSync(srcPath, "utf8");
+  for (const { name, srcPath, rawContent } of skillSources) {
     const includedContent = resolveIncludes(rawContent, {
       baseDir: path.dirname(srcPath),
       pkgDir: PKG_DIR,

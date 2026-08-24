@@ -1607,7 +1607,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
     FLOW_WIDE_RECORD_ACTORS,
   )),
   contract("artifact.catalog", "artifact-catalog.json", "artifact-catalog", "repository-metadata", "system", own(["system", "prepare-spec"], ["system"], ["system", "prepare-spec"]), "permanent", "singleton", false),
-  contract("issue.snapshot", "issue.md", "issue-snapshot", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], ["system", "prepare-spec"], ["system", "draft", "draft-questions-review", "draft-gate", "spec"])),
+  contract("issue.snapshot", "issue.md", "issue-snapshot", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], ["system", "prepare-spec"], ["system", "draft", "draft-questions-review", "draft-coverage-review", "draft-gate", "spec"])),
   contract("draft", "steps/draft/result.json", "draft", "canonical-flow-artifacts", "system", own("draft", [
     "system", "draft", "draft-questions-repair", "draft-refine", "draft-coverage-repair",
   ], [

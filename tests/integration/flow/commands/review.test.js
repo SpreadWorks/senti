@@ -48,6 +48,7 @@ import {
 import FlowReviewCommand, {
   parseProposals,
   buildDraftReviewPrompt,
+  buildDraftReviewAuthorityText,
   buildSpecSummaryMarkdown,
   buildSpecReviewPrompt,
   buildSpecReviewRepairPrompt,
@@ -660,10 +661,10 @@ class DraftRepairTargetCheckpoint {
     this.blockingFindings = Object.freeze([]);
     this.advisoryFindings = Object.freeze([]);
     this.repairTargets = Object.freeze([Object.freeze({
-      title: "Empty initial QA list",
-      target: "qa[]",
-      rationale: "Initial QA list is empty before answer collection",
-      evidence: "qa[] is empty before any answer exists",
+      title: "Redundant requirement confirmation",
+      target: "q1",
+      rationale: "Answer q1 from the authoritative request instead of asking again",
+      evidence: "The request already states the public behavior asked by q1",
     })]);
     Object.freeze(this);
   }
@@ -734,10 +735,10 @@ function recordCanonicalDraftEvidence({
 
 describe("draft repair target canonical classification", () => {
   const repairTarget = Object.freeze({
-    title: "Empty initial QA list",
-    target: "qa[]",
-    rationale: "Initial QA list is empty before answer collection",
-    evidence: "qa[] is empty before any answer exists",
+    title: "Redundant requirement confirmation",
+    target: "q1",
+    rationale: "Answer q1 from the authoritative request instead of asking again",
+    evidence: "The request already states the public behavior asked by q1",
     classification: "repair_target",
   });
 
@@ -932,10 +933,10 @@ describe("draft repair target checkpoint replay", () => {
       assert.deepEqual(checkpoint.blockingFindings, []);
       assert.deepEqual(checkpoint.advisoryFindings, []);
       assert.deepEqual(checkpoint.repairTargets, [{
-        title: "Empty initial QA list",
-        target: "qa[]",
-        rationale: "Initial QA list is empty before answer collection",
-        evidence: "qa[] is empty before any answer exists",
+        title: "Redundant requirement confirmation",
+        target: "q1",
+        rationale: "Answer q1 from the authoritative request instead of asking again",
+        evidence: "The request already states the public behavior asked by q1",
       }]);
 
       const producedArtifact = buildDraftReviewArtifact({
@@ -984,12 +985,12 @@ describe("draft repair target checkpoint replay", () => {
         sourceArtifact: "draft-review-questions.json",
         attempt: 1,
         severity: "non-blocking",
-        title: "Empty initial QA list",
-        body: "Initial QA list is empty before answer collection",
+        title: "Redundant requirement confirmation",
+        body: "Answer q1 from the authoritative request instead of asking again",
         category: "repair_target",
-        target: "qa[]",
-        evidence: "qa[] is empty before any answer exists",
-        rationale: "Initial QA list is empty before answer collection",
+        target: "q1",
+        evidence: "The request already states the public behavior asked by q1",
+        rationale: "Answer q1 from the authoritative request instead of asking again",
       });
       assert.deepEqual(
         historyArtifact.findings[0].target,
@@ -2042,12 +2043,16 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     assert.doesNotMatch(prompt, /\*\*Answer:\*\*/);
     assertAllDoesNotMatch(prompt, leakedAnswerFieldPatterns);
     assertAllDoesNotMatch(prompt, coverageOnlyPatterns);
-    assert.match(prompt, /one-shot finite structural check/);
+    assert.match(prompt, /one-shot finite check of the persisted user-decision list/);
     assert.match(prompt, /This is not a question generation task/);
+    assert.match(prompt, /An empty qa\[\] is valid/);
+    assert.match(prompt, /redundant confirmation/);
     assert.match(prompt, /Do not identify missing first-pass questions/);
     assert.match(prompt, /Do not propose NEW QA entries/);
     assert.match(prompt, /total: 3/);
     assert.match(prompt, /answered: 1/);
+    assert.match(prompt, /## Decision Map/);
+    assert.match(prompt, /The CLI currently has a draft review stage/);
   });
 
   it("limits draft-coverage-review input to answered and dropped QA", () => {
@@ -2088,6 +2093,45 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     }, "request", [], { key: "coverage" });
 
     assert.match(prompt, /\*\*Considered:\*\* \(none\)/);
+  });
+});
+
+describe("draft review input authority", () => {
+  it("uses the immutable Issue snapshot body instead of only its number", () => {
+    const calls = [];
+    const flowManager = {
+      readArtifact(input) {
+        calls.push(input);
+        return { bytes: Buffer.from("The Issue already fixes the public response shape.\n", "utf8") };
+      },
+    };
+    const text = buildDraftReviewAuthorityText({
+      specId: "demo",
+      issue: 517,
+      request: "Short request",
+    }, {
+      artifactPhase: "draft-questions-review",
+    }, flowManager);
+
+    assert.equal(text, "Issue #517\nThe Issue already fixes the public response shape.");
+    assert.deepEqual(calls, [{
+      specId: "demo",
+      logicalKey: "issue.snapshot",
+      consumerNodeId: "draft-questions-review",
+    }]);
+  });
+
+  it("uses the canonical request when no Issue is linked", () => {
+    const text = buildDraftReviewAuthorityText({
+      specId: "demo",
+      issue: null,
+      request: "Direct request body",
+    }, {
+      artifactPhase: "draft-questions-review",
+    }, {
+      readArtifact() { throw new Error("must not read an Issue snapshot"); },
+    });
+    assert.equal(text, "Direct request body");
   });
 });
 

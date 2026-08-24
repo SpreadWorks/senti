@@ -32,7 +32,7 @@ Toggle autoApprove mode for the current Spec-Driven Development flow.
 
 2. Verify requirements exist.
    - Check the status response for `request` and `issue` fields.
-   - If BOTH `request` is null AND `issue` is null, display: "No request or issue is set. Set one with `sennel flow set request \"...\"` or `sennel flow set issue <number>` before enabling auto mode." and STOP.
+   - If BOTH `request` is null AND `issue` is null, display: "The active Flow is missing its immutable request and Issue identity. It cannot be repaired after creation; inspect the Flow state before continuing." and STOP.
 
 3. Enable autoApprove.
    - Run `sennel flow set auto on`.

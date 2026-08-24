@@ -68,6 +68,13 @@ describe("checkDraftJson — valid draft", () => {
     assert.deepEqual(issues, []);
   });
 
+  it("accepts an empty QA list when no user decision remains", () => {
+    const draft = buildValidDraft({ qa: [] });
+    draft.decisionMap.requiresUserJudgment = [];
+    const issues = checkDraftJson(draft);
+    assert.deepEqual(issues, []);
+  });
+
   for (const v of DEV_TYPE_ENUM) {
     it(`accepts devType "${v}"`, () => {
       const issues = checkDraftJson(buildValidDraft({ devType: v }));

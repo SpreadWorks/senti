@@ -61,7 +61,7 @@ export function draftDocumentWithPendingQuestions({
       knownFacts: [],
       decisionPoints: [],
       resolvedByProjectRules: [],
-      requiresUserJudgment: ["Choose the public behavior."],
+      requiresUserJudgment: questions.map(([id]) => id),
       deferredToSpec: [],
     },
     scopeVerification: { in: [], out: [] },

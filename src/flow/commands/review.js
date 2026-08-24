@@ -3909,12 +3909,12 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     : "(no QA entries)";
 
   return [
-    "You are a draft question sanity reviewer. Perform a one-shot finite structural check of the initial question list.",
-    "This is not a question generation task. The draft step owns the full initial question list.",
-    "Check only these finite defects:",
-    "- qa[] is empty before any answer exists",
-    "- A shown pending/approved question is empty, duplicated, not self-contained, or clearly asks for internal implementation details that project patterns should decide",
-    "- A shown pending/approved question appears to include an answer, rationale, evidence, or instruction instead of only the question text",
+    "You are a draft question boundary reviewer. Perform a one-shot finite check of the persisted user-decision list.",
+    "This is not a question generation task. An empty qa[] is valid when the supplied authorities resolve every requirement.",
+    "Check only these finite defects in shown pending/approved entries:",
+    "- The question is empty, duplicated, not self-contained, or asks for internal implementation details that project patterns should decide",
+    "- The authoritative Request / Issue, Decision Map, project rules, or supplied context already determines the answer, making the question a redundant confirmation",
+    "- The question includes an answer, rationale, evidence, or instruction instead of only the question text",
     "Do not identify missing first-pass questions.",
     "Do not propose NEW QA entries.",
     "Do not add questions for category coverage or because a category label is absent.",
@@ -3924,13 +3924,13 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     "### 1. <title>",
     "**QA:** q<N> (the qa.id)",
     "**Classification:** repair_target",
-    "**Issue:** <which finite structural defect is present>",
-    "**Suggestion:** <concrete correction to the existing QA entry>",
+    "**Issue:** <which finite user-boundary defect is present>",
+    "**Suggestion:** <answer or drop the existing QA entry using the cited existing evidence>",
     "",
     "If no issues are found, output: NO_PROPOSALS",
     "",
     "## Request / Issue",
-    "Use this only to understand whether a shown question is obviously off-topic. Do not derive missing questions from it.",
+    "Treat this as authoritative for deciding whether a shown question merely reconfirms an existing requirement. Do not derive missing questions from it.",
     requestText || "(no request text)",
     "",
     "## Draft QA Status Summary",
@@ -3938,6 +3938,9 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     "",
     "## Pending / Approved Draft QA Entries",
     qaText,
+    "",
+    "## Decision Map",
+    formatDraftDecisionMap(draftJson),
   ].join("\n");
 }
 
@@ -3999,6 +4002,16 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
     "These files are ordered by relevance to the spec.",
     contextText,
   ].join("\n");
+}
+
+function buildDraftReviewAuthorityText(flow, stage, flowManager) {
+  if (flow.issue == null) return flow.request || "";
+  const source = flowManager.readArtifact({
+    specId: flow.specId,
+    logicalKey: "issue.snapshot",
+    consumerNodeId: stage.artifactPhase,
+  });
+  return `Issue #${flow.issue}\n${source.bytes.toString("utf8").trim()}`;
 }
 
 function buildDraftReviewStage(key, overrides) {
@@ -4221,10 +4234,11 @@ async function runDraftReview(root, flow, config, dryRun) {
   const draftInspection = canonicalDraftSnapshot(source, flow, stage.retryPhase);
   const draftJson = draftInspection.document;
 
-  const requestText = [
-    flow.request || "",
-    flow.issue ? `Issue #${flow.issue}` : "",
-  ].filter(Boolean).join("\n");
+  const requestText = buildDraftReviewAuthorityText(
+    flow,
+    stage,
+    container.get("flowManager"),
+  );
 
   let analysisData = null;
   try {
@@ -4246,7 +4260,7 @@ async function runDraftReview(root, flow, config, dryRun) {
   }
   const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage);
   const fallbackSystemPrompt = stage.key === "questions"
-    ? "You are a draft question sanity reviewer. Check only finite structural defects; do not generate new questions."
+    ? "You are a draft question boundary reviewer. Remove redundant confirmations using supplied authority; do not generate new questions."
     : "You are a draft coverage gate reviewer. Report at most 3 blocking user decisions; do not generate follow-up loops.";
   const raw = await callReviewAgent(
     agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
@@ -4543,6 +4557,7 @@ export {
   runImplReview,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt,
+  buildDraftReviewAuthorityText,
   buildDraftReviewArtifact,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,

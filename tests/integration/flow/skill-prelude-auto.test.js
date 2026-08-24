@@ -8,6 +8,14 @@ const CORE_PRINCIPLE_PATH = path.join(
   process.cwd(),
   "src/skills/partials/core-principle.md",
 );
+const ISSUE_LOG_PATH = path.join(
+  process.cwd(),
+  "src/skills/partials/issue-log-recording.md",
+);
+const FLOW_AUTO_SKILL_PATH = path.join(
+  process.cwd(),
+  "src/skills/sennel.flow-auto/SKILL.md",
+);
 
 function readSkill() {
   return fs.readFileSync(SKILL_PATH, "utf8");
@@ -15,6 +23,10 @@ function readSkill() {
 
 function readCorePrinciple() {
   return fs.readFileSync(CORE_PRINCIPLE_PATH, "utf8");
+}
+
+function readIssueLogGuidance() {
+  return fs.readFileSync(ISSUE_LOG_PATH, "utf8");
 }
 
 describe("sennel.flow skill prelude auto flow", () => {
@@ -41,6 +53,30 @@ describe("sennel.flow skill prelude auto flow", () => {
     assert.match(text, /flow set request "<Goal\/Scope\/description text>" --run-id <runId>/);
     assert.match(text, /Retry this preflight refinement at most 2 times/);
     assert.match(text, /If still ineligible, continue with the normal B\.1/);
+  });
+
+  it("keeps every request mutation inside the preparing lifecycle", () => {
+    const text = readSkill();
+    const autoText = fs.readFileSync(FLOW_AUTO_SKILL_PATH, "utf8");
+    const requestLines = text.split("\n").filter((line) => line.includes('sennel flow set request "'));
+
+    assert.ok(requestLines.length > 0);
+    for (const line of requestLines) assert.match(line, /--run-id <runId>/);
+    assert.doesNotMatch(text, /After flow\.json is created.*flow set request/);
+    assert.match(text, /Once prepare creates the canonical Flow Version,\s+its request is immutable/s);
+    assert.match(text, /Do not run `sennel flow set request` after successful prepare/);
+    assert.doesNotMatch(autoText, /sennel flow set request/);
+    assert.match(autoText, /cannot be repaired after creation/);
+  });
+
+  it("does not reassign pre-Attempt procedure failures to a later issue log", () => {
+    const guidance = readIssueLogGuidance();
+
+    assert.match(guidance, /verify that an active Attempt exists/);
+    assert.match(guidance, /current active Step/);
+    assert.match(guidance, /Never wait for\s+a later Attempt/s);
+    assert.match(guidance, /runtime log only/);
+    assert.match(guidance, /redundant or phase-invalid operation/);
   });
 
   it("prepares from the accepted preflight auto defaults when B.1 is skipped", () => {

@@ -24,7 +24,6 @@ All flow step IDs are defined in the CLI schema. The dispatcher obtains the curr
 ## Context Recording (Compaction Resilience)
 
 <!-- include("@skills/partials/context-recording.md") -->
-- After flow.json is created (prelude step), record the request: `sennel flow set request "<user's original request>"`
 
 ## Metric Recording (Read Tool)
 
@@ -88,6 +87,11 @@ B.0. **Initialize flow state**
    - Run `sennel flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` as the opaque `targetRunId`
      for use in B.4. Reuse it verbatim rather than copying the UUID again.
+   - The request is mutable only in this preparing lifecycle. Every later
+     `sennel flow set request` must include `--run-id <runId>` and must finish
+     before `flow prepare`. Once prepare creates the canonical Flow Version,
+     its request is immutable; do not repeat the write even when the text is
+     identical.
 
 B.0.5. **Preflight summary and auto-mode eligibility check** (spec 208, phase-aware input per spec 220, ba40)
    - If an Issue is linked, ensure its body is reflected into `--request` at `flow set init` (fetch with `sennel flow get issue <n>` if needed). The CLI derives the input statically from the preparing flow state (`issue + request`) — `--input` is no longer accepted.
@@ -138,6 +142,9 @@ B.4. **Prepare spec (silent)**
      - If an Issue number was captured and the prepared spec is known from the prepare response: `sennel flow get status <runId> --expect-run-id <runId> --expect-issue <n> --expect-spec <spec>`.
      - If an Issue number was captured but the prepared spec is not known: `sennel flow get status <runId> --expect-run-id <runId> --expect-issue <n>`.
      - If no Issue number was captured but the prepared spec is known from the prepare response: `sennel flow get status <runId> --expect-run-id <runId> --expect-spec <spec>`.
+   - Do not run `sennel flow set request` after successful prepare. The
+     preparing request has already been promoted into `flow.json`; verification
+     is read-only and must not try to re-record it.
    - If verification returns `ACTIVE_FLOW_MISMATCH`, classify it as terminal
      unless a fresh CLI response selects the intended Flow. For any other
      `ok: false` or mismatching `data.runId` /
@@ -380,7 +387,7 @@ sennel flow set init [--issue N] [--request "..."]
 sennel flow set step <id> <status>
 sennel flow set summary '<JSON array>'
 sennel flow set req <reqId|zeroBasedIndex> <status>
-sennel flow set request "<text>"
+sennel flow set request "<text>" --run-id <runId>  # preparing lifecycle only
 sennel flow set note "<text>"
 sennel flow set issue <number>
 sennel flow set metric <phase> <counter>

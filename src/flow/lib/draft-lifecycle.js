@@ -355,6 +355,10 @@ export class DraftLifecycle {
     }
     const draft = structuredClone(this.raw);
     draft.qa[next.index] = next.resolve({ answer, why, considered, droppedReason });
+    if (Array.isArray(draft.decisionMap?.requiresUserJudgment)) {
+      draft.decisionMap.requiresUserJudgment = draft.decisionMap.requiresUserJudgment
+        .filter((entry) => entry !== next.id);
+    }
     return draft;
   }
 }

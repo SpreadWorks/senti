@@ -24,8 +24,13 @@ import {
   getFlowDefinitionOrder,
   getTaskDefinitionOrder,
   resolveLifecycle,
+  resolveDraftTransition,
   resolveReviewTransition,
 } from "../../../src/flow/definition.js";
+import {
+  DraftQuestionFact,
+  DraftTransitionFacts,
+} from "../../../src/flow/lib/draft-transition-facts.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import {
@@ -126,6 +131,33 @@ function publishDraft(scenario, draft) {
 describe("flow get next-action", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
+
+  it("lets the definition own the manual and automatic draft boundary", () => {
+    const questionFacts = new DraftTransitionFacts({
+      nextQuestion: new DraftQuestionFact({
+        id: "q1",
+        status: "pending",
+        question: "Which public contract should be selected?",
+      }),
+    });
+    const noQuestionFacts = new DraftTransitionFacts();
+
+    assert.equal(resolveDraftTransition({
+      stepId: "draft-refine",
+      flowState: { autoApprove: false },
+      facts: questionFacts,
+    }).operation, "await-user-answer");
+    assert.equal(resolveDraftTransition({
+      stepId: "draft-refine",
+      flowState: { autoApprove: true },
+      facts: questionFacts,
+    }).operation, "execute-refine");
+    assert.equal(resolveDraftTransition({
+      stepId: "draft-refine",
+      flowState: { autoApprove: false },
+      facts: noQuestionFacts,
+    }).operation, "execute-refine");
+  });
 
   it("projects test-review retry exhaustion from definition-owned persisted facts", () => {
     const rejected = { phase: "test", counter: "reviewRetry", delta: 1 };
@@ -401,6 +433,7 @@ describe("flow get next-action", () => {
       { id: "q1", status: "answered" },
       { id: "q2", status: "dropped" },
     ]);
+    assert.deepEqual(stored.decisionMap.requiresUserJudgment, []);
   });
 
   it("rejects an invalid persisted question schema before offering an unusable decision", () => {

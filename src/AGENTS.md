@@ -56,6 +56,12 @@ src/
     └── partials/            共有パーツ（include 用）
 ```
 
+### skill manifest の名前契約
+
+`src/skills/*/SKILL.md` の `name` とディレクトリ名は一致させる。名前は、小文字英数字とハイフンからなる要素をドットで区切った名前空間形式を許可する（例: `sennel.flow-auto`）。ドットなしの hyphen-case 名も有効とする。
+
+スキル変更時は `npm run validate:skills` を実行すること。外部の汎用 skill validator が hyphen-case のみを許可して `sennel.flow` を拒否する場合、その validator は Sennel の名前空間契約と互換性がないため、Sennel skill の合否判定には使用しない。
+
 公式 preset content は main package に同梱しない。公式 plugin source は resolver が検出する実 repository または明示設定された repository とし、migration 完了はその repository の clean な Git HEAD と contribution path で検証する。
 
 ## コマンドルーティング

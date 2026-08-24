@@ -6,7 +6,7 @@
    - If the guarded canonical input is missing, invalid, or does not match the current phase, stop without writing an artifact or completing the step. If it is valid and contains no `decision: "apply"` items, do not rewrite unrelated draft content. Write `draft-coverage-repair.json` with an empty `items[]`, a concise `summary`, then set `draft.json.approval.approved` to true and `draft.json.approval.confirmedAt` to the repair time when there is no `requires_user_decision` item.
    - Apply the triaged findings once. Update `draft.json` so each `decision: "apply"` item is resolved in the smallest appropriate field.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.
-   - Preserve existing user decisions and request-derived policy. If a blocking fix would reverse a user decision or require a new answer, ask the user via Choice Format before writing it.
+   - Preserve existing user decisions and request-derived policy. This non-interactive worker must never ask the user. If an `apply` item would reverse a user decision or require a new answer, stop and surface the invalid triage artifact; genuine new user input must use a definition-owned dispatcher boundary after a governed draft reopen.
    - If there is no unresolved `requires_user_decision` item after repair, set `draft.json.approval.approved` to true and `draft.json.approval.confirmedAt` to the repair time before `draft-gate`.
    - For every triage item with `decision: "apply"`, add one `draft-coverage-repair.json.items[]` entry with:
      - `title`: copied from the triage item.

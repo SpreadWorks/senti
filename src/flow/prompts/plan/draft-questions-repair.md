@@ -6,7 +6,8 @@
    - If an immutable input is missing, invalid, or does not match the current phase, stop without writing or sealing. If it is valid and contains no `decision: "apply"` items, preserve the draft snapshot unchanged in the declared `draft.json` payload and write `draft-questions-repair.json` with an empty `items[]` and a concise `summary`.
    - Apply the triaged findings once. Update `draft.json` so each `decision: "apply"` item is resolved in the smallest appropriate field.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.
-   - Preserve existing user decisions and request-derived policy. If a blocking fix would reverse a user decision or require a new answer, ask the user via Choice Format before writing it.
+   - Preserve existing user decisions and request-derived policy. This worker must never ask the user. If a change would reverse a user decision or require a new answer, the triage item must be `requires_user_decision`, not `apply`; stop and surface an invalid triage artifact if such an item reaches repair.
+   - When existing evidence already answers a triaged QA entry, update that entry to `answered` with the evidence and rationale. When the entry is redundant or belongs to project/spec-writing policy, update it to `dropped` with a concrete reason. Keep `decisionMap.requiresUserJudgment` synchronized with the remaining unresolved QA ids.
    - For every triage item with `decision: "apply"`, add one `draft-questions-repair.json.items[]` entry with:
      - `title`: copied from the triage item.
      - `target`: copied from the triage item.
@@ -31,5 +32,5 @@
        ]
      }
      ```
-   - Do not run another draft review loop from this step. The downstream `draft-refine` step remains responsible for user question handling.
+   - Do not run another draft review loop from this step. The parent dispatcher handles any genuine unresolved question before the downstream `draft-refine` worker can start.
    - **On complete**: run the exact handoff `sealCommand` once after both declared payloads are complete.

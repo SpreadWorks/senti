@@ -28,7 +28,7 @@
      - `draft.json.decisionMap.knownFacts` → `spec.json.background` and `spec.json.overview.decisions[]` where the facts materially support requirements
      - `draft.json.decisionMap.decisionPoints` → ensure each relevant decision is represented in `requirements[]`, `acceptance_criteria`, `constraints`, or `alternatives_considered[]`
      - `draft.json.decisionMap.resolvedByProjectRules` → incorporate as constraints or overview decisions with rationale, without asking the user again
-     - `draft.json.decisionMap.requiresUserJudgment` → reconcile against answered `qa[]`; do not leave an item unresolved unless it is explicitly listed in `open_questions`
+     - `draft.json.decisionMap.requiresUserJudgment` → treat as a readable projection of unresolved `qa[]` ids and reconcile against the authoritative QA lifecycle; do not leave an item unresolved unless it is explicitly listed in `open_questions`
      - `draft.json.decisionMap.deferredToSpec` → finalize during spec writing when it can be resolved by project rules, source verification, or conservative implementation choices
      - `draft.json.qa[].evidence` → `spec.json.overview.decisions[].evidence` (for Q&A entries that resulted in design decisions)
      - `draft.json.qa[]` entries with `category: "constraints"` or `category: "implementation-targets"` → `spec.json.alternatives_considered[]` only when the answer explicitly records a rejected option.

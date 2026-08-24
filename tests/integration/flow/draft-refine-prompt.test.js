@@ -14,9 +14,10 @@ test("autoApprove draft refinement resolves non-destructive questions without st
   assert.match(prompt, /Only an irreversible action or a choice that changes the user-requested goal or scope may remain blocked/);
 });
 
-test("manual draft refinement still surfaces genuine user judgment", () => {
+test("manual draft refinement never moves the user boundary into its worker", () => {
   assert.match(
     prompt,
-    /When `autoApprove` is not true and user judgment is required, ask the user/,
+    /unresolved entries are a dispatcher\/worker contract violation/,
   );
+  assert.match(prompt, /do not ask the user from this non-interactive worker/);
 });

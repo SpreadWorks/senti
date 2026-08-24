@@ -13,6 +13,7 @@
 
 import {
   CurrentFlowDefinition,
+  DefinitionDraftDisposition,
   DefinitionReviewDisposition,
   DefinitionFailurePolicy,
   FlowDefinitionNode as CurrentFlowDefinitionNode,
@@ -27,6 +28,7 @@ import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
 import { ReviewTransitionFacts } from "./lib/review-transition-facts.js";
+import { DraftTransitionFacts } from "./lib/draft-transition-facts.js";
 import {
   flowReviewRouteForPhase,
   reviewPhaseForFlowStepId,
@@ -387,6 +389,23 @@ export function resolveReviewTransition({
     return new DefinitionReviewDisposition({ operation: "blocked", phase, attempts, maxAttempts });
   }
   return null;
+}
+
+/**
+ * Decide whether draft refinement may execute or must yield one canonical
+ * user-decision question. Artifact reading and directive rendering live in
+ * other layers; this is the sole transition-policy owner.
+ */
+export function resolveDraftTransition({ stepId, flowState, facts } = {}) {
+  if (stepId !== "draft-refine" || !(facts instanceof DraftTransitionFacts)) return null;
+  if (flowState?.autoApprove === true || facts.nextQuestion === null) {
+    return new DefinitionDraftDisposition({ operation: "execute-refine" });
+  }
+  return new DefinitionDraftDisposition({
+    operation: "await-user-answer",
+    questionId: facts.nextQuestion.id,
+    question: facts.nextQuestion.question,
+  });
 }
 
 /** Definition-owned completion statuses for an exhausted deferred Review. */

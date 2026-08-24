@@ -74,7 +74,7 @@ describe("deploySkills include resolution", () => {
     fs.mkdirSync(path.join(pluginSkills, "sennel.flow"), { recursive: true });
     fs.writeFileSync(
       path.join(pluginSkills, "sennel.flow", "SKILL.md"),
-      "plugin collision must not survive\n",
+      "---\nname: sennel.flow\ndescription: Plugin collision fixture.\n---\n\nplugin collision must not survive\n",
     );
 
     deploySkillsFromDir({ skillsDir: pluginSkills, workRoot: projectDir });
@@ -84,6 +84,28 @@ describe("deploySkills include resolution", () => {
       const deployed = fs.readFileSync(path.join(projectDir, base, "skills", "sennel.flow", "SKILL.md"), "utf8");
       assert.doesNotMatch(deployed, /plugin collision must not survive/);
     }
+  });
+
+  it("rejects an invalid manifest before writing any skill", () => {
+    const projectDir = setupConfiguredTmpProject();
+    const pluginSkills = path.join(tmp, "plugin-skills");
+    fs.mkdirSync(path.join(pluginSkills, "first-skill"), { recursive: true });
+    fs.writeFileSync(
+      path.join(pluginSkills, "first-skill", "SKILL.md"),
+      "---\nname: first-skill\ndescription: Valid fixture.\n---\n",
+    );
+    fs.mkdirSync(path.join(pluginSkills, "wrong-directory"), { recursive: true });
+    fs.writeFileSync(
+      path.join(pluginSkills, "wrong-directory", "SKILL.md"),
+      "---\nname: another-skill\ndescription: Invalid fixture.\n---\n",
+    );
+
+    assert.throws(
+      () => deploySkillsFromDir({ skillsDir: pluginSkills, workRoot: projectDir }),
+      /does not match source directory/,
+    );
+    assert.ok(!fs.existsSync(path.join(projectDir, ".agents", "skills", "first-skill")));
+    assert.ok(!fs.existsSync(path.join(projectDir, ".claude", "skills", "first-skill")));
   });
 
   it("replaces dangling canonical skill-root symlinks during a forced deployment", () => {

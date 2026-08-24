@@ -19,6 +19,8 @@ Each entry in `draft.json.qa[]` MUST use this field set:
 
 For `pending` and `approved` entries, `answer`, `evidence`, `why`, `considered`, and `droppedReason` MUST be empty strings. For `answered` entries, `answer`, `evidence`, and `why` MUST be non-empty, `considered` MAY be empty or non-empty, and `droppedReason` MUST be empty. For `dropped` entries, `droppedReason` MUST be non-empty and `answer`, `evidence`, `why`, and `considered` MUST be empty.
 
+`qa[]` MAY be empty. A `pending` or `approved` entry is not a topic candidate or a completeness checkbox: it is a persisted claim that the request, Issue, project rules, docs, and relevant source context do not determine a decision that only the user can make. Do not turn an already stated requirement into a confirmation question. `decisionMap.requiresUserJudgment` is a readable projection of these unresolved entries and should reference their stable ids; `qa[]` remains the lifecycle authority.
+
 ### Field-level boundary
 Draft is RFP/requirements level only. Mentioning file paths or function names as context is permitted. Do not describe internal algorithms, data structures, control flow, or API design. Code references within the `evidence`, `why`, `considered`, and `answer` fields of QA entries are permitted as justification and do not constitute implementation details.
 
@@ -42,10 +44,10 @@ Apply this to authored requirement-like text in `qa[]`, `scopeVerification`, `im
 Draft coverage review must not report missing priority markers as unresolved user-decision blockers. Draft-gate preflight and gate validation own residual priority issues.
 
 ### Research and self-verification
-Before generating questions, fill `decisionMap` from the request or issue, docs, project rules, and relevant source code. Use it to avoid discovering design topics later through review loops. For each question, research first, self-verify the premise, then generate the question with evidence. Do not ask questions based on assumptions.
+Before generating questions, fill `decisionMap` from the request or issue, docs, project rules, and relevant source code. Use it to avoid discovering design topics later through review loops. Record stated requirements in `knownFacts`, project-owned choices in `resolvedByProjectRules`, and spec-writing choices in `deferredToSpec`. Create a pending question only after research proves that none of those authorities determines the choice. Do not ask for confirmation of an explicit request or ask questions based on assumptions.
 
 ### Requirements category checklist
-Use these categories to check draft coverage:
+Use these categories to check draft coverage. They do not require one question per category:
 
 1. Goal and Scope - Is the goal clear? Is scope bounded?
 2. Impact on existing - What existing features, code, or tests are affected?

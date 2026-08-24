@@ -156,6 +156,8 @@ describe("Flow artifact contract registry", () => {
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("acceptance.review").ownership.updaters.includes("acceptance-decision"), false);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.log").ownership.updaters.includes("acceptance-decision"), true);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.snapshot").ownership.consumers.includes("system"), true);
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.snapshot").ownership.consumers.includes("draft-questions-review"), true);
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.snapshot").ownership.consumers.includes("draft-coverage-review"), true);
     assert.notEqual(FLOW_ARTIFACT_CONTRACTS.require("final.regression").contentContract, null);
   });
 

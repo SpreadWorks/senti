@@ -2683,8 +2683,47 @@ export class DefinitionReviewDisposition {
   }
 }
 
+/** A definition-owned decision at the manual draft question boundary. */
+export class DefinitionDraftDisposition {
+  constructor({ operation, questionId = null, question = null } = {}) {
+    if (!["execute-refine", "await-user-answer"].includes(operation)) {
+      throw new CurrentFlowStateInvariantError("draft disposition operation is invalid");
+    }
+    if (operation === "await-user-answer") {
+      this.questionId = requireString(questionId, "draft disposition questionId");
+      this.question = requireString(question, "draft disposition question");
+    } else {
+      if (questionId !== null || question !== null) {
+        throw new CurrentFlowStateInvariantError("execute draft disposition must not include a question");
+      }
+      this.questionId = null;
+      this.question = null;
+    }
+    this.operation = operation;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      operation: this.operation,
+      ...(this.questionId === null ? {} : {
+        questionId: this.questionId,
+        question: this.question,
+      }),
+    };
+  }
+}
+
 export class CurrentNextActionDescriptor {
-  constructor({ path: currentPath, node, operation, action, failureDisposition = null, reviewDisposition = null }) {
+  constructor({
+    path: currentPath,
+    node,
+    operation,
+    action,
+    failureDisposition = null,
+    reviewDisposition = null,
+    draftDisposition = null,
+  }) {
     if (!Array.isArray(currentPath) || currentPath.length === 0) {
       throw new CurrentFlowStateInvariantError("next action path must be a non-empty stable-id array");
     }
@@ -2712,6 +2751,15 @@ export class CurrentNextActionDescriptor {
     )) {
       throw new CurrentFlowStateInvariantError("review disposition requires an active review descriptor");
     }
+    if (draftDisposition !== null && !(draftDisposition instanceof DefinitionDraftDisposition)) {
+      throw new CurrentFlowStateInvariantError("next action draft disposition is invalid");
+    }
+    if (draftDisposition !== null && (
+      node.id !== "draft-refine"
+      || !["start", "recover", "resume", "retry"].includes(operation)
+    )) {
+      throw new CurrentFlowStateInvariantError("draft disposition requires an executable draft-refine descriptor");
+    }
     this.path = Object.freeze([...currentPath]);
     this.node = node;
     this.nodeId = node.id;
@@ -2721,6 +2769,7 @@ export class CurrentNextActionDescriptor {
     this.action = action;
     this.failureDisposition = failureDisposition;
     this.reviewDisposition = reviewDisposition;
+    this.draftDisposition = draftDisposition;
     Object.freeze(this);
   }
 
@@ -2733,6 +2782,20 @@ export class CurrentNextActionDescriptor {
       action: this.action,
       failureDisposition: this.failureDisposition,
       reviewDisposition,
+      draftDisposition: this.draftDisposition,
+    });
+  }
+
+  withDraftDisposition(draftDisposition) {
+    if (draftDisposition === null) return this;
+    return new CurrentNextActionDescriptor({
+      path: this.path,
+      node: this.node,
+      operation: this.operation,
+      action: this.action,
+      failureDisposition: this.failureDisposition,
+      reviewDisposition: this.reviewDisposition,
+      draftDisposition,
     });
   }
 
@@ -2746,6 +2809,7 @@ export class CurrentNextActionDescriptor {
       action: this.action.toJSON(),
       failureDisposition: this.failureDisposition?.toJSON() ?? null,
       ...(this.reviewDisposition === null ? {} : { reviewDisposition: this.reviewDisposition.toJSON() }),
+      ...(this.draftDisposition === null ? {} : { draftDisposition: this.draftDisposition.toJSON() }),
     };
   }
 }
