@@ -1,8 +1,18 @@
 import {
-  FlowOutboxRecoveryClaim,
   FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
+import {
+  FinalizationDurableProofFact,
+  FinalizationMainAuthorityFact,
+  FinalizationOperationLockFact,
+  FinalizationOutboxFact,
+  FinalizationPreSyncFact,
+  FinalizationRecoveryFacts,
+  FinalizationRecoveryTargetFact,
+  InterruptedFinalizeSyncRuntimeLogFact,
+  resolveFinalizationRecovery,
+} from "../definition.js";
 import { hasOutboxCommit } from "./run-finalize.js";
 import { FinalizeMergeTransaction } from "./finalize-merge-transaction.js";
 import {
@@ -12,6 +22,7 @@ import {
 } from "./next-action-directive.js";
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { runGit } from "../../lib/git-helpers.js";
+import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { FinalizeFlowArtifactRegistry } from "./repair-state-identity.js";
 
 const FINALIZATION_COMMANDS = Object.freeze({
@@ -25,6 +36,10 @@ function recoveryCommand(command, state, binding) {
   if (binding) return binding.guardCommand(`sennel flow run ${command}`);
   const guards = guardFlagsForState(state);
   return `sennel flow run ${command}${guards ? ` ${guards}` : ""}`;
+}
+
+function finalizationRecoveryCommand(state, binding) {
+  return recoveryCommand("recover-finalization", state, binding);
 }
 
 function refreshCommand(state, binding) {
@@ -41,16 +56,29 @@ function featureMetadataPaths(location) {
 }
 
 function mainRootFor(ctx, state) {
-  if (state.worktree !== true) return ctx.root;
-  return ctx.flowManager.resolveWorktreePaths(state).mainRepoPath || ctx.root;
+  if (state.worktree !== true) return ctx.root || ctx.flowManager._root;
+  return ctx.flowManager.resolveWorktreePaths(state).mainRepoPath
+    || ctx.mainRoot
+    || ctx.root
+    || ctx.flowManager._root;
+}
+
+function operationLockStatus(ctx, state, operationOwnerToken) {
+  const lock = new RepositoryFlowOperationLock({
+    mainRoot: mainRootFor(ctx, state),
+    operationOwnerToken,
+  });
+  return lock.inspectConflict() === null ? "available" : "busy";
 }
 
 export class FinalizationOutboxRecovery {
-  constructor({ ctx, state, target, binding = null }) {
+  constructor({ ctx, state, target, binding = null, interruptedRuntimeLog = null, operationOwnerToken = null }) {
     this.ctx = ctx;
     this.state = state;
     this.target = target;
     this.binding = binding;
+    this.interruptedRuntimeLog = interruptedRuntimeLog;
+    this.operationOwnerToken = operationOwnerToken;
     Object.freeze(this);
   }
 
@@ -62,17 +90,69 @@ export class FinalizationOutboxRecovery {
     const identity = finalizationOutboxIdentity(this.state, this.target.stepId);
     const outbox = new FlowOutboxStore(this.ctx.flowManager, { specId: this.state.specId });
     const entry = outbox.status(identity);
-    if (entry?.status !== "failed") return null;
-    const preSyncConflict = this.#preSyncConflictRecovery(entry);
-    if (preSyncConflict?.directive) return preSyncConflict;
-    const recoveryKey = preSyncConflict?.recoveryKey ?? null;
-    if (
-      entry.exactRecoveryReceipt
-      && (
-        recoveryKey == null
-        || entry.exactRecoveryReceipt.recoveryKey === recoveryKey
-      )
-    ) {
+    const preSync = entry?.status === "failed" ? this.#preSyncConflictRecovery(entry) : null;
+    const facts = new FinalizationRecoveryFacts({
+      target: new FinalizationRecoveryTargetFact({ scope: this.target.scope, stepId: this.target.stepId }),
+      outbox: new FinalizationOutboxFact(entry === null ? {} : {
+        idempotencyKey: entry.idempotencyKey,
+        status: entry.status,
+        attempt: entry.attempt,
+        failure: entry.failure,
+        recovery: entry.latestFailure?.recovery?.toJSON?.() ?? null,
+        exactRecoveryReceipt: entry.exactRecoveryReceipt?.toJSON?.() ?? null,
+      }),
+      durableProof: new FinalizationDurableProofFact({ durable: entry ? this.#isDurable(entry) : false }),
+      // Read-only planning must not acquire a process-owned lock.  The
+      // recovery command takes it before its first write.
+      operationLock: new FinalizationOperationLockFact({ status: operationLockStatus(this.ctx, this.state, this.operationOwnerToken) }),
+      mainAuthority: new FinalizationMainAuthorityFact({
+        mainRoot: mainRootFor(this.ctx, this.state),
+        authorityRoot: this.ctx.flowManager._root || this.ctx.root || mainRootFor(this.ctx, this.state),
+      }),
+      interruptedRuntimeLog: new InterruptedFinalizeSyncRuntimeLogFact({ receipt: this.interruptedRuntimeLog }),
+      preSync: new FinalizationPreSyncFact({ state: preSync?.state ?? null }),
+    });
+    const decision = resolveFinalizationRecovery(facts);
+    if (decision.operation === "ordinary-execute") return null;
+    if (decision.operation === "interrupted-sync-settlement") {
+      return {
+        directive: new ExecuteCommandDirective({
+          actionId: "RECOVER_INTERRUPTED_FINALIZE_SYNC",
+          nextAction: finalizationRecoveryCommand(this.state, this.binding),
+          instruction: "Settle the interrupted finalize-sync attempt through the Definition-selected recovery command. It acquires the main operation lock before atomically recording the failure and cleanup audit.",
+          reason: "The canonical pending finalize-sync outbox has a matching incomplete runtime-log receipt.",
+        }),
+        stateChanged: false,
+        decision,
+      };
+    }
+    if (decision.operation === "pre-sync-conflict-repair") return { directive: preSync.directive, stateChanged: false, decision };
+    if (decision.operation === "blocked") {
+      return {
+        directive: decision.reason === "operation_lock_busy"
+          ? new BlockedDirective({
+              code: "FINALIZATION_RECOVERY_LOCK_BUSY",
+              reason: "Another repository Flow operation currently owns the finalization recovery boundary.",
+              resumeInstruction: "Wait for the owning operation to finish, then refresh the guarded Flow directive.",
+            })
+          : decision.reason === "durable_proof_unavailable"
+            ? new BlockedDirective({
+                code: "FINALIZATION_RECOVERY_DURABLE_PROOF_MISSING",
+                reason: `The failed ${this.target.stepId} outbox has no canonical proof that its side effect is durable.`,
+                resumeInstruction: "Restore or repair canonical durability evidence before attempting another finalization operation.",
+              })
+            : decision.reason === "main_authority_required"
+              ? new BlockedDirective({
+                  code: "FINALIZATION_RECOVERY_MAIN_AUTHORITY_REQUIRED",
+                  reason: `The ${this.target.stepId} recovery is not bound to the main-repository Flow authority.`,
+                  resumeInstruction: "Reload the guarded recovery directive from the main repository authority.",
+                })
+              : preSync.directive,
+        stateChanged: false,
+        decision,
+      };
+    }
+    if (decision.operation === "exhausted") {
       return {
         directive: new BlockedDirective({
           code: "FINALIZE_OUTBOX_RECOVERY_EXHAUSTED",
@@ -80,32 +160,25 @@ export class FinalizationOutboxRecovery {
           resumeInstruction: "Inspect and repair the persisted failure before attempting a new Flow operation.",
         }),
         stateChanged: false,
+        decision,
       };
     }
-
-    const durable = this.#isDurable(entry);
-    if (this.target.stepId !== "finalize-merge" && !durable) return null;
+    const durable = facts.durableProof.durable;
     if (this.target.stepId === "finalize-merge" && !durable) {
       const readiness = this.#inspectMergeReadiness();
       if (readiness) return readiness;
     }
-
-    outbox.reopenFailedExact(new FlowOutboxRecoveryClaim({
-      identity,
-      attempt: entry.attempt,
-      failure: entry.failure,
-      recoveryKey,
-    }));
     return {
       directive: new ExecuteCommandDirective({
         actionId: `RECOVER_${this.target.stepId.replaceAll("-", "_").toUpperCase()}_OUTBOX`,
-        nextAction: recoveryCommand(command, this.state, this.binding),
+        nextAction: finalizationRecoveryCommand(this.state, this.binding),
         instruction: `Apply the one persisted exact recovery for ${this.target.stepId}. The outbox key is unchanged, so a durable side effect is resumed rather than duplicated.`,
         reason: durable
           ? `The ${this.target.stepId} side effect is durable, but its lifecycle post-hook did not finish.`
           : "The isolated merge preflight is clean; one exact recovery is available for the incomplete merge transaction.",
       }),
-      stateChanged: true,
+      stateChanged: false,
+      decision,
     };
   }
 
@@ -171,9 +244,10 @@ export class FinalizationOutboxRecovery {
       baseHead,
       "HEAD",
     ]);
-    if (ancestry.ok) return { recoveryKey: baseHead };
+    if (ancestry.ok) return { state: "rebased" };
     if (ancestry.status === 1) {
       return {
+        state: "needs-repair",
         directive: new RepairEvidenceDirective({
           actionId: "REPAIR_FINALIZE_MERGE_REBASE",
           evidenceKind: "finalize-merge",
@@ -186,6 +260,7 @@ export class FinalizationOutboxRecovery {
       };
     }
     return {
+      state: "unavailable",
       directive: new BlockedDirective({
         code: "MERGE_REBASE_RECOVERY_UNAVAILABLE",
         reason: `Unable to verify whether the feature contains the persisted pre-sync base ${baseRef}@${baseHead}: ${ancestry.stderr || ancestry.stdout}`,
@@ -224,6 +299,6 @@ export class FinalizationOutboxRecovery {
   }
 }
 
-export function resolveFinalizationOutboxRecovery(ctx, state, target, binding = null) {
-  return new FinalizationOutboxRecovery({ ctx, state, target, binding }).resolve();
+export function resolveFinalizationOutboxRecovery(ctx, state, target, binding = null, interruptedRuntimeLog = null, operationOwnerToken = null) {
+  return new FinalizationOutboxRecovery({ ctx, state, target, binding, interruptedRuntimeLog, operationOwnerToken }).resolve();
 }

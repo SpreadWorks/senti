@@ -539,6 +539,7 @@ export class FlowOutboxStore {
     if (!(claim instanceof FlowOutboxRecoveryClaim)) throw new Error("exact recovery claim is required");
     const status = this.flowManager.reopenOutboxExact({
       ...(this.specId ? { specId: this.specId } : {}),
+      operationOwnerToken: this.operationOwnerToken,
       id: claim.identity.idempotencyKey,
       operation: claim.identity.operation,
       attempt: claim.attempt,

@@ -69,6 +69,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   defer_failed_review: "failure_accepted",
   skip_finalize_downstream: "finalization_downstream_updated",
   reset_finalize_downstream: "finalization_downstream_updated",
+  recover_interrupted_finalize_sync: "recovery",
 });
 
 function requiredText(value, field) {
@@ -638,6 +639,30 @@ export class CanonicalFlowRuntime {
     });
   }
 
+  recoverInterruptedFinalizeSync({ specId, activityId, cleanupAttempt, outbox, timing = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: "finalize-cleanup",
+      attemptId: cleanupAttempt.id,
+      sequence: cleanupAttempt.sequence,
+      timing,
+      references,
+      transition: {
+        operation: "recover_interrupted_finalize_sync",
+        nodeId: "finalize-cleanup",
+        task: null,
+        attempt: cleanupAttempt,
+        status: null,
+        policy: null,
+        outbox,
+        approval: null,
+        nonblocking: null,
+        finalizeSteps: null,
+      },
+    }), { artifactWrites });
+  }
+
   park({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "park_flow"); }
   resume({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "resume_flow"); }
   finalize({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "finalize_flow"); }
@@ -770,8 +795,8 @@ export class CanonicalFlowRuntime {
     return this.#applyOutbox(specId, activityId, "begin_outbox", outbox);
   }
 
-  reopenOutbox({ specId, activityId, outbox } = {}) {
-    return this.#applyOutbox(specId, activityId, "reopen_outbox", outbox);
+  reopenOutbox({ specId, activityId, outbox, timing = null } = {}) {
+    return this.#applyOutbox(specId, activityId, "reopen_outbox", outbox, timing);
   }
 
   completeOutbox({ specId, activityId, outbox } = {}) {
@@ -939,7 +964,7 @@ export class CanonicalFlowRuntime {
     }));
   }
 
-  #applyOutbox(specId, activityId, operation, outbox) {
+  #applyOutbox(specId, activityId, operation, outbox, timing = null) {
     const state = this.#state(specId);
     if (outbox === null || typeof outbox !== "object" || Array.isArray(outbox)) {
       throw new CurrentFlowStateInvariantError("outbox transition requires an outbox object");
@@ -957,7 +982,7 @@ export class CanonicalFlowRuntime {
     return this.apply(specId, this.#activity(state, {
       id: activityId,
       nodeId: state.root.id,
-      timing: (() => {
+      timing: timing ?? (() => {
         const now = new Date().toISOString();
         return { startedAt: now, finishedAt: now, durationMs: 0 };
       })(),

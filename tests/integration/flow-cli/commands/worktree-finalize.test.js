@@ -294,7 +294,16 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     const reopenedEntry = new FlowOutboxStore(reopenedManager, { specId: "478-test" }).status(
       finalizationOutboxIdentity(reopenedManager.loadReadOnly("478-test"), "finalize-merge"),
     );
-    assert.ok(reopenedEntry.exactRecoveryReceipt, "resolved rebase grants the exact retry");
+    assert.equal(reopenedEntry.status, "failed", "the read-only projection does not consume the retry");
+    assert.equal(reopenedEntry.exactRecoveryReceipt, null);
+
+    const consumed = runCliResult(["run", "recover-finalization"], worktree);
+    assert.equal(consumed.status, 0, `${consumed.stdout}\n${consumed.stderr}`);
+    const recoveredEntry = new FlowOutboxStore(reopenedManager, { specId: "478-test" }).status(
+      finalizationOutboxIdentity(reopenedManager.loadReadOnly("478-test"), "finalize-merge"),
+    );
+    assert.equal(recoveredEntry.status, "pending");
+    assert.ok(recoveredEntry.exactRecoveryReceipt, "the explicit command grants the exact retry");
 
     const retried = runCliResult(["run", "finalize-merge"], worktree);
     assert.equal(retried.status, 0, `${retried.stdout}\n${retried.stderr}`);

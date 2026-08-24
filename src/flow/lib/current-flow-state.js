@@ -73,6 +73,7 @@ const ATTEMPT_TYPES = new Set([
   "finalization_downstream_updated",
 ]);
 const TRANSITION_ATTEMPT_OPERATIONS = new Set([
+  "recover_interrupted_finalize_sync",
   "start_attempt",
   "retry_attempt",
   "retry_recovery_attempt",
@@ -124,6 +125,7 @@ const ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS = new Set([
 // failed outcomes belong to the append-only Activity ledger, so a restart
 // cannot mistake historical work for another active operation.
 const OUTBOX_TRANSITION_OPERATIONS = new Set(["begin_outbox", "reopen_outbox", "complete_outbox", "fail_outbox"]);
+const INTERRUPTED_FINALIZE_SYNC_OPERATION = "recover_interrupted_finalize_sync";
 // Explicit dispatch approval is a durable authorization fact, not a mutable
 // field on flow.json.  Its append-only Activity can be replayed and checked
 // against the exact action digest on a later dispatcher process.
@@ -3406,6 +3408,27 @@ export class CurrentFlowState {
     }, { definition: this.definition });
   }
 
+  /** One atomic recovery: settle sync's pending outbox, skip sync, claim cleanup. */
+  recoverInterruptedFinalizeSync({ outbox, cleanupAttempt, confirmedAt }) {
+    this.#assertExecutionActive();
+    if (this.current?.at(-1) !== "finalize-sync" || this.attempt === null) {
+      throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery requires the active sync Attempt");
+    }
+    const sync = this.findNode("finalize-sync");
+    const cleanup = this.findNode("finalize-cleanup");
+    if (sync?.status !== "in_progress" || cleanup?.status !== "pending") throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery has an invalid step boundary");
+    if (outbox.operation !== "finalize-sync" || this.outbox.find(outbox.id) === null) throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery requires its pending outbox identity");
+    const settled = this.withOutbox(this.outbox.settle(outbox.toEntry()));
+    const skippedRoot = reconcileCompletedParents(replaceNode(settled.root, "finalize-sync", sync.with({
+      status: "skipped", attemptSequence: sync.attemptSequence,
+      result: new NodeResult({ outcome: "skipped", summary: "interrupted finalize-sync settled", confirmedAt, artifactRefs: [] }),
+    })), settled.definition);
+    const skipped = settled.#replaceRoot(skippedRoot, null, null);
+    const expected = skipped.definition.nextExecutableLeaf(skipped.root);
+    if (expected?.id !== "finalize-cleanup") throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery must claim cleanup next");
+    return skipped.startAttempt({ path: skipped.definition.pathFor(skipped.root, "finalize-cleanup"), attempt: cleanupAttempt });
+  }
+
   /**
    * Apply the definition-authorized finalization suffix transition while the
    * finalize-merge Attempt remains active.  This is one journaled operation,
@@ -4946,7 +4969,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -4971,7 +4994,7 @@ export class ActivityTransition {
       throw new CurrentFlowStateInvariantError("set_policy is the only transition that requires a policy payload");
     }
     this.outbox = outbox == null ? null : outbox instanceof ActivityOutbox ? outbox : new ActivityOutbox(outbox);
-    const outboxRequired = OUTBOX_TRANSITION_OPERATIONS.has(operation);
+    const outboxRequired = OUTBOX_TRANSITION_OPERATIONS.has(operation) || operation === INTERRUPTED_FINALIZE_SYNC_OPERATION;
     if (outboxRequired !== (this.outbox !== null)) {
       throw new CurrentFlowStateInvariantError(
         outboxRequired
@@ -4983,13 +5006,13 @@ export class ActivityTransition {
       if (operation === "fail_outbox" && this.outbox.failure === null) {
         throw new CurrentFlowStateInvariantError("fail_outbox requires its failure fact in the Activity ledger");
       }
-      if (operation !== "fail_outbox" && this.outbox.failure !== null) {
+      if (!["fail_outbox", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(operation) && this.outbox.failure !== null) {
         throw new CurrentFlowStateInvariantError("only fail_outbox may carry an outbox failure fact");
       }
       if (operation !== "complete_outbox" && this.outbox.result !== null) {
         throw new CurrentFlowStateInvariantError("only complete_outbox may carry an outbox result");
       }
-      if (operation !== "fail_outbox" && (this.outbox.failureCode !== null || this.outbox.recovery !== null)) {
+      if (!["fail_outbox", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(operation) && (this.outbox.failureCode !== null || this.outbox.recovery !== null)) {
         throw new CurrentFlowStateInvariantError("only fail_outbox may carry outbox failure recovery facts");
       }
       if (this.outbox.recovery !== null && this.outbox.failureCode !== "MERGE_PRE_SYNC_CONFLICT") {
@@ -5103,6 +5126,10 @@ export class ActivityTransition {
         throw new CurrentFlowStateInvariantError("Flow policy transition must target the Flow root");
       }
       return state.withPolicy(this.policy);
+    }
+    if (this.operation === INTERRUPTED_FINALIZE_SYNC_OPERATION) {
+      if (target.id !== "finalize-cleanup") throw new CurrentFlowStateInvariantError("interrupted finalize-sync Activity must target cleanup");
+      return state.recoverInterruptedFinalizeSync({ outbox: this.outbox, cleanupAttempt: this.attempt, confirmedAt: activity.timing?.finishedAt });
     }
     if (OUTBOX_TRANSITION_OPERATIONS.has(this.operation)) {
       if (target.id !== state.root.id) {
@@ -5397,6 +5424,7 @@ export class FlowActivity {
       defer_failed_review: "failure_accepted",
       skip_finalize_downstream: "finalization_downstream_updated",
       reset_finalize_downstream: "finalization_downstream_updated",
+      recover_interrupted_finalize_sync: "recovery",
     };
     if (typeForOperation[this.transition.operation] !== this.type) {
       throw new CurrentFlowStateInvariantError("activity.type must match its deterministic transition operation");
@@ -5444,7 +5472,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5632,7 +5660,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review"]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);

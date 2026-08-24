@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
+import RunClaimNextActionCommand from "../../../src/flow/lib/run-claim-next-action.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
@@ -203,7 +204,16 @@ describe("flow run final-regression", () => {
     const next = await new GetNextActionCommand().execute(ctx);
     assert.equal(next.directive.kind, "execute_command");
     assert.equal(next.directive.actionId, "FINAL_REGRESSION_REPAIR");
-    assert.match(next.directive.nextAction, /flow run final-regression/);
+    assert.match(next.directive.nextAction, /flow run claim-next-action/);
+    const projected = ctx.flowManager.canonicalState(SPEC_ID).attempt;
+    assert.equal(projected.sequence, 1);
+    assert.equal(projected.failure.code, "FINAL_REGRESSION_FAILED");
+
+    const claim = await new RunClaimNextActionCommand().execute(ctx);
+    assert.equal(claim.ok, true, JSON.stringify(claim));
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    writeFile(tmp, FIXTURE_PATH, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - repaired final pass'\n");
+    await new RunFinalRegressionCommand().execute(ctx);
     const replacement = ctx.flowManager.canonicalState(SPEC_ID).attempt;
     assert.equal(replacement.sequence, 2);
     assert.equal(replacement.failure, null);
@@ -402,6 +412,8 @@ describe("flow run final-regression", () => {
     await new RunFinalRegressionCommand().execute(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     await new GetNextActionCommand().execute(ctx);
+    const claim = await new RunClaimNextActionCommand().execute(ctx);
+    assert.equal(claim.ok, true, JSON.stringify(claim));
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
@@ -422,6 +434,8 @@ describe("flow run final-regression", () => {
     await new RunFinalRegressionCommand().execute(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     await new GetNextActionCommand().execute(ctx);
+    const claim = await new RunClaimNextActionCommand().execute(ctx);
+    assert.equal(claim.ok, true, JSON.stringify(claim));
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     writeFile(tmp, FIXTURE_PATH, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - repaired final pass'\n");
     await executeFinalRegression(ctx);

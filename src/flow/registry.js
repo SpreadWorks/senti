@@ -48,6 +48,7 @@ import { attachedCanonicalCommandResultPublications } from "./lib/canonical-comm
 import { CanonicalFlowArtifactWrite } from "./lib/current-flow-state.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
+import { RepositoryFlowOperationLock } from "../lib/repository-maintenance-lock.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -109,6 +110,24 @@ export function assertDraftReviewRegistryHookBoundary() {
  */
 function switchToMainRepoFlowAuthority(ctx) {
   FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx);
+}
+
+function acquireFinalizeSyncOperation(ctx) {
+  const owner = FinalizeFlowStateOwner.forMainContext(ctx);
+  const operation = new RepositoryFlowOperationLock({
+    mainRoot: owner.mainRepoPath,
+    allowProcessOwnerBorrow: false,
+  });
+  operation.acquire();
+  ctx.finalizeSyncOperation = operation;
+}
+
+function releaseFinalizeSyncOperation(ctx) {
+  const operation = ctx.finalizeSyncOperation;
+  if (!(operation instanceof RepositoryFlowOperationLock)) return;
+  operation.assertOwned();
+  operation.release();
+  delete ctx.finalizeSyncOperation;
 }
 
 /**
@@ -558,7 +577,22 @@ class RegistryLifecycleAdapter {
 
   beginOutboxEffect(step) {
     if (this.ctx.dryRun) return null;
-    this.ctx.flowOutboxEntry = this.outboxStore().beginCommand(this.outboxIdentity(step));
+    const outbox = this.outboxStore();
+    const identity = this.outboxIdentity(step);
+    const owner = this.finalizeStateOwner();
+    const current = owner.loadReadOnly();
+    const active = findActiveNode(current);
+    if (active?.stepId !== step || findStepById(current?.steps || [], step)?.status !== "in_progress") {
+      const error = new Error(`finalization ${step} must be claimed by the current canonical Attempt before its outbox can begin`);
+      error.code = "FINALIZATION_ACTION_CLAIM_REQUIRED";
+      throw error;
+    }
+    const existing = outbox.status(identity);
+    if (["pending", "done"].includes(existing?.status)) {
+      this.ctx.flowOutboxEntry = existing;
+      return existing;
+    }
+    this.ctx.flowOutboxEntry = outbox.beginCommand(identity);
     return this.ctx.flowOutboxEntry;
   }
 
@@ -1654,23 +1688,37 @@ export const FLOW_COMMANDS = {
         "Build docs on main repo after merge and commit.",
       ].join("\n"),
       async pre(ctx) {
-        await applyLifecycleActionsFromRegistry(ctx, {
-          event: "finalize:pre",
-          command: finalizeCommand("sync"),
-        });
+        acquireFinalizeSyncOperation(ctx);
+        try {
+          await applyLifecycleActionsFromRegistry(ctx, {
+            event: "finalize:pre",
+            command: finalizeCommand("sync"),
+          });
+        } catch (error) {
+          releaseFinalizeSyncOperation(ctx);
+          throw error;
+        }
       },
       async post(ctx, result) {
-        await applyLifecycleActionsFromRegistry(ctx, {
-          event: "finalize:post",
-          command: finalizeCommand("sync"),
-        }, result);
+        try {
+          await applyLifecycleActionsFromRegistry(ctx, {
+            event: "finalize:post",
+            command: finalizeCommand("sync"),
+          }, result);
+        } finally {
+          releaseFinalizeSyncOperation(ctx);
+        }
       },
       async onError(ctx, err) {
-        if (["REPOSITORY_FLOW_OPERATION_BUSY", "REPOSITORY_MAINTENANCE_BUSY"].includes(err?.code)) return;
-        await applyLifecycleActionsFromRegistry(ctx, {
-          event: "finalize:onError",
-          command: finalizeCommand("sync"),
-        }, null, err);
+        try {
+          if (["REPOSITORY_FLOW_OPERATION_BUSY", "REPOSITORY_MAINTENANCE_BUSY"].includes(err?.code)) return;
+          await applyLifecycleActionsFromRegistry(ctx, {
+            event: "finalize:onError",
+            command: finalizeCommand("sync"),
+          }, null, err);
+        } finally {
+          releaseFinalizeSyncOperation(ctx);
+        }
       },
     },
     "finalize-cleanup": {
@@ -1850,6 +1898,41 @@ export const FLOW_COMMANDS = {
         "Options:",
         ...FLOW_TARGET_GUARD_HELP_LINES,
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
+    "recover-finalization": {
+      helpKey: "flow.run.recover-finalization",
+      runtimeLog: { stepMetadata: false, authority: "main-repository" },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-recover-finalization.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: sennel flow run recover-finalization ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Apply only the Definition-selected exact finalization outbox recovery or interrupted finalize-sync settlement.",
+        "The command reloads canonical facts and obtains the main operation lock before changing state.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
+    "claim-next-action": {
+      helpKey: "flow.run.claim-next-action",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-claim-next-action.js"),
+      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
+      help: [
+        `Usage: sennel flow run claim-next-action ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Atomically claim the current ordinary Definition-selected action before its worker starts.",
+        "The command accepts no step or route input and rejects a stale or non-claimable selection.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
     "repair-test-review": {

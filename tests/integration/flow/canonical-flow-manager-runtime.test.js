@@ -19,6 +19,7 @@ import {
   CurrentFlowStateStore,
 } from "../../../src/flow/lib/current-flow-state.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
+import RunClaimNextActionCommand from "../../../src/flow/lib/run-claim-next-action.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
 import {
   FLOW_DISPATCH_INVOCATION_ENV,
@@ -3818,6 +3819,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
         specId: created.specId,
         flowCommandBoundary: false,
       });
+      await new RunClaimNextActionCommand().execute({
+        root: repository,
+        mainRoot: repository,
+        executionRoot: repository,
+        flowManager: manager,
+        flowState: manager.load(created.specId),
+        specId: created.specId,
+      });
 
       const completed = {
         taskId: null,
@@ -4203,12 +4212,19 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     const first = await new GetNextActionCommand().execute(context);
     const location = manager.specLocation(created.specId);
-    const firstActivities = fs.readFileSync(location.activitiesFile, "utf8").trim().split("\n")
+    const projectedActivities = fs.readFileSync(location.activitiesFile, "utf8").trim().split("\n")
       .map((line) => JSON.parse(line));
 
     assert.equal(first.step, "draft");
     assert.equal(first.action, "write-draft");
-    assert.equal(context.flowState.currentNodeId, "draft");
+    assert.equal(first.directive.actionId, "CLAIM_NEXT_ACTION");
+    assert.equal(manager.load(created.specId).currentNodeId, null);
+
+    const claimed = await new RunClaimNextActionCommand().execute(context);
+    assert.equal(claimed.ok, true, JSON.stringify(claimed));
+    const firstActivities = fs.readFileSync(location.activitiesFile, "utf8").trim().split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(firstActivities.length, projectedActivities.length + 1);
     assert.equal(firstActivities.at(-1).transition.operation, "start_attempt");
     assert.equal(firstActivities.at(-1).nodeId, "draft");
 
@@ -4236,6 +4252,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
       specId: created.specId,
       flowCommandBoundary: false,
+    });
+    await new RunClaimNextActionCommand().execute({
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      specId: created.specId,
     });
 
     manager.confirmCurrentAttempt({
@@ -4277,6 +4301,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId: created.specId,
       flowCommandBoundary: false,
     });
+    await new RunClaimNextActionCommand().execute({
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      specId: created.specId,
+    });
 
     manager.publishArtifacts({
       specId: created.specId,
@@ -4316,6 +4348,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
       specId: created.specId,
       flowCommandBoundary: false,
+    });
+    await new RunClaimNextActionCommand().execute({
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      specId: created.specId,
     });
     const coordinator = new WorkerArtifactHandoffCoordinator({
       now: () => new Date("2026-08-13T00:00:00.000Z"),
@@ -4671,6 +4711,10 @@ describe("FlowManager canonical Version-1 runtime", () => {
         flowState: manager.load(created.specId),
       });
       assert.equal(next.step, stepId);
+      await new RunClaimNextActionCommand().execute({
+        ...context,
+        flowState: manager.load(created.specId),
+      });
       confirmFixtureStep(manager, stepId, { specId: created.specId });
     }
     const freshGate = await new GetNextActionCommand().execute({
@@ -4678,7 +4722,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
     });
     assert.equal(freshGate.step, "draft-gate");
-    assert.equal(freshGate.directive.kind, "execute_step");
+    assert.equal(freshGate.directive.actionId, "CLAIM_NEXT_ACTION");
   });
 
   it("fails closed when a current gate result and issue-log observations do not match", async () => {
@@ -5006,6 +5050,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
       specId: created.specId,
       flowCommandBoundary: false,
+    });
+    await new RunClaimNextActionCommand().execute({
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      specId: created.specId,
     });
     const context = {
       root: repository,

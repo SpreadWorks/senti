@@ -375,6 +375,197 @@ export function resolveGateTransition(facts) {
 // Non-Gate transition policy is intentionally independent from the temporary
 // Gate migration path above.  A Step contributes typed evidence, while this
 // reducer alone selects the disposition, plan and stable Action identity.
+/**
+ * Finalization recovery is deliberately a Definition decision, not an
+ * incidental side effect of the next-action reader.  The facts are small
+ * value objects because this boundary crosses the canonical store, the main
+ * repository and the runtime log.
+ */
+const FINALIZATION_RECOVERY_TOKEN = Symbol("definition-finalization-recovery");
+const FINALIZATION_RECOVERY_OPERATIONS = new Set([
+  "ordinary-execute", "exact-outbox-recovery", "interrupted-sync-settlement",
+  "pre-sync-conflict-repair", "blocked", "exhausted",
+]);
+
+export class FinalizationRecoveryTargetFact {
+  constructor({ scope, stepId } = {}) {
+    if (scope !== "flow") throw new Error("finalization recovery target must be flow scoped");
+    if (!new Set(["report", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]).has(stepId)) {
+      throw new Error("finalization recovery target step is invalid");
+    }
+    this.scope = scope;
+    this.stepId = stepId;
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationOutboxFact {
+  constructor({ idempotencyKey = null, status = "missing", attempt = 0, failure = null, recovery = null, exactRecoveryReceipt = null } = {}) {
+    if (!new Set(["missing", "pending", "done", "failed"]).has(status)) throw new Error("finalization outbox status is invalid");
+    if (idempotencyKey !== null) requireString(idempotencyKey, "finalization outbox idempotencyKey");
+    if (!Number.isSafeInteger(attempt) || attempt < 0) throw new Error("finalization outbox attempt is invalid");
+    if (status === "missing" && (idempotencyKey !== null || attempt !== 0 || failure !== null)) {
+      throw new Error("missing finalization outbox cannot carry persisted identity or outcome facts");
+    }
+    if (status !== "missing" && (idempotencyKey === null || attempt < 1)) {
+      throw new Error("persisted finalization outbox requires identity and attempt facts");
+    }
+    if (status === "failed") requireString(failure, "finalization outbox failure");
+    if (status !== "failed" && failure !== null) throw new Error("only failed finalization outbox may carry a failure");
+    if (recovery !== null && (typeof recovery !== "object" || Array.isArray(recovery))) throw new Error("finalization outbox recovery is invalid");
+    const receipt = exactRecoveryReceipt === null
+      ? null
+      : exactRecoveryReceipt instanceof FinalizationExactRecoveryReceiptFact
+        ? exactRecoveryReceipt
+        : new FinalizationExactRecoveryReceiptFact(exactRecoveryReceipt);
+    if (receipt !== null && (receipt.idempotencyKey !== idempotencyKey || receipt.attempt !== attempt)) {
+      throw new Error("finalization exact recovery receipt must bind its outbox identity and attempt");
+    }
+    this.idempotencyKey = idempotencyKey;
+    this.status = status;
+    this.attempt = attempt;
+    this.failure = failure;
+    this.recovery = recovery === null ? null : Object.freeze(structuredClone(recovery));
+    this.exactRecoveryReceipt = receipt;
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationExactRecoveryReceiptFact {
+  constructor({ idempotencyKey, attempt, failure, recoveryKey = null } = {}) {
+    this.idempotencyKey = requireString(idempotencyKey, "finalization exact recovery receipt idempotencyKey");
+    if (!Number.isSafeInteger(attempt) || attempt < 1) throw new Error("finalization exact recovery receipt attempt is invalid");
+    this.attempt = attempt;
+    this.failure = requireString(failure, "finalization exact recovery receipt failure");
+    this.recoveryKey = recoveryKey === null ? null : requireString(recoveryKey, "finalization exact recovery receipt recoveryKey");
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationDurableProofFact {
+  constructor({ durable = false } = {}) {
+    if (typeof durable !== "boolean") throw new Error("finalization durable proof must be boolean");
+    this.durable = durable;
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationOperationLockFact {
+  constructor({ status = "not-acquired" } = {}) {
+    if (!new Set(["not-acquired", "busy", "available"]).has(status)) throw new Error("finalization operation lock status is invalid");
+    this.status = status;
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationMainAuthorityFact {
+  constructor({ mainRoot, authorityRoot } = {}) {
+    this.mainRoot = requireString(mainRoot, "finalization main authority root");
+    this.authorityRoot = requireString(authorityRoot, "finalization state authority root");
+    Object.freeze(this);
+  }
+
+  ownsMainState() {
+    return this.authorityRoot === this.mainRoot;
+  }
+}
+
+export class FinalizationPreSyncFact {
+  constructor({ state = null } = {}) {
+    if (state !== null && !new Set(["rebased", "needs-repair", "unavailable"]).has(state)) {
+      throw new Error("finalization pre-sync state is invalid");
+    }
+    this.state = state;
+    Object.freeze(this);
+  }
+}
+
+export class InterruptedFinalizeSyncRuntimeLogFact {
+  constructor({ receipt = null } = {}) {
+    if (receipt !== null && (typeof receipt !== "object" || Array.isArray(receipt))) throw new Error("interrupted finalize-sync runtime receipt is invalid");
+    if (receipt !== null) {
+      const fields = Object.keys(receipt).sort();
+      if (JSON.stringify(fields) !== JSON.stringify(["command", "complete", "runId", "sequence", "startedAt"].sort())) {
+        throw new Error("interrupted finalize-sync runtime receipt fields are invalid");
+      }
+      requireString(receipt.runId, "interrupted finalize-sync runtime receipt runId");
+      if (!Number.isSafeInteger(receipt.sequence) || receipt.sequence < 1) throw new Error("interrupted finalize-sync runtime receipt sequence is invalid");
+      if (receipt.command !== "flow run finalize-sync") throw new Error("interrupted finalize-sync runtime receipt command is invalid");
+      requireString(receipt.startedAt, "interrupted finalize-sync runtime receipt startedAt");
+      if (Number.isNaN(Date.parse(receipt.startedAt))) throw new Error("interrupted finalize-sync runtime receipt startedAt is invalid");
+      if (receipt.complete !== false) throw new Error("interrupted finalize-sync runtime receipt must be incomplete");
+    }
+    this.receipt = receipt === null ? null : Object.freeze(structuredClone(receipt));
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationRecoveryFacts {
+  constructor({ target, outbox, durableProof, operationLock, mainAuthority, interruptedRuntimeLog = new InterruptedFinalizeSyncRuntimeLogFact(), preSync = new FinalizationPreSyncFact() } = {}) {
+    if (!(target instanceof FinalizationRecoveryTargetFact)) throw new Error("finalization recovery requires a typed target");
+    if (!(outbox instanceof FinalizationOutboxFact)) throw new Error("finalization recovery requires typed outbox facts");
+    if (!(durableProof instanceof FinalizationDurableProofFact)) throw new Error("finalization recovery requires durable proof facts");
+    if (!(operationLock instanceof FinalizationOperationLockFact)) throw new Error("finalization recovery requires operation lock facts");
+    if (!(mainAuthority instanceof FinalizationMainAuthorityFact)) throw new Error("finalization recovery requires main authority facts");
+    if (!(interruptedRuntimeLog instanceof InterruptedFinalizeSyncRuntimeLogFact)) throw new Error("finalization recovery requires runtime log facts");
+    if (!(preSync instanceof FinalizationPreSyncFact)) throw new Error("finalization recovery requires pre-sync facts");
+    this.target = target;
+    this.outbox = outbox;
+    this.durableProof = durableProof;
+    this.operationLock = operationLock;
+    this.mainAuthority = mainAuthority;
+    this.interruptedRuntimeLog = interruptedRuntimeLog;
+    this.preSync = preSync;
+    Object.freeze(this);
+  }
+}
+
+export class FinalizationRecoveryDecision {
+  constructor(token, { facts, operation, reason = null } = {}) {
+    if (token !== FINALIZATION_RECOVERY_TOKEN) throw new Error("finalization recovery decisions are created only by Definition");
+    if (!(facts instanceof FinalizationRecoveryFacts)) throw new Error("finalization recovery decision requires typed facts");
+    if (!FINALIZATION_RECOVERY_OPERATIONS.has(operation)) throw new Error("finalization recovery operation is invalid");
+    this.facts = facts;
+    this.operation = operation;
+    this.reason = reason === null ? null : requireString(reason, "finalization recovery reason");
+    Object.freeze(this);
+  }
+}
+
+/** Select exactly one finalization route from canonical, immutable facts. */
+export function resolveFinalizationRecovery(facts) {
+  if (!(facts instanceof FinalizationRecoveryFacts)) throw new Error("resolveFinalizationRecovery requires typed facts");
+  const { target, outbox, operationLock, mainAuthority, interruptedRuntimeLog, preSync } = facts;
+  const recoveryPending = (target.stepId === "finalize-sync" && outbox.status === "pending" && interruptedRuntimeLog.receipt !== null)
+    || outbox.status === "failed";
+  if (recoveryPending && operationLock.status === "busy") {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "blocked", reason: "operation_lock_busy" });
+  }
+  if (["finalize-sync", "finalize-cleanup"].includes(target.stepId) && recoveryPending && !mainAuthority.ownsMainState()) {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "blocked", reason: "main_authority_required" });
+  }
+  if (target.stepId === "finalize-sync" && outbox.status === "pending" && interruptedRuntimeLog.receipt !== null) {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "interrupted-sync-settlement" });
+  }
+  if (outbox.status !== "failed") {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "ordinary-execute" });
+  }
+  if (preSync.state === "needs-repair") {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "pre-sync-conflict-repair" });
+  }
+  if (preSync.state === "unavailable") {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "blocked", reason: "pre_sync_state_unavailable" });
+  }
+  const recoveryKey = outbox.recovery?.baseHead ?? null;
+  if (outbox.exactRecoveryReceipt !== null && (recoveryKey === null || outbox.exactRecoveryReceipt.recoveryKey === recoveryKey)) {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "exhausted", reason: "exact_recovery_consumed" });
+  }
+  if (target.stepId !== "finalize-merge" && !facts.durableProof.durable) {
+    return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "blocked", reason: "durable_proof_unavailable" });
+  }
+  return new FinalizationRecoveryDecision(FINALIZATION_RECOVERY_TOKEN, { facts, operation: "exact-outbox-recovery" });
+}
+
 const NON_GATE_TRANSITION_TOKEN = Symbol("definition-non-gate-transition");
 const NON_GATE_OPERATIONS = new Set([
   "advance", "keep-in-progress", "await-user-input", "retry", "repair",

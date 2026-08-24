@@ -80,6 +80,7 @@ function setupFinalizeCleanupFlow(root, {
   baseBranch = "main",
   featureBranch = "feature/001-test",
   worktree = false,
+  targetStep = "finalize-cleanup",
 } = {}) {
   const flowManager = makeFlowManager(root);
   return new FlowAtStepFixture({
@@ -92,7 +93,7 @@ function setupFinalizeCleanupFlow(root, {
       baseBranch,
       featureBranch,
     },
-    targetStep: "finalize-cleanup",
+    targetStep,
   }).create().state();
 }
 
@@ -140,7 +141,11 @@ describe("finalize-cleanup robustness", () => {
     fs.mkdirSync(worktreeRoot);
     initGitRepo(mainRoot);
 
-    const state = setupFinalizeCleanupFlow(mainRoot, { worktree: true, featureBranch: "feature/test" });
+    const state = setupFinalizeCleanupFlow(mainRoot, {
+      worktree: true,
+      featureBranch: "feature/test",
+      targetStep: "finalize-merge",
+    });
     const specId = state.specId;
 
     const { FlowManager } = await import("../../../src/lib/flow-manager.js");
