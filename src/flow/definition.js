@@ -11,6 +11,8 @@
  * Max depth: 3 (root list → branch → leaf). Traversal helpers enforce this.
  */
 
+import { createHash } from "node:crypto";
+
 import {
   CurrentFlowDefinition,
   DefinitionDraftDisposition,
@@ -45,6 +47,20 @@ import {
   GateTargetBinding,
   GateTransitionFacts,
 } from "./lib/gate-transition.js";
+import {
+  NonGateAttemptIdentity,
+  NonGateCatalogPublication,
+  NonGateCompletionFacts,
+  NonGateLineage,
+  NonGateProducerOwnership,
+  NonGateRepairPublication,
+  NonGateRecoveryEvidence,
+  NonGateRetryMetrics,
+  NonGateSourcePublication,
+  NonGateStepFacts,
+  NonGateTargetBinding,
+  NonGateTransitionFacts,
+} from "./lib/non-gate-transition.js";
 
 // Facts are read by a focused boundary, but every Gate policy value and the
 // only resolver live in this definition module. Commands, registry hooks,
@@ -60,6 +76,18 @@ export {
   GateProducerOwnership,
   GateTargetBinding,
   GateTransitionFacts,
+  NonGateAttemptIdentity,
+  NonGateCatalogPublication,
+  NonGateCompletionFacts,
+  NonGateLineage,
+  NonGateProducerOwnership,
+  NonGateRepairPublication,
+  NonGateRecoveryEvidence,
+  NonGateRetryMetrics,
+  NonGateSourcePublication,
+  NonGateStepFacts,
+  NonGateTargetBinding,
+  NonGateTransitionFacts,
 };
 
 const MAX_DEPTH = 3;
@@ -326,6 +354,319 @@ export function resolveGateTransition(facts) {
     disposition: new GateBlockedDisposition(GATE_TRANSITION_TOKEN, "retry_exhausted"),
     plan: gateActivePlan(facts),
   });
+}
+
+// Non-Gate transition policy is intentionally independent from the temporary
+// Gate migration path above.  A Step contributes typed evidence, while this
+// reducer alone selects the disposition, plan and stable Action identity.
+const NON_GATE_TRANSITION_TOKEN = Symbol("definition-non-gate-transition");
+const NON_GATE_OPERATIONS = new Set([
+  "advance", "keep-in-progress", "await-user-input", "retry", "repair",
+  "record-and-proceed", "external-blocked", "blocked", "park",
+]);
+
+export class NonGateTransitionDisposition {
+  constructor(token, { operation, reason = null } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN) {
+      throw new Error("non-Gate dispositions are created only by the definition resolver");
+    }
+    this.operation = requireString(operation, "non-Gate disposition operation");
+    if (!NON_GATE_OPERATIONS.has(this.operation)) throw new Error("non-Gate disposition operation is invalid");
+    this.reason = reason == null ? null : requireString(reason, "non-Gate disposition reason");
+    Object.freeze(this);
+  }
+
+  toJSON() { return { operation: this.operation, reason: this.reason }; }
+}
+
+class NonGateDisposition extends NonGateTransitionDisposition {
+  constructor(token, operation, reason = null) { super(token, { operation, reason }); }
+}
+
+export class NonGateAdvanceDisposition extends NonGateDisposition { constructor(token) { super(token, "advance"); } }
+export class NonGateKeepInProgressDisposition extends NonGateDisposition { constructor(token) { super(token, "keep-in-progress"); } }
+export class NonGateAwaitUserInputDisposition extends NonGateDisposition { constructor(token) { super(token, "await-user-input"); } }
+export class NonGateRetryDisposition extends NonGateDisposition { constructor(token) { super(token, "retry"); } }
+export class NonGateRepairDisposition extends NonGateDisposition { constructor(token) { super(token, "repair"); } }
+export class NonGateRecordAndProceedDisposition extends NonGateDisposition { constructor(token) { super(token, "record-and-proceed"); } }
+export class NonGateExternalBlockedDisposition extends NonGateDisposition { constructor(token, reason) { super(token, "external-blocked", reason); } }
+export class NonGateBlockedDisposition extends NonGateDisposition { constructor(token, reason) { super(token, "blocked", reason); } }
+export class NonGateParkDisposition extends NonGateDisposition { constructor(token, reason = null) { super(token, "park", reason); } }
+
+/**
+ * A Step-specific Definition returns this declaration after interpreting its
+ * own typed facts.  It is deliberately not a transition plan: only the
+ * common Definition reducer below mints a sealed decision, plan and Action.
+ */
+export class NonGateTransitionSelection {
+  constructor({ operation, reason = null, actions = [] } = {}) {
+    this.operation = requireString(operation, "non-Gate selection operation");
+    if (!NON_GATE_OPERATIONS.has(this.operation)) throw new Error("non-Gate selection operation is invalid");
+    this.reason = reason == null ? null : requireString(reason, "non-Gate selection reason");
+    if (!Array.isArray(actions) || actions.some((action) => (
+      !(action instanceof NonGateStepAction)
+      || !Object.isFrozen(action)
+      || action.apply === NonGateStepAction.prototype.apply
+      || action.toJSON === NonGateStepAction.prototype.toJSON
+    ))) {
+      throw new Error("non-Gate selection actions must be typed Step actions");
+    }
+    this.actions = Object.freeze([...actions]);
+    Object.freeze(this);
+  }
+}
+
+/** Extension base for Step-specific persistence actions selected by Definition. */
+export class NonGateStepAction {
+  constructor() {
+    if (new.target === NonGateStepAction) throw new Error("non-Gate Step actions require a dedicated subclass");
+  }
+
+  apply() { throw new Error("non-Gate Step action subclasses must implement apply()"); }
+  toJSON() { throw new Error("non-Gate Step action subclasses must implement toJSON()"); }
+}
+
+/**
+ * Extension boundary for a non-Gate Step's Definition-owned policy.  A
+ * producer supplies only its typed facts; this Definition selects a semantic
+ * disposition, and the shared reducer remains the sole plan authority.
+ */
+export class NonGateStepDefinition {
+  constructor({ stepId, factsType, select } = {}) {
+    this.stepId = requireString(stepId, "non-Gate Step Definition stepId");
+    if (typeof factsType !== "function" || !(factsType.prototype instanceof NonGateStepFacts)) {
+      throw new Error("non-Gate Step Definition factsType must extend NonGateStepFacts");
+    }
+    if (typeof select !== "function") throw new Error("non-Gate Step Definition select must be a function");
+    this.factsType = factsType;
+    this.select = select;
+    Object.freeze(this);
+  }
+
+  selectionFor(facts) {
+    if (!(facts instanceof NonGateTransitionFacts) || facts.stepId !== this.stepId) {
+      throw new Error("non-Gate Step Definition does not own these facts");
+    }
+    if (!(facts.stepFacts instanceof this.factsType)) {
+      throw new Error("non-Gate Step Definition received incompatible typed Step facts");
+    }
+    const selection = this.select(facts.stepFacts, facts);
+    if (!(selection instanceof NonGateTransitionSelection)) {
+      throw new Error("non-Gate Step Definition must return NonGateTransitionSelection");
+    }
+    return selection;
+  }
+}
+
+/** Stable Action identity; it intentionally contains no clock or caller data. */
+export class NonGateActionIdentity {
+  constructor(token, { runId, specId, stepId, attempt, catalogFingerprint, factsFingerprint, selectedFingerprint, operation } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN) {
+      throw new Error("non-Gate Action identities are created only by the definition resolver");
+    }
+    this.runId = requireString(runId, "non-Gate Action runId");
+    this.specId = requireString(specId, "non-Gate Action specId");
+    this.stepId = requireString(stepId, "non-Gate Action stepId");
+    this.attempt = attempt instanceof NonGateAttemptIdentity ? attempt : new NonGateAttemptIdentity(attempt);
+    this.catalogFingerprint = requireString(catalogFingerprint, "non-Gate Action catalog fingerprint");
+    this.factsFingerprint = requireString(factsFingerprint, "non-Gate Action facts fingerprint");
+    this.selectedFingerprint = requireString(selectedFingerprint, "non-Gate Action selected fingerprint");
+    this.operation = requireString(operation, "non-Gate Action operation");
+    if (!NON_GATE_OPERATIONS.has(this.operation)) throw new Error("non-Gate Action operation is invalid");
+    Object.freeze(this);
+  }
+
+  matches(other) {
+    return other instanceof NonGateActionIdentity
+      && this.runId === other.runId
+      && this.specId === other.specId
+      && this.stepId === other.stepId
+      && this.attempt.matches(other.attempt)
+      && this.catalogFingerprint === other.catalogFingerprint
+      && this.factsFingerprint === other.factsFingerprint
+      && this.selectedFingerprint === other.selectedFingerprint
+      && this.operation === other.operation;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId, specId: this.specId, stepId: this.stepId,
+      attempt: this.attempt.toJSON(), catalogFingerprint: this.catalogFingerprint,
+      factsFingerprint: this.factsFingerprint, operation: this.operation,
+      selectedFingerprint: this.selectedFingerprint,
+    };
+  }
+}
+
+export class NonGateTransitionAction {
+  constructor(token, { identity } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(identity instanceof NonGateActionIdentity)) {
+      throw new Error("non-Gate Actions are created only by the definition resolver");
+    }
+    this.identity = identity;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { identity: this.identity.toJSON() }; }
+}
+
+export class NonGateStepUpdate {
+  constructor({ stepId, status } = {}) {
+    this.stepId = requireString(stepId, "non-Gate step update stepId");
+    this.status = requireString(status, "non-Gate step update status");
+    if (!["in_progress", "done"].includes(this.status)) throw new Error("non-Gate step update status is invalid");
+    Object.freeze(this);
+  }
+
+  toJSON() { return { stepId: this.stepId, status: this.status }; }
+}
+
+/** Typed plan effect; adapters apply it but cannot replace it with a route. */
+export class NonGateSetStepStatusAction extends NonGateStepAction {
+  constructor(token, { update } = {}) {
+    super();
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(update instanceof NonGateStepUpdate)) throw new Error("non-Gate status action requires a definition update");
+    this.update = update;
+    Object.freeze(this);
+  }
+  apply(adapter, plan) { return adapter.setStepStatus(this.update, plan); }
+  toJSON() { return { action: "set-step-status", update: this.update.toJSON() }; }
+}
+
+export class NonGateIncrementRetryAction extends NonGateStepAction {
+  constructor(token, { stepId } = {}) {
+    super();
+    if (token !== NON_GATE_TRANSITION_TOKEN) throw new Error("non-Gate retry action requires the definition resolver");
+    this.stepId = requireString(stepId, "non-Gate retry action stepId");
+    Object.freeze(this);
+  }
+  apply(adapter, plan) { return adapter.incrementRetry(this.stepId, plan); }
+  toJSON() { return { action: "increment-retry", stepId: this.stepId }; }
+}
+
+/** Sealed typed authority consumed by persistence and command admission only. */
+export class NonGateTransitionPlan {
+  constructor(token, { action, actions } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN) {
+      throw new Error("non-Gate transition plans are created only by the definition resolver");
+    }
+    if (!(action instanceof NonGateTransitionAction)) throw new Error("non-Gate plan requires a typed Action");
+    if (!Array.isArray(actions) || actions.some((entry) => !(entry instanceof NonGateStepAction))) {
+      throw new Error("non-Gate plan requires typed actions");
+    }
+    this.action = action;
+    this.actions = Object.freeze([...actions]);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      action: this.action.toJSON(), actions: this.actions.map((entry) => entry.toJSON()),
+    };
+  }
+}
+
+export class NonGateTransitionDecision {
+  constructor(token, { facts, disposition, plan } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN) {
+      throw new Error("non-Gate transition decisions are created only by the definition resolver");
+    }
+    if (!(facts instanceof NonGateTransitionFacts)) throw new Error("non-Gate decision requires typed facts");
+    if (!(disposition instanceof NonGateTransitionDisposition)) throw new Error("non-Gate decision requires typed disposition");
+    if (!(plan instanceof NonGateTransitionPlan)) throw new Error("non-Gate decision requires typed plan");
+    if (plan.action.identity.operation !== disposition.operation) throw new Error("non-Gate plan Action does not match disposition");
+    this.facts = facts;
+    this.disposition = disposition;
+    this.plan = plan;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { facts: this.facts.toJSON(), disposition: this.disposition.toJSON(), plan: this.plan.toJSON() }; }
+}
+
+function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetry = false, stepActions = [] } = {}) {
+  const update = new NonGateStepUpdate({ stepId: facts.stepId, status });
+  const actions = [
+    new NonGateSetStepStatusAction(NON_GATE_TRANSITION_TOKEN, { update }),
+    ...(incrementRetry ? [new NonGateIncrementRetryAction(NON_GATE_TRANSITION_TOKEN, { stepId: facts.stepId })] : []),
+    ...stepActions,
+  ];
+  const identity = new NonGateActionIdentity(NON_GATE_TRANSITION_TOKEN, {
+    runId: facts.runId,
+    specId: facts.specId,
+    stepId: facts.stepId,
+    attempt: facts.currentAttempt,
+    catalogFingerprint: facts.catalogPublication.fingerprint,
+    factsFingerprint: nonGateFactsFingerprint(facts),
+    selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: actions.map((entry) => entry.toJSON()) })).digest("hex"),
+    operation: disposition.operation,
+  });
+  return new NonGateTransitionPlan(NON_GATE_TRANSITION_TOKEN, {
+    action: new NonGateTransitionAction(NON_GATE_TRANSITION_TOKEN, { identity }),
+    actions,
+  });
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map((entry) => stableJson(entry)).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function nonGateFactsFingerprint(facts) {
+  return createHash("sha256").update(stableJson(facts.toJSON())).digest("hex");
+}
+
+function nonGateDecision(facts, disposition, options) {
+  return new NonGateTransitionDecision(NON_GATE_TRANSITION_TOKEN, {
+    facts,
+    disposition,
+    plan: nonGatePlan(facts, disposition, options),
+  });
+}
+
+/** Deterministic, phase-neutral reducer for all non-Gate Step facts. */
+export function resolveNonGateTransition(facts, stepDefinition) {
+  if (!(facts instanceof NonGateTransitionFacts)) {
+    throw new Error("resolveNonGateTransition requires NonGateTransitionFacts");
+  }
+  if (!(stepDefinition instanceof NonGateStepDefinition)) {
+    throw new Error("resolveNonGateTransition requires a typed Step Definition");
+  }
+  if (facts.integrityFailure !== null) {
+    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, facts.integrityFailure));
+  }
+  if (facts.completion.partial) {
+    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "partial_completion"));
+  }
+  const selection = stepDefinition.selectionFor(facts);
+  const selectedDecision = (disposition, options = {}) => nonGateDecision(facts, disposition, {
+    ...options,
+    stepActions: selection.actions,
+  });
+  if (selection.operation === "advance") {
+    if (!facts.completion.completed) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "completion_unconfirmed"));
+    return selectedDecision(new NonGateAdvanceDisposition(NON_GATE_TRANSITION_TOKEN), { status: "done" });
+  }
+  if (selection.operation === "keep-in-progress") return selectedDecision(new NonGateKeepInProgressDisposition(NON_GATE_TRANSITION_TOKEN));
+  if (selection.operation === "await-user-input") return selectedDecision(new NonGateAwaitUserInputDisposition(NON_GATE_TRANSITION_TOKEN));
+  if (selection.operation === "retry") {
+    if (facts.retry.exhausted) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "retry_exhausted"));
+    return selectedDecision(new NonGateRetryDisposition(NON_GATE_TRANSITION_TOKEN), { incrementRetry: true });
+  }
+  if (selection.operation === "repair") return selectedDecision(new NonGateRepairDisposition(NON_GATE_TRANSITION_TOKEN));
+  if (selection.operation === "record-and-proceed") {
+    return selectedDecision(new NonGateRecordAndProceedDisposition(NON_GATE_TRANSITION_TOKEN), { status: "done" });
+  }
+  if (selection.operation === "external-blocked") {
+    return selectedDecision(new NonGateExternalBlockedDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason || "external_blocked"));
+  }
+  if (selection.operation === "park") {
+    return selectedDecision(new NonGateParkDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason), { status: "done" });
+  }
+  return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason || "blocked"));
 }
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);

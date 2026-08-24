@@ -18,6 +18,7 @@ import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
+import { CurrentFlowTransitionSnapshot } from "../flow/lib/current-flow-state.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
 import { bindFlowStateLocation, DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
@@ -418,6 +419,17 @@ export class FlowManager {
   }
   canonicalState(specId = this._boundSpecId) {
     return this._store.canonicalState(specId);
+  }
+  /** Re-read the one canonical source used by non-Gate Definition facts. */
+  readCanonicalTransitionSnapshot(specId = this._boundSpecId) {
+    const snapshot = this._store.transitionSnapshot(withSpecIdArgDefault(specId, this._boundSpecId));
+    if (snapshot === null) return null;
+    return new CurrentFlowTransitionSnapshot({
+      state: snapshot.state,
+      revision: snapshot.revision,
+      activities: snapshot.activities,
+      catalog: snapshot.catalog,
+    });
   }
   activityLedger(specId = this._boundSpecId) {
     return this._store.activityLedger(specId);

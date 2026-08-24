@@ -802,6 +802,20 @@ export class CanonicalFlowManagerStore {
     return Object.freeze(snapshot.activities.map((activity) => Object.freeze(activity.toJSON())));
   }
 
+  /** Store-owned atomic source for Definition transition facts. */
+  transitionSnapshot(specId) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) return null;
+    const snapshot = this.runtime.loadTransitionSnapshot(resolved);
+    if (snapshot === null) return null;
+    return Object.freeze({
+      state: snapshot.state,
+      revision: snapshot.revision,
+      activities: Object.freeze(snapshot.activities.map((activity) => Object.freeze(activity.toJSON()))),
+      catalog: Object.freeze(snapshot.catalog.map((descriptor) => Object.freeze(structuredClone(descriptor)))),
+    });
+  }
+
   /**
    * Atomically claim the next definition-owned action through an Attempt.
    * Querying `get next-action` is the command-context operation, so this is

@@ -2714,6 +2714,63 @@ export class DefinitionDraftDisposition {
   }
 }
 
+/**
+ * Read-only canonical snapshot for Definition-owned transition facts.
+ * It deliberately contains only persisted Version Store values; callers may
+ * use it to construct Step facts but may not mutate it into a route choice.
+ */
+function immutableSnapshotValue(value) {
+  if (value === null || typeof value !== "object") return value;
+  for (const entry of Object.values(value)) immutableSnapshotValue(entry);
+  return Object.freeze(value);
+}
+
+export class CurrentFlowTransitionSnapshot {
+  constructor({ state, revision, activities, catalog } = {}) {
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("canonical transition snapshot requires a current Flow state");
+    }
+    if (!Array.isArray(state.current) || state.current.length === 0 || state.attempt === null) {
+      throw new CurrentFlowStateInvariantError("canonical transition snapshot requires an active Attempt");
+    }
+    if (!Array.isArray(activities)) throw new CurrentFlowStateInvariantError("canonical transition snapshot activities are required");
+    if (typeof revision !== "string" || revision.length === 0) {
+      throw new CurrentFlowStateInvariantError("canonical transition snapshot revision is required");
+    }
+    if (!Array.isArray(catalog)) throw new CurrentFlowStateInvariantError("canonical transition snapshot catalog is required");
+    this.runId = state.runId;
+    this.specId = state.specId;
+    this.stepId = state.current.at(-1);
+    this.revision = revision;
+    // CurrentFlowState is immutable by construction.  Preserve the typed
+    // Version Store value rather than leaking a mutable JSON reconstruction.
+    this.state = state;
+    this.attempt = Object.freeze({ id: state.attempt.id, sequence: state.attempt.sequence });
+    this.activities = Object.freeze(activities.map((activity) => Object.freeze({
+      id: activity.id,
+      attemptId: activity.attemptId,
+      sequence: activity.sequence,
+      nodeId: activity.nodeId,
+      transition: activity.transition == null ? null : immutableSnapshotValue(structuredClone(activity.transition)),
+    })));
+    this.catalog = Object.freeze(catalog.map((descriptor) => immutableSnapshotValue(structuredClone(descriptor))));
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      specId: this.specId,
+      stepId: this.stepId,
+      revision: this.revision,
+      state: this.state.toJSON(),
+      attempt: { ...this.attempt },
+      activities: this.activities.map((activity) => structuredClone(activity)),
+      catalog: this.catalog.map((descriptor) => structuredClone(descriptor)),
+    };
+  }
+}
+
 export class CurrentNextActionDescriptor {
   constructor({
     path: currentPath,
@@ -6559,6 +6616,23 @@ export class CurrentFlowVersionStore {
         if (snapshot === null) return null;
         this.#assertPersistedIdentity(snapshot.state);
         return snapshot;
+      },
+    });
+  }
+  /** Read state, Activity prefix, revision and catalog under one catalog lock. */
+  loadTransitionSnapshot() {
+    return this.catalogStore.read({
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: (catalog) => {
+        const snapshot = this.#store().loadSnapshot();
+        if (snapshot === null) return null;
+        this.#assertPersistedIdentity(snapshot.state);
+        return Object.freeze({
+          state: snapshot.state,
+          revision: snapshot.revision,
+          activities: snapshot.activities,
+          catalog: Object.freeze(catalog.artifacts.map((entry) => entry.toJSON())),
+        });
       },
     });
   }

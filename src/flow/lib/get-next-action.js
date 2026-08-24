@@ -62,6 +62,11 @@ import {
   readDraftTransitionFacts,
 } from "./draft-transition-facts.js";
 
+// New non-Gate Step migrations use this shared read → Definition → route
+// validation → Action projection contract. Existing Step migrations retain
+// their scoped boundaries until they are explicitly moved.
+export { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
 function resolveSchemaDir() {

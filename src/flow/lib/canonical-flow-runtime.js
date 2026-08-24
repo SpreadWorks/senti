@@ -165,6 +165,9 @@ export class CanonicalFlowRuntime {
   loadSnapshot(specId) {
     return this.store(specId).loadSnapshot();
   }
+  loadTransitionSnapshot(specId) {
+    return this.store(specId).loadTransitionSnapshot();
+  }
 
   assertWritable(specId) {
     return this.store(specId).assertWritable();
