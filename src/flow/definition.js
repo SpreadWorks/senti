@@ -61,6 +61,15 @@ import {
   NonGateTargetBinding,
   NonGateTransitionFacts,
 } from "./lib/non-gate-transition.js";
+import {
+  FinalRegressionArtifactDigest,
+  FinalRegressionChangedFileSnapshot,
+  FinalRegressionFailureProfileFact,
+  FinalRegressionNonblockingPolicy,
+  FinalRegressionProceedEvidence,
+  FinalRegressionRetryHistory,
+  FinalRegressionStepFacts,
+} from "./lib/final-regression-transition.js";
 
 // Facts are read by a focused boundary, but every Gate policy value and the
 // only resolver live in this definition module. Commands, registry hooks,
@@ -88,6 +97,13 @@ export {
   NonGateStepFacts,
   NonGateTargetBinding,
   NonGateTransitionFacts,
+  FinalRegressionArtifactDigest,
+  FinalRegressionChangedFileSnapshot,
+  FinalRegressionFailureProfileFact,
+  FinalRegressionNonblockingPolicy,
+  FinalRegressionProceedEvidence,
+  FinalRegressionRetryHistory,
+  FinalRegressionStepFacts,
 };
 
 const MAX_DEPTH = 3;
@@ -458,6 +474,62 @@ export class NonGateStepDefinition {
     }
     return selection;
   }
+}
+
+/**
+ * Final regression owns its meaning here.  The runner supplies observations
+ * and the registry applies this sealed result; neither is permitted to turn
+ * a failure category into an independent route.
+ */
+function selectFinalRegressionTransition(stepFacts, facts = null) {
+  if (!(stepFacts instanceof FinalRegressionStepFacts)) {
+    throw new Error("final-regression Definition requires FinalRegressionStepFacts");
+  }
+  if (!stepFacts.changedFileSnapshot.current) {
+    return new NonGateTransitionSelection({ operation: "blocked", reason: "stale_changed_file_snapshot" });
+  }
+  if (facts !== null && (
+    stepFacts.retryHistory.used !== facts.retry.used
+    || stepFacts.retryHistory.maximum !== facts.retry.maximum
+  )) {
+    return new NonGateTransitionSelection({ operation: "blocked", reason: "retry_history_mismatch" });
+  }
+  if (stepFacts.result === "pass" || stepFacts.result === "skipped") {
+    return new NonGateTransitionSelection({ operation: "advance" });
+  }
+  if (stepFacts.recordAndProceed.accepted) {
+    return new NonGateTransitionSelection({ operation: "record-and-proceed" });
+  }
+  if (stepFacts.failure.tooling) {
+    return new NonGateTransitionSelection({ operation: "external-blocked", reason: stepFacts.failure.kind || "tooling_failure" });
+  }
+  if (stepFacts.failure.currentChange) {
+    return new NonGateTransitionSelection({ operation: stepFacts.retryHistory.exhausted ? "blocked" : "repair", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : null });
+  }
+  if (stepFacts.failure.existing) {
+    return new NonGateTransitionSelection({ operation: "await-user-input" });
+  }
+  return new NonGateTransitionSelection({ operation: "blocked", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure" });
+}
+
+export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
+  stepId: "final-regression",
+  factsType: FinalRegressionStepFacts,
+  select: selectFinalRegressionTransition,
+});
+
+/** Compatibility-only artifact projection of the Definition's selected route. */
+export function projectFinalRegressionTransition(stepFacts) {
+  const selection = selectFinalRegressionTransition(stepFacts);
+  const compatibility = {
+    "advance": { retryable: false, nextAction: "report" },
+    "repair": { retryable: true, nextAction: "regression-repair" },
+    "await-user-input": { retryable: false, nextAction: "user-confirmation" },
+    "record-and-proceed": { retryable: false, nextAction: "report" },
+    "external-blocked": { retryable: false, nextAction: "stop" },
+    "blocked": { retryable: false, nextAction: "stop" },
+  }[selection.operation];
+  return Object.freeze({ ...compatibility, operation: selection.operation, reason: selection.reason });
 }
 
 /** Stable Action identity; it intentionally contains no clock or caller data. */
@@ -2130,7 +2202,11 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
-        failurePolicy: "retry",
+        // Final-regression retry/repair meaning belongs to the typed
+        // FINAL_REGRESSION_STEP_DEFINITION above.  The generic failure policy
+        // is deliberately inert and remains only as a compatibility
+        // descriptor for CurrentFlowState.nextAction().
+        failurePolicy: "block",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("final-regression"),
         failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),

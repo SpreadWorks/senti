@@ -2106,25 +2106,34 @@ export const FLOW_COMMANDS = {
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
-        const { validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
+        const { CanonicalTestArtifactStore } = await import("./lib/canonical-test-artifacts.js");
+        const { captureFinalRegressionChangedSnapshotDigest, resolveCanonicalFinalRegressionTransition } = await import("./lib/final-regression-transition-facts.js");
+        const { applyFinalRegressionTransition } = await import("./lib/final-regression-transition-application.js");
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "final.regression") throw new Error("final-regression canonical result artifact is missing");
-        const artifact = validateFinalRegressionResult(attached.payload);
-        const failedRecorded = artifact.result === "fail"
-          && result?.result === "fail"
-          && result?.failedRecorded === true
-          && artifact.completed === true
-          && artifact.selectedAction === "explicit-record-and-proceed"
-          && artifact.recordAndProceed?.validated === true
-          && artifact.nextAction === "report";
-        const completed = (artifact.result === "pass" && result?.result === "pass")
-          || (artifact.result === "skipped" && result?.result === "skipped")
-          || failedRecorded;
-        if (!completed && artifact.result === "fail") return;
-        if (!completed) {
-          throw new Error("final-regression result is not pass, skipped, or failed-recorded");
+        const specId = ctx.specId ?? ctx.flowState.specId;
+        // Explicit acceptance is a Definition-selected replacement Attempt.
+        // The producer merely publishes the evidence; this plan adapter owns
+        // the canonical settlement and must not reinterpret artifact fields.
+        if (result?.result !== "fail") {
+          ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
         }
-        tryUpdateStepStatus(ctx, "final-regression", "done", undefined, { event: "final-regression:post", result });
+        const state = ctx.flowManager.canonicalState(specId);
+        const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+        const decision = resolveCanonicalFinalRegressionTransition({
+          flowManager: ctx.flowManager, specId,
+          changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+            root: ctx.executionRoot || ctx.root,
+            relativeSpecFile: store.location.relativeSpecFile,
+          }),
+          candidateArtifact: result?.failedRecorded === true ? attached.payload : null,
+        });
+        applyFinalRegressionTransition({
+          flowManager: ctx.flowManager,
+          specId,
+          commandResult: result,
+          decision,
+        });
       },
       async nonblockingPost(ctx, result) {
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");

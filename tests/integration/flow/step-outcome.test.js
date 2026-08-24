@@ -17,7 +17,6 @@ import {
   DependencyRegressionFailure,
   InvalidCommandRegressionFailure,
   PermissionRegressionFailure,
-  ResumeRecoveryPolicy,
   SandboxRegressionFailure,
   TimeoutRegressionFailure,
   classifyFinalRegressionFailure,
@@ -180,11 +179,12 @@ describe("typed final-regression recovery policies", () => {
   ];
 
   for (const scenario of cases) {
-    it(`classifies ${scenario.name} with an explicit resume policy`, () => {
+    it(`classifies ${scenario.name} as observation-only evidence`, () => {
       const failure = classifyFinalRegressionFailure(scenario.input);
       assert.ok(failure instanceof scenario.Failure);
-      assert.ok(failure.recoveryPolicy instanceof ResumeRecoveryPolicy);
-      assert.match(failure.recoveryPolicy.resumeInstruction, /retry|configure|permission|sandbox|dependency|timeout/i);
+      assert.equal(Object.hasOwn(failure, "recoveryPolicy"), false);
+      assert.equal(Object.hasOwn(failure, "nextAction"), false);
+      assert.equal(Object.hasOwn(failure, "retryable"), false);
     });
   }
 });

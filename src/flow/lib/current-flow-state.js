@@ -613,6 +613,16 @@ export class CanonicalFlowRuntimeArtifactWrite {
       : new CanonicalFlowRuntimeArtifactWrite(value);
   }
 
+  /** Raw evidence participates in a Definition decision and must remain Attempt-bound. */
+  get requiresActiveAttempt() {
+    return [
+      "scenario-validity-log",
+      "test-execute-log",
+      "final-regression-log",
+      "test-requirement-summary",
+    ].includes(this.artifact.contract.authoritySlot.kind);
+  }
+
   write(location, nodeId) {
     if (!(location instanceof FlowVersionLocation)) {
       throw new CurrentFlowStateInvariantError("canonical runtime artifact write requires a FlowVersionLocation");
@@ -3645,13 +3655,35 @@ export class CurrentFlowState {
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires an active Attempt");
     }
-    const leaf = nodeAtPath(this.root, this.current);
-    const next = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
     if (this.attempt.failure === null || !this.attempt.failure.retryable) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires a retryable failed active Attempt");
     }
     if (this.failureDisposition().operation !== "retry") {
       throw new CurrentFlowStateInvariantError("the definition failure policy does not authorize retry");
+    }
+    return this.#replaceFailedAttemptForRetry({ attempt, kind });
+  }
+
+  /** Replay the repair episode already admitted by the typed Step Definition. */
+  retryFinalRegressionAttempt({ attempt }) {
+    const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
+    if (leaf?.id !== "final-regression"
+      || this.attempt?.failure?.category !== "caused_by_current_change"
+      || this.attempt.failure.retryKind !== "semantic") {
+      throw new CurrentFlowStateInvariantError("final-regression repair requires a current-change failed Attempt");
+    }
+    return this.#replaceFailedAttemptForRetry({ attempt, kind: "semantic" });
+  }
+
+  #replaceFailedAttemptForRetry({ attempt, kind }) {
+    this.#assertExecutionActive();
+    if (this.current == null || this.attempt == null) {
+      throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires an active Attempt");
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    const next = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (this.attempt.failure === null || !this.attempt.failure.retryable) {
+      throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires a retryable failed active Attempt");
     }
     if (kind !== this.attempt.failure.retryKind) {
       throw new CurrentFlowStateInvariantError("retry kind must match the active Attempt failure decision");
@@ -5384,7 +5416,9 @@ export class ActivityTransition {
       if (activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("retry_attempt Activity must identify the active Attempt being replaced");
       }
-      return state.retryCurrentAttempt({ attempt: this.attempt, kind: state.attempt.failure.retryKind });
+      return targetId === "final-regression"
+        ? state.retryFinalRegressionAttempt({ attempt: this.attempt })
+        : state.retryCurrentAttempt({ attempt: this.attempt, kind: state.attempt.failure.retryKind });
     }
     if (this.operation === "update_attempt") {
       if (state.current == null || state.current.at(-1) !== targetId) {
@@ -6633,6 +6667,11 @@ class CanonicalTransitionView {
     this.revision = snapshot.revision;
     this.activities = snapshot.activities;
     this.catalog = catalog;
+    // Existing admissions receive the read capability by destructuring it
+    // from the view. Keep that capability bound to this lock-scoped catalog
+    // instead of requiring every admission to know the concrete view type.
+    this.readCatalogedArtifact = this.readCatalogedArtifact.bind(this);
+    this.readRuntimeArtifact = this.readRuntimeArtifact.bind(this);
     Object.freeze(this);
   }
 
@@ -6867,7 +6906,8 @@ export class CurrentFlowVersionStore {
         if (state.findNode(target) === null) {
           throw new CurrentFlowStateInvariantError(`canonical runtime artifact node is absent: ${target}`);
         }
-        if (state.current?.at(-1) !== target || state.attempt === null) {
+        if ((runtimeArtifact.requiresActiveAttempt || expected !== null)
+          && (state.current?.at(-1) !== target || state.attempt === null)) {
           throw new CurrentFlowStateInvariantError("canonical runtime artifact producer does not own the active Attempt");
         }
         if (expected !== null && !expected.matches(state)) {

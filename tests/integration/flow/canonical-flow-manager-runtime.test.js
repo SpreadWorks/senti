@@ -3226,8 +3226,6 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(blocked.result, "block");
     await FLOW_COMMANDS.run["scenario-validity"].post(context, blocked);
     context.flowState = manager.load(created.specId);
-    const gateRepair = new RunRepairPlanGateCommand().execute(context);
-    assert.equal(gateRepair.ok, true, JSON.stringify(gateRepair));
 
     const state = manager.load(created.specId);
     const next = await new GetNextActionCommand().execute({ ...context, flowState: state });
@@ -5532,42 +5530,36 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
 
     const blocked = await scenario.execute(context);
+    assert.equal(blocked.result, "block");
+    await FLOW_COMMANDS.run["scenario-validity"].post(context, blocked);
+    context.flowState = manager.load(created.specId);
     const issueLog = manager.readArtifact({
       specId: created.specId,
       logicalKey: "issue.log",
-      consumerNodeId: "scenario-validity",
+      consumerNodeId: "test",
     });
     const source = JSON.parse(issueLog.bytes.toString("utf8")).entries.at(-1);
-
-    assert.equal(blocked.result, "block");
     assert.equal(source.sourceArtifact, "scenario.validity");
     assert.match(source.testRevisionDigest, /^[a-f0-9]{64}$/);
     assert.deepEqual(source.observations.map((entry) => entry.refs), [["scenario.validity#summary.0"]]);
-    await FLOW_COMMANDS.run["scenario-validity"].post(context, blocked);
-    context.flowState = manager.load(created.specId);
-    const failedAttempt = manager.canonicalState(created.specId).attempt;
-    const resultPublication = manager.activityLedger(created.specId).find((activity) => (
+    const activities = manager.activityLedger(created.specId);
+    const resultPublication = activities.find((activity) => (
       activity.transition.operation === "publish_artifacts"
       && activity.nodeId === "scenario-validity"
     ));
-    assert.equal(resultPublication.attemptId, failedAttempt.id);
-    assert.equal(resultPublication.sequence, failedAttempt.sequence);
+    const repairActivity = activities.find((activity) => (
+      activity.transition.operation === "repair_scenario_validity"
+    ));
+    assert.equal(resultPublication.attemptId, repairActivity.attemptId);
+    assert.equal(resultPublication.sequence, repairActivity.sequence);
     const repairAction = await new GetNextActionCommand().execute(context);
-    assert.equal(repairAction.directive.actionId, "REPAIR_PLAN_GATE_EVIDENCE");
-    assert.equal(repairAction.directive.phase, "test");
-    const repaired = new RunRepairPlanGateCommand().execute({
-      ...context,
-      flowState: context.flowState,
-    });
+    assert.equal(repairAction.step, "test");
+    assert.ok(repairAction.context.planGateRepair);
     const typed = manager.canonicalState(created.specId);
-    const activities = manager.activityLedger(created.specId);
 
-    assert.equal(repaired.ok, true, JSON.stringify(repaired));
-    assert.equal(repaired.data.previousStep, "scenario-validity");
     assert.equal(typed.current.at(-1), "test");
     assert.equal(Object.hasOwn(typed.toJSON(), "planGateRepair"), false);
-    assert.equal(activities.at(-1).transition.operation, "plan_gate_repair");
-    assert.equal(activities.at(-1).references.repairs[0].label, source.issueLogId);
+    assert.equal(activities.at(-1).transition.operation, "repair_scenario_validity");
   });
 
   it("recovers a committed V1 handoff cleanup from the Flow runtime directory", async () => {

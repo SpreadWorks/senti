@@ -107,7 +107,7 @@ function publishIntegrationDesignArtifacts(fixture, flowManager, specId, require
   fixture.settle("test").activate("scenario-validity", { settlePredecessors: false });
   const testSourceRevision = new CanonicalTestArtifactStore({
     flowManager,
-    state: fixture.flow.state(),
+    state: fixture.state(),
   }).testSourceRevision().digest;
   publishAttemptArtifact(flowManager, specId, "scenario-validity", "scenario.validity", {
     version: "1",
@@ -135,7 +135,7 @@ function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requ
   const rawOutputPath = flowManager.specLocation(specId).relativeArtifact("test.execute.raw-log");
   const testSourceRevision = new CanonicalTestArtifactStore({
     flowManager,
-    state: fixture.flow.state(),
+    state: fixture.state(),
   }).testSourceRevision().digest;
   const rawBytes = Buffer.from("integration execution evidence\n", "utf8");
   flowManager.writeRuntimeArtifact({
@@ -152,7 +152,7 @@ function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requ
     version: "2",
     repairFingerprint,
     testSourceRevision,
-    rawEvidenceFingerprint: crypto.createHash("sha256").update(rawBytes).digest("hex"),
+    rawEvidenceFingerprint: canonicalRawEvidenceFingerprint(rawBytes),
     process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
     raw_output_path: rawOutputPath,
     summary: requirementIds.map((id) => ({
