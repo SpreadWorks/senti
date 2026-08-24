@@ -5,13 +5,19 @@
  */
 
 import { FlowCommand } from "./base-command.js";
-import { buildMetricsSummary } from "./get-status.js";
+import { AnsweredQuestion } from "./draft-question-ledger.js";
+import { DraftLifecycle } from "./draft-lifecycle.js";
 
 export default class GetQaCountCommand extends FlowCommand {
   execute(ctx) {
-    const summary = buildMetricsSummary(ctx.flowState.metrics || []);
-    const count = summary.total?.draft?.question ?? 0;
-
-    return { count };
+    const source = ctx.flowManager.readArtifact({
+      specId: ctx.flowState.specId,
+      logicalKey: "draft",
+      consumerNodeId: "draft-refine",
+      optional: true,
+    });
+    if (source === null) return { count: 0 };
+    const ledger = new DraftLifecycle(JSON.parse(source.bytes.toString("utf8"))).questionLedger;
+    return { count: ledger.questions.filter((question) => question instanceof AnsweredQuestion).length };
   }
 }

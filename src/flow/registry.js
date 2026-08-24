@@ -1124,10 +1124,10 @@ export const FLOW_COMMANDS = {
       args: {
         positional: ["questionId"],
         flags: withTargetGuardFlags(["--drop"]),
-        options: withTargetGuardOptions(["--answer", "--why", "--considered", "--dropped-reason"]),
+        options: withTargetGuardOptions(["--question-revision", "--answer", "--why", "--considered", "--dropped-reason"]),
       },
       help: [
-        `Usage: sennel flow set draft-answer <questionId> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>) ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: sennel flow set draft-answer <questionId> --question-revision <revision> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>) ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Record the explicit user's answer to the current draft question without completing draft-refine.",
         "The question id and active Flow target are guarded; the next unresolved question remains the dispatcher boundary.",

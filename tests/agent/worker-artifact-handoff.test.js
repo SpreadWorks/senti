@@ -105,6 +105,32 @@ function specWorkerAction() {
   };
 }
 
+function draftHandoffPayload(goal) {
+  return {
+    devType: "feature",
+    goal,
+    analysis: {
+      problem: "The worker must hand repaired draft bytes to the canonical parent publisher.",
+      proposedApproach: "Exercise the guarded worker artifact handoff.",
+      validation: "Read the canonical draft after the parent publishes the sealed bytes.",
+    },
+    decisionMap: {
+      knownFacts: [],
+      decisionPoints: [],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: [],
+      deferredToSpec: [],
+    },
+    questionLedger: {
+      revision: 0,
+      questions: [],
+      publication: "real-agent-worker-handoff",
+      evidenceDigest: "a".repeat(64),
+    },
+    approval: { approved: true },
+  };
+}
+
 function action(stepId) {
   if (stepId == null) {
     return {
@@ -135,7 +161,7 @@ function action(stepId) {
         '"summary":"Applied the parent publication repair.","items":[{"title":"Publish through the parent",',
         '"target":"goal","rationale":"The repair uses the guarded handoff.",',
         '"evidence":"The parent publishes the sealed bytes.","changedFieldPaths":["goal"]}]}',
-        'Write the declared draft.json payload as {"goal":"Parent publication is canonical."}.',
+        `Write the declared draft.json payload with exactly this JSON document: ${JSON.stringify(draftHandoffPayload("Parent publication is canonical."))}`,
         "Do not rename or omit items. Then seal the handoff exactly once.",
       ].join(" ");
   return {
@@ -182,7 +208,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         specRecord: { goal: "Exercise the worker handoff", requirements: [] },
       }).create();
       const canonicalSpecDir = flowManager.specLocation(specId).directory;
-      const draftBytes = Buffer.from(`${JSON.stringify({ goal: "Repair the worker handoff." }, null, 2)}\n`);
+      const draftBytes = Buffer.from(`${JSON.stringify(draftHandoffPayload("Repair the worker handoff."), null, 2)}\n`);
       fixture.activate("draft");
       flowManager.publishArtifacts({
         specId,
@@ -295,7 +321,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       });
       assert.deepEqual(
         downstreamRequest.inputs[0].document,
-        { goal: "Parent publication is canonical." },
+        draftHandoffPayload("Parent publication is canonical."),
       );
     } finally {
       process.env.PATH = originalPath;

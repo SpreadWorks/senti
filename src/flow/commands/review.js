@@ -3810,7 +3810,7 @@ async function runSpecReview(root, flow, spec, config, dryRun) {
 
 function formatDraftQuestionReviewEntry(q, i) {
   return [
-    `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]`,
+    `### ${q.id || `Q${i + 1}`} [${q.state || "unknown"} / ${q.category || "unknown"}]`,
     `**Question:** ${q.question}`,
   ].join("\n");
 }
@@ -3823,37 +3823,31 @@ function formatDraftQaMarkdownFieldLine(label, value, fallback) {
 
 function formatDraftCoverageReviewEntry(q, i) {
   return [
-    `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]`,
+    `### ${q.id || `Q${i + 1}`} [${q.state || "unknown"} / ${q.category || "unknown"}]`,
     `**Question:** ${q.question}`,
     formatDraftQaMarkdownFieldLine("Answer", q.answer, "(empty)"),
-    formatDraftQaMarkdownFieldLine("Evidence", q.evidence, "(none)"),
+    formatDraftQaMarkdownFieldLine("Evidence digest", q.evidenceDigest, "(none)"),
     formatDraftQaMarkdownFieldLine("Why", q.why, "(none)"),
     formatDraftQaMarkdownFieldLine("Considered", q.considered, "(none)"),
-    formatDraftQaMarkdownFieldLine("Dropped reason", q.droppedReason, "(none)"),
+    formatDraftQaMarkdownFieldLine("Discarded reason", q.reason, "(none)"),
   ].join("\n");
 }
 
 function selectDraftQuestionReviewEntries(entries) {
-  return entries.filter((q) => (
-    q.status === "pending"
-    || q.status === "approved"
-    || q.status == null
-  ));
+  return entries.filter((q) => q.state === "CandidateQuestion" || q.state === "AwaitingUserAnswer");
 }
 
 function selectDraftCoverageReviewEntries(entries) {
-  return entries.filter((q) => (
-    q.status === "answered"
-    || q.status === "dropped"
-  ));
+  return entries.filter((q) => ["ResolvedByExistingInformation", "AnsweredQuestion", "DiscardedQuestion"].includes(q.state));
 }
 
 function summarizeDraftQaStatuses(draftJson) {
-  const counts = { total: 0, pending: 0, approved: 0, answered: 0, dropped: 0, other: 0 };
-  if (!Array.isArray(draftJson?.qa)) return counts;
-  counts.total = draftJson.qa.length;
-  for (const q of draftJson.qa) {
-    if (Object.hasOwn(counts, q.status)) counts[q.status] += 1;
+  const counts = { total: 0, CandidateQuestion: 0, ResolvedByExistingInformation: 0, AwaitingUserAnswer: 0, AnsweredQuestion: 0, DiscardedQuestion: 0, other: 0 };
+  const questions = draftJson?.questionLedger?.questions;
+  if (!Array.isArray(questions)) return counts;
+  counts.total = questions.length;
+  for (const q of questions) {
+    if (Object.hasOwn(counts, q.state)) counts[q.state] += 1;
     else counts.other += 1;
   }
   return counts;
@@ -3863,10 +3857,11 @@ function formatDraftQaStatusSummary(draftJson) {
   const counts = summarizeDraftQaStatuses(draftJson);
   return [
     `- total: ${counts.total}`,
-    `- pending: ${counts.pending}`,
-    `- approved: ${counts.approved}`,
-    `- answered: ${counts.answered}`,
-    `- dropped: ${counts.dropped}`,
+    `- candidates: ${counts.CandidateQuestion}`,
+    `- resolved by existing information: ${counts.ResolvedByExistingInformation}`,
+    `- awaiting user answer: ${counts.AwaitingUserAnswer}`,
+    `- answered: ${counts.AnsweredQuestion}`,
+    `- discarded: ${counts.DiscardedQuestion}`,
     `- other: ${counts.other}`,
   ].join("\n");
 }
@@ -3890,28 +3885,29 @@ function formatDraftDecisionMap(draftJson) {
 }
 
 function formatDraftReviewQaEntries(draftJson, stage) {
-  if (!Array.isArray(draftJson?.qa)) return "(no QA entries)";
+  const questions = draftJson?.questionLedger?.questions;
+  if (!Array.isArray(questions)) return "(no draft question ledger entries)";
 
   if (stage.key === "questions") {
-    const entries = selectDraftQuestionReviewEntries(draftJson.qa);
-    if (entries.length === 0) return "(no pending or approved QA entries)";
+    const entries = selectDraftQuestionReviewEntries(questions);
+    if (entries.length === 0) return "(no candidate or awaiting question entries)";
     return entries.map(formatDraftQuestionReviewEntry).join("\n\n");
   }
 
-  const entries = selectDraftCoverageReviewEntries(draftJson.qa);
-  if (entries.length === 0) return "(no answered or dropped QA entries)";
+  const entries = selectDraftCoverageReviewEntries(questions);
+  if (entries.length === 0) return "(no resolved, answered, or discarded question entries)";
   return entries.map(formatDraftCoverageReviewEntry).join("\n\n");
 }
 
 function buildDraftQuestionReviewPrompt(draftJson, requestText) {
-  const qaText = Array.isArray(draftJson?.qa)
+  const qaText = Array.isArray(draftJson?.questionLedger?.questions)
     ? formatDraftReviewQaEntries(draftJson, { key: "questions" })
     : "(no QA entries)";
 
   return [
     "You are a draft question boundary reviewer. Perform a one-shot finite check of the persisted user-decision list.",
-    "This is not a question generation task. An empty qa[] is valid when the supplied authorities resolve every requirement.",
-    "Check only these finite defects in shown pending/approved entries:",
+    "This is not a question generation task. An empty question ledger is valid when the supplied authorities resolve every requirement.",
+    "Check only these finite defects in shown candidate entries:",
     "- The question is empty, duplicated, not self-contained, or asks for internal implementation details that project patterns should decide",
     "- The authoritative Request / Issue, Decision Map, project rules, or supplied context already determines the answer, making the question a redundant confirmation",
     "- The question includes an answer, rationale, evidence, or instruction instead of only the question text",
@@ -3922,7 +3918,7 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     "",
     "Output a numbered list of issues in this format:",
     "### 1. <title>",
-    "**QA:** q<N> (the qa.id)",
+    "**QA:** q<N> (the ledger question id)",
     "**Classification:** repair_target",
     "**Issue:** <which finite user-boundary defect is present>",
     "**Suggestion:** <answer or drop the existing QA entry using the cited existing evidence>",
@@ -3936,7 +3932,7 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     "## Draft QA Status Summary",
     formatDraftQaStatusSummary(draftJson),
     "",
-    "## Pending / Approved Draft QA Entries",
+    "## Candidate / Awaiting Draft Ledger Entries",
     qaText,
     "",
     "## Decision Map",
@@ -3960,7 +3956,7 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
     return buildDraftQuestionReviewPrompt(draftJson, requestText);
   }
 
-  const qaText = Array.isArray(draftJson?.qa)
+  const qaText = Array.isArray(draftJson?.questionLedger?.questions)
     ? formatDraftReviewQaEntries(draftJson, effectiveStage)
     : "(no QA entries)";
 
@@ -3975,11 +3971,12 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
     "",
     "Review limits:",
     "- Report at most 3 highest-impact blocking gaps.",
+    "- Do not append ledger entries.",
     "- Treat existing answers as authoritative. Do not grade answer clarity, support, wording quality, or propose edits to existing QA.",
     "",
     "Output a numbered list of blocking gaps in this format:",
     "### 1. <title>",
-    "**QA:** q<N> (related qa.id, or 'GLOBAL' if no single QA entry applies)",
+    "**QA:** q<N> (related ledger question id, or 'GLOBAL' if no single question applies)",
     "**Classification:** blocking",
     "**Blocking decision:** <the user decision that is still required>",
     "**Why blocking:** <why the spec cannot be written without this decision>",

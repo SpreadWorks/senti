@@ -1169,6 +1169,21 @@ export class SetStepStatus {
   }
 }
 
+/** Definition-selected post-confirmation mutation; adapters may only apply it. */
+export class PromoteDraftQuestionAndKeepRefineActive {
+  constructor({ questionId, questionRevision, digest, byteLength }) {
+    this.questionId = requireString(questionId, "draft promotion questionId");
+    if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) throw new Error("draft promotion questionRevision is invalid");
+    this.questionRevision = questionRevision;
+    this.digest = requireString(digest, "draft promotion digest");
+    if (!/^[a-f0-9]{64}$/.test(this.digest)) throw new Error("draft promotion digest is invalid");
+    if (!Number.isSafeInteger(byteLength) || byteLength < 0) throw new Error("draft promotion byteLength is invalid");
+    this.byteLength = byteLength;
+    Object.freeze(this);
+  }
+  apply(adapter) { return adapter.promoteDraftQuestionAndKeepRefineActive(this); }
+}
+
 const DEFINITION_LIFECYCLE_PLAN_TOKEN = Symbol("definition-lifecycle-plan");
 
 export class DefinitionLifecyclePlan {
@@ -1428,6 +1443,78 @@ export function resolveReviewTransition({
  * user-decision question. Artifact reading and directive rendering live in
  * other layers; this is the sole transition-policy owner.
  */
+export class DraftQuestionPromotionPlan {
+  constructor({ questionId, questionRevision } = {}) {
+    this.questionId = requireString(questionId, "draft question promotion questionId");
+    if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) {
+      throw new Error("draft question promotion questionRevision is invalid");
+    }
+    this.questionRevision = questionRevision;
+    Object.freeze(this);
+  }
+  toJSON() { return { operation: "promote-candidate", questionId: this.questionId, questionRevision: this.questionRevision }; }
+  apply(ledger) { return ledger.transitionCandidate(this.questionId, this.questionRevision); }
+}
+
+class ResolveDraftQuestionPlan {
+  constructor({ questionId, questionRevision } = {}) {
+    this.questionId = requireString(questionId, "draft question resolution questionId");
+    if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) throw new Error("draft question resolution questionRevision is invalid");
+    this.questionRevision = questionRevision;
+  }
+}
+
+export class AnswerDraftQuestionPlan extends ResolveDraftQuestionPlan {
+  constructor({ questionId, questionRevision, answer, why, considered = "" } = {}) {
+    super({ questionId, questionRevision });
+    this.answer = answer;
+    this.why = why;
+    this.considered = considered;
+    Object.freeze(this);
+  }
+
+  apply(ledger) {
+    return ledger.answer(this.questionId, this.questionRevision, {
+      answer: this.answer,
+      why: this.why,
+      considered: this.considered,
+    });
+  }
+}
+
+export class DiscardDraftQuestionPlan extends ResolveDraftQuestionPlan {
+  constructor({ questionId, questionRevision, reason } = {}) {
+    super({ questionId, questionRevision });
+    this.reason = reason;
+    Object.freeze(this);
+  }
+
+  apply(ledger) {
+    return ledger.discard(this.questionId, this.questionRevision, this.reason);
+  }
+}
+
+/** Definition owns admission and action selection for direct draft answers. */
+export function resolveDraftQuestionResolution({ intent, questionId, questionRevision, facts, flowState, answer = null, why = null, considered = "", reason = null } = {}) {
+  if (!(facts instanceof DraftTransitionFacts)) return null;
+  const disposition = resolveDraftTransition({ stepId: "draft-refine", flowState, facts });
+  if (disposition?.operation !== "await-user-answer" || disposition.questionId !== questionId || disposition.questionRevision !== questionRevision) return null;
+  return intent === "answer"
+    ? new AnswerDraftQuestionPlan({ questionId, questionRevision, answer, why, considered })
+    : intent === "discard"
+      ? new DiscardDraftQuestionPlan({ questionId, questionRevision, reason })
+      : null;
+}
+
+/** The only creator of a candidate-to-user-boundary transition plan. */
+export function resolveDraftQuestionPromotion({ facts } = {}) {
+  if (!(facts instanceof DraftTransitionFacts) || facts.candidateQuestion === null) return null;
+  return new DraftQuestionPromotionPlan({
+    questionId: facts.candidateQuestion.id,
+    questionRevision: facts.candidateQuestion.revision,
+  });
+}
+
 export function resolveDraftTransition({ stepId, flowState, facts } = {}) {
   if (stepId !== "draft-refine" || !(facts instanceof DraftTransitionFacts)) return null;
   if (flowState?.autoApprove === true || facts.nextQuestion === null) {
@@ -1437,6 +1524,7 @@ export function resolveDraftTransition({ stepId, flowState, facts } = {}) {
     operation: "await-user-answer",
     questionId: facts.nextQuestion.id,
     question: facts.nextQuestion.question,
+    questionRevision: facts.nextQuestion.revision,
   });
 }
 
@@ -1854,6 +1942,25 @@ export function resolveLifecycle(input = {}) {
 export function resolveLifecyclePlan(input = {}) {
   let actions = resolveLifecycle(input);
   const currentStepId = input.currentStepId || resolveRuntimeStep(input) || input.targetStepId || null;
+  if (
+    input.event === "draft-refine:confirm"
+    && input.flowState?.autoApprove !== true
+    && input.draftTransitionFacts instanceof DraftTransitionFacts
+    && input.draftTransitionFacts.candidateQuestion !== null
+    && input.draftTransitionFacts.nextQuestion === null
+  ) {
+    const candidate = input.draftTransitionFacts.candidateQuestion;
+    const baseline = input.draftCatalogBaseline;
+    if (!baseline || typeof baseline.digest !== "string" || !Number.isSafeInteger(baseline.byteLength)) {
+      throw new Error("draft-refine promotion requires a catalog baseline");
+    }
+    actions = [new PromoteDraftQuestionAndKeepRefineActive({
+      questionId: candidate.id,
+      questionRevision: candidate.revision,
+      digest: baseline.digest,
+      byteLength: baseline.byteLength,
+    })];
+  }
   if (input.settleInProgressAsDone === true) {
     actions = actions.map((action) => (
       action instanceof SetStepStatus

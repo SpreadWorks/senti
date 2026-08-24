@@ -2791,19 +2791,24 @@ export class DefinitionReviewDisposition {
 
 /** A definition-owned decision at the manual draft question boundary. */
 export class DefinitionDraftDisposition {
-  constructor({ operation, questionId = null, question = null } = {}) {
+  constructor({ operation, questionId = null, question = null, questionRevision = null } = {}) {
     if (!["execute-refine", "await-user-answer"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("draft disposition operation is invalid");
     }
     if (operation === "await-user-answer") {
       this.questionId = requireString(questionId, "draft disposition questionId");
       this.question = requireString(question, "draft disposition question");
+      if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) {
+        throw new CurrentFlowStateInvariantError("draft disposition questionRevision is invalid");
+      }
+      this.questionRevision = questionRevision;
     } else {
-      if (questionId !== null || question !== null) {
+      if (questionId !== null || question !== null || questionRevision !== null) {
         throw new CurrentFlowStateInvariantError("execute draft disposition must not include a question");
       }
       this.questionId = null;
       this.question = null;
+      this.questionRevision = null;
     }
     this.operation = operation;
     Object.freeze(this);
@@ -2815,6 +2820,7 @@ export class DefinitionDraftDisposition {
       ...(this.questionId === null ? {} : {
         questionId: this.questionId,
         question: this.question,
+        questionRevision: this.questionRevision,
       }),
     };
   }

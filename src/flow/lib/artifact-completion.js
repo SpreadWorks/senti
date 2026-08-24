@@ -80,7 +80,7 @@ export async function completeDraftArtifactChange(input = {}) {
   if (!parsed.ok) return parsed.failure;
   const artifact = parsed.artifact;
   const issueCodes = [];
-  const hasQuestionState = Array.isArray(artifact?.qa) || Array.isArray(artifact?.questions);
+  const hasQuestionState = Array.isArray(artifact?.questionLedger?.questions);
   if (!artifact || typeof artifact !== "object" || Array.isArray(artifact) || !hasQuestionState) {
     issueCodes.push("draft-schema-invalid");
     if (artifact && !hasQuestionState) issueCodes.push("draft-lifecycle-invalid");

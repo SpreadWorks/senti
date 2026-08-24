@@ -17,7 +17,9 @@ import {
 } from "../../lib/regular-file-snapshot.js";
 import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
-import { findActiveNode, getFlowNode } from "../definition.js";
+import { findActiveNode, getFlowNode, PromoteDraftQuestionAndKeepRefineActive, resolveLifecyclePlan } from "../definition.js";
+import { DraftLifecycle } from "./draft-lifecycle.js";
+import { DraftTransitionFacts } from "./draft-transition-facts.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
@@ -3260,6 +3262,33 @@ function canonicalTestTreeBaselineForPublication(request) {
   return baseline;
 }
 
+class DraftPromotionHandoffAdapter {
+  constructor({ flowManager, specId, sourceBytes, sourcePayloadDigest, handoffDigest, handoffRequestDigest, action }) {
+    this.flowManager = flowManager;
+    this.specId = specId;
+    this.sourceBytes = Buffer.from(sourceBytes);
+    this.sourcePayloadDigest = sourcePayloadDigest;
+    this.handoffDigest = handoffDigest;
+    this.handoffRequestDigest = handoffRequestDigest;
+    this.action = action;
+  }
+
+  promoteDraftQuestionAndKeepRefineActive(action) {
+    if (action !== this.action) throw new Error("unselected draft promotion action");
+    return this.flowManager.promoteDraftQuestionAndKeepRefineActive({
+      specId: this.specId,
+      questionId: action.questionId,
+      questionRevision: action.questionRevision,
+      digest: action.digest,
+      byteLength: action.byteLength,
+      sourceBytes: this.sourceBytes,
+      sourcePayloadDigest: this.sourcePayloadDigest,
+      handoffDigest: this.handoffDigest,
+      handoffRequestDigest: this.handoffRequestDigest,
+    });
+  }
+}
+
 function canonicalHandoffPublications(request, submission) {
   const artifactWrites = [];
   const artifactRemovals = [];
@@ -3402,6 +3431,21 @@ function canonicalHandoffReceiptForRequest(state, request, flowManager = null) {
     )) ?? null;
     const handoffReference = references.find((reference) => reference.kind === "worker-handoff") ?? null;
     if (requestReference !== null && handoffReference !== null) return handoffReference;
+  }
+  const promotionReceipt = flowManager?.activityLedger?.(request.specId)
+    .find((activity) => {
+      if (activity?.nodeId !== request.stepId || activity?.transition?.operation !== "publish_artifacts") return false;
+      const artifacts = activity?.references?.artifacts;
+      if (!Array.isArray(artifacts)) return false;
+      return artifacts.some((reference) => (
+        reference.id === request.requestDigest && reference.label === "draft-refine handoff request"
+      )) && artifacts.some((reference) => reference.label === "draft-refine handoff");
+    });
+  if (promotionReceipt !== undefined) {
+    const handoffReference = promotionReceipt.references.artifacts.find((reference) => (
+      reference.label === "draft-refine handoff"
+    ));
+    if (handoffReference !== undefined) return handoffReference;
   }
   return null;
 }
@@ -3766,8 +3810,43 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     try {
+      let promotionApplied = false;
       this.faultInjector({ phase: "before-worker-handoff-publication", stepId: request.stepId });
-      ctx.flowManager.confirmCurrentAttempt({
+      if (request.stepId === "draft-refine") {
+        const draftPayload = submission.payloadManifest.find((entry) => entry.targetRelativePath === "draft.json");
+        const draftBytes = draftPayload === undefined ? null : manifestPayloadBytes(request, draftPayload, "draft-refine payload");
+        const source = request.flowManager.readArtifact({ specId: request.specId, logicalKey: "draft", consumerNodeId: "draft-refine" });
+        const draft = draftBytes === null ? null : new DraftLifecycle(JSON.parse(draftBytes.toString("utf8")));
+        const latestState = ctx.flowManager.loadReadOnly(request.specId);
+        const draftTransitionFacts = draft === null ? null : DraftTransitionFacts.fromDraft(draft);
+        if (draftTransitionFacts?.nextQuestion !== null) {
+          throw new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            "draft-refine handoff cannot confirm an output ledger with AwaitingUserAnswer",
+          );
+        }
+        const plan = draft === null ? null : resolveLifecyclePlan({
+          event: "draft-refine:confirm", currentStepId: "draft-refine", flowState: latestState,
+          draftTransitionFacts,
+          draftCatalogBaseline: { digest: source.descriptor.hash, byteLength: source.descriptor.size },
+        });
+        const action = plan?.actions.find((entry) => entry instanceof PromoteDraftQuestionAndKeepRefineActive) ?? null;
+        if (action !== null) {
+          action.apply(new DraftPromotionHandoffAdapter({
+            flowManager: ctx.flowManager,
+            specId: request.specId,
+            sourceBytes: draftBytes,
+            sourcePayloadDigest: draftPayload.digest,
+            handoffDigest: submission.handoffDigest,
+            handoffRequestDigest: request.requestDigest,
+            action,
+          }));
+          promotionApplied = true;
+        }
+      }
+      if (!promotionApplied) {
+        ctx.flowManager.confirmCurrentAttempt({
         specId: request.specId,
         result: canonicalHandoffResult(request, submission, this.now),
         references: {
@@ -3781,7 +3860,8 @@ export class WorkerArtifactHandoffCoordinator {
         artifactRemovals: publications.artifactRemovals,
         artifactBaselines: publications.artifactBaselines,
         testSourceBaseline: publications.testSourceBaseline,
-      });
+        });
+      }
     } catch (cause) {
       if (cause?.code === "CURRENT_FLOW_STATE_CONFLICT") {
         throw new WorkerArtifactHandoffError(
