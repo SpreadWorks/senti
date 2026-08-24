@@ -509,6 +509,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  promoteDraftQuestionAndKeepRefineActive(input = {}) {
+    return this._store.promoteDraftQuestionAndKeepRefineActive({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   publishUpgradeResult(input = {}) {
     return this._store.publishUpgradeResult({
       ...input,

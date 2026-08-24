@@ -1,12 +1,12 @@
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.
    - Run `sennel flow run review --phase draft` once to perform the draft coverage review.
-   - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads `draft.json.qa[]` entries and checks only whether a blocking user decision is still required before the spec can be written.
+   - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads `draft.json.questionLedger.questions[]` and checks only whether a blocking user decision is still required before the spec can be written.
    - The review command writes a machine-readable detection artifact to `draft-review-coverage.json`.
-   - The review step is detection only: it must not edit `draft.json`, mutate `draft.json.qa[]`, collect answers, or write repair audit files.
+   - The review step is detection only: it must not edit `draft.json`, mutate the question ledger, collect answers, or write repair audit files.
    - `repairTargets[]` identifies detection-only candidates consumed by triage/repair; review must not apply them.
    - No findings means `blockingFindings[]`, `advisoryFindings[]`, and `repairTargets[]` are all empty.
    - Verdict mapping: PASS = no findings; ADVISORY = `advisoryFindings[]` or `repairTargets[]` is non-empty and `blockingFindings[]` is empty; FAIL = `blockingFindings[]` is non-empty.
-   - Select pending/unresolved entries first, preserving file order within that group, then answered/dropped entries. Inspect at most 40 QA entries, at most 2000 characters per entry, and at most 40000 characters total.
+   - Inspect resolved, answered, and discarded entries only, preserving ledger order. `AwaitingUserAnswer` is handled by the Definition-owned answer boundary and is not a coverage-review selection. Inspect at most 40 ledger entries, at most 2000 characters per entry, and at most 40000 characters total.
    - Report at most 3 `blockingFindings[]` entries, 3 `advisoryFindings[]` entries, and 3 `repairTargets[]` entries. If more seem possible in any category, report the highest-impact entries and stop.
    - After the review artifact is written, do not re-run this stage automatically.
    - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; draft-gate handles residual structural validation.

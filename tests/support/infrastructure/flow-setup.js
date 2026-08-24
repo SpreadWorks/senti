@@ -39,15 +39,13 @@ export function draftDocumentWithPendingQuestions({
   ],
 } = {}) {
   const question = ([id, text]) => ({
+    state: "AwaitingUserAnswer",
     id,
-    status: "pending",
     category: "user-visible-behavior",
     question: text,
-    answer: "",
-    evidence: "",
-    why: "",
-    considered: "",
-    droppedReason: "",
+    revision: 0,
+    provenance: { producer: "fixture" },
+    evidenceDigest: "a".repeat(64),
   });
   return {
     devType: "feature",
@@ -66,7 +64,12 @@ export function draftDocumentWithPendingQuestions({
     },
     scopeVerification: { in: [], out: [] },
     impactOnExisting: { affected: [], unchanged: [] },
-    qa: questions.map(question),
+    questionLedger: {
+      revision: 0,
+      publication: "fixture",
+      evidenceDigest: "a".repeat(64),
+      questions: questions.map(question),
+    },
     openQuestions: [],
     approval: { approved: false, confirmedAt: "", notes: "" },
   };

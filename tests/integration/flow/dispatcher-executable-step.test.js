@@ -111,6 +111,7 @@ test("draft question directives preserve the canonical question identity", () =>
   const directive = new AwaitDraftQuestionDirective({
     questionId: "q3",
     question: "Which public behavior should remain stable?",
+    questionRevision: 2,
   });
 
   const restored = NextActionDirective.fromStored(directive.toJSON());

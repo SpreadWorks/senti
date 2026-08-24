@@ -332,6 +332,7 @@ function draftQuestionDirective(disposition) {
   return new AwaitDraftQuestionDirective({
     questionId: disposition.questionId,
     question: disposition.question,
+    questionRevision: disposition.questionRevision,
   });
 }
 

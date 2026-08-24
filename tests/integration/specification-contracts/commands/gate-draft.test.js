@@ -17,22 +17,28 @@ function buildValidDraft(overrides = {}) {
       knownFacts: ["known fact"],
       decisionPoints: ["decision point"],
       resolvedByProjectRules: [],
-      requiresUserJudgment: ["question q1"],
+      requiresUserJudgment: [],
       deferredToSpec: [],
     },
     scopeVerification: { in: ["feature X"], out: ["Y"] },
     impactOnExisting: ["影響なし"],
-    qa: [{
+    questionLedger: {
+      revision: 0,
+      publication: "fixture",
+      evidenceDigest: "a".repeat(64),
+      questions: [{
+      state: "AnsweredQuestion",
       id: "q1",
-      status: "answered",
       category: "goal-confirmation",
       question: "質問",
+      revision: 0,
+      provenance: { producer: "fixture" },
+      evidenceDigest: "a".repeat(64),
       answer: "回答は十分に具体的です",
-      evidence: "確認済み",
-      why: "理由",
+      why: "この選択が要求された結果を満たします",
       considered: "",
-      droppedReason: "",
     }],
+    },
     openQuestions: [],
     approval: { approved: true, confirmedAt: "2026-04-25", notes: "" },
     ...overrides,
@@ -46,8 +52,8 @@ describe("checkDraftJson", () => {
   });
 
   it("detects missing Q&A array", () => {
-    const issues = checkDraftJson(buildValidDraft({ qa: undefined }));
-    assert.ok(issues.some((i) => /qa/i.test(i)), `expected Q&A issue, got: ${issues}`);
+    const issues = checkDraftJson(buildValidDraft({ questionLedger: undefined }));
+    assert.ok(issues.some((i) => /questionLedger/i.test(i)), `expected ledger issue, got: ${issues}`);
   });
 
   it("detects missing user approval", () => {

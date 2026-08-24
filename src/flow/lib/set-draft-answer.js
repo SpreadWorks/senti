@@ -1,91 +1,65 @@
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { DraftTransitionFacts } from "./draft-transition-facts.js";
+import { resolveDraftQuestionResolution } from "../definition.js";
 
 function parseDraft(bytes) {
-  try {
-    const value = JSON.parse(bytes.toString("utf8"));
-    return new DraftLifecycle(value);
-  } catch (cause) {
-    throw new Error(`canonical draft is invalid: ${cause.message}`, { cause });
-  }
+  try { return new DraftLifecycle(JSON.parse(bytes.toString("utf8"))); }
+  catch (cause) { throw new Error(`canonical draft is invalid: ${cause.message}`, { cause }); }
+}
+function revision(value) {
+  if (typeof value === "string" && /^(0|[1-9]\d*)$/.test(value)) value = Number(value);
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 export default class SetDraftAnswerCommand extends FlowCommand {
   execute(ctx) {
     const dropping = ctx.drop === true;
-    if (!ctx.questionId || (dropping && !ctx.droppedReason) || (!dropping && (!ctx.answer || !ctx.why))) {
-      return Envelope.fail(
-        "set",
-        "draft-answer",
-        "INVALID_USAGE",
-        "usage: flow set draft-answer <questionId> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>)",
-      );
+    const questionRevision = revision(ctx.questionRevision);
+    if (!ctx.questionId || questionRevision === null || (dropping && !ctx.droppedReason) || (!dropping && (!ctx.answer || !ctx.why))) {
+      return Envelope.fail("set", "draft-answer", "INVALID_USAGE", "usage: flow set draft-answer <questionId> --question-revision <revision> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>)");
     }
-    if (dropping && (ctx.answer || ctx.why || ctx.considered)) {
-      return Envelope.fail(
-        "set",
-        "draft-answer",
-        "INVALID_USAGE",
-        "--drop cannot be combined with --answer, --why, or --considered",
-      );
-    }
-    if (!dropping && ctx.droppedReason) {
-      return Envelope.fail(
-        "set",
-        "draft-answer",
-        "INVALID_USAGE",
-        "--dropped-reason requires --drop",
-      );
-    }
-    if (ctx.flowState.currentNodeId !== "draft-refine") {
-      return Envelope.fail(
-        "set",
-        "draft-answer",
-        "DRAFT_ANSWER_NOT_ACTIVE",
-        "draft answers can be recorded only while draft-refine is active",
-      );
-    }
-    if (ctx.flowState.autoApprove === true) {
-      return Envelope.fail(
-        "set",
-        "draft-answer",
-        "DRAFT_ANSWER_AUTO_APPROVE_ACTIVE",
-        "manual draft answers are unavailable while autoApprove is active",
-      );
-    }
+    if (dropping && (ctx.answer || ctx.why || ctx.considered)) return Envelope.fail("set", "draft-answer", "INVALID_USAGE", "--drop cannot be combined with --answer, --why, or --considered");
+    if (!dropping && ctx.droppedReason) return Envelope.fail("set", "draft-answer", "INVALID_USAGE", "--dropped-reason requires --drop");
 
-    const source = ctx.flowManager.readArtifact({
-      specId: ctx.flowState.specId,
-      logicalKey: "draft",
-      consumerNodeId: "draft-refine",
-    });
+    // Admission always reloads the only authority. A caller-held ctx is never
+    // sufficient to mutate a question that may have changed after projection.
+    const state = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
+    if (state.currentNodeId !== "draft-refine" || state.autoApprove === true) {
+      return Envelope.fail("set", "draft-answer", "DRAFT_ANSWER_NOT_SELECTED", "the Definition has not selected a manual draft answer action");
+    }
+    const source = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "draft", consumerNodeId: "draft-refine" });
     let draft;
     try {
-      draft = parseDraft(source.bytes).resolveQuestion({
+      draft = parseDraft(source.bytes);
+      const ledger = draft.questionLedger;
+      const plan = resolveDraftQuestionResolution({
+        intent: dropping ? "discard" : "answer",
         questionId: ctx.questionId,
-        answer: dropping ? null : ctx.answer,
-        why: dropping ? null : ctx.why,
-        considered: dropping ? "" : (ctx.considered || ""),
-        droppedReason: dropping ? ctx.droppedReason : null,
+        questionRevision,
+        facts: DraftTransitionFacts.fromDraft(draft),
+        flowState: state,
+        answer: ctx.answer,
+        why: ctx.why,
+        considered: ctx.considered || "",
+        reason: ctx.droppedReason,
       });
+      if (plan === null) {
+        throw new Error("draft answer does not match the Definition-selected action");
+      }
+      const nextLedger = plan.apply(ledger);
+      draft = draft.withQuestionLedger(nextLedger);
+      draft.decisionMap.requiresUserJudgment = draft.decisionMap.requiresUserJudgment
+        .filter((questionId) => questionId !== ctx.questionId);
     } catch (error) {
       return Envelope.fail("set", "draft-answer", "INVALID_DRAFT_ANSWER", error.message);
     }
-
-    ctx.flowManager.publishArtifacts({
-      specId: ctx.flowState.specId,
-      nodeId: "draft-refine",
-      artifactWrites: [{
-        logicalKey: "draft",
-        mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(draft, null, 2)}\n`, "utf8"),
-      }],
-    });
-    return {
-      questionId: ctx.questionId,
-      status: dropping ? "dropped" : "answered",
-      nextQuestionId: new DraftLifecycle(draft).nextUnresolvedQuestion()?.id ?? null,
-    };
+    try {
+      ctx.flowManager.publishArtifacts({ specId: state.specId, nodeId: "draft-refine", artifactBaselines: [{ logicalKey: "draft", digest: source.descriptor.hash, byteLength: source.descriptor.size }], artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(draft, null, 2)}\n`, "utf8") }] });
+    } catch (error) {
+      return Envelope.fail("set", "draft-answer", "DRAFT_ANSWER_STALE_PUBLICATION", error.message);
+    }
+    return { questionId: ctx.questionId, status: dropping ? "discarded" : "answered", nextQuestionId: new DraftLifecycle(draft).nextUnresolvedQuestion()?.id ?? null };
   }
 }

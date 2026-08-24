@@ -28,7 +28,7 @@
            "target": "copied finding target",
            "decision": "apply",
            "rationale": "why this decision was made",
-           "evidence": "draft.json qa[0].question is duplicated"
+           "evidence": "draft.json questionLedger.questions[0].question is duplicated"
          }
        ]
      }

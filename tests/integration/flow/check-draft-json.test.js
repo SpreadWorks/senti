@@ -1,23 +1,33 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+
 import { checkDraftJson } from "../../../src/flow/lib/run-gate.js";
 
-// spec 229: draft.md → draft.json 移行に伴う draft-gate JSON 検証
-// R1: draft.json skeleton, R2: evidence チェック, R3: analysis チェック
-
 const DEV_TYPE_ENUM = ["feature", "bugfix", "refactor", "docs", "chore", "test", "other"];
+const DIGEST = "a".repeat(64);
 
-function buildQaEntry(overrides = {}) {
+function question(overrides = {}) {
   return {
+    state: "AnsweredQuestion",
     id: "q1",
-    status: "answered",
     category: "goal-confirmation",
-    question: "Is this correct?",
-    answer: "Yes, this is correct.",
-    evidence: "verified by code inspection",
-    why: "design decision rationale",
-    considered: "",
-    droppedReason: "",
+    question: "Is this draft contract correct?",
+    revision: 0,
+    provenance: { producer: "fixture", source: "test" },
+    evidenceDigest: DIGEST,
+    answer: "Yes, this contract is correct for the requested behavior.",
+    why: "The repository evidence and requested outcome select this design.",
+    considered: "The incompatible alternative was rejected after reviewing its public impact.",
+    ...overrides,
+  };
+}
+
+function ledger(questions = [question()], overrides = {}) {
+  return {
+    revision: 0,
+    publication: "fixture-publication",
+    evidenceDigest: DIGEST,
+    questions,
     ...overrides,
   };
 }
@@ -35,257 +45,184 @@ function buildValidDraft(overrides = {}) {
       knownFacts: ["known fact from source"],
       decisionPoints: ["decision point covered by the spec"],
       resolvedByProjectRules: ["project rule decides this"],
-      requiresUserJudgment: ["user decision mapped to q1"],
+      requiresUserJudgment: [],
       deferredToSpec: ["detail can be finalized in spec"],
     },
-    scopeVerification: {
-      in: ["item A"],
-      out: ["item B"],
-    },
+    scopeVerification: { in: ["item A"], out: ["item B"] },
     impactOnExisting: ["existing feature X affected"],
-    qa: [buildQaEntry()],
+    questionLedger: ledger(),
     openQuestions: [],
-    approval: {
-      approved: true,
-      confirmedAt: "2026-04-25",
-      notes: "",
-    },
+    approval: { approved: true, confirmedAt: "2026-04-25", notes: "" },
   };
   return { ...base, ...overrides };
 }
 
 function assertHasIssue(draft, predicate, label) {
   const issues = checkDraftJson(draft);
-  assert.ok(
-    issues.some(predicate),
-    `expected ${label}, got: ${JSON.stringify(issues)}`,
-  );
+  assert.ok(issues.some(predicate), `expected ${label}, got: ${JSON.stringify(issues)}`);
 }
 
 describe("checkDraftJson — valid draft", () => {
   it("returns no issues for a fully populated draft", () => {
-    const issues = checkDraftJson(buildValidDraft());
-    assert.deepEqual(issues, []);
+    assert.deepEqual(checkDraftJson(buildValidDraft()), []);
   });
 
-  it("accepts an empty QA list when no user decision remains", () => {
-    const draft = buildValidDraft({ qa: [] });
-    draft.decisionMap.requiresUserJudgment = [];
-    const issues = checkDraftJson(draft);
-    assert.deepEqual(issues, []);
+  it("accepts an empty ledger when no user decision remains", () => {
+    assert.deepEqual(checkDraftJson(buildValidDraft({ questionLedger: ledger([]) })), []);
   });
 
-  for (const v of DEV_TYPE_ENUM) {
-    it(`accepts devType "${v}"`, () => {
-      const issues = checkDraftJson(buildValidDraft({ devType: v }));
-      assert.deepEqual(issues, []);
+  for (const value of DEV_TYPE_ENUM) {
+    it(`accepts devType "${value}"`, () => {
+      assert.deepEqual(checkDraftJson(buildValidDraft({ devType: value })), []);
     });
   }
 });
 
 describe("checkDraftJson — decisionMap validation", () => {
   it("flags missing decisionMap object", () => {
-    assertHasIssue(
-      buildValidDraft({ decisionMap: undefined }),
-      (i) => /decisionMap/i.test(i),
-      "missing decisionMap",
-    );
+    assertHasIssue(buildValidDraft({ decisionMap: undefined }), (issue) => /decisionMap/i.test(issue), "missing decisionMap");
   });
 
   it("flags non-array decisionMap fields", () => {
-    assertHasIssue(
-      buildValidDraft({ decisionMap: { knownFacts: "fact" } }),
-      (i) => /decisionMap\.knownFacts.*array/i.test(i),
-      "non-array decisionMap field",
-    );
+    assertHasIssue(buildValidDraft({ decisionMap: { knownFacts: "fact" } }), (issue) => /decisionMap\.knownFacts.*array/i.test(issue), "non-array decisionMap field");
   });
 
   it("flags empty strings in decisionMap arrays", () => {
-    assertHasIssue(
-      buildValidDraft({
-        decisionMap: {
-          knownFacts: [""],
-          decisionPoints: [],
-          resolvedByProjectRules: [],
-          requiresUserJudgment: [],
-          deferredToSpec: [],
-        },
-      }),
-      (i) => /decisionMap\.knownFacts\[0\].*non-empty string/i.test(i),
-      "empty decisionMap entry",
-    );
+    assertHasIssue(buildValidDraft({
+      decisionMap: { knownFacts: [""], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
+    }), (issue) => /decisionMap\.knownFacts\[0\].*non-empty string/i.test(issue), "empty decisionMap entry");
+  });
+
+  it("flags unknown decisionMap fields", () => {
+    assertHasIssue(buildValidDraft({
+      decisionMap: {
+        knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [], retired: [],
+      },
+    }), (issue) => /decisionMap: unknown field/i.test(issue), "unknown decisionMap field");
   });
 });
 
-describe("checkDraftJson — analysis validation (R3)", () => {
+describe("checkDraftJson — analysis validation", () => {
   it("flags missing analysis object", () => {
-    assertHasIssue(
-      buildValidDraft({ analysis: undefined }),
-      (i) => /analysis/i.test(i),
-      "missing analysis",
-    );
+    assertHasIssue(buildValidDraft({ analysis: undefined }), (issue) => /analysis/i.test(issue), "missing analysis");
   });
 
-  it("flags analysis missing problem field", () => {
-    assertHasIssue(
-      buildValidDraft({ analysis: { proposedApproach: "x", validation: "y" } }),
-      (i) => /problem/i.test(i),
-      "missing analysis.problem",
-    );
-  });
-
-  it("flags analysis missing proposedApproach field", () => {
-    assertHasIssue(
-      buildValidDraft({ analysis: { problem: "x", validation: "y" } }),
-      (i) => /proposedApproach/i.test(i),
-      "missing analysis.proposedApproach",
-    );
-  });
-
-  it("flags analysis missing validation field", () => {
-    assertHasIssue(
-      buildValidDraft({ analysis: { problem: "x", proposedApproach: "y" } }),
-      (i) => /validation/i.test(i),
-      "missing analysis.validation",
-    );
-  });
+  for (const [field, analysis] of [
+    ["problem", { proposedApproach: "x", validation: "y" }],
+    ["proposedApproach", { problem: "x", validation: "y" }],
+    ["validation", { problem: "x", proposedApproach: "y" }],
+  ]) {
+    it(`flags analysis missing ${field}`, () => {
+      assertHasIssue(buildValidDraft({ analysis }), (issue) => issue.includes(field), `missing analysis.${field}`);
+    });
+  }
 
   it("flags empty analysis.problem", () => {
-    assertHasIssue(
-      buildValidDraft({ analysis: { problem: "", proposedApproach: "x", validation: "y" } }),
-      (i) => /problem/i.test(i),
-      "empty analysis.problem",
-    );
+    assertHasIssue(buildValidDraft({ analysis: { problem: "", proposedApproach: "x", validation: "y" } }), (issue) => /problem/i.test(issue), "empty analysis.problem");
   });
 });
 
-describe("checkDraftJson — qa status validation", () => {
-  it("flags empty evidence on answered Q&A", () => {
-    assertHasIssue(
-      buildValidDraft({
-        qa: [buildQaEntry({
-          question: "Design choice?",
-          answer: "Option A",
-          evidence: "",
-          why: "because of X",
-        })],
-      }),
-      (i) => /evidence/i.test(i),
-      "empty evidence on answered Q&A",
-    );
+describe("checkDraftJson — typed question ledger lifecycle", () => {
+  it("rejects retired qa input rather than reading legacy pending or approved status", () => {
+    assertHasIssue({ ...buildValidDraft(), qa: [{ status: "pending" }] }, (issue) => /schema changed/i.test(issue), "legacy qa rejection");
   });
 
-  it("flags pending Q&A as blocking spec generation", () => {
+  it("requires a ledger", () => {
+    assertHasIssue(buildValidDraft({ questionLedger: undefined }), (issue) => /questionLedger/i.test(issue), "missing ledger");
+  });
+
+  it("rejects an invalid state tag and unknown state field", () => {
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ state: "pending" })]) }), (issue) => /invalid state/i.test(issue), "invalid state tag");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ leaked: "qa evidence" })]) }), (issue) => /unsupported field/i.test(issue), "unknown state field");
+  });
+
+  it("validates category enum, id/order, revisions, provenance, and digests", () => {
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ category: "other" })]) }), (issue) => /category/i.test(issue), "category");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ id: "question-1" })]) }), (issue) => /id must match/i.test(issue), "id");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question(), question({ id: "q1" })]) }), (issue) => /duplicate id/i.test(issue), "duplicate id");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ id: "q2" }), question({ id: "q1" })]) }), (issue) => /stable q<N> order/i.test(issue), "order");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ revision: -1 })]) }), (issue) => /revision/i.test(issue), "revision");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ provenance: {} })]) }), (issue) => /provenance/i.test(issue), "provenance");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ evidenceDigest: "evidence" })]) }), (issue) => /evidenceDigest/i.test(issue), "evidence digest");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question()], { evidenceDigest: "evidence" }) }), (issue) => /ledger evidenceDigest/i.test(issue), "ledger digest");
+  });
+
+  it("requires exact state-specific fields", () => {
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ state: "CandidateQuestion" })]) }), (issue) => /unsupported field/i.test(issue), "Candidate forbidden answer fields");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([{ ...question({ state: "ResolvedByExistingInformation" }), resolution: "Repository policy answers this question." }]) }), (issue) => /unsupported field/i.test(issue), "Resolved forbidden answer fields");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([{ ...question(), answer: undefined }]) }), (issue) => /answer.*non-empty|required/i.test(issue), "Answered answer");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([{ ...question(), why: "" }]) }), (issue) => /why/i.test(issue), "Answered why");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([{ ...question(), considered: 1 }]) }), (issue) => /considered.*string/i.test(issue), "Answered considered type");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([{ ...question({ state: "DiscardedQuestion" }), reason: "" }]) }), (issue) => /reason/i.test(issue), "Discarded reason");
+  });
+
+  it("accepts terminal exclusive states with their exact required fields", () => {
+    const base = { id: "q1", category: "goal-confirmation", question: "Which contract applies?", revision: 0, provenance: { producer: "fixture" }, evidenceDigest: DIGEST };
+    const values = [
+      { state: "ResolvedByExistingInformation", ...base, resolution: "Repository policy resolves this question." },
+      { state: "AnsweredQuestion", ...base, answer: "The public behavior remains stable.", why: "The request and source evidence require this behavior.", considered: "Changing the behavior was rejected because it would break callers." },
+      { state: "DiscardedQuestion", ...base, reason: "This decision belongs to the specification stage." },
+    ];
+    values.forEach((value) => assert.deepEqual(checkDraftJson(buildValidDraft({ questionLedger: ledger([value]) })), []));
+  });
+
+  it("blocks CandidateQuestion and AwaitingUserAnswer at draft-gate", () => {
+    for (const state of ["CandidateQuestion", "AwaitingUserAnswer"]) {
+      const value = {
+        state,
+        id: "q1",
+        category: "goal-confirmation",
+        question: "Which contract applies?",
+        revision: 0,
+        provenance: { producer: "fixture" },
+        evidenceDigest: DIGEST,
+      };
+      assertHasIssue(
+        buildValidDraft({ questionLedger: ledger([value]) }),
+        (issue) => new RegExp(`${state} blocks spec generation`).test(issue),
+        `${state} blocks gate`,
+      );
+    }
+  });
+
+  it("rejects shallow answers and ambiguous wording", () => {
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ answer: "yes" })]) }), (issue) => /shallow/i.test(issue), "shallow answer");
+    assertHasIssue(buildValidDraft({ questionLedger: ledger([question({ why: "適切に決める" })]) }), (issue) => /ambiguous/i.test(issue), "ambiguous wording");
+  });
+
+  it("rejects normalized duplicate non-discarded questions but permits discarded duplicates", () => {
     assertHasIssue(buildValidDraft({
-      qa: [buildQaEntry({
-        status: "pending",
-        question: "Proceed?",
-        answer: "",
-        evidence: "",
-        why: "",
-      })],
-    }),
-    (i) => /blocks spec generation/i.test(i),
-    "pending Q&A blocks spec generation");
-  });
-
-  it("flags legacy Q&A entries without id/status", () => {
-    const issues = checkDraftJson(buildValidDraft({
-      qa: [{
-        question: "OK?",
-        answer: "Yes",
-      }],
-    }));
-    assert.ok(issues.some((issue) => /schema changed|id\/status/.test(issue)));
-  });
-
-  it("allows dropped Q&A with droppedReason only", () => {
-    const issues = checkDraftJson(buildValidDraft({
-      qa: [buildQaEntry({
-        status: "dropped",
-        category: "risk-migration-policy",
-        question: "Should this be considered?",
-        answer: "",
-        evidence: "",
-        why: "",
-        droppedReason: "Out of scope after user confirmation",
-      })],
-    }));
-    assert.deepEqual(issues, []);
+      questionLedger: ledger([question(), question({ id: "q2", question: "  IS this draft contract correct?  " })]),
+    }), (issue) => /duplicate question/i.test(issue), "normalized duplicate question");
+    const discarded = {
+      state: "DiscardedQuestion", id: "q2", category: "goal-confirmation", question: "IS this draft contract correct?", revision: 0,
+      provenance: { producer: "fixture" }, evidenceDigest: DIGEST, reason: "The duplicate was intentionally discarded as out of scope.",
+    };
+    assert.deepEqual(checkDraftJson(buildValidDraft({ questionLedger: ledger([question(), discarded]) })), []);
   });
 });
 
-describe("checkDraftJson — devType validation", () => {
-  it("flags invalid devType", () => {
-    assertHasIssue(
-      buildValidDraft({ devType: "hotfix" }),
-      (i) => /devType|development type/i.test(i),
-      "invalid devType",
-    );
+describe("checkDraftJson — devType and required fields", () => {
+  for (const value of ["hotfix", "", undefined]) {
+    it(`flags invalid devType ${String(value)}`, () => {
+      assertHasIssue(buildValidDraft({ devType: value }), (issue) => /devType/i.test(issue), "invalid devType");
+    });
+  }
+
+  it("flags missing or empty goal", () => {
+    assertHasIssue(buildValidDraft({ goal: undefined }), (issue) => /goal/i.test(issue), "missing goal");
+    assertHasIssue(buildValidDraft({ goal: "" }), (issue) => /goal/i.test(issue), "empty goal");
   });
 
-  it("flags empty devType", () => {
-    assertHasIssue(
-      buildValidDraft({ devType: "" }),
-      (i) => /devType|development type/i.test(i),
-      "empty devType",
-    );
-  });
-
-  it("flags missing devType", () => {
-    assertHasIssue(
-      buildValidDraft({ devType: undefined }),
-      (i) => /devType|development type/i.test(i),
-      "missing devType",
-    );
-  });
-});
-
-describe("checkDraftJson — required fields", () => {
-  it("flags missing goal", () => {
-    assertHasIssue(
-      buildValidDraft({ goal: undefined }),
-      (i) => /goal|目的/i.test(i),
-      "missing goal",
-    );
-  });
-
-  it("flags empty goal", () => {
-    assertHasIssue(
-      buildValidDraft({ goal: "" }),
-      (i) => /goal|目的/i.test(i),
-      "empty goal",
-    );
-  });
-
-  it("flags missing approval", () => {
-    assertHasIssue(
-      buildValidDraft({ approval: undefined }),
-      (i) => /approval/i.test(i),
-      "missing approval",
-    );
-  });
-
-  it("flags unapproved draft", () => {
-    assertHasIssue(
-      buildValidDraft({ approval: { approved: false } }),
-      (i) => /approval/i.test(i),
-      "unapproved draft",
-    );
-  });
-
-  it("flags missing qa array", () => {
-    assertHasIssue(
-      buildValidDraft({ qa: undefined }),
-      (i) => /qa|q&a/i.test(i),
-      "missing qa",
-    );
+  it("flags missing or unapproved approval", () => {
+    assertHasIssue(buildValidDraft({ approval: undefined }), (issue) => /approval/i.test(issue), "missing approval");
+    assertHasIssue(buildValidDraft({ approval: { approved: false } }), (issue) => /approval/i.test(issue), "unapproved draft");
   });
 });
 
 describe("checkDraftJson — returns all issues at once", () => {
-  it("reports multiple issues for empty object", () => {
+  it("reports multiple issues for an empty object", () => {
     const issues = checkDraftJson({});
-    assert.ok(issues.length >= 3, `expected multiple issues, got ${issues.length}: ${issues}`);
+    assert.ok(issues.length >= 4, `expected multiple issues, got ${issues.length}: ${issues}`);
   });
 });

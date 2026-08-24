@@ -17,6 +17,7 @@ import {
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
 import {
@@ -57,6 +58,7 @@ function fixture(stepId = "draft", {
   issue = null,
   issueSnapshot = null,
   request = "Create the target-bound worker artifact handoff.",
+  autoApprove = false,
   specRecord = null,
   beforeActivate = null,
   versionStoreFaultInjector = null,
@@ -85,6 +87,7 @@ function fixture(stepId = "draft", {
     execution: worktree
       ? { mode: "worktree", baseBranch: "main", featureBranch: `feature/${specId}` }
       : { mode: "direct", baseBranch: "main", featureBranch: null },
+    autoApprove,
     ...(specRecord === null ? {} : { specRecord }),
   }).create().registerActive();
   const ctx = { root: executionRoot, executionRoot, mainRoot, specId, flowManager };
@@ -152,6 +155,44 @@ function readCatalogJson(value, logicalKey, consumerNodeId) {
     logicalKey,
     consumerNodeId,
   }).bytes.toString("utf8"));
+}
+
+function draftWithQuestionLedger(questions, { approval = true } = {}) {
+  return {
+    devType: "feature",
+    goal: "Exercise canonical draft question promotion.",
+    analysis: {
+      problem: "A draft question must retain an explicit lifecycle.",
+      proposedApproach: "Persist it through the canonical ledger.",
+      validation: "Read the canonical draft after promotion.",
+    },
+    decisionMap: {
+      knownFacts: [],
+      decisionPoints: [],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: questions.map((question) => question.id),
+      deferredToSpec: [],
+    },
+    questionLedger: {
+      revision: 0,
+      publication: "worker-handoff-fixture",
+      evidenceDigest: "a".repeat(64),
+      questions,
+    },
+    approval: { approved: approval },
+  };
+}
+
+function candidateDraftQuestion({ id = "q1", revision = 0 } = {}) {
+  return {
+    state: "CandidateQuestion",
+    id,
+    question: "Which public behavior should be selected?",
+    category: "user-visible-behavior",
+    revision,
+    provenance: { producer: "worker-handoff-fixture" },
+    evidenceDigest: "a".repeat(64),
+  };
 }
 
 function writeScenarioRuntimeLog(value, text) {
@@ -1489,7 +1530,7 @@ describe("worker artifact handoff", () => {
   it("allows an independent issue-log append while draft-refine publishes its declared output", async () => {
     const value = fixture("draft-refine", {
       beforeActivate(candidate) {
-        publishDraftBeforeTarget(candidate, { goal: "before issue-log append" });
+        publishDraftBeforeTarget(candidate, draftWithQuestionLedger([]));
       },
     });
     try {
@@ -1507,7 +1548,7 @@ describe("worker artifact handoff", () => {
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
-              json({ goal: "refined after issue-log append" }),
+              json({ ...draftWithQuestionLedger([]), goal: "refined after issue-log append" }),
             );
             sealWorkerArtifactHandoff({
               requestPath,
@@ -1541,11 +1582,197 @@ describe("worker artifact handoff", () => {
       assert.equal(result.dispatch.dispatchCount, 1);
       assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "done");
       assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), {
+        ...draftWithQuestionLedger([]),
         goal: "refined after issue-log append",
       });
       const issueLog = readCatalogJson(value, "issue.log", "draft-refine");
       assert.equal(issueLog.entries.length, 1);
       assert.equal(issueLog.entries[0].issueLogId, "draft-refine-concurrent-issue-log");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("promotes a sealed draft-refine Candidate, retains the Attempt, and records an idempotent receipt", async () => {
+    const candidate = draftWithQuestionLedger([candidateDraftQuestion({ revision: 4 })]);
+    const value = fixture("draft-refine", {
+      beforeActivate(fixtureValue) {
+        publishDraftBeforeTarget(fixtureValue, candidate);
+      },
+    });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json(candidate));
+      seal(request);
+      const submission = JSON.parse(fs.readFileSync(request.submissionPath, "utf8"));
+      const beforeActivities = value.flowManager.activityLedger(value.specId).length;
+
+      const completed = value.coordinator.reconcile({ ctx: value.ctx, request });
+      const persisted = readCatalogJson(value, "draft", "draft-refine");
+      const activity = value.flowManager.activityLedger(value.specId).at(-1);
+      const next = await new GetNextActionCommand().execute({
+        ...value.ctx,
+        specId: value.specId,
+        flowState: value.flowManager.load(value.specId),
+      });
+
+      assert.equal(completed.completed, true);
+      assert.equal(completed.replayed, false);
+      assert.equal(completed.handoffDigest, submission.handoffDigest);
+      assert.equal(fs.existsSync(request.directory), false, "completed handoff must be cleaned up");
+      assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "in_progress");
+      assert.equal(value.flowManager.canonicalState(value.specId).current.at(-1), "draft-refine");
+      assert.equal(persisted.questionLedger.revision, 1);
+      assert.equal(persisted.questionLedger.questions[0].state, "AwaitingUserAnswer");
+      assert.equal(persisted.questionLedger.questions[0].revision, 5);
+      assert.deepEqual(activity.references.artifacts.map(({ id, label }) => ({ id, label })), [
+        { id: submission.handoffDigest, label: "draft-refine handoff" },
+        { id: request.requestDigest, label: "draft-refine handoff request" },
+        { id: submission.payloadManifest[0].digest, label: "draft-refine sealed draft payload" },
+        {
+          id: value.flowManager.readArtifact({
+            specId: value.specId,
+            logicalKey: "draft",
+            consumerNodeId: "draft-refine",
+          }).descriptor.hash,
+          label: "draft question q1@4 promoted artifact",
+        },
+      ]);
+      assert.equal(next.directive.kind, "await_draft_question");
+      assert.equal(next.directive.questionId, "q1");
+      assert.equal(next.directive.questionRevision, 5);
+
+      const replay = value.coordinator.reconcile({ ctx: value.ctx, request });
+      assert.equal(replay.completed, true);
+      assert.equal(replay.replayed, true);
+      assert.equal(value.flowManager.activityLedger(value.specId).length, beforeActivities + 1);
+      assert.equal(readCatalogJson(value, "draft", "draft-refine").questionLedger.questions[0].revision, 5);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("keeps normal draft-refine confirmation and coverage advance when promotion is not selected", async () => {
+    for (const { name, autoApprove, source } of [
+      { name: "no Candidate", autoApprove: false, source: draftWithQuestionLedger([]) },
+      { name: "autoApprove Candidate", autoApprove: true, source: draftWithQuestionLedger([candidateDraftQuestion()]) },
+    ]) {
+      const value = fixture("draft-refine", {
+        autoApprove,
+        beforeActivate(fixtureValue) {
+          publishDraftBeforeTarget(fixtureValue, source);
+        },
+      });
+      try {
+        const request = value.coordinator.createRequest({
+          ctx: value.ctx,
+          state: value.flowManager.load(),
+          invocation: value.invocation,
+        });
+        fs.writeFileSync(request.payloadPath("draft.json"), json(source));
+        seal(request);
+        value.coordinator.reconcile({ ctx: value.ctx, request });
+        const next = await new GetNextActionCommand().execute({
+          ...value.ctx,
+          specId: value.specId,
+          flowState: value.flowManager.load(value.specId),
+        });
+
+        assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "done", name);
+        assert.equal(next.step, "draft-coverage-review", name);
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
+    }
+  });
+
+  it("rejects an AwaitingUserAnswer left in draft-refine output for manual and autoApprove flows", () => {
+    for (const autoApprove of [false, true]) {
+      const source = draftWithQuestionLedger([]);
+      const awaiting = draftWithQuestionLedger([{
+        state: "AwaitingUserAnswer",
+        id: "q1",
+        category: "goal-confirmation",
+        question: "Which public behavior should be selected?",
+        revision: 0,
+        provenance: { producer: "worker" },
+        evidenceDigest: "a".repeat(64),
+      }]);
+      const value = fixture("draft-refine", {
+        autoApprove,
+        beforeActivate(fixtureValue) {
+          publishDraftBeforeTarget(fixtureValue, source);
+        },
+      });
+      try {
+        const request = value.coordinator.createRequest({
+          ctx: value.ctx,
+          state: value.flowManager.load(),
+          invocation: value.invocation,
+        });
+        fs.writeFileSync(request.payloadPath("draft.json"), json(awaiting));
+        seal(request);
+        const before = {
+          bytes: value.flowManager.readArtifact({ specId: value.specId, logicalKey: "draft", consumerNodeId: "draft-refine" }).bytes,
+          activities: value.flowManager.activityLedger(value.specId).length,
+          state: value.flowManager.canonicalState(value.specId).toJSON(),
+        };
+
+        assert.throws(
+          () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+          (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+        );
+        assert.deepEqual(value.flowManager.readArtifact({ specId: value.specId, logicalKey: "draft", consumerNodeId: "draft-refine" }).bytes, before.bytes);
+        assert.equal(value.flowManager.activityLedger(value.specId).length, before.activities);
+        assert.deepEqual(value.flowManager.canonicalState(value.specId).toJSON(), before.state);
+        assert.equal(fs.existsSync(request.directory), true);
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
+    }
+  });
+
+  it("does not publish or consume a Candidate handoff interrupted before promotion", () => {
+    const candidate = draftWithQuestionLedger([candidateDraftQuestion()]);
+    const value = fixture("draft-refine", {
+      beforeActivate(fixtureValue) {
+        publishDraftBeforeTarget(fixtureValue, candidate);
+      },
+    });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json(candidate));
+      seal(request);
+      const before = {
+        bytes: value.flowManager.readArtifact({ specId: value.specId, logicalKey: "draft", consumerNodeId: "draft-refine" }).bytes,
+        catalog: value.flowManager.artifactCatalog(value.specId).toJSON(),
+        activities: value.flowManager.activityLedger(value.specId).length,
+        state: value.flowManager.canonicalState(value.specId).toJSON(),
+      };
+      const crashing = new WorkerArtifactHandoffCoordinator({
+        faultInjector({ phase }) {
+          if (phase === "before-worker-handoff-publication") throw new Error("simulated promotion crash");
+        },
+      });
+
+      assert.throws(
+        () => crashing.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      );
+      assert.deepEqual(value.flowManager.readArtifact({ specId: value.specId, logicalKey: "draft", consumerNodeId: "draft-refine" }).bytes, before.bytes);
+      assert.deepEqual(value.flowManager.artifactCatalog(value.specId).toJSON(), before.catalog);
+      assert.equal(value.flowManager.activityLedger(value.specId).length, before.activities);
+      assert.deepEqual(value.flowManager.canonicalState(value.specId).toJSON(), before.state);
+      assert.equal(fs.existsSync(request.directory), true, "uncommitted handoff must remain recoverable");
     } finally {
       removeTmpDir(value.mainRoot);
     }

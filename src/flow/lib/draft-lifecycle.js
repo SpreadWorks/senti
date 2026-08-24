@@ -1,82 +1,21 @@
-/**
- * Draft lifecycle model and validation.
- *
- * draft.json is the source of truth for draft-time questions. Question state
- * lives in qa[].status, so no parallel questions[] structure is needed.
- */
+/** Draft artifact validation; DraftQuestionLedger is the sole question authority. */
+import {
+  AwaitingUserAnswer,
+  CandidateQuestion,
+  countDraftQuestionStates,
+  DraftQuestionLedger,
+  DRAFT_QUESTION_CATEGORIES,
+} from "./draft-question-ledger.js";
 
-export const DRAFT_LEGACY_QA_ERROR =
-  "draft.json schema changed; run reopen-draft to regenerate qa[] with id/status, or abort and restart this flow";
+export const DRAFT_LEGACY_QA_ERROR = "draft.json question schema changed; regenerate questionLedger through the guarded draft path";
+export const DRAFT_QA_CATEGORIES = DRAFT_QUESTION_CATEGORIES;
 
-export const DRAFT_QA_STATUSES = Object.freeze([
-  "pending",
-  "approved",
-  "answered",
-  "dropped",
+const TOP_LEVEL_FIELDS = new Set([
+  "devType", "goal", "analysis", "decisionMap", "scopeVerification", "impactOnExisting", "questionLedger", "openQuestions", "approval",
 ]);
-
-export const DRAFT_QA_CATEGORIES = Object.freeze([
-  "goal-confirmation",
-  "impact-scope",
-  "acceptance-criteria",
-  "constraint-non-goal",
-  "risk-migration-policy",
-  "user-visible-behavior",
-  "dependency-integration-boundary",
-  "implementation-policy",
-  "follow-up-coverage",
-]);
-
-const DRAFT_DEV_TYPE_ENUM = Object.freeze([
-  "feature",
-  "bugfix",
-  "refactor",
-  "docs",
-  "chore",
-  "test",
-  "other",
-]);
-
-const DRAFT_TOP_LEVEL_FIELDS = Object.freeze([
-  "devType",
-  "goal",
-  "analysis",
-  "decisionMap",
-  "scopeVerification",
-  "impactOnExisting",
-  "qa",
-  "openQuestions",
-  "approval",
-]);
-
-const DRAFT_QA_ANSWER_REQUIRED_FIELDS = Object.freeze(["answer", "evidence", "why"]);
-const DRAFT_QA_RESPONSE_FIELDS = Object.freeze([...DRAFT_QA_ANSWER_REQUIRED_FIELDS, "considered"]);
-const DRAFT_QA_FIELDS = Object.freeze([
-  "id",
-  "status",
-  "category",
-  "question",
-  ...DRAFT_QA_RESPONSE_FIELDS,
-  "droppedReason",
-]);
-const DRAFT_QA_PENDING_APPROVED_EMPTY_FIELDS = Object.freeze([...DRAFT_QA_RESPONSE_FIELDS, "droppedReason"]);
-const DRAFT_QA_UNRESOLVED_STATUSES = new Set(["pending", "approved"]);
-
-const DRAFT_DECISION_MAP_FIELDS = Object.freeze([
-  "knownFacts",
-  "decisionPoints",
-  "resolvedByProjectRules",
-  "requiresUserJudgment",
-  "deferredToSpec",
-]);
-
-const AMBIGUOUS_TOKENS = Object.freeze([
-  "適切に",
-  "必要なら",
-  "できるだけ",
-  "いい感じ",
-  "なるべく",
-  "適宜",
+const DEV_TYPES = new Set(["feature", "bugfix", "refactor", "docs", "chore", "test", "other"]);
+const DECISION_MAP_FIELDS = Object.freeze([
+  "knownFacts", "decisionPoints", "resolvedByProjectRules", "requiresUserJudgment", "deferredToSpec",
 ]);
 
 function isObject(value) {
@@ -87,279 +26,114 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim() !== "";
 }
 
-function isEmptyString(value) {
-  return typeof value === "string" && value.trim() === "";
+function unknownFields(value, allowed) {
+  return Object.keys(value).filter((field) => !allowed.has(field));
 }
 
-function pushEmptyFieldIssues(issues, index, status, raw, fields) {
-  for (const field of fields) {
-    if (!isEmptyString(raw[field])) {
-      issues.push(`qa[${index}]: ${field} must be empty when status is ${status}`);
-    }
-  }
-}
-
-function unknownFields(obj, allowed) {
-  return Object.keys(obj).filter((key) => !allowed.includes(key));
-}
-
-function normalizeText(value) {
-  return String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
-}
-
-export class DraftQaEntry {
-  constructor(raw, index) {
-    if (!isObject(raw)) throw new Error(`qa[${index}] must be an object`);
-    if (!isNonEmptyString(raw.id) || !isNonEmptyString(raw.status)) {
-      throw new Error(DRAFT_LEGACY_QA_ERROR);
-    }
-    this.raw = raw;
-    this.index = index;
-    this.id = raw.id;
-    this.status = raw.status;
-    this.category = raw.category;
-    this.question = raw.question;
-    this.answer = raw.answer;
-    this.evidence = raw.evidence;
-    this.why = raw.why;
-    this.considered = raw.considered;
-    this.droppedReason = raw.droppedReason;
-  }
-
-  validateStructure() {
-    const issues = [];
-    for (const field of unknownFields(this.raw, DRAFT_QA_FIELDS)) {
-      issues.push(`qa[${this.index}]: unknown field "${field}"`);
-    }
-    if (!DRAFT_QA_STATUSES.includes(this.status)) {
-      issues.push(`qa[${this.index}]: invalid status "${this.status}"`);
-    }
-    if (!DRAFT_QA_CATEGORIES.includes(this.category)) {
-      issues.push(`qa[${this.index}]: invalid category "${this.category || ""}"`);
-    }
-    if (!isNonEmptyString(this.question)) {
-      issues.push(`qa[${this.index}]: missing or empty question`);
-    }
-    if (typeof this.raw.considered !== "string") {
-      issues.push(`qa[${this.index}]: considered must be a string`);
-    }
-    return issues;
-  }
-
-  validateLifecycle() {
-    const issues = [];
-
-    if (this.status === "pending" || this.status === "approved") {
-      issues.push(`qa[${this.index}]: status ${this.status} blocks spec generation`);
-      pushEmptyFieldIssues(issues, this.index, this.status, this.raw, DRAFT_QA_PENDING_APPROVED_EMPTY_FIELDS);
-    }
-
-    if (this.status === "answered") {
-      for (const field of DRAFT_QA_ANSWER_REQUIRED_FIELDS) {
-        if (!isNonEmptyString(this.raw[field])) {
-          issues.push(`qa[${this.index}]: ${field} is required when status is answered`);
-        }
-      }
-      if (normalizeText(this.answer).replace(/\s/g, "").length < 8) {
-        issues.push(`qa[${this.index}]: answered entries require a non-shallow answer`);
-      }
-      if (!isEmptyString(this.raw.droppedReason)) {
-        issues.push(`qa[${this.index}]: droppedReason must be empty when status is answered`);
-      }
-    }
-
-    if (this.status === "dropped") {
-      if (!isNonEmptyString(this.droppedReason)) {
-        issues.push(`qa[${this.index}]: droppedReason is required when status is dropped`);
-      }
-      pushEmptyFieldIssues(issues, this.index, this.status, this.raw, DRAFT_QA_RESPONSE_FIELDS);
-    }
-
-    for (const [field, value] of [
-      ["question", this.question],
-      ["answer", this.answer],
-      ["evidence", this.evidence],
-      ["why", this.why],
-      ["considered", this.considered],
-      ["droppedReason", this.droppedReason],
-    ]) {
-      const text = normalizeText(value);
-      if (AMBIGUOUS_TOKENS.some((token) => text.includes(token))) {
-        issues.push(`qa[${this.index}]: ${field} contains ambiguous wording`);
-      }
-    }
-    return issues;
-  }
-
-  validate() {
-    return [...this.validateStructure(), ...this.validateLifecycle()];
-  }
-
-  resolve({ answer = null, why = null, considered = "", droppedReason = null } = {}) {
-    if (!DRAFT_QA_UNRESOLVED_STATUSES.has(this.status)) {
-      throw new Error(`qa[${this.index}]: status ${this.status} cannot be resolved again`);
-    }
-    const dropping = droppedReason !== null;
-    const raw = {
-      ...structuredClone(this.raw),
-      status: dropping ? "dropped" : "answered",
-      answer: dropping ? "" : answer,
-      evidence: dropping ? "" : `Explicit user response recorded for ${this.id}.`,
-      why: dropping ? "" : why,
-      considered: dropping ? "" : considered,
-      droppedReason: dropping ? droppedReason : "",
-    };
-    const resolved = new DraftQaEntry(raw, this.index);
-    const issues = resolved.validate();
-    if (issues.length > 0) throw new Error(issues.join("; "));
-    return raw;
-  }
-}
-
-export class DraftApproval {
+class DraftDecisionMap {
   constructor(raw) {
     this.raw = raw;
+    Object.freeze(this);
   }
 
   validate() {
-    if (!isObject(this.raw) || !this.raw.approved) {
-      return ["draft approval is required: set approval.approved = true"];
-    }
-    return [];
-  }
-}
-
-export class DraftDecisionMap {
-  constructor(raw) {
-    this.raw = raw;
-  }
-
-  validate() {
-    const issues = [];
     if (!isObject(this.raw)) return ["missing decisionMap object"];
-
-    for (const field of unknownFields(this.raw, DRAFT_DECISION_MAP_FIELDS)) {
+    const issues = [];
+    for (const field of unknownFields(this.raw, new Set(DECISION_MAP_FIELDS))) {
       issues.push(`decisionMap: unknown field "${field}"`);
     }
-    for (const field of DRAFT_DECISION_MAP_FIELDS) {
-      const value = this.raw[field];
-      if (!Array.isArray(value)) {
+    for (const field of DECISION_MAP_FIELDS) {
+      const values = this.raw[field];
+      if (!Array.isArray(values)) {
         issues.push(`decisionMap.${field} must be an array`);
         continue;
       }
-      for (let i = 0; i < value.length; i++) {
-        if (!isNonEmptyString(value[i])) {
-          issues.push(`decisionMap.${field}[${i}] must be a non-empty string`);
-        }
-      }
+      values.forEach((value, index) => {
+        if (!isNonEmptyString(value)) issues.push(`decisionMap.${field}[${index}] must be a non-empty string`);
+      });
     }
     return issues;
   }
 }
 
-function validateQuestionCollection(raw, entries, validateEntry) {
-  if (!Array.isArray(raw)) return ["missing qa array"];
-  const issues = [];
-  const ids = new Set();
-  const questions = new Set();
-  for (const entry of entries) {
-    issues.push(...validateEntry(entry));
-    if (!/^q\d+$/.test(entry.id)) {
-      issues.push(`qa[${entry.index}]: id must match q<N>`);
-    }
-    if (ids.has(entry.id)) {
-      issues.push(`qa[${entry.index}]: duplicate id "${entry.id}"`);
-    }
-    ids.add(entry.id);
-    if (entry.status !== "dropped") {
-      const normalizedQuestion = normalizeText(entry.question);
-      if (normalizedQuestion && questions.has(normalizedQuestion)) {
-        issues.push(`qa[${entry.index}]: duplicate question`);
-      }
-      questions.add(normalizedQuestion);
-    }
+class DraftApproval {
+  constructor(raw) {
+    this.raw = raw;
+    Object.freeze(this);
   }
-  return issues;
+  validate() {
+    return isObject(this.raw) && this.raw.approved === true
+      ? []
+      : ["draft approval is required: set approval.approved = true"];
+  }
 }
 
 export class DraftLifecycle {
   constructor(raw) {
     if (!isObject(raw)) throw new Error("draft must be a non-null object");
-    this.raw = raw;
-    this.qa = Array.isArray(raw.qa)
-      ? raw.qa.map((entry, index) => new DraftQaEntry(entry, index))
-      : [];
-    this.decisionMap = new DraftDecisionMap(raw.decisionMap);
-    this.approval = new DraftApproval(raw.approval);
+    this.raw = structuredClone(raw);
+    this.decisionMap = new DraftDecisionMap(this.raw.decisionMap);
+    this.approval = new DraftApproval(this.raw.approval);
+    this.questionLedger = this.#parseLedger();
+    Object.freeze(this);
+  }
+
+  #parseLedger() {
+    if (Object.hasOwn(this.raw, "qa")) throw new Error(DRAFT_LEGACY_QA_ERROR);
+    if (!Object.hasOwn(this.raw, "questionLedger")) return null;
+    try {
+      return DraftQuestionLedger.from(this.raw.questionLedger);
+    } catch {
+      return null;
+    }
+  }
+
+  validateQuestionStructure() {
+    if (Object.hasOwn(this.raw, "qa")) return [DRAFT_LEGACY_QA_ERROR];
+    if (!Object.hasOwn(this.raw, "questionLedger") || this.raw.questionLedger === undefined) return ["missing questionLedger object"];
+    return DraftQuestionLedger.validationIssues(this.raw.questionLedger);
   }
 
   validate() {
     const issues = [];
-    for (const field of unknownFields(this.raw, DRAFT_TOP_LEVEL_FIELDS)) {
-      issues.push(`unknown field "${field}"`);
+    for (const field of unknownFields(this.raw, TOP_LEVEL_FIELDS)) {
+      if (field !== "qa") issues.push(`unknown field "${field}"`);
     }
-
-    if (!isNonEmptyString(this.raw.devType) || !DRAFT_DEV_TYPE_ENUM.includes(this.raw.devType)) {
-      issues.push(
-        `invalid devType "${this.raw.devType || ""}" (expected one of: ${DRAFT_DEV_TYPE_ENUM.join(", ")})`,
-      );
+    if (!isNonEmptyString(this.raw.devType) || !DEV_TYPES.has(this.raw.devType)) {
+      issues.push(`invalid devType "${this.raw.devType || ""}" (expected one of: ${[...DEV_TYPES].join(", ")})`);
     }
     if (!isNonEmptyString(this.raw.goal)) issues.push("missing or empty goal");
-
-    const a = this.raw.analysis;
-    if (!isObject(a)) {
+    if (!isObject(this.raw.analysis)) {
       issues.push("missing analysis object");
     } else {
       for (const field of ["problem", "proposedApproach", "validation"]) {
-        if (!isNonEmptyString(a[field])) issues.push(`missing or empty analysis.${field}`);
+        if (!isNonEmptyString(this.raw.analysis[field])) issues.push(`missing or empty analysis.${field}`);
       }
     }
-
     issues.push(...this.decisionMap.validate());
-
-    issues.push(...validateQuestionCollection(this.raw.qa, this.qa, (entry) => entry.validate()));
-
+    issues.push(...this.validateQuestionStructure());
+    if (this.questionLedger !== null) {
+      this.questionLedger.questions.forEach((question, index) => {
+        if (question instanceof CandidateQuestion || question instanceof AwaitingUserAnswer) {
+          const state = question instanceof CandidateQuestion ? "CandidateQuestion" : "AwaitingUserAnswer";
+          issues.push(`questionLedger.questions[${index}]: state ${state} blocks spec generation`);
+        }
+      });
+    }
     issues.push(...this.approval.validate());
     return issues;
   }
 
-  validateQuestionStructure() {
-    return validateQuestionCollection(this.raw.qa, this.qa, (entry) => entry.validateStructure());
-  }
-
-  countByStatus() {
-    const counts = Object.fromEntries(DRAFT_QA_STATUSES.map((status) => [status, 0]));
-    for (const entry of this.qa) counts[entry.status] += 1;
-    return counts;
-  }
-
-  nextQaId() {
-    const nums = this.qa
-      .map((entry) => /^q(\d+)$/.exec(entry.id))
-      .filter(Boolean)
-      .map((match) => Number(match[1]));
-    return `q${Math.max(0, ...nums) + 1}`;
-  }
-
   nextUnresolvedQuestion() {
-    return this.qa.find((entry) => DRAFT_QA_UNRESOLVED_STATUSES.has(entry.status)) ?? null;
+    if (this.questionLedger === null) throw new Error(this.validateQuestionStructure().join("; "));
+    return this.questionLedger.nextAwaiting();
   }
 
-  resolveQuestion({ questionId, answer = null, why = null, considered = "", droppedReason = null } = {}) {
-    const structureIssues = this.validateQuestionStructure();
-    if (structureIssues.length > 0) throw new Error(structureIssues.join("; "));
-    const next = this.nextUnresolvedQuestion();
-    if (next === null) throw new Error("draft has no unresolved question");
-    if (questionId !== next.id) {
-      throw new Error(`draft question changed: expected ${next.id}, got ${questionId || "(empty)"}`);
-    }
-    const draft = structuredClone(this.raw);
-    draft.qa[next.index] = next.resolve({ answer, why, considered, droppedReason });
-    if (Array.isArray(draft.decisionMap?.requiresUserJudgment)) {
-      draft.decisionMap.requiresUserJudgment = draft.decisionMap.requiresUserJudgment
-        .filter((entry) => entry !== next.id);
-    }
-    return draft;
+  withQuestionLedger(questionLedger) {
+    return {
+      ...this.raw,
+      questionLedger: DraftQuestionLedger.from(questionLedger).toJSON(),
+    };
   }
 }
 
@@ -370,15 +144,25 @@ export function parseDraftLifecycle(raw) {
 export function validateDraftLifecycle(raw) {
   try {
     return parseDraftLifecycle(raw).validate();
-  } catch (err) {
-    return [err.message];
+  } catch (error) {
+    return [error.message];
   }
 }
 
 export function countDraftLifecycleQa(raw) {
-  return parseDraftLifecycle(raw).countByStatus();
+  const lifecycle = parseDraftLifecycle(raw);
+  if (lifecycle.questionLedger === null) throw new Error(lifecycle.validateQuestionStructure().join("; "));
+  return countDraftQuestionStates(lifecycle.questionLedger.questions);
 }
 
 export function nextDraftQaId(raw) {
-  return parseDraftLifecycle(raw).nextQaId();
+  const lifecycle = parseDraftLifecycle(raw);
+  if (lifecycle.questionLedger === null) throw new Error(lifecycle.validateQuestionStructure().join("; "));
+  const last = lifecycle.questionLedger.questions.at(-1);
+  if (last === undefined) return "q1";
+  const number = Number(last.id.slice(1));
+  if (!Number.isSafeInteger(number) || number >= Number.MAX_SAFE_INTEGER) {
+    throw new Error("draft question id sequence is exhausted");
+  }
+  return `q${number + 1}`;
 }

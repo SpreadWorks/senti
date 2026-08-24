@@ -31,6 +31,8 @@ import {
   ActivityDispatchApproval,
   CurrentAttempt,
   CurrentAttemptIdentity,
+  ActivityReferences,
+  CanonicalFlowArtifactBaseline,
   CanonicalFlowRuntimeArtifactWrite,
   FlowExecution,
   CurrentFlowSpecRecord,
@@ -55,6 +57,7 @@ import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
+import { DraftLifecycle } from "./draft-lifecycle.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
 import {
@@ -1432,7 +1435,7 @@ export class CanonicalFlowManagerStore {
    * a definition leaf; the Store derives the catalog claim and Activity
    * identity from that leaf instead of accepting a path or an authority.
    */
-  publishArtifacts({ specId = null, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined } = {}) {
+  publishArtifacts({ specId = null, nodeId, artifactWrites, artifactRemovals = undefined, artifactBaselines = undefined, testSourceBaseline = undefined } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
@@ -1451,8 +1454,76 @@ export class CanonicalFlowManagerStore {
       nodeId: producerNodeId,
       artifactWrites,
       artifactRemovals,
+      artifactBaselines,
       testSourceBaseline,
       ...(expectedAttempt === null ? {} : { expectedAttempt }),
+    });
+  }
+
+  promoteDraftQuestionAndKeepRefineActive({
+    specId = null,
+    questionId,
+    questionRevision,
+    digest,
+    byteLength,
+    sourceBytes,
+    sourcePayloadDigest,
+    handoffDigest,
+    handoffRequestDigest,
+  } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (typeof questionId !== "string" || questionId.trim() === "") throw new CurrentFlowStateInvariantError("draft promotion questionId is required");
+    if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) throw new CurrentFlowStateInvariantError("draft promotion questionRevision is invalid");
+    if (typeof digest !== "string" || !/^[a-f0-9]{64}$/.test(digest) || !Number.isSafeInteger(byteLength) || byteLength < 0) throw new CurrentFlowStateInvariantError("draft promotion baseline is invalid");
+    if (!Buffer.isBuffer(sourceBytes)) throw new CurrentFlowStateInvariantError("draft promotion sourceBytes are required");
+    if (typeof sourcePayloadDigest !== "string" || !/^[a-f0-9]{64}$/.test(sourcePayloadDigest)) {
+      throw new CurrentFlowStateInvariantError("draft promotion sourcePayloadDigest is invalid");
+    }
+    if (typeof handoffDigest !== "string" || !/^[a-f0-9]{64}$/.test(handoffDigest)) {
+      throw new CurrentFlowStateInvariantError("draft promotion handoffDigest is invalid");
+    }
+    if (typeof handoffRequestDigest !== "string" || !/^[a-f0-9]{64}$/.test(handoffRequestDigest)) {
+      throw new CurrentFlowStateInvariantError("draft promotion handoffRequestDigest is invalid");
+    }
+    const actualSourceDigest = crypto.createHash("sha256").update(sourceBytes).digest("hex");
+    if (actualSourceDigest !== sourcePayloadDigest) {
+      throw new CurrentFlowStateInvariantError("draft promotion sourceBytes do not match sourcePayloadDigest");
+    }
+    let sourceDraft;
+    try {
+      sourceDraft = new DraftLifecycle(JSON.parse(sourceBytes.toString("utf8")));
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`draft promotion source draft is invalid: ${cause.message}`);
+    }
+    let promotedDraft;
+    try {
+      promotedDraft = sourceDraft.withQuestionLedger(
+        sourceDraft.questionLedger.transitionCandidate(questionId, questionRevision),
+      );
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`draft promotion does not match source ledger: ${cause.message}`);
+    }
+    const promotedBytes = Buffer.from(`${JSON.stringify(promotedDraft, null, 2)}\n`, "utf8");
+    const promotedDigest = crypto.createHash("sha256").update(promotedBytes).digest("hex");
+    const state = this.runtime.load(resolved);
+    if (state.current?.at(-1) !== "draft-refine" || state.attempt === null) throw new CurrentFlowStateInvariantError("draft promotion requires active draft-refine");
+    return this.runtime.publishArtifacts({
+      specId: resolved, activityId: activityId("draft-question-promoted"), nodeId: "draft-refine",
+      expectedAttempt: CurrentAttemptIdentity.from(state.attempt),
+      artifactBaselines: [new CanonicalFlowArtifactBaseline({ logicalKey: "draft", digest, byteLength })],
+      artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: promotedBytes }],
+      references: new ActivityReferences({
+        evaluations: [],
+        findings: [],
+        repairs: [],
+        artifacts: [
+          { id: handoffDigest, label: "draft-refine handoff" },
+          { id: handoffRequestDigest, label: "draft-refine handoff request" },
+          { id: sourcePayloadDigest, label: "draft-refine sealed draft payload" },
+          { id: promotedDigest, label: `draft question ${questionId}@${questionRevision} promoted artifact` },
+        ],
+      }),
     });
   }
 

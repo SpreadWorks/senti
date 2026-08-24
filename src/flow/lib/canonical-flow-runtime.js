@@ -664,7 +664,7 @@ export class CanonicalFlowRuntime {
    * The Version Store atomically appends this Activity, writes the bytes, and
    * replaces their catalog descriptors under the active leaf's ownership.
    */
-  publishArtifacts({ specId, activityId, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined, expectedAttempt = null } = {}) {
+  publishArtifacts({ specId, activityId, nodeId, artifactWrites, artifactRemovals = undefined, artifactBaselines = undefined, testSourceBaseline = undefined, expectedAttempt = null, references = undefined } = {}) {
     const state = this.#state(specId);
     const target = requiredText(nodeId, "artifact publication nodeId");
     const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
@@ -682,6 +682,7 @@ export class CanonicalFlowRuntime {
       nodeId: target,
       attemptId: expected?.id ?? null,
       sequence: expected?.sequence ?? null,
+      references,
       transition: {
         operation: "publish_artifacts",
         nodeId: target,
@@ -690,7 +691,7 @@ export class CanonicalFlowRuntime {
         status: null,
         nonblocking: null,
       },
-    }), { artifactWrites, artifactRemovals, testSourceBaseline });
+    }), { artifactWrites, artifactRemovals, artifactBaselines, testSourceBaseline });
   }
 
   /**

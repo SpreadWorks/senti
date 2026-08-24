@@ -42,7 +42,7 @@ describe("getStepInstructions (loader contract)", () => {
       const filePath = path.join(PROMPTS_DIR, "plan", "draft.md");
       const rawPrompt = fs.readFileSync(filePath, "utf8");
       assert.match(rawPrompt, INCLUDE_DIRECTIVE_PATTERN);
-      assert.match(expandedPrompt, /## Draft QA Rules/);
+      assert.match(expandedPrompt, /## Draft Question Ledger Rules/);
       assert.doesNotMatch(expandedPrompt, INCLUDE_DIRECTIVE_PATTERN);
     });
 

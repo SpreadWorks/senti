@@ -31,6 +31,7 @@ import {
   DraftQuestionFact,
   DraftTransitionFacts,
 } from "../../../src/flow/lib/draft-transition-facts.js";
+import { AwaitingUserAnswer, DraftQuestionLedger } from "../../../src/flow/lib/draft-question-ledger.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import {
@@ -133,14 +134,20 @@ describe("flow get next-action", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("lets the definition own the manual and automatic draft boundary", () => {
+    const digest = "a".repeat(64);
+    const ledger = new DraftQuestionLedger({
+      revision: 0, publication: "fixture", evidenceDigest: digest,
+      questions: [new AwaitingUserAnswer({ id: "q1", question: "Which public contract should be selected?", category: "user-visible-behavior", revision: 0, provenance: { producer: "fixture" }, evidenceDigest: digest })],
+    });
     const questionFacts = new DraftTransitionFacts({
+      ledger,
       nextQuestion: new DraftQuestionFact({
         id: "q1",
-        status: "pending",
         question: "Which public contract should be selected?",
+        revision: 0,
       }),
     });
-    const noQuestionFacts = new DraftTransitionFacts();
+    const noQuestionFacts = new DraftTransitionFacts({ ledger: new DraftQuestionLedger({ revision: 0, publication: "fixture", evidenceDigest: digest, questions: [] }) });
 
     assert.equal(resolveDraftTransition({
       stepId: "draft-refine",
@@ -390,11 +397,13 @@ describe("flow get next-action", () => {
       requiresUserAction: true,
       questionId: "q1",
       question: "Which public behavior should the command guarantee?",
+      questionRevision: 0,
       reason: "Draft refinement requires an explicit user answer before its worker can run.",
     });
 
     const answered = runCli(tmp, [
       "flow", "set", "draft-answer", "q1",
+      "--question-revision", "0",
       "--answer", "Return the stable public representation selected by the user.",
       "--why", "The user selected this behavior after comparing the public alternatives.",
       "--considered", "A repository-internal response shape was rejected.",
@@ -411,6 +420,7 @@ describe("flow get next-action", () => {
 
     const dropped = runCli(tmp, [
       "flow", "set", "draft-answer", "q2",
+      "--question-revision", "0",
       "--drop",
       "--dropped-reason", "The project contract already fixes this compatibility boundary.",
       "--expect-binding", binding,
@@ -429,9 +439,9 @@ describe("flow get next-action", () => {
       logicalKey: "draft",
       consumerNodeId: "draft-refine",
     }).bytes.toString("utf8"));
-    assert.deepEqual(stored.qa.map(({ id, status }) => ({ id, status })), [
-      { id: "q1", status: "answered" },
-      { id: "q2", status: "dropped" },
+    assert.deepEqual(stored.questionLedger.questions.map(({ id, state }) => ({ id, state })), [
+      { id: "q1", state: "AnsweredQuestion" },
+      { id: "q2", state: "DiscardedQuestion" },
     ]);
     assert.deepEqual(stored.decisionMap.requiresUserJudgment, []);
   });
@@ -440,7 +450,7 @@ describe("flow get next-action", () => {
     tmp = createTmpDir();
     const scenario = createScenario(tmp).atFlowStep("draft");
     const draft = draftDocumentWithPendingQuestions();
-    draft.qa[0].priority = "must";
+    draft.questionLedger.questions[0].priority = "must";
     publishDraft(scenario, draft);
     scenario.atFlowStep("draft-refine");
 
