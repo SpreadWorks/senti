@@ -1,5 +1,6 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow-manager-store.js";
@@ -23,7 +24,13 @@ import {
   NonGateTargetBinding,
   NonGateTransitionFacts,
   NonGateTransitionSelection,
+  ScenarioValidityStepFacts,
+  TestExecuteStepFacts,
+  TestResultReviewStepFacts,
   resolveNonGateTransition,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
 } from "../../../src/flow/definition.js";
 import {
   admitNonGateDirectCommand,
@@ -33,8 +40,35 @@ import {
   resolveNonGateNextAction,
 } from "../../../src/flow/lib/non-gate-transition-application.js";
 import { readCurrentNonGateTransitionFacts } from "../../../src/flow/lib/non-gate-transition-facts.js";
+import { admitTestChainDirectExecution, readCurrentTestChainTransitionFacts } from "../../../src/flow/lib/test-chain-transition-facts.js";
+import { CanonicalTestSourceProvenanceError } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import { validateScenarioValidityArtifactShape } from "../../../src/flow/lib/test-artifacts.js";
+import RunScenarioValidityCommand from "../../../src/flow/lib/run-scenario-validity.js";
+import RunTestExecuteCommand from "../../../src/flow/lib/run-test-execute.js";
+import RunTestResultReviewCommand from "../../../src/flow/lib/run-test-result-review.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 const fixtureRoots = [];
+
+const testSourceHash = "a".repeat(64);
+const finalizedTestSourceDigest = createHash("sha256")
+  .update(`fixture.test.js\0${testSourceHash}\0${1}`)
+  .digest("hex");
+
+function finalizedTestSourceSnapshotEntries() {
+  return {
+    activity: {
+      id: "test-source-confirmed", attemptId: "test-attempt-1", sequence: 1, nodeId: "test",
+      type: "result_confirmed", transition: { operation: "confirm_attempt", nodeId: "test", status: "done" },
+      result: { outcome: "passed", confirmedAt: "2026-08-24T00:00:00.000Z" },
+    },
+    descriptor: {
+      logicalKey: "tests.source", relativePath: "artifacts/tests/fixture.test.js", hash: testSourceHash,
+      size: 1, activityId: "test-source-confirmed", slot: { publicationStep: "test" },
+    },
+  };
+}
 
 afterEach(() => {
   for (const directory of fixtureRoots.splice(0)) removeTmpDir(directory);
@@ -209,6 +243,125 @@ describe("definition-owned non-Gate transition boundary", () => {
     }
   });
 
+  it("keeps the three test-chain route tables in Definition", () => {
+    const scenarios = [
+      ["scenario-validity", scenarioValidityTransitionDefinition, new ScenarioValidityStepFacts({ result: "pass", rawAvailable: true }), true, false, "advance"],
+      ["scenario-validity", scenarioValidityTransitionDefinition, new ScenarioValidityStepFacts({ result: "block", rawAvailable: true, blockingEvidence: [{ classification: "invalid_test" }] }), true, false, "repair"],
+      ["scenario-validity", scenarioValidityTransitionDefinition, new ScenarioValidityStepFacts({ result: "block", rawAvailable: true, blockingEvidence: [{ classification: "unexpected_pass" }] }), true, false, "repair"],
+      ["scenario-validity", scenarioValidityTransitionDefinition, new ScenarioValidityStepFacts({ result: "block", rawAvailable: true, blockingEvidence: [{ classification: "unexpected_pass" }] }), true, true, "await-user-input"],
+      ["scenario-validity", scenarioValidityTransitionDefinition, new ScenarioValidityStepFacts({ result: "block", rawAvailable: true, blockingEvidence: [{ classification: "unexpected_pass" }], process: { started: false, exitCode: null, signal: null, timedOut: false, spawnError: "fixture" } }), true, false, "external-blocked"],
+      ["test-execute", testExecuteTransitionDefinition, new TestExecuteStepFacts({ rawAvailable: true }), true, false, "advance"],
+      ["test-execute", testExecuteTransitionDefinition, new TestExecuteStepFacts({ rawAvailable: true, process: { started: false, exitCode: null, signal: null, timedOut: false, spawnError: "fixture" } }), true, false, "external-blocked"],
+      ["test-result-review", testResultReviewTransitionDefinition, new TestResultReviewStepFacts({ verdict: "pass", rawAvailable: true, checkedItems: [{ result: "pass" }] }), true, false, "advance"],
+      ["test-result-review", testResultReviewTransitionDefinition, new TestResultReviewStepFacts({ verdict: "fail", rawAvailable: true, checkedItems: [{ result: "fail" }] }), true, false, "retry"],
+      ["test-result-review", testResultReviewTransitionDefinition, new TestResultReviewStepFacts({ verdict: "fail", rawAvailable: true, checkedItems: [{ result: "fail" }] }), true, true, "await-user-input"],
+      ["test-result-review", testResultReviewTransitionDefinition, new TestResultReviewStepFacts({ verdict: "fail", rawAvailable: true, checkedItems: [{ result: "fail" }], toolingFailure: true }), true, false, "external-blocked"],
+    ];
+    for (const [stepId, stepDefinition, stepFacts, completed, nonblocking, operation] of scenarios) {
+      const decision = resolveNonGateTransition(facts({
+        stepId,
+        producer: new NonGateProducerOwnership({
+          runId: "run-9", specId: "009-non-gate-transition", activityId: "activity-9", stepId,
+          attempt: new NonGateAttemptIdentity({ id: "attempt-9", sequence: 9 }),
+        }),
+        target: new NonGateTargetBinding({
+          runId: "run-9", specId: "009-non-gate-transition", stepId,
+          attempt: new NonGateAttemptIdentity({ id: "attempt-9", sequence: 9 }),
+        }),
+        catalogPublication: new NonGateCatalogPublication({
+          runId: "run-9", specId: "009-non-gate-transition", stepId, attemptId: "attempt-9", sequence: 9,
+          producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64),
+        }),
+        sourcePublication: new NonGateSourcePublication({
+          runId: "run-9", specId: "009-non-gate-transition", stepId, attemptId: "attempt-9", sequence: 9,
+          producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64),
+        }),
+        completion: new NonGateCompletionFacts({ completed }),
+        nonblocking,
+        stepFacts,
+      }), stepDefinition);
+      assert.equal(decision.disposition.operation, operation);
+    }
+  });
+
+  it("rejects contradictory typed scenario and review observations in their constructors", () => {
+    assert.throws(
+      () => new ScenarioValidityStepFacts({
+        result: "pass", blockingEvidence: [{ classification: "invalid_test" }],
+      }),
+      /result must match its blocking observations/,
+    );
+    assert.throws(
+      () => new ScenarioValidityStepFacts({ result: "block", blockingEvidence: [] }),
+      /result must match its blocking observations/,
+    );
+    assert.throws(
+      () => new TestResultReviewStepFacts({ verdict: "pass", checkedItems: [{ result: "fail" }] }),
+      /verdict must match its checked observations/,
+    );
+    assert.throws(
+      () => new TestResultReviewStepFacts({ verdict: "fail", checkedItems: [{ result: "pass" }] }),
+      /verdict must match its checked observations/,
+    );
+  });
+
+  it("rejects process metadata that typed facts cannot represent at the artifact schema boundary", () => {
+    assert.throws(
+      () => validateScenarioValidityArtifactShape({
+        version: "1",
+        testSourceRevision: "a".repeat(64),
+        raw_output_path: "steps/scenario-validity/output.log",
+        command: "node --test",
+        process: { started: true, exitCode: -1, signal: null, timedOut: false, spawnError: null },
+        result: "pass",
+        summary: [],
+      }),
+      /process\.exitCode: minimum 0/,
+    );
+  });
+
+  it("externally blocks incomplete test-execute process observations", () => {
+    const attempt = new NonGateAttemptIdentity({ id: "attempt-incomplete-process", sequence: 1 });
+    for (const process of [
+      { started: false, exitCode: null, signal: null, timedOut: false, spawnError: null },
+      { started: true, exitCode: null, signal: null, timedOut: false, spawnError: null },
+    ]) {
+      const stepId = "test-execute";
+      const observed = new NonGateTransitionFacts({
+        runId: "run-9",
+        specId: "009-non-gate-transition",
+        stepId,
+        snapshotRevision: "state-revision-incomplete-process",
+        producer: new NonGateProducerOwnership({
+          runId: "run-9", specId: "009-non-gate-transition", activityId: "activity-incomplete-process", stepId, attempt,
+        }),
+        target: new NonGateTargetBinding({
+          runId: "run-9", specId: "009-non-gate-transition", stepId, attempt,
+        }),
+        currentAttempt: attempt,
+        catalogPublication: new NonGateCatalogPublication({
+          runId: "run-9", specId: "009-non-gate-transition", stepId, attemptId: attempt.id, sequence: attempt.sequence,
+          producerActivityId: "activity-incomplete-process", artifactId: "fixture.incomplete-process", fingerprint: "f".repeat(64),
+        }),
+        sourcePublication: new NonGateSourcePublication({
+          runId: "run-9", specId: "009-non-gate-transition", stepId, attemptId: attempt.id, sequence: attempt.sequence,
+          producerActivityId: "activity-incomplete-process", artifactId: "fixture.incomplete-process", fingerprint: "f".repeat(64),
+        }),
+        lineage: new NonGateLineage({
+          sourceAttempt: attempt, canonicalAttempt: attempt, sourceFingerprint: "f".repeat(64), canonicalFingerprint: "f".repeat(64),
+        }),
+        retry: new NonGateRetryMetrics({ used: 1, maximum: 2 }),
+        completion: new NonGateCompletionFacts({ completed: true }),
+        nonblocking: false,
+        stepFacts: new TestExecuteStepFacts({ rawAvailable: true, process }),
+      });
+      assert.equal(
+        resolveNonGateTransition(observed, testExecuteTransitionDefinition).disposition.operation,
+        "external-blocked",
+      );
+    }
+  });
+
   it("fails closed for stale Attempts, catalog publication, lineage, and partial completion", () => {
     const current = new NonGateAttemptIdentity({ id: "attempt-9", sequence: 9 });
     const stale = new NonGateAttemptIdentity({ id: "attempt-8", sequence: 8 });
@@ -240,6 +393,38 @@ describe("definition-owned non-Gate transition boundary", () => {
       attemptId: current.id, sequence: current.sequence, producerActivityId: "activity-9", artifactId: "fixture.repair.9", fingerprint: "b".repeat(64),
     }) }), definition);
     assert.equal(pairedRevision.disposition.operation, "keep-in-progress");
+  });
+
+  it("applies no effects for stale or partial evidence and keeps tooling outside semantic retry", () => {
+    const stale = resolveNonGateTransition(facts({
+      catalogPublication: new NonGateCatalogPublication({
+        runId: "run-9", specId: "009-non-gate-transition", stepId: "fixture-step",
+        attemptId: "old", sequence: 8, producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64),
+      }),
+    }), definition);
+    const partial = resolveNonGateTransition(facts({ completion: new NonGateCompletionFacts({ partial: true }) }), definition);
+    for (const decision of [stale, partial]) {
+      let effects = 0;
+      applyNonGateTransitionDecision({
+        setStepStatus() { effects += 1; }, incrementRetry() { effects += 1; }, failCurrentAttempt() { effects += 1; },
+      }, decision);
+      assert.equal(effects, 0);
+    }
+    const tooling = resolveNonGateTransition(facts({
+      stepId: "scenario-validity",
+      producer: new NonGateProducerOwnership({ runId: "run-9", specId: "009-non-gate-transition", activityId: "activity-9", stepId: "scenario-validity", attempt: { id: "attempt-9", sequence: 9 } }),
+      target: new NonGateTargetBinding({ runId: "run-9", specId: "009-non-gate-transition", stepId: "scenario-validity", attempt: { id: "attempt-9", sequence: 9 } }),
+      catalogPublication: new NonGateCatalogPublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "scenario-validity", attemptId: "attempt-9", sequence: 9, producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64) }),
+      sourcePublication: new NonGateSourcePublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "scenario-validity", attemptId: "attempt-9", sequence: 9, producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64) }),
+      completion: new NonGateCompletionFacts({ completed: true }),
+      stepFacts: new ScenarioValidityStepFacts({ result: "block", rawAvailable: true, blockingEvidence: [{ classification: "unexpected_pass" }], process: { started: false, exitCode: null, signal: null, timedOut: false, spawnError: "fixture" } }),
+    }), scenarioValidityTransitionDefinition);
+    const failures = [];
+    applyNonGateTransitionDecision({
+      setStepStatus() {}, incrementRetry() { throw new Error("tooling must not increment semantic retry"); },
+      failCurrentAttempt(action) { failures.push(action.toJSON()); },
+    }, tooling);
+    assert.deepEqual(failures.map((entry) => [entry.category, entry.retryKind, entry.retryable]), [["tooling", null, false]]);
   });
 
   it("makes nonblocking and recovery facts available only to the Step Definition", () => {
@@ -324,6 +509,405 @@ describe("definition-owned non-Gate transition boundary", () => {
     }), /admission rejected/);
     assert.equal(workerStarts, 0);
     assert.throws(() => applyNonGateTransitionDecision({ applyStepUpdate() {} }, {}), /definition decision/);
+  });
+
+  it("admits only an unobserved current test-chain execute Action", () => {
+    const stepId = "scenario-validity";
+    const snapshot = {
+      runId: "run-9", specId: "009-non-gate-transition", stepId, revision: "state-revision-9",
+      attempt: { id: "attempt-9", sequence: 9 }, activities: [], catalog: [],
+    };
+    const manager = {
+      readCanonicalTransitionSnapshot: () => snapshot,
+      canonicalState: () => ({ nextAction: () => ({ nodeId: stepId, operation: "resume" }) }),
+    };
+    assert.equal(admitTestChainDirectExecution({ flowManager: manager, specId: snapshot.specId, stepId }).state, "execute");
+    let workerStarts = 0;
+    const published = {
+      ...snapshot,
+      activities: [{ id: "published", attemptId: "attempt-9", sequence: 9, nodeId: stepId }],
+      catalog: [{ logicalKey: "scenario.validity", activityId: "published" }],
+    };
+    const blockedFacts = facts({
+      stepId,
+      producer: new NonGateProducerOwnership({ runId: "run-9", specId: snapshot.specId, activityId: "published", stepId, attempt: snapshot.attempt }),
+      target: new NonGateTargetBinding({ runId: "run-9", specId: snapshot.specId, stepId, attempt: snapshot.attempt }),
+      catalogPublication: new NonGateCatalogPublication({ runId: "run-9", specId: snapshot.specId, stepId, attemptId: "attempt-9", sequence: 9, producerActivityId: "published", artifactId: "result", fingerprint: "f".repeat(64) }),
+      sourcePublication: new NonGateSourcePublication({ runId: "run-9", specId: snapshot.specId, stepId, attemptId: "attempt-9", sequence: 9, producerActivityId: "published", artifactId: "result", fingerprint: "f".repeat(64) }),
+      stepFacts: new ScenarioValidityStepFacts({ result: "block", blockingEvidence: [{ classification: "invalid_test" }] }),
+    });
+    assert.throws(() => admitTestChainDirectExecution({
+      flowManager: { ...manager, readCanonicalTransitionSnapshot: () => published }, specId: snapshot.specId, stepId,
+      readFacts: () => blockedFacts,
+    }), /Definition-selected repair/);
+    assert.equal(workerStarts, 0);
+  });
+
+  it("rejects actual test-chain commands before their worker/process boundary", async () => {
+    const attempts = [];
+    for (const [stepId, Command, command] of [
+      ["scenario-validity", RunScenarioValidityCommand, new RunScenarioValidityCommand({ scenarioTestExecutor: async () => { attempts.push(stepId); return []; } })],
+      ["test-execute", RunTestExecuteCommand, new RunTestExecuteCommand()],
+      ["test-result-review", RunTestResultReviewCommand, new RunTestResultReviewCommand()],
+    ]) {
+      const snapshot = {
+        runId: "run-9", specId: "009-non-gate-transition", stepId, revision: "state-revision-9",
+        attempt: { id: "attempt-9", sequence: 9 },
+        activities: [{ id: "published", attemptId: "attempt-9", sequence: 9, nodeId: stepId }],
+        catalog: [{ logicalKey: stepId === "scenario-validity" ? "scenario.validity" : stepId === "test-execute" ? "test.execute" : "test.result.review", activityId: "published" }],
+      };
+      const flowManager = {
+        readCanonicalTransitionSnapshot: () => snapshot,
+        canonicalState: () => ({ nextAction: () => ({ nodeId: stepId, operation: "resume" }) }),
+      };
+      await assert.rejects(
+        command.execute({ flowState: { schemaRevision: 3, specId: snapshot.specId }, flowManager, root: process.cwd() }),
+        /test-chain direct admission rejected/,
+      );
+    }
+    assert.deepEqual(attempts, []);
+  });
+
+  it("rejects malformed test-chain post artifacts before any publication or Activity settlement", async () => {
+    let publications = 0;
+    let settlements = 0;
+    const ctx = {
+      specId: "009-non-gate-transition",
+      flowState: { specId: "009-non-gate-transition" },
+      flowManager: {
+        publishCurrentAttemptResult() { publications += 1; },
+        applyTestChainTransitionDecision() { settlements += 1; },
+      },
+    };
+    const fingerprint = "a".repeat(64);
+    const malformed = [
+      ["test-execute", attachCanonicalCommandResultArtifact({ result: "ok", artifacts: {} }, {
+        logicalKey: "test.execute",
+        payload: {
+          version: "2", repairFingerprint: "x", testSourceRevision: fingerprint, rawEvidenceFingerprint: fingerprint,
+          process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
+          raw_output_path: "steps/test-execute/output.log", summary: [],
+          regression: { required: false, result: "skipped", mode: "none", category: "docs-only", reason: "fixture", classified_paths: [], changed_files: [], trigger_relevant_changed_files: [] },
+        },
+      })],
+      ["test-result-review", attachCanonicalCommandResultArtifact({ result: "ok", artifacts: {} }, {
+        logicalKey: "test.result.review",
+        payload: {
+          verdict: "pass", checked_items: [{ check: "project_regression_verification", result: "pass", detail: "fixture" }],
+          result_file_path: "steps/test-execute/result.json", raw_output_path: "steps/test-execute/output.log",
+          repairFingerprint: "x", testSourceRevision: fingerprint, rawEvidenceFingerprint: fingerprint,
+          testExecute: { historyAttempt: 1, producerActivityId: "execute-activity", attemptId: "execute-attempt", sequence: 1 },
+        },
+      })],
+      ["scenario-validity", attachCanonicalCommandResultArtifact({ result: "block", artifacts: {} }, {
+        logicalKey: "scenario.validity",
+        payload: {
+          version: "1", testSourceRevision: fingerprint, command: "node --test",
+          process: { started: true, exitCode: 1, signal: null, timedOut: false, spawnError: null }, result: "block",
+          raw_output_path: "steps/scenario-validity/output.log",
+          summary: [{ id: "R1", classification: "invalid_test", evidence: {
+            test_file: "fixture.test.js", test_name: "R1: fixture", command: "node --test", raw_output_lines: { start_line: 1, end_line: 1 },
+          }, producerSelectedNext: "test" }],
+        },
+      })],
+    ];
+    for (const [stepId, result] of malformed) {
+      await assert.rejects(
+        async () => FLOW_COMMANDS.run[stepId].post(ctx, result),
+        /schema validation failed/,
+      );
+    }
+    assert.equal(publications, 0);
+    assert.equal(settlements, 0);
+  });
+
+  it("rejects contradictory scenario and review observations before publication or settlement", async () => {
+    let publications = 0;
+    let settlements = 0;
+    const ctx = {
+      specId: "009-non-gate-transition",
+      flowState: { specId: "009-non-gate-transition" },
+      flowManager: {
+        publishCurrentAttemptResult() { publications += 1; },
+        applyTestChainTransitionDecision() { settlements += 1; },
+      },
+    };
+    const fingerprint = "a".repeat(64);
+    const scenario = ({ result, classification }) => attachCanonicalCommandResultArtifact({ result: "ok", artifacts: {} }, {
+      logicalKey: "scenario.validity",
+      payload: {
+        version: "1", testSourceRevision: fingerprint, command: "node --test",
+        process: { started: true, exitCode: 1, signal: null, timedOut: false, spawnError: null }, result,
+        raw_output_path: "steps/scenario-validity/output.log",
+        summary: [{ id: "R1", classification, evidence: {
+          test_file: "fixture.test.js", test_name: "R1: fixture", command: "node --test", raw_output_lines: { start_line: 1, end_line: 1 },
+        } }],
+      },
+    });
+    const review = ({ verdict, result }) => attachCanonicalCommandResultArtifact({ result: "ok", artifacts: {} }, {
+      logicalKey: "test.result.review",
+      payload: {
+        verdict, checked_items: [{ check: "summary_evidence", result, detail: "fixture" }],
+        result_file_path: "steps/test-execute/result.json", raw_output_path: "steps/test-execute/output.log",
+        repairFingerprint: fingerprint, testSourceRevision: fingerprint, rawEvidenceFingerprint: fingerprint,
+        testExecute: { historyAttempt: 1, producerActivityId: "execute-activity", attemptId: "execute-attempt", sequence: 1 },
+      },
+    });
+    for (const [stepId, result] of [
+      ["scenario-validity", scenario({ result: "pass", classification: "invalid_test" })],
+      ["scenario-validity", scenario({ result: "block", classification: "expected_fail" })],
+      ["test-result-review", review({ verdict: "pass", result: "fail" })],
+      ["test-result-review", review({ verdict: "fail", result: "pass" })],
+    ]) {
+      await assert.rejects(
+        async () => FLOW_COMMANDS.run[stepId].post(ctx, result),
+        /observed summary|checked observations/,
+      );
+    }
+    assert.equal(publications, 0);
+    assert.equal(settlements, 0);
+  });
+
+  it("derives an external test-execute block from a cataloged tooling observation", () => {
+    const testSource = finalizedTestSourceSnapshotEntries();
+    const payload = {
+      repairFingerprint: "a".repeat(64), testSourceRevision: finalizedTestSourceDigest, summary: [],
+      rawEvidenceFingerprint: createHash("sha256").update("tooling output").digest("hex"),
+      process: { started: true, exitCode: 0, spawnError: null, signal: null, timedOut: false },
+      regression: { process: { started: true, exitCode: null, spawnError: null, signal: "SIGTERM", timedOut: true } },
+    };
+    const snapshot = {
+      runId: "run-9", specId: "009-non-gate-transition", stepId: "test-execute", revision: "revision-9",
+      state: { schemaRevision: 3, runId: "run-9", specId: "009-non-gate-transition", policy: { nonblocking: null } },
+      attempt: { id: "attempt-9", sequence: 9, consumption: { semantic: 0, tooling: 0 } },
+      activities: [{ id: "published", attemptId: "attempt-9", sequence: 9, nodeId: "test-execute" }, testSource.activity],
+      catalog: [{ logicalKey: "test.execute", relativePath: "steps/test-execute/result.json", hash: "f".repeat(64), activityId: "published" }, testSource.descriptor],
+    };
+    const manager = {
+      readCanonicalTransitionSnapshot: () => snapshot,
+      readActiveProducerArtifact: () => ({
+        bytes: Buffer.from(JSON.stringify({ attempts: [{ attempt: 9, artifact: { logicalKey: "test.execute", payload } }] })),
+      }),
+      readRuntimeArtifact: () => ({ bytes: Buffer.from("tooling output") }),
+    };
+    const observed = readCurrentTestChainTransitionFacts({ flowManager: manager, specId: snapshot.specId });
+    const decision = resolveNonGateTransition(observed, testExecuteTransitionDefinition);
+    assert.equal(decision.disposition.operation, "external-blocked");
+    const effects = [];
+    applyNonGateTransitionDecision({
+      setStepStatus() {}, incrementRetry() { effects.push("semantic-retry"); },
+      failCurrentAttempt(action) { effects.push(action.category); },
+    }, decision);
+    assert.deepEqual(effects, ["tooling"]);
+  });
+
+  it("binds test-chain Decisions to immutable evidence and reloads them deterministically", () => {
+    const input = facts({
+      stepId: "test-execute",
+      producer: new NonGateProducerOwnership({ runId: "run-9", specId: "009-non-gate-transition", activityId: "activity-9", stepId: "test-execute", attempt: { id: "attempt-9", sequence: 9 } }),
+      target: new NonGateTargetBinding({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-execute", attempt: { id: "attempt-9", sequence: 9 } }),
+      catalogPublication: new NonGateCatalogPublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-execute", attemptId: "attempt-9", sequence: 9, producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64) }),
+      sourcePublication: new NonGateSourcePublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-execute", attemptId: "attempt-9", sequence: 9, producerActivityId: "activity-9", artifactId: "fixture.result.9", fingerprint: "f".repeat(64) }),
+      completion: new NonGateCompletionFacts({ completed: true }),
+      stepFacts: new TestExecuteStepFacts({ repairFingerprint: "a".repeat(64), catalogDigest: "catalog-a" }),
+    });
+    const first = resolveNonGateTransition(input, testExecuteTransitionDefinition);
+    const reloaded = NonGateTransitionFacts.fromPersisted(JSON.parse(JSON.stringify(input.toJSON())), {
+      stepFacts: (stored) => new TestExecuteStepFacts(stored.values),
+    });
+    assert.deepEqual(resolveNonGateTransition(reloaded, testExecuteTransitionDefinition).toJSON(), first.toJSON());
+    const changed = resolveNonGateTransition(facts({ ...input.toJSON(), stepFacts: new TestExecuteStepFacts({ repairFingerprint: "a".repeat(64), catalogDigest: "catalog-b" }) }), testExecuteTransitionDefinition);
+    assert.equal(first.plan.action.identity.matches(changed.plan.action.identity), false);
+  });
+
+  it("counts the observed Attempt against retry budget and settles exhaustion without another semantic retry", () => {
+    const input = facts({
+      stepId: "test-result-review",
+      producer: new NonGateProducerOwnership({ runId: "run-9", specId: "009-non-gate-transition", activityId: "activity-9", stepId: "test-result-review", attempt: { id: "attempt-3", sequence: 3 } }),
+      target: new NonGateTargetBinding({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-result-review", attempt: { id: "attempt-3", sequence: 3 } }),
+      currentAttempt: new NonGateAttemptIdentity({ id: "attempt-3", sequence: 3 }),
+      catalogPublication: new NonGateCatalogPublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-result-review", attemptId: "attempt-3", sequence: 3, producerActivityId: "activity-9", artifactId: "fixture.result.3", fingerprint: "f".repeat(64) }),
+      sourcePublication: new NonGateSourcePublication({ runId: "run-9", specId: "009-non-gate-transition", stepId: "test-result-review", attemptId: "attempt-3", sequence: 3, producerActivityId: "activity-9", artifactId: "fixture.result.3", fingerprint: "f".repeat(64) }),
+      lineage: new NonGateLineage({ sourceAttempt: { id: "attempt-3", sequence: 3 }, canonicalAttempt: { id: "attempt-3", sequence: 3 }, sourceFingerprint: "f".repeat(64), canonicalFingerprint: "f".repeat(64) }),
+      retry: new NonGateRetryMetrics({ used: 3, maximum: 3 }),
+      completion: new NonGateCompletionFacts({ completed: true }),
+      stepFacts: new TestResultReviewStepFacts({ verdict: "fail", rawAvailable: true, checkedItems: [{ result: "fail" }] }),
+    });
+    const decision = resolveNonGateTransition(input, testResultReviewTransitionDefinition);
+    assert.equal(decision.disposition.operation, "blocked");
+    assert.equal(decision.disposition.reason, "retry_exhausted");
+    const failure = decision.plan.actions.find((action) => action.toJSON().action === "fail-current-attempt");
+    assert.deepEqual(failure.toJSON(), {
+      action: "fail-current-attempt", category: "semantic", code: "TEST_CHAIN_RETRY_EXHAUSTED",
+      retryable: false, retryKind: null, message: "Test-chain semantic retry budget is exhausted.",
+    });
+    const effects = [];
+    applyNonGateTransitionDecision({
+      setStepStatus() { effects.push("status"); },
+      incrementRetry() { effects.push("semantic-retry"); },
+      failCurrentAttempt(action) { effects.push(action.retryable); },
+    }, decision);
+    assert.deepEqual(effects, ["status", false]);
+  });
+
+  it("treats missing raw output as partial facts with an empty blocked plan", () => {
+    const testSource = finalizedTestSourceSnapshotEntries();
+    const payload = { repairFingerprint: "a".repeat(64), testSourceRevision: finalizedTestSourceDigest,
+      rawEvidenceFingerprint: createHash("sha256").update("").digest("hex"),
+      process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null }, summary: [], regression: {} };
+    const snapshot = {
+      runId: "run-9", specId: "009-non-gate-transition", stepId: "test-execute", revision: "revision-9",
+      state: { schemaRevision: 3, runId: "run-9", specId: "009-non-gate-transition", policy: { nonblocking: null } },
+      attempt: { id: "attempt-1", sequence: 1, consumption: { semantic: 0, tooling: 0 } },
+      activities: [{ id: "published", attemptId: "attempt-1", sequence: 1, nodeId: "test-execute" }, testSource.activity],
+      catalog: [{ logicalKey: "test.execute", relativePath: "steps/test-execute/result.json", hash: "f".repeat(64), activityId: "published" }, testSource.descriptor],
+    };
+    const manager = {
+      readCanonicalTransitionSnapshot: () => snapshot,
+      readActiveProducerArtifact: () => ({ bytes: Buffer.from(JSON.stringify({ attempts: [{ attempt: 1, artifact: { logicalKey: "test.execute", payload } }] })) }),
+      readRuntimeArtifact: () => null,
+    };
+    const observed = readCurrentTestChainTransitionFacts({ flowManager: manager, specId: snapshot.specId });
+    assert.equal(observed.completion.partial, true);
+    const decision = resolveNonGateTransition(observed, testExecuteTransitionDefinition);
+    assert.equal(decision.disposition.reason, "partial_completion");
+    assert.deepEqual(decision.plan.actions, []);
+    let effects = 0;
+    applyNonGateTransitionDecision({
+      setStepStatus() { effects += 1; }, incrementRetry() { effects += 1; }, failCurrentAttempt() { effects += 1; },
+    }, decision);
+    assert.equal(effects, 0);
+  });
+
+  it("rejects unfinalized test-source provenance before scenario facts can reach Definition", () => {
+    const snapshot = {
+      runId: "run-9", specId: "009-non-gate-transition", stepId: "scenario-validity", revision: "revision-9",
+      state: { schemaRevision: 3, runId: "run-9", specId: "009-non-gate-transition", policy: { nonblocking: null } },
+      attempt: { id: "attempt-1", sequence: 1, consumption: { semantic: 0, tooling: 0 } },
+      activities: [
+        { id: "scenario-result", attemptId: "attempt-1", sequence: 1, nodeId: "scenario-validity" },
+        { id: "unfinalized-source", attemptId: "test-attempt-1", sequence: 1, nodeId: "test", type: "artifacts_published", transition: { operation: "publish_artifacts", nodeId: "test" }, confirmationOrder: 1 },
+      ],
+      catalog: [
+        { logicalKey: "scenario.validity", relativePath: "steps/scenario-validity/result.json", hash: "f".repeat(64), activityId: "scenario-result" },
+        { logicalKey: "tests.source", relativePath: "artifacts/tests/example.test.js", hash: "a".repeat(64), size: 1, activityId: "unfinalized-source", slot: { publicationStep: "test" } },
+      ],
+    };
+    const manager = {
+      readCanonicalTransitionSnapshot: () => snapshot,
+      readActiveProducerArtifact: () => ({ bytes: Buffer.from(JSON.stringify({ attempts: [{ attempt: 1, artifact: { logicalKey: "scenario.validity", payload: { result: "pass", summary: [], process: {} } } }] })) }),
+      readRuntimeArtifact: () => ({ bytes: Buffer.from("scenario output") }),
+    };
+    assert.throws(
+      () => readCurrentTestChainTransitionFacts({ flowManager: manager, specId: snapshot.specId }),
+      (error) => error instanceof CanonicalTestSourceProvenanceError && error.code === "CANONICAL_TEST_SOURCE_REVISION_UNAVAILABLE",
+    );
+  });
+
+  it("maps stale review lineage evidence to Definition blocked plans without side effects", () => {
+    const testSource = finalizedTestSourceSnapshotEntries();
+    const raw = Buffer.from("test execution raw evidence");
+    const executionPayload = {
+      repairFingerprint: "b".repeat(64), testSourceRevision: finalizedTestSourceDigest,
+      rawEvidenceFingerprint: createHash("sha256").update(raw).digest("hex"),
+      process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null }, summary: [], regression: {},
+    };
+    const reviewPayload = {
+      verdict: "pass", checked_items: [{ check: "summary_evidence", result: "pass", detail: "fixture" }], repairFingerprint: "b".repeat(64), testSourceRevision: finalizedTestSourceDigest,
+      testExecute: { historyAttempt: 1, producerActivityId: "execution", attemptId: "execute-attempt", sequence: 1 },
+      rawEvidenceFingerprint: createHash("sha256").update(raw).digest("hex"),
+    };
+    const snapshot = {
+      runId: "run-9", specId: "009-non-gate-transition", stepId: "test-result-review", revision: "revision-9",
+      state: { schemaRevision: 3, runId: "run-9", specId: "009-non-gate-transition", policy: { nonblocking: null } },
+      attempt: { id: "review-attempt", sequence: 1, consumption: { semantic: 0, tooling: 0 } },
+      activities: [
+        { id: "review", attemptId: "review-attempt", sequence: 1, nodeId: "test-result-review" },
+        { id: "execution", attemptId: "execute-attempt", sequence: 1, nodeId: "test-execute" },
+        testSource.activity,
+      ],
+      catalog: [
+        { logicalKey: "test.result.review", relativePath: "steps/test-result-review/result.json", hash: "f".repeat(64), activityId: "review" },
+        { logicalKey: "test.execute", relativePath: "steps/test-execute/result.json", hash: "e".repeat(64), activityId: "execution" },
+        testSource.descriptor,
+      ],
+    };
+    const history = (logicalKey, payload) => ({ bytes: Buffer.from(JSON.stringify({ attempts: [{ attempt: 1, artifact: { logicalKey, payload } }] })) });
+    const manager = {
+      readCanonicalTransitionSnapshot: () => snapshot,
+      readActiveProducerArtifact: () => history("test.result.review", reviewPayload),
+      readArtifact: () => ({ ...history("test.execute", executionPayload), descriptor: snapshot.catalog[1] }),
+      readRuntimeArtifact: () => ({ bytes: raw }),
+    };
+    assert.equal(readCurrentTestChainTransitionFacts({ flowManager: manager, specId: snapshot.specId }).stepFacts.verdict, "pass");
+    const contradictory = readCurrentTestChainTransitionFacts({
+      flowManager: {
+        ...manager,
+        readActiveProducerArtifact: () => history("test.result.review", {
+          ...reviewPayload,
+          checked_items: [{ check: "summary_evidence", result: "fail", detail: "contradiction" }],
+        }),
+      },
+      specId: snapshot.specId,
+    });
+    const contradictoryDecision = resolveNonGateTransition(contradictory, testResultReviewTransitionDefinition);
+    assert.equal(contradictoryDecision.disposition.operation, "blocked");
+    assert.equal(contradictoryDecision.disposition.reason, "test_result_review_observation_contradiction");
+    assert.deepEqual(contradictoryDecision.plan.actions, []);
+    const staleCases = [
+      ["review_execute_attempt_mismatch", {
+        ...manager,
+        readActiveProducerArtifact: () => history("test.result.review", {
+          ...reviewPayload,
+          testExecute: { ...reviewPayload.testExecute, attemptId: "other" },
+        }),
+      }],
+      ["review_execute_raw_fingerprint_mismatch", {
+        ...manager,
+        readActiveProducerArtifact: () => history("test.result.review", {
+          ...reviewPayload,
+          rawEvidenceFingerprint: "c".repeat(64),
+        }),
+      }],
+      ["stale_execute_raw_fingerprint", {
+        ...manager,
+        readRuntimeArtifact: () => ({ bytes: Buffer.from("replacement raw evidence") }),
+      }],
+      ["stale_test_source_revision", {
+        ...manager,
+        readArtifact: () => ({
+          ...history("test.execute", { ...executionPayload, testSourceRevision: "d".repeat(64) }),
+          descriptor: snapshot.catalog[1],
+        }),
+      }],
+    ];
+    for (const [integrityFailure, staleManager] of staleCases) {
+      const observed = readCurrentTestChainTransitionFacts({ flowManager: staleManager, specId: snapshot.specId });
+      assert.equal(observed.integrityFailure, integrityFailure);
+      const decision = resolveNonGateTransition(observed, testResultReviewTransitionDefinition);
+      assert.equal(decision.disposition.operation, "blocked");
+      assert.equal(decision.disposition.reason, integrityFailure);
+      assert.deepEqual(decision.plan.actions, []);
+      let effects = 0;
+      applyNonGateTransitionDecision({
+        setStepStatus() { effects += 1; }, incrementRetry() { effects += 1; }, failCurrentAttempt() { effects += 1; },
+      }, decision);
+      assert.equal(effects, 0);
+    }
+  });
+
+  it("projects the same blocked Action after reload so next-action cannot reopen a partial producer", () => {
+    const source = facts({ completion: new NonGateCompletionFacts({ partial: true }) });
+    const first = resolveNonGateNextAction({
+      flowManager: flowManagerFor(source), specId: source.specId, readStepFacts: () => source, stepDefinition: definition,
+    });
+    const restored = reloaded(JSON.parse(JSON.stringify(source.toJSON())));
+    const second = resolveNonGateNextAction({
+      flowManager: flowManagerFor(restored), specId: restored.specId, readStepFacts: () => restored, stepDefinition: definition,
+    });
+    assert.equal(first.action.operation, "blocked");
+    assert.equal(first.action.reason, "partial_completion");
+    assert.deepEqual(second.action.toJSON(), first.action.toJSON());
   });
 
   it("applies only the typed actions contained in the Definition plan", () => {

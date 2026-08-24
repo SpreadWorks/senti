@@ -16,9 +16,12 @@ import {
 import { contractFromTestResultReviewArtifact } from "./flow-judgment-contract.js";
 import {
   CanonicalTestArtifactStore,
+  CanonicalTestExecutionObservation,
+  canonicalRawEvidenceFingerprint,
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
+import { admitTestChainDirectExecution } from "./test-chain-transition-facts.js";
 
 function pass(check, detail) {
   return { check, result: "pass", detail };
@@ -81,12 +84,21 @@ function executeCanonicalTestResultReview(ctx) {
     consumerNodeId: "test-result-review",
   });
   const loadedResult = execution.payload;
+  const producer = store.flowManager.activityLedger(store.specId)
+    .find((activity) => activity.id === execution.descriptor.activityId) ?? null;
+  const executionObservation = new CanonicalTestExecutionObservation({
+    historyAttempt: execution.attempt,
+    producerActivityId: execution.descriptor.activityId,
+    attemptId: producer?.attemptId,
+    sequence: producer?.sequence,
+  });
   const raw = store.readRaw({
     logicalKey: "test.execute.raw-log",
     consumerNodeId: "test-result-review",
     optional: true,
   });
   const rawOutputText = raw === null ? "" : readRawOutputBytes(raw.bytes);
+  const rawEvidenceFingerprint = canonicalRawEvidenceFingerprint(raw?.bytes ?? Buffer.alloc(0));
   const rawLines = raw === null ? [] : rawOutputText.split(/\r?\n/);
   const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
   const evidenceContext = {
@@ -126,6 +138,9 @@ function executeCanonicalTestResultReview(ctx) {
     };
   }
   review.repairFingerprint = loadedResult.repairFingerprint;
+  review.testSourceRevision = loadedResult.testSourceRevision;
+  review.testExecute = executionObservation.toJSON();
+  review.rawEvidenceFingerprint = rawEvidenceFingerprint;
   new IntegrationArtifactFingerprintAuthority({ result: loadedResult, review });
   review.contractSummary = contractFromTestResultReviewArtifact(review, {
     artifactPath: store.location.relativeArtifact("test.result.review"),
@@ -138,7 +153,6 @@ function executeCanonicalTestResultReview(ctx) {
       verdict: review.verdict,
       review_path: reviewRelativePath,
     },
-    next: review.verdict === "pass" ? "impl-review" : null,
   }, {
     logicalKey: "test.result.review",
     payload: review,
@@ -155,7 +169,10 @@ function readRawOutputBytes(bytes) {
 
 export default class RunTestResultReviewCommand extends FlowCommand {
   async execute(ctx) {
-    if (isCanonicalFlowState(ctx.flowState)) return executeCanonicalTestResultReview(ctx);
+    if (isCanonicalFlowState(ctx.flowState)) {
+      admitTestChainDirectExecution({ flowManager: ctx.flowManager, specId: ctx.flowState.specId, stepId: "test-result-review" });
+      return executeCanonicalTestResultReview(ctx);
+    }
     throw new Error("test-result-review requires a Version-1 Flow");
   }
 }

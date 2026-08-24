@@ -43,7 +43,8 @@ const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const LIFECYCLE_STATES = new Set(["active", "parked", "finalized"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
-const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
+const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block", "test-chain-retry", "test-chain-repair"]);
+const RECORDING_FAILURE_POLICIES = new Set(["retry", "record"]);
 const ATTEMPT_TYPES = new Set([
   "flow_created",
   "task_added",
@@ -80,6 +81,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "rewind",
   "rewind_test_evidence",
   "repair_test_review",
+  "repair_scenario_validity",
   "repair_implementation",
   "triage_implementation_for_repair",
   "triage_implementation_no_repair",
@@ -95,7 +97,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "accept_final_regression_failure",
   "defer_failed_review",
 ]);
-const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]);
+const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
   "repair_implementation",
@@ -142,6 +144,7 @@ const APPROVAL_TASK_ADMISSION_RECOVERY_OPERATIONS = new Set([
 const FLOW_SUFFIX_INVALIDATION_OPERATIONS = new Set([
   "rewind",
   "rewind_test_evidence",
+  "repair_scenario_validity",
   "repair_test_review",
   "repair_implementation",
   "repair_acceptance_review",
@@ -580,10 +583,13 @@ export class CanonicalFlowActivityEvidenceWrite {
 }
 
 /**
- * A typed, non-authoritative runtime payload.  Unlike durable artifacts it is
- * intentionally absent from artifact-catalog.json and cannot become evidence
- * or a consumer input.  The contract still determines its path and producer,
- * so callers never reconstruct `.runtime` paths themselves.
+ * A typed, non-authoritative runtime payload.  It is intentionally absent
+ * from artifact-catalog.json, but a typed consumer may use its bytes as a
+ * transient diagnostic observation.  The Version Store serializes those
+ * observations with catalog publication, so a decision cannot race a raw
+ * replacement between its admission and settlement.  The contract still
+ * determines its path and producer, so callers never reconstruct `.runtime`
+ * paths themselves.
  */
 export class CanonicalFlowRuntimeArtifactWrite {
   constructor({ logicalKey, parameters = {}, mediaType, bytes } = {}) {
@@ -621,6 +627,72 @@ export class CanonicalFlowRuntimeArtifactWrite {
     fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
     new AtomicFile(target, { phaseNamespace: "canonical-flow-runtime-artifact" }).write(this.bytes);
     return target;
+  }
+}
+
+/** Immutable bytes read from one transient runtime contract. */
+export class CanonicalFlowRuntimeArtifactObservation {
+  constructor({ artifact, bytes } = {}) {
+    if (artifact === null || typeof artifact !== "object" || !artifact.contract) {
+      throw new CurrentFlowStateInvariantError("canonical runtime observation requires a resolved artifact contract");
+    }
+    if (!Buffer.isBuffer(bytes)) {
+      throw new CurrentFlowStateInvariantError("canonical runtime observation requires bytes");
+    }
+    this.logicalKey = artifact.logicalKey;
+    this.relativePath = artifact.relativePath;
+    this.mediaType = artifact.contract.authoritySlot.kind === "test-execute-log"
+      ? "text/plain"
+      : "application/octet-stream";
+    this.bytes = Buffer.from(bytes);
+    Object.freeze(this);
+  }
+}
+
+/**
+ * Shared runtime-reader boundary for public consumers and lock-scoped
+ * transition views. The resolved contract owns path, retention, authority,
+ * and consumer authorization; callers supply no filesystem path.
+ */
+export class CanonicalFlowRuntimeArtifactRead {
+  constructor({ location, logicalKey, parameters = {}, consumerNodeId, optional = false } = {}) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact read requires a FlowVersionLocation");
+    }
+    if (!isPlainObject(parameters)) {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact read parameters must be an object");
+    }
+    if (optional !== true && optional !== false) {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact optional must be boolean");
+    }
+    this.location = location;
+    this.artifact = resolvedArtifact(requireString(logicalKey, "canonical runtime artifact logicalKey"), parameters);
+    if (this.artifact.contract.cataloged || this.artifact.contract.retention.toString() !== "transient") {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact read requires a transient non-catalog contract");
+    }
+    this.consumer = FlowArtifactUpdater.fromActivityNodeId(
+      requireString(consumerNodeId, "canonical runtime artifact consumer nodeId"),
+    ).toString();
+    if (!this.artifact.contract.ownership.consumers.includes(this.consumer)) {
+      throw new CurrentFlowStateInvariantError(
+        `canonical runtime artifact consumer is not authorized: ${this.consumer}/${this.artifact.logicalKey}`,
+      );
+    }
+    this.optional = optional;
+    Object.freeze(this);
+  }
+
+  read() {
+    const target = this.location.resolve(this.artifact.relativePath);
+    if (!fs.existsSync(target)) {
+      if (this.optional) return null;
+      throw new CurrentFlowStateInvariantError(`canonical runtime artifact is absent: ${this.artifact.relativePath}`);
+    }
+    this.location.assertAuthority(this.artifact.relativePath, { mustExist: true });
+    return new CanonicalFlowRuntimeArtifactObservation({
+      artifact: this.artifact,
+      bytes: Buffer.from(fs.readFileSync(target)),
+    });
   }
 }
 const TERMINAL_NODE_STATUSES = new Set(["done", "skipped", "failed"]);
@@ -2038,9 +2110,9 @@ export class DefinitionFailurePolicy {
       throw new CurrentFlowStateInvariantError(`definition.action.failurePolicy is invalid: ${value}`);
     }
     if (targetNodeId !== null) requireString(targetNodeId, "definition.action.failurePolicy.targetNodeId");
-    if ((value === "amend-spec") !== (targetNodeId !== null)) {
+    if (["amend-spec", "test-chain-repair"].includes(value) !== (targetNodeId !== null)) {
       throw new CurrentFlowStateInvariantError(
-        "amend-spec failure policy requires exactly one definition-owned target node",
+        "targeted failure policy requires exactly one definition-owned target node",
       );
     }
     this.value = value;
@@ -2058,6 +2130,30 @@ export class DefinitionFailurePolicy {
     const remaining = failure.retryKind === null
       ? 0
       : Math.max(0, contract.remainingRetries(consumption, failure.retryKind));
+    if (this.value === "test-chain-retry") {
+      if (failure.code === "TEST_CHAIN_REJECTED" && failure.retryable && remaining > 0) {
+        return new DefinitionFailureDecision({
+          policy: this, operation: "retry", retryKind: failure.retryKind, remaining, targetNodeId: null,
+          reason: `the Definition-selected test-chain retry has ${remaining} remaining`,
+        });
+      }
+      return new DefinitionFailureDecision({
+        policy: this, operation: "blocked", retryKind: null, remaining: 0, targetNodeId: null,
+        reason: "the Definition-selected test-chain failure is terminal",
+      });
+    }
+    if (this.value === "test-chain-repair") {
+      if (failure.code === "SCENARIO_VALIDITY_REJECTED") {
+        return new DefinitionFailureDecision({
+          policy: this, operation: "rewind", retryKind: null, remaining: 0, targetNodeId: this.targetNodeId,
+          reason: "the Definition-selected scenario repair rewinds to the test handoff",
+        });
+      }
+      return new DefinitionFailureDecision({
+        policy: this, operation: "blocked", retryKind: null, remaining: 0, targetNodeId: null,
+        reason: "the Definition-selected scenario tooling failure is terminal",
+      });
+    }
     if (this.value === "retry" && failure.retryable && remaining > 0) {
       return new DefinitionFailureDecision({
         policy: this,
@@ -2238,7 +2334,7 @@ export class FlowDefinitionNode {
     }
     if (
       this.steps.length === 0
-      && ["retry", "record"].includes(this.action.failurePolicy.value)
+      && RECORDING_FAILURE_POLICIES.has(this.action.failurePolicy.value)
       && !this.contract.permits("in_progress", "failed")
     ) {
       throw new CurrentFlowStateInvariantError(
@@ -2247,7 +2343,7 @@ export class FlowDefinitionNode {
     }
     if (
       this.steps.length === 0
-      && !["retry", "record"].includes(this.action.failurePolicy.value)
+      && !RECORDING_FAILURE_POLICIES.has(this.action.failurePolicy.value)
       && this.contract.permits("in_progress", "failed")
     ) {
       throw new CurrentFlowStateInvariantError(
@@ -2745,7 +2841,11 @@ export class CurrentFlowTransitionSnapshot {
     // CurrentFlowState is immutable by construction.  Preserve the typed
     // Version Store value rather than leaking a mutable JSON reconstruction.
     this.state = state;
-    this.attempt = Object.freeze({ id: state.attempt.id, sequence: state.attempt.sequence });
+    this.attempt = Object.freeze({
+      id: state.attempt.id,
+      sequence: state.attempt.sequence,
+      consumption: Object.freeze(state.attempt.consumption.toJSON()),
+    });
     this.activities = Object.freeze(activities.map((activity) => Object.freeze({
       id: activity.id,
       attemptId: activity.attemptId,
@@ -2764,7 +2864,7 @@ export class CurrentFlowTransitionSnapshot {
       stepId: this.stepId,
       revision: this.revision,
       state: this.state.toJSON(),
-      attempt: { ...this.attempt },
+      attempt: { ...this.attempt, consumption: { ...this.attempt.consumption } },
       activities: this.activities.map((activity) => structuredClone(activity)),
       catalog: this.catalog.map((descriptor) => structuredClone(descriptor)),
     };
@@ -3890,6 +3990,29 @@ export class CurrentFlowState {
   }
 
   /**
+   * One Definition-selected scenario repair settles the rejected producer
+   * Attempt and opens the governed test handoff in the same Activity.  The
+   * durable Activity retains the failure facts while the new episode starts
+   * with fresh retry consumption.
+   */
+  repairScenarioValidity({ path: currentPath, attempt, failure, result }) {
+    this.#assertExecutionActive();
+    if (this.current?.at(-1) !== "scenario-validity" || this.attempt === null) {
+      throw new CurrentFlowStateInvariantError("scenario repair requires its active scenario-validity Attempt");
+    }
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "test") {
+      throw new CurrentFlowStateInvariantError("scenario repair must reopen the governed test handoff");
+    }
+    const recordedFailure = failure instanceof ActivityFailure ? failure : new ActivityFailure(failure);
+    if (recordedFailure.code !== "SCENARIO_VALIDITY_REJECTED" || recordedFailure.category !== "semantic") {
+      throw new CurrentFlowStateInvariantError("scenario repair requires the Definition-selected semantic rejection");
+    }
+    const failed = this.failCurrentAttempt({ failure: recordedFailure, result });
+    return failed.rewind({ path: currentPath, attempt });
+  }
+
+  /**
    * Replace stale test evidence at the integration gate or retro. This route
    * is fixed by the definition: callers cannot use it as a generic state
    * mutator.
@@ -4924,7 +5047,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -4997,7 +5120,11 @@ export class ActivityTransition {
           : `activity.transition ${operation} forbids an approval receipt`,
       );
     }
-    this.nonblocking = nonblocking == null ? null : new ActivityNonBlockingRecord(nonblocking);
+    this.nonblocking = nonblocking == null
+      ? null
+      : nonblocking instanceof ActivityNonBlockingRecord
+        ? nonblocking
+        : new ActivityNonBlockingRecord(nonblocking);
     const nonblockingRequired = NONBLOCKING_TRANSITION_OPERATIONS.has(operation);
     if (nonblockingRequired !== (this.nonblocking !== null)) {
       throw new CurrentFlowStateInvariantError(
@@ -5153,7 +5280,7 @@ export class ActivityTransition {
         ? state.addTask(this.task)
         : state.admitApprovalTask(this.task, { priorActivities });
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5166,6 +5293,21 @@ export class ActivityTransition {
       }
       if (this.operation === "repair_test_review") {
         return state.repairTestReview({ path: currentPath, attempt: this.attempt });
+      }
+      if (this.operation === "repair_scenario_validity") {
+        if (activity.failure === null || activity.result === null) {
+          throw new CurrentFlowStateInvariantError("scenario repair Activity requires its semantic failure and result");
+        }
+        if (state.current?.at(-1) !== "scenario-validity"
+          || activity.attemptId !== state.attempt?.id
+          || activity.sequence !== state.attempt?.sequence) {
+          throw new CurrentFlowStateInvariantError("scenario repair Activity must retain its active scenario Attempt identity");
+        }
+        const targetPath = state.definition.pathFor(state.root, this.attempt.nodeId);
+        if (targetPath === null) throw new CurrentFlowStateInvariantError("scenario repair target is absent from the Flow definition");
+        return state.repairScenarioValidity({
+          path: targetPath, attempt: this.attempt, failure: activity.failure, result: activity.result,
+        });
       }
       if (this.operation === "repair_implementation") {
         if (activity.result == null) throw new CurrentFlowStateInvariantError("repair_implementation Activity requires a result");
@@ -5340,6 +5482,7 @@ export class FlowActivity {
       rewind: "recovery",
       rewind_test_evidence: "recovery",
       repair_test_review: "recovery",
+      repair_scenario_validity: "recovery",
       repair_implementation: "recovery",
       triage_implementation_for_repair: "recovery",
       triage_implementation_no_repair: "recovery",
@@ -5388,13 +5531,13 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
-    if (["fail_attempt", "record_failure"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
+    if (["fail_attempt", "record_failure", "repair_scenario_validity"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
       throw new CurrentFlowStateInvariantError(`${this.transition.operation} Activity result must be failed or incomplete`);
     }
     if (
@@ -5420,7 +5563,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5438,10 +5581,12 @@ export class FlowActivity {
     }
     this.timing = timing == null ? null : new ActivityTiming(timing);
     this.failure = failure == null ? null : new ActivityFailure(failure);
-    if (this.transition.operation === "fail_attempt") {
-      if (this.failure == null) throw new CurrentFlowStateInvariantError("fail_attempt Activity requires failure facts");
+    if (["fail_attempt", "repair_scenario_validity"].includes(this.transition.operation)) {
+      if (this.failure == null) {
+        throw new CurrentFlowStateInvariantError(`${this.transition.operation} Activity requires failure facts`);
+      }
     } else if (this.failure !== null) {
-      throw new CurrentFlowStateInvariantError("only fail_attempt Activity may carry failure facts");
+      throw new CurrentFlowStateInvariantError("only failure settlement Activities may carry failure facts");
     }
     for (const [field, value] of Object.entries({ provider, model, effort })) {
       if (value !== null) requireString(value, `activity.${field}`);
@@ -5608,7 +5753,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review"]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review"]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);
@@ -6463,6 +6608,60 @@ export class CurrentFlowStateAdoptionBoundary {
 
 }
 
+/**
+ * A lock-scoped, typed read authority for decisions which consume both
+ * cataloged evidence and transient runtime observations.  Its methods must
+ * only be used inside the callback that received this instance: the enclosing
+ * catalog publication lock defines the lifetime of the coherent view.
+ */
+class CanonicalTransitionView {
+  constructor({ location, snapshot, catalog } = {}) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical transition view requires a Version location");
+    }
+    if (snapshot === null || typeof snapshot !== "object" || !(snapshot.state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateConflictError("canonical transition view requires persisted Flow state");
+    }
+    if (!(catalog instanceof FlowArtifactCatalog)) {
+      throw new CurrentFlowStateInvariantError("canonical transition view requires a typed artifact catalog");
+    }
+    if (typeof snapshot.revision !== "string" || snapshot.revision === "" || !Array.isArray(snapshot.activities)) {
+      throw new CurrentFlowStateInvariantError("canonical transition view requires a persisted state revision and Activities");
+    }
+    this.location = location;
+    this.state = snapshot.state;
+    this.revision = snapshot.revision;
+    this.activities = snapshot.activities;
+    this.catalog = catalog;
+    Object.freeze(this);
+  }
+
+  readCatalogedArtifact(descriptor) {
+    if (descriptor === null || typeof descriptor !== "object" || typeof descriptor.relativePath !== "string") {
+      throw new CurrentFlowStateInvariantError("canonical transition view requires an artifact descriptor");
+    }
+    const current = this.catalog.resolve(descriptor.relativePath);
+    if (current.hash !== descriptor.hash || current.activityId !== descriptor.activityId) {
+      throw new CurrentFlowStateInvariantError("canonical transition view artifact descriptor changed");
+    }
+    current.verify(this.location);
+    return Buffer.from(fs.readFileSync(this.location.resolve(current.relativePath)));
+  }
+
+  readRuntimeArtifact({ logicalKey } = {}) {
+    const consumerNodeId = this.state.current?.at(-1);
+    if (typeof consumerNodeId !== "string" || consumerNodeId === "") {
+      throw new CurrentFlowStateConflictError("canonical transition view has no active runtime consumer");
+    }
+    return new CanonicalFlowRuntimeArtifactRead({
+      location: this.location,
+      logicalKey,
+      consumerNodeId,
+      optional: true,
+    }).read();
+  }
+}
+
 /** Version-1-only persistence facade. It has no legacy-layout lookup. */
 export class CurrentFlowVersionStore {
   #stateStore = null;
@@ -6637,6 +6836,48 @@ export class CurrentFlowVersionStore {
     });
   }
 
+  /**
+   * Run a typed consumer read against one catalog-lock snapshot.  This is the
+   * only view that combines persisted state, Activities, catalog entries, and
+   * transient runtime observations for a decision that consumes raw evidence.
+   */
+  readCanonicalTransitionView(read) {
+    if (typeof read !== "function") {
+      throw new CurrentFlowStateInvariantError("canonical transition view requires a reader");
+    }
+    return this.catalogStore.read({
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: (catalog) => read(this.#canonicalTransitionView(catalog)),
+    });
+  }
+
+  /**
+   * Serialize a typed transient observation with catalog publication.  The
+   * payload remains uncataloged, while test-chain admission can safely read it
+   * under this same lock beside its durable facts.
+   */
+  writeRuntimeArtifact({ nodeId, artifact, expectedAttempt = null } = {}) {
+    const target = requireString(nodeId, "canonical runtime artifact nodeId");
+    const runtimeArtifact = CanonicalFlowRuntimeArtifactWrite.from(artifact);
+    const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
+    return this.catalogStore.read({
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: () => {
+        const state = this.#assertPersistedIdentity(this.#store().load());
+        if (state.findNode(target) === null) {
+          throw new CurrentFlowStateInvariantError(`canonical runtime artifact node is absent: ${target}`);
+        }
+        if (state.current?.at(-1) !== target || state.attempt === null) {
+          throw new CurrentFlowStateInvariantError("canonical runtime artifact producer does not own the active Attempt");
+        }
+        if (expected !== null && !expected.matches(state)) {
+          throw new CurrentFlowStateConflictError("canonical runtime artifact Attempt changed before write");
+        }
+        return runtimeArtifact.write(this.location, target);
+      },
+    });
+  }
+
   /** Verify that the Version-authoritative Flow state can be updated now. */
   assertWritable() {
     return this.#store().assertWritable();
@@ -6732,20 +6973,7 @@ export class CurrentFlowVersionStore {
         // Activity.  A producer cannot disappear between validation and a
         // consumer claim, and no caller can defer this failure downstream.
         if (admission !== null) {
-          const snapshot = this.#store().loadSnapshot();
-          admission.assert({
-            state: this.#assertPersistedIdentity(snapshot.state),
-            catalog,
-            activities: snapshot.activities,
-            readCatalogedArtifact: (descriptor) => {
-              const cataloged = catalog.resolve(descriptor.relativePath);
-              if (cataloged.hash !== descriptor.hash || cataloged.activityId !== descriptor.activityId) {
-                throw new CurrentFlowStateInvariantError("canonical admission artifact descriptor changed");
-              }
-              cataloged.verify(this.location);
-              return fs.readFileSync(this.location.resolve(cataloged.relativePath));
-            },
-          });
+          admission.assert(this.#canonicalTransitionView(catalog));
         }
         for (const baseline of artifactBaselines) baseline.assertCatalog(catalog);
         testSourceBaseline?.assertCatalog(catalog);
@@ -6795,6 +7023,12 @@ export class CurrentFlowVersionStore {
       throw new CurrentFlowStateInvariantError("persisted flow.json identity does not match the opened Version location");
     }
     return state;
+  }
+  #canonicalTransitionView(catalog) {
+    const snapshot = this.#store().loadSnapshot();
+    if (snapshot === null) throw new CurrentFlowStateConflictError("current Flow state does not exist");
+    this.#assertPersistedIdentity(snapshot.state);
+    return new CanonicalTransitionView({ location: this.location, snapshot, catalog });
   }
   #nextTaskSpec(activity, supplied) {
     const task = activity.transition.task;
