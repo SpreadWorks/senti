@@ -1340,7 +1340,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("preserves command-owned test evidence while replacing the worker-owned test tree", () => {
+  it("rejects noncurrent command evidence while replacing the worker-owned test tree", () => {
     const value = fixture("test", { specRecord: validSpec() });
     try {
       value.flowManager.publishArtifacts({
@@ -1353,7 +1353,10 @@ describe("worker artifact handoff", () => {
           bytes: Buffer.from("// spec: R1\n", "utf8"),
         }],
       });
-      writeScenarioRuntimeLog(value, "command-owned evidence\n");
+      assert.throws(
+        () => writeScenarioRuntimeLog(value, "noncurrent command evidence\n"),
+        /producer does not own the active Attempt/,
+      );
 
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
@@ -1373,11 +1376,6 @@ describe("worker artifact handoff", () => {
           .resolve("artifacts/tests/current.test.js").logicalKey,
         "tests.source",
       );
-      assert.equal(value.flowManager.readRuntimeArtifact({
-        specId: value.specId,
-        logicalKey: "scenario.validity.raw-log",
-        consumerNodeId: "scenario-validity",
-      }).bytes.toString("utf8"), "command-owned evidence\n");
       assert.equal(findStepById(value.flowManager.load().steps, "test").status, "done");
     } finally {
       removeTmpDir(value.mainRoot);

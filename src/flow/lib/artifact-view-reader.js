@@ -351,9 +351,12 @@ export class ArtifactViewAcceptanceDecision {
    * must link to this exact review Attempt and agree with a saved embedded
    * display value; it never makes the embedded value mandatory.
    */
-  static resolve({ review, reviewAttempt, decisionSource = null } = {}) {
+  static resolve({ review, reviewAttempt, reviewSource, decisionSource = null } = {}) {
     const embedded = ArtifactViewAcceptanceDecision.fromEmbedded(review);
     if (decisionSource === null) return embedded;
+    if (!(reviewSource instanceof ArtifactViewSource) || reviewSource.logicalKey !== "acceptance.review") {
+      throw new Error("acceptance.review source must be an ArtifactViewSource");
+    }
     if (!(decisionSource instanceof ArtifactViewSource)) {
       throw new Error("acceptance.decision source must be an ArtifactViewSource or null");
     }
@@ -376,6 +379,9 @@ export class ArtifactViewAcceptanceDecision {
     }
     if (!Number.isSafeInteger(payload.acceptanceReviewAttempt) || payload.acceptanceReviewAttempt !== reviewAttempt) {
       throw new Error("canonical acceptance.decision is not linked to the current acceptance.review attempt");
+    }
+    if (typeof payload.acceptanceReviewDigest !== "string" || payload.acceptanceReviewDigest !== reviewSource.hash) {
+      throw new Error("canonical acceptance.decision review digest does not match acceptance.review");
     }
     if (payload.repairFingerprint !== review.repairFingerprint) {
       throw new Error("canonical acceptance.decision repair fingerprint does not match acceptance.review");
@@ -517,7 +523,7 @@ export class ArtifactViewReader {
     const decisionDependency = entry.dependency("acceptance.decision");
     const decisionSource = this.#readOptionalDeclaredSingleton(decisionDependency);
     if (decisionSource !== null) dependencySources.push(decisionSource);
-    const decision = this.#resolveDecision({ review, reviewAttempt, decisionSource });
+    const decision = this.#resolveDecision({ review, reviewAttempt, reviewSource: primary, decisionSource });
 
     const findingsDependency = entry.dependency("flow.findings");
     const findingsSource = review.deferredFindings.length === 0
@@ -540,8 +546,8 @@ export class ArtifactViewReader {
     });
   }
 
-  #resolveDecision({ review, reviewAttempt, decisionSource }) {
-    return ArtifactViewAcceptanceDecision.resolve({ review, reviewAttempt, decisionSource });
+  #resolveDecision({ review, reviewAttempt, reviewSource, decisionSource }) {
+    return ArtifactViewAcceptanceDecision.resolve({ review, reviewAttempt, reviewSource, decisionSource });
   }
 
   #resolveDeferredFindingReferences({ review, flowFindings, referenceRule }) {

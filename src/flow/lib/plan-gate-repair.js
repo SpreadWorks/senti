@@ -508,6 +508,27 @@ export class PlanGateRepairRecord {
     if (!Array.isArray(activities)) throw new Error("canonical plan gate repair requires an Activity ledger");
     const document = issueLogDocument(issueLog);
     const rewind = canonicalRepairAttemptOwner({ state, activities, targetStepId });
+    if (rewind?.transition?.operation === "repair_scenario_validity") {
+      if (!Array.isArray(rewind.references?.repairs) || rewind.references.repairs.length !== 1) {
+        throw new Error("canonical scenario repair Activity requires exactly one repair reference");
+      }
+      const reference = rewind.references.repairs[0];
+      const source = document.entries.find((candidate) => candidate?.issueLogId === reference?.id) ?? null;
+      if (source === null || reference.label !== source.issueLogId) {
+        throw new Error("canonical scenario repair Activity references missing issue-log evidence");
+      }
+      const record = PlanGateRepairRecord.create({
+        state,
+        phase: "test",
+        issueLogEntry: source,
+        requestedAt: source.timestamp,
+      });
+      record.assertFlow(state);
+      if (record.targetStepId !== targetStepId) {
+        throw new Error("canonical scenario repair target is inconsistent");
+      }
+      return record;
+    }
     if (rewind?.transition?.operation !== "plan_gate_repair") return null;
     if (!Array.isArray(rewind.references?.repairs) || rewind.references.repairs.length !== 1) {
       throw new Error("canonical plan gate repair Activity requires exactly one repair reference");

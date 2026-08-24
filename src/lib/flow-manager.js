@@ -431,6 +431,13 @@ export class FlowManager {
       catalog: snapshot.catalog,
     });
   }
+  /** Run a transition-facts adapter inside the authoritative catalog lock. */
+  readCanonicalTransitionView({ specId = this._boundSpecId, read } = {}) {
+    return this._store.readCanonicalTransitionView({
+      specId: withSpecIdArgDefault(specId, this._boundSpecId),
+      read,
+    });
+  }
   activityLedger(specId = this._boundSpecId) {
     return this._store.activityLedger(specId);
   }
@@ -499,6 +506,13 @@ export class FlowManager {
   }
   publishCurrentAttemptResult(input = {}) {
     return this._store.publishCurrentAttemptResult({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Atomically apply one Definition-owned test-chain transition plan. */
+  applyTestChainTransitionDecision(input = {}) {
+    return this._store.applyTestChainTransitionDecision({
       ...input,
       specId: input.specId ?? this._boundSpecId,
     });
@@ -699,6 +713,12 @@ export class FlowManager {
     });
   }
   retryCurrentAttempt(opts) { return this._store.retryCurrentAttempt(withSpecIdDefault(opts, this._boundSpecId)); }
+  beginFinalRegressionRepair(input = {}) {
+    return this._store.beginFinalRegressionRepair({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   retryExhaustedAttempt(input = {}) {
     return this._store.retryExhaustedAttempt({
       ...input,

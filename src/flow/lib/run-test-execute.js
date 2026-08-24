@@ -46,10 +46,12 @@ import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
 import {
   CanonicalTestArtifactStore,
+  canonicalRawEvidenceFingerprint,
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
 import { buildRepairFingerprint } from "./repair-fingerprint.js";
+import { admitTestChainDirectExecution } from "./test-chain-transition-facts.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 const NO_TESTS_DECLARED_REASON = "no_tests_declared";
@@ -261,10 +263,11 @@ function buildRequiredRegression({ root, classification, rootCommand, command, r
  * Its durable result is attached to the public result object and is published
  * by the registry's current-Attempt confirmation transaction.
  */
-async function executeCanonicalTestExecution(ctx, config) {
+async function executeCanonicalTestExecution(ctx, config, { runSpecLocal = runSpecLocalTests } = {}) {
   const state = ctx.flowState;
   const executionRoot = ctx.executionRoot || ctx.root;
   const artifacts = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  const testSourceRevision = artifacts.testSourceRevision();
   const repositoryRoot = artifacts.location.repositoryRoot;
   const spec = artifacts.readSpec("test-execute");
   const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
@@ -280,16 +283,13 @@ async function executeCanonicalTestExecution(ctx, config) {
     .map((source) => source.absolutePath)
     .filter((file) => /\.(test|spec)\.(js|mjs|ts)$/.test(file));
   const rawLines = [];
-  const specLocal = await runSpecLocalTests({
+  const specLocal = await runSpecLocal({
     repositoryRoot,
     executionRoot,
     specDir: artifacts.directory,
     timeoutMs,
     files,
   });
-  if (specLocal.result.spawnError && !specLocal.result.started) {
-    throw new Error(`spec-local test command failed to start: ${specLocal.result.spawnError}`);
-  }
   const specLocalFailedIds = failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
   const specRange = appendRaw(rawLines, [
     "[sennel] spec-local tests start",
@@ -329,9 +329,6 @@ async function executeCanonicalTestExecution(ctx, config) {
       ? rootCommand.withTargets(regressionPlan.classification.targetPaths)
       : rootCommand;
     const result = await runProcessDetailed(command, { cwd: executionRoot, timeoutMs });
-    if (result.spawnError && !result.started) {
-      throw new Error(`project regression command failed to start: ${result.spawnError}`);
-    }
     const regressionResult = processPassed(result) ? "pass" : "fail";
     const range = appendRaw(rawLines, [
       `[sennel] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
@@ -365,6 +362,15 @@ async function executeCanonicalTestExecution(ctx, config) {
   const artifact = {
     version: "2",
     repairFingerprint: fingerprint.hash,
+    testSourceRevision: testSourceRevision.digest,
+    rawEvidenceFingerprint: canonicalRawEvidenceFingerprint(Buffer.from(rawText, "utf8")),
+    process: {
+      started: specLocal.result.started,
+      exitCode: specLocal.result.exitCode,
+      signal: specLocal.result.signal,
+      timedOut: specLocal.result.timedOut,
+      spawnError: specLocal.result.spawnError,
+    },
     raw_output_path: artifacts.location.relativeArtifact("test.execute.raw-log"),
     summary,
     regression,
@@ -388,7 +394,6 @@ async function executeCanonicalTestExecution(ctx, config) {
       artifact_version: "2",
       regression: regression.result,
     },
-    next: "test-result-review",
   }, {
     logicalKey: "test.execute",
     payload: validArtifact,
@@ -396,13 +401,22 @@ async function executeCanonicalTestExecution(ctx, config) {
 }
 
 export default class RunTestExecuteCommand extends FlowCommand {
+  constructor({ runSpecLocal = runSpecLocalTests } = {}) {
+    super();
+    if (typeof runSpecLocal !== "function") throw new Error("test-execute runSpecLocal must be a function");
+    this.runSpecLocal = runSpecLocal;
+  }
+
   async execute(ctx) {
     const { root } = ctx;
     const executionRoot = ctx.executionRoot || root;
-    const config = container.get("config") || {};
     if (isCanonicalFlowState(ctx.flowState)) {
+      admitTestChainDirectExecution({ flowManager: ctx.flowManager, specId: ctx.flowState.specId, stepId: "test-execute" });
+      const config = this.container?.has?.("config")
+        ? this.container.get("config") || {}
+        : container.get("config") || {};
       try {
-        return await executeCanonicalTestExecution(ctx, config);
+        return await executeCanonicalTestExecution(ctx, config, { runSpecLocal: this.runSpecLocal });
       } catch (err) {
         ctx.flowManager.appendIssueLog({
           specId: ctx.flowState.specId,

@@ -323,6 +323,11 @@ function acceptanceFixture(directory, { specId } = {}) {
 
 function publishAcceptanceDecision({ flowManager, created, repairFingerprint }) {
   created.activate("acceptance-decision");
+  const review = flowManager.readArtifact({
+    specId: created.specId,
+    logicalKey: "acceptance.review",
+    consumerNodeId: "acceptance-decision",
+  });
   flowManager.publishArtifacts({
     specId: created.specId,
     nodeId: "acceptance-decision",
@@ -334,6 +339,7 @@ function publishAcceptanceDecision({ flowManager, created, repairFingerprint }) 
         choice: "accept_risk_and_continue",
         decidedAt: "2026-08-15T00:00:00.000Z",
         acceptanceReviewAttempt: 1,
+        acceptanceReviewDigest: review.descriptor.hash,
         repairFingerprint,
       }),
     }],

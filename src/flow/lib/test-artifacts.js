@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "child_process";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
+import { validateSchema } from "../../lib/schema-validate.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import { UPGRADE_RESULT_FILE } from "./upgrade-evidence-paths.js";
 import {
@@ -31,6 +33,94 @@ const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
   "skipped_by_project_policy",
 ]);
 const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
+const ARTIFACT_SCHEMA_DIRECTORY = fileURLToPath(new URL("../schemas/", import.meta.url));
+const artifactSchemas = new Map();
+
+/**
+ * The checked-in JSON schema is the structural contract at every producer
+ * and publication boundary. Semantic validators below deliberately add only
+ * evidence and cross-artifact invariants; they never grow a competing shape.
+ */
+function validateArtifactSchema(value, schemaFile, label) {
+  let schema = artifactSchemas.get(schemaFile);
+  if (schema === undefined) {
+    schema = JSON.parse(fs.readFileSync(path.join(ARTIFACT_SCHEMA_DIRECTORY, schemaFile), "utf8"));
+    artifactSchemas.set(schemaFile, schema);
+  }
+  const errors = validateSchema(value, schema);
+  if (errors.length > 0) throw new Error(`${label} schema validation failed: ${errors.join("; ")}`);
+  return value;
+}
+
+/** Structural boundaries reused by commands and registry post hooks. */
+export function validateScenarioValidityArtifactShape(result) {
+  return validateArtifactSchema(result, "scenario-validity-result.schema.json", "scenario-validity-result.json");
+}
+
+/**
+ * The scenario command reports observations; it does not get to choose a
+ * contradictory route.  Keep this independent of filesystem evidence so the
+ * registry can reject an invalid producer payload before it is published.
+ */
+export function validateScenarioValidityObservationCoherence(result) {
+  if (!result || typeof result !== "object" || !Array.isArray(result.summary)) {
+    throw new Error("scenario-validity observations require a summary[]");
+  }
+  const hasBlockingObservation = result.summary.some((entry) => {
+    if (!entry || !SCENARIO_VALIDITY_CLASSIFICATIONS.has(entry.classification)) {
+      throw new Error("scenario-validity summary contains an invalid classification");
+    }
+    return entry.classification !== "expected_fail";
+  });
+  const expectedResult = hasBlockingObservation ? "block" : "pass";
+  if (result.result !== expectedResult) {
+    throw new Error(`scenario-validity result must be ${expectedResult} for its observed summary`);
+  }
+  return result;
+}
+
+export function validateTestExecuteResultShape(result) {
+  return validateArtifactSchema(result, "test-execute-result.schema.json", "test-execute-result.json");
+}
+
+export function validateTestResultReviewShape(review) {
+  return validateArtifactSchema(review, "test-result-review.schema.json", "test-result-review.json");
+}
+
+/**
+ * Review verdicts are derived from checked observations.  A failed project
+ * regression is itself an implementation-gate concern, while this review
+ * records whether its evidence is structurally usable; therefore no
+ * individual check is privileged here.
+ */
+export function validateTestResultReviewObservationCoherence(review) {
+  if (!review || typeof review !== "object" || !Array.isArray(review.checked_items)) {
+    throw new Error("test-result-review observations require checked_items[]");
+  }
+  if (review.checked_items.length === 0) {
+    throw new Error("test-result-review must provide at least one checked observation");
+  }
+  const names = new Set();
+  let hasFailedObservation = false;
+  for (const item of review.checked_items) {
+    if (!item || typeof item.check !== "string" || item.check.trim() === "") {
+      throw new Error("test-result-review checked_items[].check must be non-empty");
+    }
+    if (item.result !== "pass" && item.result !== "fail") {
+      throw new Error("test-result-review checked_items[].result must be pass or fail");
+    }
+    if (names.has(item.check)) {
+      throw new Error(`test-result-review checked_items[] contains duplicate check: ${item.check}`);
+    }
+    names.add(item.check);
+    hasFailedObservation ||= item.result === "fail";
+  }
+  const expectedVerdict = hasFailedObservation ? "fail" : "pass";
+  if (review.verdict !== expectedVerdict) {
+    throw new Error(`test-result-review verdict must be ${expectedVerdict} for its checked observations`);
+  }
+  return review;
+}
 
 export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
   "src/upgrade.js",
@@ -266,8 +356,16 @@ function assertEvidenceRangeWithinLimit(range, label) {
 }
 
 export function validateTestExecuteResultV2(result) {
+  validateTestExecuteResultShape(result);
   if (!result || typeof result !== "object") throw new Error("test-execute-result.json must be an object");
   if (result.version !== "2") throw new Error(`test-execute-result.json version='${result.version}', expected '2'`);
+  if (typeof result.testSourceRevision !== "string" || !REPAIR_FINGERPRINT_PATTERN.test(result.testSourceRevision)) {
+    throw new Error("test-execute-result.json testSourceRevision must be a 64-character SHA-256 digest");
+  }
+  if (typeof result.rawEvidenceFingerprint !== "string" || !REPAIR_FINGERPRINT_PATTERN.test(result.rawEvidenceFingerprint)) {
+    throw new Error("test-execute-result.json rawEvidenceFingerprint must be a 64-character SHA-256 digest");
+  }
+  assertProcessMetadata(result.process, "test-execute-result.json process");
   if (!Array.isArray(result.summary)) throw new Error("test-execute-result.json summary[] is required");
   assertMaxItems("test-execute-result.json summary[]", result.summary, MAX_SUMMARY_ITEMS);
   if (!result.regression || typeof result.regression !== "object") throw new Error("regression object is required");
@@ -300,15 +398,18 @@ export function validateTestExecuteResultV2(result) {
 function assertProcessMetadata(processMetadata, label = "process") {
   if (!processMetadata || typeof processMetadata !== "object") throw new Error(`${label} is required`);
   if (typeof processMetadata.started !== "boolean") throw new Error(`${label}.started must be boolean`);
-  if (processMetadata.exitCode !== null && !Number.isInteger(processMetadata.exitCode)) {
-    throw new Error(`${label}.exitCode must be integer or null`);
+  if (processMetadata.exitCode !== null
+    && (!Number.isSafeInteger(processMetadata.exitCode) || processMetadata.exitCode < 0)) {
+    throw new Error(`${label}.exitCode must be a non-negative integer or null`);
   }
-  if (processMetadata.signal !== null && typeof processMetadata.signal !== "string") {
-    throw new Error(`${label}.signal must be string or null`);
+  if (processMetadata.signal !== null
+    && (typeof processMetadata.signal !== "string" || processMetadata.signal === "")) {
+    throw new Error(`${label}.signal must be a non-empty string or null`);
   }
   if (typeof processMetadata.timedOut !== "boolean") throw new Error(`${label}.timedOut must be boolean`);
-  if (processMetadata.spawnError !== null && typeof processMetadata.spawnError !== "string") {
-    throw new Error(`${label}.spawnError must be string or null`);
+  if (processMetadata.spawnError !== null
+    && (typeof processMetadata.spawnError !== "string" || processMetadata.spawnError === "")) {
+    throw new Error(`${label}.spawnError must be a non-empty string or null`);
   }
 }
 
@@ -361,10 +462,14 @@ export function validateScenarioValidityResult(result, {
   expectedRawOutputPath = null,
   testDirectory = "tests",
 } = {}) {
+  validateScenarioValidityArtifactShape(result);
   if (!result || typeof result !== "object") throw new Error("scenario-validity-result.json must be an object");
   if (typeof root !== "string" || root.length === 0) throw new Error("root is required");
   if (typeof specDir !== "string" || specDir.length === 0) throw new Error("specDir is required");
   if (result.version !== "1") throw new Error(`scenario-validity-result.json version='${result.version}', expected '1'`);
+  if (typeof result.testSourceRevision !== "string" || !REPAIR_FINGERPRINT_PATTERN.test(result.testSourceRevision)) {
+    throw new Error("scenario-validity-result.json testSourceRevision must be a 64-character SHA-256 digest");
+  }
   if (!Array.isArray(rawLines)) throw new Error("scenario-validity rawLines must be an array");
   const hasRawEvidence = rawLines.length > 0 || (typeof rawText === "string" && rawText.length > 0);
   if (rawLines.length === 0 && hasRawEvidence) {
@@ -437,6 +542,7 @@ export function validateScenarioValidityResult(result, {
       throw new Error(`${entry.id}: raw output does not contain requirement id`);
     }
   }
+  validateScenarioValidityObservationCoherence(result);
   return result;
 }
 
@@ -507,12 +613,18 @@ function validateFinalRegressionFailureKind(result) {
 }
 
 function validateFinalRegressionRecordAndProceed(result) {
-  const recommended = ["fix-and-rerun", "record-and-proceed", "stop"];
-  if (Object.hasOwn(result, "nextRecommendedAction") && !recommended.includes(result.nextRecommendedAction)) {
-    throw new Error(`final-regression nextRecommendedAction invalid: ${result.nextRecommendedAction}`);
+  if (Object.hasOwn(result, "nextRecommendedAction")) {
+    throw new Error("final-regression nextRecommendedAction is obsolete; route through the typed Definition");
   }
   if (!Array.isArray(result.changedFileFingerprints)) {
     throw new Error("final-regression changedFileFingerprints must be array");
+  }
+  if (typeof result.changedFileSnapshotDigest !== "string" || !/^[a-f0-9]{64}$/.test(result.changedFileSnapshotDigest)) {
+    throw new Error("final-regression changedFileSnapshotDigest must be sha256");
+  }
+  if (result.executionBinding?.worktreeSha256 !== undefined
+    && result.executionBinding.worktreeSha256 !== result.changedFileSnapshotDigest) {
+    throw new Error("final-regression changed-file snapshot does not match execution binding");
   }
   if (result.result !== "fail") {
     if (result.completed === true && result.selectedAction === "record-and-proceed") {
@@ -563,6 +675,20 @@ function validateFinalRegressionRecordAndProceed(result) {
     throw new Error("final-regression record-and-proceed validated must be boolean");
   }
   if (result.completed === true) {
+    const recordCategory = [
+      "existing_failure", "environment", "sandbox", "timeout", "dependency",
+      "out_of_scope", "flaky_suspected",
+    ].includes(result.failureCategory);
+    const recordEligible = recordCategory && (
+      [
+        "unattributed_existing_failure", "timeout", "dependency_failure",
+        "sandbox_restriction", "permission_error", "child_process_eperm",
+      ].includes(result.failureKind)
+      || (result.failureKind === "caused_by_current_change" && result.failureCategory === "out_of_scope")
+    );
+    if (!recordEligible) {
+      throw new Error("final-regression completed fail category is not eligible for record-and-proceed");
+    }
     if (result.selectedAction !== "explicit-record-and-proceed") {
       throw new Error("final-regression completed fail requires explicit operator proceed");
     }
@@ -1102,13 +1228,24 @@ export function validateTestExecuteResultEvidence(result, {
 }
 
 export function validateTestResultReview(review) {
+  validateTestResultReviewShape(review);
   if (!review || typeof review !== "object") throw new Error("test-result-review.json must be an object");
   if (review.verdict !== "pass" && review.verdict !== "fail") throw new Error("test-result-review verdict must be pass or fail");
   if (!Array.isArray(review.checked_items)) throw new Error("checked_items[] is required");
-  assertMaxItems("checked_items[]", review.checked_items, MAX_REVIEW_CHECKED_ITEMS);
-  const regressionCheck = review.checked_items.find((item) => item?.check === "project_regression_verification");
-  if (!regressionCheck || regressionCheck.result !== "pass") {
-    throw new Error("checked_items[] must include project_regression_verification pass");
+  if (typeof review.testSourceRevision !== "string" || !REPAIR_FINGERPRINT_PATTERN.test(review.testSourceRevision)) {
+    throw new Error("test-result-review testSourceRevision must be a 64-character SHA-256 digest");
   }
-  return review;
+  if (typeof review.rawEvidenceFingerprint !== "string" || !REPAIR_FINGERPRINT_PATTERN.test(review.rawEvidenceFingerprint)) {
+    throw new Error("test-result-review rawEvidenceFingerprint must be a 64-character SHA-256 digest");
+  }
+  const source = review.testExecute;
+  if (!source || typeof source !== "object"
+    || !Number.isSafeInteger(source.historyAttempt) || source.historyAttempt < 1
+    || typeof source.producerActivityId !== "string" || source.producerActivityId === ""
+    || typeof source.attemptId !== "string" || source.attemptId === ""
+    || !Number.isSafeInteger(source.sequence) || source.sequence < 1) {
+    throw new Error("test-result-review testExecute must bind a canonical execution Attempt");
+  }
+  assertMaxItems("checked_items[]", review.checked_items, MAX_REVIEW_CHECKED_ITEMS);
+  return validateTestResultReviewObservationCoherence(review);
 }

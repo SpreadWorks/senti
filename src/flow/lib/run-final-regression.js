@@ -47,6 +47,11 @@ import {
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
+import { FinalRegressionStepFacts, projectFinalRegressionTransition } from "../definition.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "./final-regression-transition-facts.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -83,11 +88,6 @@ const FAILURE_CATEGORIES = Object.freeze({
   DEPENDENCY: "dependency",
   OUT_OF_SCOPE: "out_of_scope",
   FLAKY_SUSPECTED: "flaky_suspected",
-});
-const NEXT_RECOMMENDED_ACTIONS = Object.freeze({
-  FIX_AND_RERUN: "fix-and-rerun",
-  RECORD_AND_PROCEED: "record-and-proceed",
-  STOP: "stop",
 });
 const RECORD_AND_PROCEED_CATEGORIES = new Set([
   FAILURE_CATEGORIES.EXISTING,
@@ -127,136 +127,46 @@ const SKIP_KINDS = Object.freeze({
   SKIPPED_BY_PROJECT_POLICY: "skipped_by_project_policy",
 });
 
-export class FinalRegressionRecoveryPolicy {
-  constructor({ kind, retryable, nextAction, resumeInstruction = null }) {
-    if (new.target === FinalRegressionRecoveryPolicy) {
-      throw new Error("FinalRegressionRecoveryPolicy is abstract");
-    }
-    if (typeof kind !== "string" || kind.length === 0) throw new Error("final-regression recovery kind is required");
-    if (typeof retryable !== "boolean") throw new Error("final-regression recovery retryable must be boolean");
-    if (typeof nextAction !== "string" || nextAction.length === 0) throw new Error("final-regression recovery nextAction is required");
-    if (resumeInstruction != null && (typeof resumeInstruction !== "string" || resumeInstruction.length === 0)) {
-      throw new Error("final-regression resumeInstruction must be a non-empty string");
-    }
-    this.kind = kind;
-    this.retryable = retryable;
-    this.nextAction = nextAction;
-    this.resumeInstruction = resumeInstruction;
-  }
-
-  toJSON() {
-    return {
-      kind: this.kind,
-      retryable: this.retryable,
-      nextAction: this.nextAction,
-      ...(this.resumeInstruction ? { resumeInstruction: this.resumeInstruction } : {}),
-    };
-  }
-}
-
-class RepairRecoveryPolicy extends FinalRegressionRecoveryPolicy {
-  constructor() {
-    super({ kind: "repair", retryable: true, nextAction: "regression-repair" });
-    Object.freeze(this);
-  }
-}
-
-class ConfirmationRecoveryPolicy extends FinalRegressionRecoveryPolicy {
-  constructor() {
-    super({
-      kind: "awaiting-decision",
-      retryable: false,
-      nextAction: "user-confirmation",
-      resumeInstruction: "Record whether the existing regression failure may be accepted, then resume final-regression.",
-    });
-    Object.freeze(this);
-  }
-}
-
-export class ResumeRecoveryPolicy extends FinalRegressionRecoveryPolicy {
-  constructor({ nextAction = "stop", retryable = false, resumeInstruction }) {
-    super({ kind: "resume", retryable, nextAction, resumeInstruction });
-    Object.freeze(this);
-  }
-}
-
 export class FinalRegressionFailure {
-  constructor({ kind, recoveryPolicy }) {
+  constructor({ kind }) {
     if (new.target === FinalRegressionFailure) throw new Error("FinalRegressionFailure is abstract");
     if (!Object.values(FAILURE_KINDS).includes(kind)) throw new Error(`unknown final-regression failure kind: ${kind}`);
-    if (!(recoveryPolicy instanceof FinalRegressionRecoveryPolicy)) {
-      throw new Error("final-regression recovery policy is required");
-    }
     this.kind = kind;
-    this.recoveryPolicy = recoveryPolicy;
     Object.freeze(this);
   }
 }
 
 class CurrentChangeRegressionFailure extends FinalRegressionFailure {
   constructor() {
-    super({ kind: FAILURE_KINDS.CURRENT_CHANGE, recoveryPolicy: new RepairRecoveryPolicy() });
+    super({ kind: FAILURE_KINDS.CURRENT_CHANGE });
   }
 }
 
 class ExistingRegressionFailure extends FinalRegressionFailure {
   constructor() {
-    super({ kind: FAILURE_KINDS.UNATTRIBUTED_EXISTING, recoveryPolicy: new ConfirmationRecoveryPolicy() });
+    super({ kind: FAILURE_KINDS.UNATTRIBUTED_EXISTING });
   }
 }
 
 class UnknownRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.UNATTRIBUTED_UNKNOWN,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Inspect the preserved child diagnostics and classify or repair the unknown regression failure before retrying.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.UNATTRIBUTED_UNKNOWN }); }
 }
 
 class InfrastructureRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.INFRA,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Repair the regression runner infrastructure, then retry final-regression.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.INFRA }); }
 }
 
 export class TimeoutRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.TIMEOUT,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Resolve the timeout or adjust the configured timeout, then retry final-regression.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.TIMEOUT }); }
 }
 
 export class DependencyRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.DEPENDENCY,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Install or restore the missing dependency, then retry final-regression.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.DEPENDENCY }); }
 }
 
 export class SandboxRegressionFailure extends FinalRegressionFailure {
   constructor(kind = FAILURE_KINDS.SANDBOX) {
-    super({
-      kind,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Grant the required sandbox capability or use an allowed execution environment, then retry final-regression.",
-      }),
-    });
+    super({ kind });
   }
 }
 
@@ -267,27 +177,11 @@ class ChildProcessEpermRegressionFailure extends SandboxRegressionFailure {
 }
 
 export class PermissionRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.PERMISSION,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        resumeInstruction: "Grant the required permission, then retry final-regression.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.PERMISSION }); }
 }
 
 export class InvalidCommandRegressionFailure extends FinalRegressionFailure {
-  constructor() {
-    super({
-      kind: FAILURE_KINDS.INVALID_PROJECT_TEST,
-      recoveryPolicy: new ResumeRecoveryPolicy({
-        nextAction: "test-repair",
-        retryable: true,
-        resumeInstruction: "Configure a valid project regression command, then retry final-regression.",
-      }),
-    });
-  }
+  constructor() { super({ kind: FAILURE_KINDS.INVALID_PROJECT_TEST }); }
 }
 
 const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
@@ -298,14 +192,14 @@ const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
   new TextFailureClassifier(/without stdout\/stderr|spawnerror/, InfrastructureRegressionFailure),
 ]);
 
-class FinalRegressionDecision {
+class FinalRegressionCompatibilityProjection {
   constructor({ failureKind, retryable, nextAction }) {
     if (failureKind !== null && !Object.hasOwn(FAILURE_NEXT_ACTION, failureKind)) {
       throw new Error(`unknown final-regression failure kind: ${failureKind}`);
     }
     if (typeof retryable !== "boolean") throw new Error("final-regression retryable must be boolean");
     if (typeof nextAction !== "string" || nextAction.length === 0) {
-      throw new Error("final-regression nextAction must be a non-empty string");
+      throw new Error("final-regression compatibility nextAction must be a non-empty string");
     }
     this.failureKind = failureKind;
     this.retryable = retryable;
@@ -313,30 +207,24 @@ class FinalRegressionDecision {
     Object.freeze(this);
   }
 
-  static pass() {
-    return new FinalRegressionDecision({
-      failureKind: null,
-      retryable: false,
-      nextAction: "report",
-    });
-  }
-
-  static skipped() {
-    return new FinalRegressionDecision({
-      failureKind: null,
-      retryable: false,
-      nextAction: "report",
-    });
-  }
-
-  static fail(failure, previousFailureCount) {
-    if (!(failure instanceof FinalRegressionFailure)) throw new Error("FinalRegressionFailure is required");
-    const policy = failure.recoveryPolicy;
-    const retryable = policy.retryable && previousFailureCount === 0;
-    return new FinalRegressionDecision({
-      failureKind: failure.kind,
-      retryable,
-      nextAction: policy.retryable && !retryable ? "stop" : policy.nextAction,
+  static fromObservation({ result, failure = null, previousFailureCount = 0 } = {}) {
+    if (failure !== null && !(failure instanceof FinalRegressionFailure)) {
+      throw new Error("FinalRegressionFailure is required");
+    }
+    const failureKind = failure?.kind ?? null;
+    const projection = projectFinalRegressionTransition(new FinalRegressionStepFacts({
+      result,
+      // The compatibility projection is emitted before publication, so these
+      // stable placeholders cannot be confused with catalog authority.
+      artifactDigest: { value: "0".repeat(64) },
+      failure: { kind: failureKind, category: failureKind === null ? null : failureCategoryFor(failureKind) },
+      retry: { used: previousFailureCount, maximum: 1 },
+      changedFileSnapshot: { digest: "0".repeat(64), current: true },
+    }));
+    return new FinalRegressionCompatibilityProjection({
+      failureKind,
+      retryable: projection.retryable,
+      nextAction: projection.nextAction,
     });
   }
 }
@@ -347,38 +235,23 @@ class FinalRegressionFailureProfile {
     process,
     childProcesses = [],
     fixAttempts,
-    autoApprove = false,
     canValidateProceed = true,
   }) {
     if (!(failure instanceof FinalRegressionFailure)) throw new Error("FinalRegressionFailure is required");
     this.failureKind = failure.kind;
-    this.recoveryPolicy = failure.recoveryPolicy;
     this.failureCategory = failureCategoryFor(failure.kind);
     this.failureNature = failureNatureFor(failure.kind, process, childProcesses);
     this.fixAttempts = fixAttempts;
     this.recordAndProceedEligible = canValidateProceed && recordAndProceedEligibleFor(this.failureCategory, failure.kind);
-    this.nextRecommendedAction = nextRecommendedActionFor({
-      failureKind: failure.kind,
-      eligible: this.recordAndProceedEligible,
-      fixAttempts,
-    });
-    this.selectedAction = null;
     Object.freeze(this);
   }
 
   recordAndProceedEvidence() {
-    const validated = this.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED;
     return {
       eligible: this.recordAndProceedEligible,
-      validated,
-      evidence: validated ? `autoApprove selected record-and-proceed for ${this.failureCategory}` : null,
+      validated: false,
+      evidence: null,
     };
-  }
-
-  remainingRisk() {
-    return this.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED
-      ? `final-regression remains failed; category=${this.failureCategory}`
-      : null;
   }
 }
 
@@ -425,12 +298,13 @@ class FinalRegressionArtifact {
     rawOutputLines,
     process,
     changedFiles,
-    decision,
+    projection,
     skipKind = null,
     reason = null,
     proof = null,
     commandIdentity = null,
     changedFileFingerprints = [],
+    changedFileSnapshotDigest,
     failureProfile = null,
     failureSummary = null,
     childProcesses = [],
@@ -439,13 +313,14 @@ class FinalRegressionArtifact {
     executionBinding = null,
   }) {
     if (!["pass", "fail", "skipped"].includes(result)) throw new Error("final-regression result must be pass, fail, or skipped");
-    if (!(decision instanceof FinalRegressionDecision)) throw new Error("final-regression decision is required");
+    if (!(projection instanceof FinalRegressionCompatibilityProjection)) {
+      throw new Error("final-regression compatibility projection is required");
+    }
     if (result === "skipped" && !Object.values(SKIP_KINDS).includes(skipKind)) throw new Error("final-regression skipped artifact requires skipKind");
     this.version = "1";
-    const autoRecorded = result === "fail" && failureProfile?.selectedAction === NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED;
-    this.completed = result === "pass" || result === "skipped" || autoRecorded;
+    this.completed = result === "pass" || result === "skipped";
     this.result = result;
-    this.failureKind = decision.failureKind;
+    this.failureKind = projection.failureKind;
     this.skipKind = skipKind;
     this.reason = reason;
     this.command = command;
@@ -460,16 +335,15 @@ class FinalRegressionArtifact {
     this.changedFiles = Object.freeze([...(changedFiles || [])]);
     this.commandIdentity = commandIdentity;
     this.changedFileFingerprints = Object.freeze(fingerprintSet(changedFileFingerprints));
-    this.retryable = autoRecorded ? false : decision.retryable;
-    this.nextAction = autoRecorded ? "report" : decision.nextAction;
-    this.nextRecommendedAction = failureProfile?.nextRecommendedAction || (result === "fail" ? NEXT_RECOMMENDED_ACTIONS.STOP : null);
+    this.changedFileSnapshotDigest = changedFileSnapshotDigest;
+    this.retryable = projection.retryable;
+    this.nextAction = projection.nextAction;
     this.failureCategory = failureProfile?.failureCategory || null;
     this.failureNature = failureProfile?.failureNature || null;
-    this.recoveryPolicy = failureProfile?.recoveryPolicy || null;
     this.fixAttempts = failureProfile?.fixAttempts ?? 0;
     this.recordAndProceed = failureProfile?.recordAndProceedEvidence() || null;
-    this.selectedAction = selectedAction ?? failureProfile?.selectedAction ?? null;
-    this.remainingRisk = remainingRisk || failureProfile?.remainingRisk() || null;
+    this.selectedAction = selectedAction;
+    this.remainingRisk = remainingRisk;
     this.executionBinding = executionBinding;
     this.failureSummary = failureSummary;
     this.currentDiffRelationship = this.failureCategory === FAILURE_CATEGORIES.CURRENT_CHANGE
@@ -498,12 +372,11 @@ class FinalRegressionArtifact {
       changedFiles: this.changedFiles,
       ...(this.commandIdentity ? { commandIdentity: this.commandIdentity } : {}),
       changedFileFingerprints: this.changedFileFingerprints,
+      changedFileSnapshotDigest: this.changedFileSnapshotDigest,
       retryable: this.retryable,
       nextAction: this.nextAction,
-      ...(this.nextRecommendedAction ? { nextRecommendedAction: this.nextRecommendedAction } : {}),
       ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
       ...(this.failureNature ? { failureNature: this.failureNature } : {}),
-      ...(this.recoveryPolicy ? { recoveryPolicy: this.recoveryPolicy.toJSON() } : {}),
       ...(this.result === "fail" ? { fixAttempts: this.fixAttempts } : {}),
       ...(this.recordAndProceed ? { recordAndProceed: this.recordAndProceed } : {}),
       ...(this.selectedAction ? { selectedAction: this.selectedAction } : {}),
@@ -523,11 +396,9 @@ class FinalRegressionArtifact {
       result: this.result,
       failureKind: this.failureKind,
       ...(this.failureCategory ? { failureCategory: this.failureCategory } : {}),
-      ...(this.recoveryPolicy ? { recoveryPolicy: this.recoveryPolicy.toJSON() } : {}),
       ...(this.skipKind ? { skipKind: this.skipKind } : {}),
       retryable: this.retryable,
       nextAction: this.nextAction,
-      ...(this.nextRecommendedAction ? { nextRecommendedAction: this.nextRecommendedAction } : {}),
       ...(this.selectedAction ? { selectedAction: this.selectedAction } : {}),
     };
   }
@@ -650,11 +521,6 @@ function recordAndProceedEligibleFor(category, failureKind) {
     || failureKind === FAILURE_KINDS.UNATTRIBUTED_UNKNOWN
   ) return false;
   return RECORD_AND_PROCEED_CATEGORIES.has(category);
-}
-
-function nextRecommendedActionFor({ failureKind, eligible, fixAttempts }) {
-  if (!eligible) return FAILURE_NEXT_ACTION[failureKind] === "stop" ? NEXT_RECOMMENDED_ACTIONS.STOP : NEXT_RECOMMENDED_ACTIONS.FIX_AND_RERUN;
-  return fixAttempts > 0 ? NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED : NEXT_RECOMMENDED_ACTIONS.FIX_AND_RERUN;
 }
 
 function failureSummaryFor(result, failureKind) {
@@ -950,7 +816,6 @@ class CanonicalFinalRegressionProceed {
       remainingRisk: this.remainingRisk,
       retryable: false,
       nextAction: "report",
-      nextRecommendedAction: "record-and-proceed",
     };
   }
 }
@@ -976,6 +841,21 @@ async function executeCanonicalFinalRegression(ctx) {
   if (ctx.recordAndProceed) {
     if (canonical.attempt.failure === null) {
       throw new Error("canonical final-regression record-and-proceed requires a prior failed Attempt");
+    }
+    const admission = resolveCanonicalFinalRegressionTransition({
+      flowManager: ctx.flowManager,
+      specId: state.specId,
+      changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+        root,
+        relativeSpecFile: store.location.relativeSpecFile,
+      }),
+    });
+    const admissionOperation = admission.disposition.operation;
+    const explicitRecordAllowed = admissionOperation === "await-user-input"
+      || admissionOperation === "repair"
+      || (admissionOperation === "blocked" && admission.disposition.reason === "retry_exhausted");
+    if (!explicitRecordAllowed) {
+      throw new Error(`final-regression record-and-proceed admission rejected: Definition selected ${admissionOperation}`);
     }
     const prior = store.readCurrentAttempt({
       logicalKey: "final.regression",
@@ -1012,13 +892,17 @@ async function executeCanonicalFinalRegression(ctx) {
       },
       next: "report",
     }, { logicalKey: "final.regression", payload: artifact });
-    ctx.flowManager.acceptFinalRegressionFailure({
-      specId: state.specId,
-      commandResult,
-    });
     return commandResult;
   }
   if (canonical.attempt.failure !== null) {
+    resolveCanonicalFinalRegressionTransition({
+      flowManager: ctx.flowManager,
+      specId: state.specId,
+      changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+        root,
+        relativeSpecFile: store.location.relativeSpecFile,
+      }),
+    });
     const prior = store.readCurrentAttempt({
       logicalKey: "final.regression",
       consumerNodeId: "final-regression",
@@ -1143,11 +1027,11 @@ async function executeCanonicalFinalRegression(ctx) {
   }
   const failureKind = failure?.kind || null;
   const priorFailureCount = canonical.attempt.sequence - 1;
-  const decision = resultStatus === "pass"
-    ? FinalRegressionDecision.pass()
-    : resultStatus === "skipped"
-      ? FinalRegressionDecision.skipped()
-      : FinalRegressionDecision.fail(failure, priorFailureCount);
+  const projection = FinalRegressionCompatibilityProjection.fromObservation({
+    result: resultStatus,
+    failure,
+    previousFailureCount: priorFailureCount,
+  });
   const fingerprintedChangedFiles = skipDecision?.changedFiles || currentChangedFilesWithFingerprints(root, changedFiles);
   const failureProfile = resultStatus === "fail"
     ? new FinalRegressionFailureProfile({
@@ -1155,7 +1039,6 @@ async function executeCanonicalFinalRegression(ctx) {
       process: new FinalRegressionProcess(result),
       childProcesses,
       fixAttempts: priorFailureCount,
-      autoApprove: state.autoApprove === true,
       canValidateProceed: Boolean(commandIdentity),
     })
     : null;
@@ -1170,7 +1053,7 @@ async function executeCanonicalFinalRegression(ctx) {
       "result: skipped",
       `skipKind: ${skipDecision.skipKind}`,
       `reason: ${skipDecision.reason}`,
-      `nextAction: ${decision.nextAction}`,
+      `nextAction: ${projection.nextAction}`,
     );
     range = { start, end: rawLines.length };
   } else {
@@ -1181,7 +1064,7 @@ async function executeCanonicalFinalRegression(ctx) {
       ...processOutputLines(result),
       ...(childRecordError ? [`childRecordError: ${childRecordError.message}`] : []),
       `result: ${resultStatus}`,
-      ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
+      ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${projection.retryable}`, `nextAction: ${projection.nextAction}`] : []),
       `[sennel] final regression end result=${resultStatus}`,
     ]);
     rawLines.push(
@@ -1228,12 +1111,13 @@ async function executeCanonicalFinalRegression(ctx) {
     process: new FinalRegressionProcess(result),
     childProcesses,
     changedFiles: fingerprintedChangedFiles,
-    decision,
+    projection,
     skipKind: skipDecision?.skipKind || null,
     reason: skipDecision?.reason || null,
     proof: skipDecision?.proof || null,
     commandIdentity,
     changedFileFingerprints: fingerprintedChangedFiles,
+    changedFileSnapshotDigest: beforeRepository.worktreeSha256,
     failureProfile,
     failureSummary: resultStatus === "fail" ? failureSummaryFor(result, failureKind) : null,
     executionBinding,
@@ -1247,7 +1131,7 @@ async function executeCanonicalFinalRegression(ctx) {
     result: resultStatus,
     changed: [resultPathRelative, rawOutputPathRelative],
     artifacts: artifact.toEnvelopeArtifacts(resultPathRelative),
-    next: resultStatus === "pass" || resultStatus === "skipped" ? "report" : decision.nextAction,
+    next: projection.nextAction,
   }, { logicalKey: "final.regression", payload: json });
   if (resultStatus === "pass" || resultStatus === "skipped") return commandResult;
 
@@ -1260,8 +1144,8 @@ async function executeCanonicalFinalRegression(ctx) {
       category: failureProfile.failureCategory,
       code: "FINAL_REGRESSION_FAILED",
       message: `final-regression failed (${failureKind})`,
-      retryable: decision.retryable,
-      retryKind: decision.retryable ? "semantic" : null,
+      retryable: projection.retryable,
+      retryKind: projection.retryable ? "semantic" : null,
     },
     result: {
       outcome: "failed",

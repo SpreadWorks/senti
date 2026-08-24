@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "required": ["version", "testSourceRevision", "raw_output_path", "command", "process", "result", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "enum": ["1"] },
+    "testSourceRevision": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "raw_output_path": { "type": "string", "minLength": 1 },
+    "command": { "type": "string", "minLength": 1 },
+    "process": {
+      "type": "object",
+      "required": ["started", "exitCode", "signal", "timedOut", "spawnError"],
+      "additionalProperties": false,
+      "properties": {
+        "started": { "type": "boolean" },
+        "exitCode": { "type": ["integer", "null"], "minimum": 0 },
+        "signal": { "type": ["string", "null"], "minLength": 1 },
+        "timedOut": { "type": "boolean" },
+        "spawnError": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "result": { "type": "string", "enum": ["pass", "block"] },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "classification", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "classification": { "type": "string", "enum": ["expected_fail", "unexpected_pass", "invalid_test", "skipped", "not_run"] },
+          "evidence": {
+            "type": "object",
+            "required": ["test_file", "test_name", "command", "raw_output_lines"],
+            "additionalProperties": false,
+            "properties": {
+              "test_file": { "type": "string", "minLength": 1 },
+              "test_name": { "type": "string", "minLength": 1 },
+              "command": { "type": "string", "minLength": 1 },
+              "raw_output_lines": {
+                "type": "object",
+                "required": ["start_line", "end_line"],
+                "additionalProperties": false,
+                "properties": {
+                  "start_line": { "type": "integer", "minimum": 1 },
+                  "end_line": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

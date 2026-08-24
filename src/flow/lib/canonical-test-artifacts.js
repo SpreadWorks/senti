@@ -48,6 +48,34 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+/** Immutable identity of the exact cataloged execution consumed by review. */
+export class CanonicalTestExecutionObservation {
+  constructor({ historyAttempt, producerActivityId, attemptId, sequence } = {}) {
+    if (!Number.isSafeInteger(historyAttempt) || historyAttempt < 1) throw new Error("canonical test execution history attempt is required");
+    this.historyAttempt = historyAttempt;
+    this.producerActivityId = requiredText(producerActivityId, "canonical test execution producer Activity");
+    this.attemptId = requiredText(attemptId, "canonical test execution Attempt id");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("canonical test execution Attempt sequence is required");
+    this.sequence = sequence;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      historyAttempt: this.historyAttempt,
+      producerActivityId: this.producerActivityId,
+      attemptId: this.attemptId,
+      sequence: this.sequence,
+    };
+  }
+}
+
+/** SHA-256 evidence identity for raw bytes, including a deliberate empty value. */
+export function canonicalRawEvidenceFingerprint(bytes) {
+  if (!Buffer.isBuffer(bytes)) throw new Error("canonical raw evidence fingerprint requires bytes");
+  return sha256(bytes);
+}
+
 function isIsoTimestamp(value) {
   return typeof value === "string" && value.trim() !== "" && Number.isFinite(Date.parse(value));
 }
@@ -354,6 +382,7 @@ export class CanonicalTestArtifactStore {
     return this.flowManager.writeRuntimeArtifact({
       specId: this.specId,
       nodeId,
+      expectedAttempt: this.state.attempt,
       artifact: { logicalKey, parameters, mediaType, bytes },
     });
   }

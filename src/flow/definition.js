@@ -61,6 +61,15 @@ import {
   NonGateTargetBinding,
   NonGateTransitionFacts,
 } from "./lib/non-gate-transition.js";
+import {
+  FinalRegressionArtifactDigest,
+  FinalRegressionChangedFileSnapshot,
+  FinalRegressionFailureProfileFact,
+  FinalRegressionNonblockingPolicy,
+  FinalRegressionProceedEvidence,
+  FinalRegressionRetryHistory,
+  FinalRegressionStepFacts,
+} from "./lib/final-regression-transition.js";
 
 // Facts are read by a focused boundary, but every Gate policy value and the
 // only resolver live in this definition module. Commands, registry hooks,
@@ -88,6 +97,13 @@ export {
   NonGateStepFacts,
   NonGateTargetBinding,
   NonGateTransitionFacts,
+  FinalRegressionArtifactDigest,
+  FinalRegressionChangedFileSnapshot,
+  FinalRegressionFailureProfileFact,
+  FinalRegressionNonblockingPolicy,
+  FinalRegressionProceedEvidence,
+  FinalRegressionRetryHistory,
+  FinalRegressionStepFacts,
 };
 
 const MAX_DEPTH = 3;
@@ -399,19 +415,21 @@ export class NonGateParkDisposition extends NonGateDisposition { constructor(tok
  * common Definition reducer below mints a sealed decision, plan and Action.
  */
 export class NonGateTransitionSelection {
-  constructor({ operation, reason = null, actions = [] } = {}) {
+  constructor({ operation, reason = null, beforeActions = [], actions = [], exhaustedActions = [] } = {}) {
     this.operation = requireString(operation, "non-Gate selection operation");
     if (!NON_GATE_OPERATIONS.has(this.operation)) throw new Error("non-Gate selection operation is invalid");
     this.reason = reason == null ? null : requireString(reason, "non-Gate selection reason");
-    if (!Array.isArray(actions) || actions.some((action) => (
+    for (const actionList of [beforeActions, actions, exhaustedActions]) {
+      if (!Array.isArray(actionList) || actionList.some((action) => (
       !(action instanceof NonGateStepAction)
       || !Object.isFrozen(action)
       || action.apply === NonGateStepAction.prototype.apply
       || action.toJSON === NonGateStepAction.prototype.toJSON
-    ))) {
-      throw new Error("non-Gate selection actions must be typed Step actions");
+      ))) throw new Error("non-Gate selection actions must be typed Step actions");
     }
+    this.beforeActions = Object.freeze([...beforeActions]);
     this.actions = Object.freeze([...actions]);
+    this.exhaustedActions = Object.freeze([...exhaustedActions]);
     Object.freeze(this);
   }
 }
@@ -456,6 +474,62 @@ export class NonGateStepDefinition {
     }
     return selection;
   }
+}
+
+/**
+ * Final regression owns its meaning here.  The runner supplies observations
+ * and the registry applies this sealed result; neither is permitted to turn
+ * a failure category into an independent route.
+ */
+function selectFinalRegressionTransition(stepFacts, facts = null) {
+  if (!(stepFacts instanceof FinalRegressionStepFacts)) {
+    throw new Error("final-regression Definition requires FinalRegressionStepFacts");
+  }
+  if (!stepFacts.changedFileSnapshot.current) {
+    return new NonGateTransitionSelection({ operation: "blocked", reason: "stale_changed_file_snapshot" });
+  }
+  if (facts !== null && (
+    stepFacts.retryHistory.used !== facts.retry.used
+    || stepFacts.retryHistory.maximum !== facts.retry.maximum
+  )) {
+    return new NonGateTransitionSelection({ operation: "blocked", reason: "retry_history_mismatch" });
+  }
+  if (stepFacts.result === "pass" || stepFacts.result === "skipped") {
+    return new NonGateTransitionSelection({ operation: "advance" });
+  }
+  if (stepFacts.recordAndProceed.accepted) {
+    return new NonGateTransitionSelection({ operation: "record-and-proceed" });
+  }
+  if (stepFacts.failure.tooling) {
+    return new NonGateTransitionSelection({ operation: "external-blocked", reason: stepFacts.failure.kind || "tooling_failure" });
+  }
+  if (stepFacts.failure.currentChange) {
+    return new NonGateTransitionSelection({ operation: stepFacts.retryHistory.exhausted ? "blocked" : "repair", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : null });
+  }
+  if (stepFacts.failure.existing) {
+    return new NonGateTransitionSelection({ operation: "await-user-input" });
+  }
+  return new NonGateTransitionSelection({ operation: "blocked", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure" });
+}
+
+export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
+  stepId: "final-regression",
+  factsType: FinalRegressionStepFacts,
+  select: selectFinalRegressionTransition,
+});
+
+/** Compatibility-only artifact projection of the Definition's selected route. */
+export function projectFinalRegressionTransition(stepFacts) {
+  const selection = selectFinalRegressionTransition(stepFacts);
+  const compatibility = {
+    "advance": { retryable: false, nextAction: "report" },
+    "repair": { retryable: true, nextAction: "regression-repair" },
+    "await-user-input": { retryable: false, nextAction: "user-confirmation" },
+    "record-and-proceed": { retryable: false, nextAction: "report" },
+    "external-blocked": { retryable: false, nextAction: "stop" },
+    "blocked": { retryable: false, nextAction: "stop" },
+  }[selection.operation];
+  return Object.freeze({ ...compatibility, operation: selection.operation, reason: selection.reason });
 }
 
 /** Stable Action identity; it intentionally contains no clock or caller data. */
@@ -544,6 +618,59 @@ export class NonGateIncrementRetryAction extends NonGateStepAction {
   toJSON() { return { action: "increment-retry", stepId: this.stepId }; }
 }
 
+/** Definition-selected settlement; the registry adapter cannot invent it. */
+export class NonGateFailCurrentAttemptAction extends NonGateStepAction {
+  constructor(token, { category, code, retryable, retryKind = null, message } = {}) {
+    super();
+    if (token !== NON_GATE_TRANSITION_TOKEN) throw new Error("non-Gate failure action requires the definition resolver");
+    this.category = requireString(category, "non-Gate failure category");
+    this.code = requireString(code, "non-Gate failure code");
+    if (typeof retryable !== "boolean") throw new Error("non-Gate failure retryable must be boolean");
+    this.retryable = retryable;
+    this.retryKind = retryKind == null ? null : requireString(retryKind, "non-Gate failure retry kind");
+    this.message = requireString(message, "non-Gate failure message");
+    Object.freeze(this);
+  }
+  apply(adapter, plan) { return adapter.failCurrentAttempt(this, plan); }
+  toJSON() {
+    return { action: "fail-current-attempt", category: this.category, code: this.code,
+      retryable: this.retryable, retryKind: this.retryKind, message: this.message };
+  }
+}
+
+/** Definition-selected advisory observation, applied while its Attempt is active. */
+export class NonGateRecordNonblockingAction extends NonGateStepAction {
+  constructor(token, { stepId } = {}) {
+    super();
+    if (token !== NON_GATE_TRANSITION_TOKEN) throw new Error("non-Gate nonblocking action requires the definition resolver");
+    this.stepId = requireString(stepId, "non-Gate nonblocking stepId");
+    Object.freeze(this);
+  }
+  apply(adapter, plan) { return adapter.recordNonblocking(this.stepId, plan); }
+  toJSON() { return { action: "record-nonblocking", stepId: this.stepId }; }
+}
+
+function immutableTransitionEvidence(value) {
+  if (value === null || typeof value !== "object") return value;
+  for (const entry of Object.values(value)) immutableTransitionEvidence(entry);
+  return Object.freeze(value);
+}
+
+/** Immutable repair evidence is appended only after Definition accepts it. */
+export class NonGateAppendRepairEvidenceAction extends NonGateStepAction {
+  constructor(token, { stepId, summary, testSourceRevision } = {}) {
+    super();
+    if (token !== NON_GATE_TRANSITION_TOKEN) throw new Error("non-Gate repair evidence action requires the definition resolver");
+    this.stepId = requireString(stepId, "non-Gate repair evidence stepId");
+    if (!Array.isArray(summary)) throw new Error("non-Gate repair evidence summary must be an array");
+    this.summary = immutableTransitionEvidence(structuredClone(summary));
+    this.testSourceRevision = requireString(testSourceRevision, "non-Gate repair evidence testSourceRevision");
+    Object.freeze(this);
+  }
+  apply(adapter, plan) { return adapter.appendRepairEvidence(this, plan); }
+  toJSON() { return { action: "append-repair-evidence", stepId: this.stepId, summary: structuredClone(this.summary), testSourceRevision: this.testSourceRevision }; }
+}
+
 /** Sealed typed authority consumed by persistence and command admission only. */
 export class NonGateTransitionPlan {
   constructor(token, { action, actions } = {}) {
@@ -584,9 +711,21 @@ export class NonGateTransitionDecision {
   toJSON() { return { facts: this.facts.toJSON(), disposition: this.disposition.toJSON(), plan: this.plan.toJSON() }; }
 }
 
-function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetry = false, stepActions = [] } = {}) {
+function nonGatePlan(facts, disposition, { status = "in_progress", incrementRetry = false, beforeActions = [], stepActions = [], noEffects = false } = {}) {
+  if (noEffects) {
+    const identity = new NonGateActionIdentity(NON_GATE_TRANSITION_TOKEN, {
+      runId: facts.runId, specId: facts.specId, stepId: facts.stepId, attempt: facts.currentAttempt,
+      catalogFingerprint: facts.catalogPublication.fingerprint, factsFingerprint: nonGateFactsFingerprint(facts),
+      selectedFingerprint: createHash("sha256").update(stableJson({ disposition: disposition.toJSON(), actions: [] })).digest("hex"),
+      operation: disposition.operation,
+    });
+    return new NonGateTransitionPlan(NON_GATE_TRANSITION_TOKEN, {
+      action: new NonGateTransitionAction(NON_GATE_TRANSITION_TOKEN, { identity }), actions: [],
+    });
+  }
   const update = new NonGateStepUpdate({ stepId: facts.stepId, status });
   const actions = [
+    ...beforeActions,
     new NonGateSetStepStatusAction(NON_GATE_TRANSITION_TOKEN, { update }),
     ...(incrementRetry ? [new NonGateIncrementRetryAction(NON_GATE_TRANSITION_TOKEN, { stepId: facts.stepId })] : []),
     ...stepActions,
@@ -636,15 +775,16 @@ export function resolveNonGateTransition(facts, stepDefinition) {
     throw new Error("resolveNonGateTransition requires a typed Step Definition");
   }
   if (facts.integrityFailure !== null) {
-    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, facts.integrityFailure));
+    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, facts.integrityFailure), { noEffects: true });
   }
   if (facts.completion.partial) {
-    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "partial_completion"));
+    return nonGateDecision(facts, new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "partial_completion"), { noEffects: true });
   }
   const selection = stepDefinition.selectionFor(facts);
   const selectedDecision = (disposition, options = {}) => nonGateDecision(facts, disposition, {
     ...options,
-    stepActions: selection.actions,
+    beforeActions: options.beforeActions ?? selection.beforeActions,
+    stepActions: options.stepActions ?? selection.actions,
   });
   if (selection.operation === "advance") {
     if (!facts.completion.completed) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "completion_unconfirmed"));
@@ -653,7 +793,9 @@ export function resolveNonGateTransition(facts, stepDefinition) {
   if (selection.operation === "keep-in-progress") return selectedDecision(new NonGateKeepInProgressDisposition(NON_GATE_TRANSITION_TOKEN));
   if (selection.operation === "await-user-input") return selectedDecision(new NonGateAwaitUserInputDisposition(NON_GATE_TRANSITION_TOKEN));
   if (selection.operation === "retry") {
-    if (facts.retry.exhausted) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "retry_exhausted"));
+    if (facts.retry.exhausted) return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, "retry_exhausted"), {
+      stepActions: selection.exhaustedActions,
+    });
     return selectedDecision(new NonGateRetryDisposition(NON_GATE_TRANSITION_TOKEN), { incrementRetry: true });
   }
   if (selection.operation === "repair") return selectedDecision(new NonGateRepairDisposition(NON_GATE_TRANSITION_TOKEN));
@@ -668,6 +810,335 @@ export function resolveNonGateTransition(facts, stepDefinition) {
   }
   return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason || "blocked"));
 }
+
+// Approval and acceptance are deliberately not expressed as generic worker
+// completion.  Their evidence is either a cataloged Spec publication or a
+// canonical review/decision artifact, and their next route must remain owned
+// by Definition even though the corresponding commands are setters.
+const DEFINITION_ROUTE_TOKEN = Symbol("definition-route");
+
+function digestText(value, field) {
+  const text = requireString(value, field);
+  if (!/^[a-f0-9]{64}$/i.test(text)) throw new Error(`${field} must be a SHA-256 digest`);
+  return text;
+}
+
+function frozenStrings(value, field) {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || entry === "")) {
+    throw new Error(`${field} must be an array of non-empty strings`);
+  }
+  if (new Set(value).size !== value.length) throw new Error(`${field} must not contain duplicates`);
+  return Object.freeze([...value]);
+}
+
+/** A target is never inferred from the caller; it is bound to the active Attempt. */
+export class DefinitionRouteTarget {
+  constructor({ runId, specId, stepId, attemptId, sequence } = {}) {
+    this.runId = requireString(runId, "definition route target runId");
+    this.specId = requireString(specId, "definition route target specId");
+    this.stepId = requireString(stepId, "definition route target stepId");
+    this.attemptId = requireString(attemptId, "definition route target attemptId");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("definition route target sequence must be positive");
+    this.sequence = sequence;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { runId: this.runId, specId: this.specId, stepId: this.stepId, attemptId: this.attemptId, sequence: this.sequence }; }
+}
+
+export class ApprovalRouteFacts {
+  constructor({ target, specPublicationDigest, approvalRecord = null, requestedApproval = false, autoApprove = false } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "approval") throw new Error("approval facts require the approval target");
+    this.specPublicationDigest = digestText(specPublicationDigest, "approval spec publication digest");
+    if (approvalRecord !== null && (approvalRecord?.approved !== true || typeof approvalRecord.confirmed_at !== "string")) {
+      throw new Error("approval record must be a canonical approved record");
+    }
+    if (typeof requestedApproval !== "boolean" || typeof autoApprove !== "boolean") throw new Error("approval route flags must be boolean");
+    this.approvalRecord = approvalRecord === null ? null : Object.freeze(structuredClone(approvalRecord));
+    this.requestedApproval = requestedApproval;
+    this.autoApprove = autoApprove;
+    Object.freeze(this);
+  }
+
+  get integrityFailure() {
+    if (this.approvalRecord !== null && this.requestedApproval) return "approval_already_recorded";
+    return null;
+  }
+
+  toJSON() { return { target: this.target.toJSON(), specPublicationDigest: this.specPublicationDigest, approvalRecord: this.approvalRecord, requestedApproval: this.requestedApproval, autoApprove: this.autoApprove }; }
+}
+
+export class AcceptanceReviewRouteFacts {
+  constructor({ target, reviewArtifactDigest, requirementIds, findingDispositions, verdict, completed = true } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "acceptance-review") throw new Error("acceptance review facts require the acceptance-review target");
+    this.reviewArtifactDigest = digestText(reviewArtifactDigest, "acceptance review artifact digest");
+    this.requirementIds = frozenStrings(requirementIds, "acceptance requirement IDs");
+    this.findingDispositions = frozenStrings(findingDispositions, "acceptance finding dispositions");
+    this.verdict = requireString(verdict, "acceptance review verdict");
+    if (!["pass", "repair_required", "user_decision_required", "blocked"].includes(this.verdict)) throw new Error("acceptance review verdict is invalid");
+    if (typeof completed !== "boolean") throw new Error("acceptance review completed must be boolean");
+    this.completed = completed;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { target: this.target.toJSON(), reviewArtifactDigest: this.reviewArtifactDigest, requirementIds: [...this.requirementIds], findingDispositions: [...this.findingDispositions], verdict: this.verdict, completed: this.completed }; }
+}
+
+export class AcceptanceDecisionRouteFacts {
+  constructor({ target, reviewArtifactDigest, requirementIds, findingDispositions, decisionRecord = null, choice = null } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "acceptance-decision") throw new Error("acceptance decision facts require the acceptance-decision target");
+    this.reviewArtifactDigest = digestText(reviewArtifactDigest, "acceptance decision review digest");
+    this.requirementIds = frozenStrings(requirementIds, "acceptance decision requirement IDs");
+    this.findingDispositions = frozenStrings(findingDispositions, "acceptance decision finding dispositions");
+    if (choice !== null && !["accept_risk_and_continue", "abort"].includes(choice)) throw new Error("acceptance decision choice is invalid");
+    if (decisionRecord !== null && (decisionRecord?.choice !== choice || decisionRecord?.reviewArtifactDigest !== this.reviewArtifactDigest)) {
+      throw new Error("acceptance decision record is not bound to canonical review evidence");
+    }
+    this.choice = choice;
+    this.decisionRecord = decisionRecord === null ? null : Object.freeze(structuredClone(decisionRecord));
+    Object.freeze(this);
+  }
+
+  get integrityFailure() {
+    if (this.choice === null && this.decisionRecord !== null) return "decision_record_without_choice";
+    return null;
+  }
+
+  toJSON() { return { target: this.target.toJSON(), reviewArtifactDigest: this.reviewArtifactDigest, requirementIds: [...this.requirementIds], findingDispositions: [...this.findingDispositions], decisionRecord: this.decisionRecord, choice: this.choice }; }
+}
+
+export class DefinitionRoutePlan {
+  constructor(token, { facts, route, reason = null } = {}) {
+    if (token !== DEFINITION_ROUTE_TOKEN) throw new Error("Definition route plans are created only by the Definition resolver");
+    this.facts = facts;
+    this.route = requireString(route, "definition route");
+    this.reason = reason === null ? null : requireString(reason, "definition blocked reason");
+    Object.freeze(this);
+  }
+  toJSON() { return { route: this.route, facts: this.facts.toJSON(), ...(this.reason === null ? {} : { reason: this.reason }) }; }
+}
+
+export class AwaitApproval extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "await-approval" }); } apply(adapter) { return adapter.awaitApproval(this); } }
+export class ConfirmAndAdvance extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "confirm-and-advance" }); } apply(adapter) { return adapter.confirmAndAdvance(this); } }
+export class RepairAcceptanceToImplTriage extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "repair-acceptance-to-impl-triage" }); } apply(adapter) { return adapter.repairAcceptanceToImplTriage(this); } }
+export class AwaitAcceptanceDecision extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "await-acceptance-decision" }); } apply(adapter) { return adapter.awaitAcceptanceDecision(this); } }
+export class AdvanceFinalRegression extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "advance-final-regression" }); } apply(adapter) { return adapter.advanceFinalRegression(this); } }
+export class Park extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "park" }); } apply(adapter) { return adapter.park(this); } }
+export class Blocked extends DefinitionRoutePlan { constructor(token, facts, reason) { super(token, { facts, route: "blocked", reason }); } apply(adapter) { return adapter.blocked(this); } }
+
+/**
+ * Sole policy owner for the approval / acceptance boundary.  Setters and
+ * registry post hooks may construct facts and apply this plan, but may not
+ * branch on verdict, choice, or auto policy.
+ */
+export function resolveDefinitionRoute(facts) {
+  if (facts instanceof ApprovalRouteFacts) {
+    if (facts.integrityFailure !== null) return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.integrityFailure);
+    if (facts.approvalRecord !== null) return new ConfirmAndAdvance(DEFINITION_ROUTE_TOKEN, facts);
+    // autoApprove is an approval policy fact; it never authorizes an
+    // acceptance decision and never bypasses a stale/missing Spec binding.
+    return facts.requestedApproval || facts.autoApprove
+      ? new ConfirmAndAdvance(DEFINITION_ROUTE_TOKEN, facts)
+      : new AwaitApproval(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  if (facts instanceof AcceptanceReviewRouteFacts) {
+    if (!facts.completed || facts.verdict === "blocked") return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.completed ? "acceptance_blocked" : "partial_completion");
+    if (facts.verdict === "repair_required") return new RepairAcceptanceToImplTriage(DEFINITION_ROUTE_TOKEN, facts);
+    if (facts.verdict === "user_decision_required") return new AwaitAcceptanceDecision(DEFINITION_ROUTE_TOKEN, facts);
+    return new AdvanceFinalRegression(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  if (facts instanceof AcceptanceDecisionRouteFacts) {
+    if (facts.integrityFailure !== null) return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.integrityFailure);
+    // This is intentionally tokenless and ignores autoApprove.
+    if (facts.choice === null) return new AwaitAcceptanceDecision(DEFINITION_ROUTE_TOKEN, facts);
+    return facts.choice === "accept_risk_and_continue"
+      ? new AdvanceFinalRegression(DEFINITION_ROUTE_TOKEN, facts)
+      : new Park(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  throw new Error("Definition route facts are unsupported");
+}
+
+/**
+ * The three test-chain leaves expose observations only.  Their route policy
+ * is deliberately kept beside the common reducer so a registry hook cannot
+ * reinterpret a result after it has been cataloged.
+ */
+export class TestChainProcessFacts {
+  constructor({ started, exitCode, signal, timedOut, spawnError } = {}) {
+    if (typeof started !== "boolean") throw new Error("test-chain process.started must be boolean");
+    if (exitCode !== null && (!Number.isSafeInteger(exitCode) || exitCode < 0)) {
+      throw new Error("test-chain process.exitCode must be a non-negative integer or null");
+    }
+    if (signal !== null && (typeof signal !== "string" || signal === "")) throw new Error("test-chain process.signal must be a non-empty string or null");
+    if (typeof timedOut !== "boolean") throw new Error("test-chain process.timedOut must be boolean");
+    if (spawnError !== null && (typeof spawnError !== "string" || spawnError === "")) throw new Error("test-chain process.spawnError must be a non-empty string or null");
+    this.started = started;
+    this.exitCode = exitCode;
+    this.signal = signal;
+    this.timedOut = timedOut;
+    this.spawnError = spawnError;
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    if (value instanceof TestChainProcessFacts) return value;
+    return new TestChainProcessFacts(value ?? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null });
+  }
+
+  // A cataloged process record is an external observation. Incomplete
+  // combinations cannot prove a semantic test outcome, so keep the Flow
+  // externally blocked rather than allowing a producer to advance.
+  get toolingFailure() {
+    return !this.started
+      || this.spawnError !== null
+      || this.signal !== null
+      || this.timedOut
+      || this.exitCode === null;
+  }
+  toJSON() { return { started: this.started, exitCode: this.exitCode, signal: this.signal, timedOut: this.timedOut, spawnError: this.spawnError }; }
+}
+
+export class ScenarioValidityStepFacts extends NonGateStepFacts {
+  constructor({ result, summary = [], rawAvailable = false, blockingEvidence = [], testSourceRevision = "unavailable", catalogDigest = "unavailable", repairFingerprint = "unavailable", process = null } = {}) {
+    if (!["pass", "block"].includes(result)) throw new Error("scenario-validity result is invalid");
+    if (!Array.isArray(summary) || !Array.isArray(blockingEvidence)) throw new Error("scenario-validity observations require arrays");
+    const hasBlockingObservation = blockingEvidence.some((entry) => entry?.classification !== "expected_fail");
+    if ((result === "block") !== hasBlockingObservation) {
+      throw new Error("scenario-validity result must match its blocking observations");
+    }
+    for (const [value, field] of [[testSourceRevision, "test source revision"], [catalogDigest, "catalog digest"], [repairFingerprint, "repair fingerprint"]]) {
+      if (typeof value !== "string" || value === "") throw new Error(`scenario-validity ${field} is required`);
+    }
+    if (typeof rawAvailable !== "boolean") throw new Error("scenario-validity rawAvailable must be boolean");
+    const processFacts = TestChainProcessFacts.from(process);
+    const invalidTest = blockingEvidence.some((entry) => entry?.classification === "invalid_test");
+    super({ kind: "scenario-validity", values: { result, summary, rawAvailable, blockingEvidence, testSourceRevision, catalogDigest, repairFingerprint, process: processFacts.toJSON(), toolingFailure: processFacts.toolingFailure, invalidTest } });
+  }
+
+  get result() { return this.value("result"); }
+  get toolingFailure() { return this.value("toolingFailure"); }
+  get invalidTest() { return this.value("invalidTest"); }
+  get summary() { return this.value("summary"); }
+  get rawAvailable() { return this.value("rawAvailable"); }
+  get testSourceRevision() { return this.value("testSourceRevision"); }
+  get process() { return TestChainProcessFacts.from(this.value("process")); }
+}
+
+export class TestExecuteStepFacts extends NonGateStepFacts {
+  constructor({ summary = [], regression = {}, rawAvailable = false, testSourceRevision = "unavailable", repairFingerprint = "unavailable", rawEvidenceFingerprint = "unavailable", catalogDigest = "unavailable", process = null } = {}) {
+    if (!Array.isArray(summary) || regression === null || typeof regression !== "object" || Array.isArray(regression)) throw new Error("test-execute observations are invalid");
+    if (typeof rawAvailable !== "boolean" || typeof testSourceRevision !== "string" || testSourceRevision === "" || typeof repairFingerprint !== "string" || repairFingerprint === "" || typeof rawEvidenceFingerprint !== "string" || rawEvidenceFingerprint === "" || typeof catalogDigest !== "string" || catalogDigest === "") {
+      throw new Error("test-execute immutable evidence is required");
+    }
+    const processFacts = TestChainProcessFacts.from(process);
+    const regressionProcess = regression.process == null ? null : TestChainProcessFacts.from(regression.process);
+    super({ kind: "test-execute", values: { summary, regression, rawAvailable, testSourceRevision, repairFingerprint, rawEvidenceFingerprint, catalogDigest, process: processFacts.toJSON(), regressionProcess: regressionProcess?.toJSON() ?? null, toolingFailure: processFacts.toolingFailure || regressionProcess?.toolingFailure === true } });
+  }
+
+  get toolingFailure() { return this.value("toolingFailure"); }
+  get rawAvailable() { return this.value("rawAvailable"); }
+  get process() { return TestChainProcessFacts.from(this.value("process")); }
+  get regressionProcess() { return this.value("regressionProcess") === null ? null : TestChainProcessFacts.from(this.value("regressionProcess")); }
+}
+
+export class TestResultReviewStepFacts extends NonGateStepFacts {
+  constructor({ verdict, checkedItems = [], rawAvailable = false, testSourceRevision = "unavailable", sourceRepairFingerprint = "unavailable", sourceRawEvidenceFingerprint = "unavailable", repairFingerprint = "unavailable", rawEvidenceFingerprint = "unavailable", catalogDigest = "unavailable", toolingFailure = false } = {}) {
+    if (!["pass", "fail"].includes(verdict)) throw new Error("test-result-review verdict is invalid");
+    if (typeof toolingFailure !== "boolean") throw new Error("test-result-review toolingFailure must be boolean");
+    if (!Array.isArray(checkedItems) || typeof rawAvailable !== "boolean") throw new Error("test-result-review observations are invalid");
+    if (checkedItems.length === 0 || checkedItems.some((item) => item?.result !== "pass" && item?.result !== "fail")) {
+      throw new Error("test-result-review requires pass/fail checked observations");
+    }
+    if ((verdict === "fail") !== checkedItems.some((item) => item.result === "fail")) {
+      throw new Error("test-result-review verdict must match its checked observations");
+    }
+    for (const [value, field] of [[testSourceRevision, "test source revision"], [sourceRepairFingerprint, "source repair fingerprint"], [sourceRawEvidenceFingerprint, "source raw evidence fingerprint"], [repairFingerprint, "repair fingerprint"], [rawEvidenceFingerprint, "raw evidence fingerprint"], [catalogDigest, "catalog digest"]]) {
+      if (typeof value !== "string" || value === "") throw new Error(`test-result-review ${field} is required`);
+    }
+    super({ kind: "test-result-review", values: { verdict, checkedItems, rawAvailable, testSourceRevision, sourceRepairFingerprint, sourceRawEvidenceFingerprint, repairFingerprint, rawEvidenceFingerprint, catalogDigest, toolingFailure } });
+  }
+
+  get verdict() { return this.value("verdict"); }
+  get toolingFailure() { return this.value("toolingFailure"); }
+  get rawAvailable() { return this.value("rawAvailable"); }
+}
+
+function failureAction({ category, code, retryable, retryKind = null, message }) {
+  return new NonGateFailCurrentAttemptAction(NON_GATE_TRANSITION_TOKEN, { category, code, retryable, retryKind, message });
+}
+
+function testChainSelection({ stepId, failed, toolingFailure, invalidTest = false, nonblocking, summary = [], testSourceRevision = "unavailable" }) {
+  if (toolingFailure) return new NonGateTransitionSelection({
+    operation: "external-blocked",
+    reason: "tooling_failure",
+    actions: [failureAction({ category: "tooling", code: "TEST_CHAIN_TOOLING_FAILURE", retryable: false, message: "Test-chain tooling failed." })],
+  });
+  if (!failed) return new NonGateTransitionSelection({ operation: "advance" });
+  if (nonblocking) return new NonGateTransitionSelection({
+    // Advisory mode records the immutable observation, but its acceptance
+    // disposition remains an explicit nonblocking decision.  It must not
+    // complete the active producer or auto-advance the Flow.
+    operation: "await-user-input",
+    beforeActions: [new NonGateRecordNonblockingAction(NON_GATE_TRANSITION_TOKEN, { stepId })],
+  });
+  if (stepId === "scenario-validity") return new NonGateTransitionSelection({
+    operation: "repair", reason: invalidTest ? "invalid_test" : "test_design_block",
+    actions: [
+      new NonGateAppendRepairEvidenceAction(NON_GATE_TRANSITION_TOKEN, {
+        stepId, summary, testSourceRevision,
+      }),
+      failureAction({ category: "semantic", code: "SCENARIO_VALIDITY_REJECTED", retryable: false, message: "Scenario validity rejected the current test evidence." }),
+    ],
+  });
+  return new NonGateTransitionSelection({
+    operation: "retry", reason: "semantic_test_failure",
+    actions: [failureAction({ category: "semantic", code: "TEST_CHAIN_REJECTED", retryable: true, retryKind: "semantic", message: "Test-chain evidence was rejected." })],
+    exhaustedActions: [failureAction({ category: "semantic", code: "TEST_CHAIN_RETRY_EXHAUSTED", retryable: false, message: "Test-chain semantic retry budget is exhausted." })],
+  });
+}
+
+export const scenarioValidityTransitionDefinition = new NonGateStepDefinition({
+  stepId: "scenario-validity",
+  factsType: ScenarioValidityStepFacts,
+  select(stepFacts, facts) {
+    return testChainSelection({
+      stepId: "scenario-validity",
+      failed: stepFacts.result === "block",
+      toolingFailure: stepFacts.toolingFailure,
+      invalidTest: stepFacts.invalidTest,
+      nonblocking: facts.nonblocking,
+      summary: stepFacts.summary,
+      testSourceRevision: stepFacts.testSourceRevision,
+    });
+  },
+});
+
+export const testExecuteTransitionDefinition = new NonGateStepDefinition({
+  stepId: "test-execute",
+  factsType: TestExecuteStepFacts,
+  select(stepFacts) {
+    // A completed execution always hands its immutable observation to the
+    // result reviewer. Regression semantics are owned by that reviewer and
+    // later gates, not by the executor.
+    return testChainSelection({ stepId: "test-execute", failed: false, toolingFailure: stepFacts.toolingFailure, nonblocking: false });
+  },
+});
+
+export const testResultReviewTransitionDefinition = new NonGateStepDefinition({
+  stepId: "test-result-review",
+  factsType: TestResultReviewStepFacts,
+  select(stepFacts, facts) {
+    return testChainSelection({
+      stepId: "test-result-review",
+      failed: stepFacts.verdict === "fail",
+      toolingFailure: stepFacts.toolingFailure,
+      nonblocking: facts.nonblocking,
+    });
+  },
+});
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -1840,6 +2311,8 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/scenario-validity.schema.json",
         maxAttempts: 3,
+        failurePolicy: "test-chain-repair",
+        failureTargetId: "test",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("scenario-validity"),
         failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
@@ -1874,6 +2347,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/test-execute.schema.json",
         maxAttempts: 3,
+        failurePolicy: "test-chain-retry",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("test-execute"),
         failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
@@ -1886,6 +2360,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/test-result-review.schema.json",
         maxAttempts: 3,
+        failurePolicy: "test-chain-retry",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("test-result-review"),
         failureOwnership: DefinitionFailureOwnership.dispatcherPrimary(),
@@ -1984,7 +2459,11 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
-        failurePolicy: "retry",
+        // Final-regression retry/repair meaning belongs to the typed
+        // FINAL_REGRESSION_STEP_DEFINITION above.  The generic failure policy
+        // is deliberately inert and remains only as a compatibility
+        // descriptor for CurrentFlowState.nextAction().
+        failurePolicy: "block",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("final-regression"),
         failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),

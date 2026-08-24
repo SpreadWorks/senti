@@ -158,7 +158,6 @@ function finalRegressionHumanSummary(result) {
     result.rawOutputPath ? `raw_output=${result.rawOutputPath}` : null,
     Number.isInteger(result.fixAttempts) ? `fixAttempts=${result.fixAttempts}` : null,
     result.selectedAction ? `selectedAction=${result.selectedAction}` : null,
-    result.nextRecommendedAction ? `nextRecommendedAction=${result.nextRecommendedAction}` : null,
     result.remainingRisk ? `remainingRisk=${result.remainingRisk}` : null,
   ].filter(Boolean);
   return parts.map(capReportField).join(" ");
@@ -584,7 +583,6 @@ function formatText(data) {
         r.rawOutputPath ? `raw_output=${r.rawOutputPath}` : null,
         Number.isInteger(r.fixAttempts) ? `fixAttempts=${r.fixAttempts}` : null,
         r.selectedAction ? `selectedAction=${r.selectedAction}` : null,
-        r.nextRecommendedAction ? `nextRecommendedAction=${r.nextRecommendedAction}` : null,
         r.remainingRisk ? `remainingRisk=${r.remainingRisk}` : null,
       ].filter(Boolean).join(" "));
     }

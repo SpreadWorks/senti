@@ -22,6 +22,7 @@ import {
 } from "./nonblocking-evidence.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
+import { ActivityNonBlockingRecord } from "./current-flow-state.js";
 
 const MAX_TEXT = 2_000;
 const ACTIONS = Object.freeze(["repair", "retry", "continue"]);
@@ -269,19 +270,20 @@ export function nonblockingActivationOfferForStrictStop(root, state, directive, 
 
 export function recordEligibleNonblockingAttempt(ctx, stepId, result = null) {
   const state = ctx?.flowState ?? ctx?.flowManager?.load?.();
-  assertCanonical(state, ctx?.flowManager);
-  const step = assertStep(stepId);
-  if (state.policy.nonblocking?.enabled !== true || activeStep(state) !== step) return null;
-  const evidence = evidenceFor(ctx, state, step);
-  if (evidence === null) return null;
+  const record = deriveEligibleNonblockingObservation(ctx, stepId, state);
+  if (record === null) return null;
+  const step = record.sourceStep;
+  const evidence = {
+    sourceAttempt: record.sourceAttempt,
+    ref: record.evidenceRef,
+    evidenceDigest: record.evidenceDigest,
+    resultKind: record.resultKind,
+  };
   const existing = recordsFor(ctx, state, step).find((record) => (
     record.kind === "observation" && record.sourceAttempt === evidence.sourceAttempt
     && record.evidenceRef === evidence.ref && record.evidenceDigest === evidence.evidenceDigest
   ));
   if (existing) return existing;
-  const record = { kind: "observation", sourceStep: step, sourceAttempt: evidence.sourceAttempt,
-    evidenceRef: evidence.ref, evidenceDigest: evidence.evidenceDigest, resultKind: evidence.resultKind,
-    action: null, rationale: null, remainingRisk: null };
   ctx.flowManager.recordNonblocking({ specId: state.specId, nodeId: activeNodeForStep(state, step), record });
   if (result && typeof result === "object") {
     result.stepAttempt = { runId: state.runId, taskId: state.currentTaskId ?? null, stepId: step,
@@ -289,6 +291,29 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null) {
         evidenceDigest: evidence.evidenceDigest, resultKind: evidence.resultKind }).toJSON() };
   }
   return record;
+}
+
+/**
+ * Build, but do not persist, the one advisory observation selected by a
+ * Definition plan. The atomic plan boundary owns its eventual Activity.
+ */
+export function deriveEligibleNonblockingObservation(ctx, stepId, state = ctx?.flowState ?? ctx?.flowManager?.load?.()) {
+  assertCanonical(state, ctx?.flowManager);
+  const step = assertStep(stepId);
+  if (state.policy.nonblocking?.enabled !== true || activeStep(state) !== step) return null;
+  const evidence = evidenceFor(ctx, state, step);
+  if (evidence === null) return null;
+  return new ActivityNonBlockingRecord({
+    kind: "observation",
+    sourceStep: step,
+    sourceAttempt: evidence.sourceAttempt,
+    evidenceRef: evidence.ref,
+    evidenceDigest: evidence.evidenceDigest,
+    resultKind: evidence.resultKind,
+    action: null,
+    rationale: null,
+    remainingRisk: null,
+  });
 }
 
 export function activateNonBlockingPolicy({ root, flowManager, reason } = {}) {
