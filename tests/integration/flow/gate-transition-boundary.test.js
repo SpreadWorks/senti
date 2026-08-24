@@ -162,6 +162,18 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(staleLineage.disposition.operation, "blocked");
     assert.equal(staleLineage.disposition.reason, "source_canonical_lineage_mismatch");
 
+    const staleRevisionBinding = resolveGateTransition(facts({
+      lineage: new GateLineage({
+        sourceAttempt: new GateAttemptIdentity({ id: "attempt-7", sequence: 7 }),
+        canonicalAttempt: new GateAttemptIdentity({ id: "attempt-7", sequence: 7 }),
+        sourceFingerprint: "source-hash",
+        canonicalFingerprint: "revision-7",
+        sourceRevisionFingerprint: "revision-7",
+        canonicalRevisionFingerprint: "revision-6",
+      }),
+    }));
+    assert.equal(staleRevisionBinding.disposition.reason, "source_canonical_lineage_mismatch");
+
     const staleTarget = resolveGateTransition(facts({
       target: {
         runId: "old-run",
@@ -199,6 +211,8 @@ describe("definition-owned Gate transition boundary", () => {
       phase: "task-impl",
       scope: "task",
     }), /taskId binding/);
+    assert.equal(resolveGateTransition(facts({ phase: "task-impl", scope: "flow" })).disposition.reason, "phase_scope_mismatch");
+    assert.equal(resolveGateTransition(facts({ phase: "integration", scope: "task" })).disposition.reason, "phase_scope_mismatch");
   });
 
   it("applies only the decision plan and rejects a bypassed or stale decision", () => {

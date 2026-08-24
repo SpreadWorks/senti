@@ -80,27 +80,58 @@ export class GateFailureCategory {
   }
 
   toJSON() { return { category: this.category, code: this.code }; }
+
+  /** Normalize an evaluator result once at the producer boundary. */
+  static fromObservedGateResult(result) {
+    if (result?.result !== "fail") throw new Error("observed Gate failure requires a failed result");
+    const artifacts = requireObject(result.artifacts, "observed Gate failure artifacts");
+    const failureKind = requiredText(artifacts.failureKind, "observed Gate failure kind");
+    const category = ["ai_semantic_fail", "mechanical", "mechanical_guardrail_fail"].includes(failureKind)
+      ? "semantic"
+      : "tooling";
+    return new GateFailureCategory({
+      category,
+      code: artifacts.failureCode ?? failureKind,
+    });
+  }
 }
 
 /**
- * Links source evidence, the canonical result, and repair evidence to one
- * stable producer revision. Both identities and fingerprints are mandatory
- * so unavailable lineage fails at the boundary instead of becoming current.
+ * Links source evidence and the canonical result to one stable producer
+ * revision. Physical artifact hashes remain distinct; paired revision
+ * bindings prove that the two catalog entries describe one Attempt.
  */
 export class GateLineage {
-  constructor({ sourceAttempt, canonicalAttempt, sourceFingerprint, canonicalFingerprint } = {}) {
+  constructor({
+    sourceAttempt,
+    canonicalAttempt,
+    sourceFingerprint,
+    canonicalFingerprint,
+    sourceRevisionFingerprint = null,
+    canonicalRevisionFingerprint = null,
+  } = {}) {
     this.sourceAttempt = sourceAttempt instanceof GateAttemptIdentity ? sourceAttempt : new GateAttemptIdentity(sourceAttempt);
     this.canonicalAttempt = canonicalAttempt instanceof GateAttemptIdentity
       ? canonicalAttempt
       : new GateAttemptIdentity(canonicalAttempt);
     this.sourceFingerprint = requiredText(sourceFingerprint, "gate source fingerprint");
     this.canonicalFingerprint = requiredText(canonicalFingerprint, "gate canonical fingerprint");
+    this.sourceRevisionFingerprint = optionalText(sourceRevisionFingerprint, "gate source revision fingerprint");
+    this.canonicalRevisionFingerprint = optionalText(canonicalRevisionFingerprint, "gate canonical revision fingerprint");
+    if ((this.sourceRevisionFingerprint === null) !== (this.canonicalRevisionFingerprint === null)) {
+      throw new Error("gate lineage revision bindings must be present together");
+    }
     Object.freeze(this);
   }
 
   get isCurrent() {
     return this.sourceAttempt.matches(this.canonicalAttempt)
-      && this.sourceFingerprint === this.canonicalFingerprint;
+      // A one-artifact lineage is bound by its physical digest. Distinct
+      // source/result artifacts must carry equal revision bindings on both
+      // sides; a token supplied for only one side can never bypass this.
+      && (this.sourceRevisionFingerprint === null
+        ? this.sourceFingerprint === this.canonicalFingerprint
+        : this.sourceRevisionFingerprint === this.canonicalRevisionFingerprint);
   }
 
   toJSON() {
@@ -109,6 +140,8 @@ export class GateLineage {
       canonicalAttempt: this.canonicalAttempt.toJSON(),
       sourceFingerprint: this.sourceFingerprint,
       canonicalFingerprint: this.canonicalFingerprint,
+      sourceRevisionFingerprint: this.sourceRevisionFingerprint,
+      canonicalRevisionFingerprint: this.canonicalRevisionFingerprint,
     };
   }
 }
@@ -248,6 +281,7 @@ export class GateTransitionFacts {
   }
 
   get integrityFailure() {
+    if ((this.phase === "task-impl") !== (this.scope === "task")) return "phase_scope_mismatch";
     if (this.producer.phase !== this.phase || this.producer.scope !== this.scope) return "producer_ownership_mismatch";
     if (this.producer.runId !== this.target.runId || this.producer.specId !== this.target.specId) {
       return "target_binding_mismatch";

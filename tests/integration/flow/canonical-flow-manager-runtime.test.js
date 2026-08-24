@@ -37,6 +37,8 @@ import SetReviewEvidenceCommand from "../../../src/flow/lib/set-review-evidence.
 import RunRecoverReviewPassCommand from "../../../src/flow/lib/run-recover-review-pass.js";
 import RunUpdateOverviewCommand from "../../../src/flow/lib/run-update-overview.js";
 import RunGateCommand, { executeGateSideEffects } from "../../../src/flow/lib/run-gate.js";
+import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
+import { resolveGateTransition } from "../../../src/flow/definition.js";
 import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
 import RunSettleFailureCommand from "../../../src/flow/lib/run-settle-failure.js";
 import RunSettleReviewTransitionCommand from "../../../src/flow/lib/run-settle-review-transition.js";
@@ -820,6 +822,39 @@ describe("FlowManager canonical Version-1 runtime", () => {
     }).bytes.toString("utf8"));
     assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1]);
     assert.equal(history.attempts[0].artifact.payload.result, "fail");
+    const facts = readCurrentGateTransitionFacts({
+      flowManager: manager,
+      flowState: manager.load(created.specId),
+      phase: "spec",
+    });
+    assert.ok(facts);
+    assert.equal(facts.result, "fail");
+    assert.equal(facts.failure.category, "semantic");
+    assert.equal(facts.lineage.sourceFingerprint.length, 64);
+    assert.equal(facts.lineage.canonicalFingerprint.length, 64);
+    assert.notEqual(facts.lineage.sourceFingerprint, facts.lineage.canonicalFingerprint);
+    assert.equal(facts.lineage.sourceRevisionFingerprint, history.attempts[0].artifact.payload.artifacts.gateTransitionLineage);
+    assert.equal(facts.lineage.canonicalRevisionFingerprint, history.attempts[0].artifact.payload.artifacts.gateTransitionLineage);
+    assert.equal(facts.integrityFailure, null);
+    const reloadedManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const reloadedFacts = readCurrentGateTransitionFacts({
+      flowManager: reloadedManager,
+      flowState: reloadedManager.load(created.specId),
+      phase: "spec",
+    });
+    assert.deepEqual(reloadedFacts.toJSON(), facts.toJSON());
+    assert.deepEqual(
+      resolveGateTransition(reloadedFacts).toJSON(),
+      resolveGateTransition(facts).toJSON(),
+    );
+    const beforeBypassState = manager.canonicalState(created.specId).toJSON();
+    const beforeBypassActivities = manager.activityLedger(created.specId);
+    await assert.rejects(
+      new RunGateCommand().execute({ ...ctx, flowState: manager.load(created.specId) }),
+      /canonical gate admission rejected evaluation/,
+    );
+    assert.deepEqual(manager.canonicalState(created.specId).toJSON(), beforeBypassState);
+    assert.deepEqual(manager.activityLedger(created.specId), beforeBypassActivities);
     assert.equal(leaves(manager.load(created.specId).steps)
       .find((entry) => entry.id === "spec-gate").status, "in_progress");
     const location = manager.specLocation(created.specId);
