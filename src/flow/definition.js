@@ -669,6 +669,156 @@ export function resolveNonGateTransition(facts, stepDefinition) {
   return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason || "blocked"));
 }
 
+// Approval and acceptance are deliberately not expressed as generic worker
+// completion.  Their evidence is either a cataloged Spec publication or a
+// canonical review/decision artifact, and their next route must remain owned
+// by Definition even though the corresponding commands are setters.
+const DEFINITION_ROUTE_TOKEN = Symbol("definition-route");
+
+function digestText(value, field) {
+  const text = requireString(value, field);
+  if (!/^[a-f0-9]{64}$/i.test(text)) throw new Error(`${field} must be a SHA-256 digest`);
+  return text;
+}
+
+function frozenStrings(value, field) {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || entry === "")) {
+    throw new Error(`${field} must be an array of non-empty strings`);
+  }
+  if (new Set(value).size !== value.length) throw new Error(`${field} must not contain duplicates`);
+  return Object.freeze([...value]);
+}
+
+/** A target is never inferred from the caller; it is bound to the active Attempt. */
+export class DefinitionRouteTarget {
+  constructor({ runId, specId, stepId, attemptId, sequence } = {}) {
+    this.runId = requireString(runId, "definition route target runId");
+    this.specId = requireString(specId, "definition route target specId");
+    this.stepId = requireString(stepId, "definition route target stepId");
+    this.attemptId = requireString(attemptId, "definition route target attemptId");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("definition route target sequence must be positive");
+    this.sequence = sequence;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { runId: this.runId, specId: this.specId, stepId: this.stepId, attemptId: this.attemptId, sequence: this.sequence }; }
+}
+
+export class ApprovalRouteFacts {
+  constructor({ target, specPublicationDigest, approvalRecord = null, requestedApproval = false, autoApprove = false } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "approval") throw new Error("approval facts require the approval target");
+    this.specPublicationDigest = digestText(specPublicationDigest, "approval spec publication digest");
+    if (approvalRecord !== null && (approvalRecord?.approved !== true || typeof approvalRecord.confirmed_at !== "string")) {
+      throw new Error("approval record must be a canonical approved record");
+    }
+    if (typeof requestedApproval !== "boolean" || typeof autoApprove !== "boolean") throw new Error("approval route flags must be boolean");
+    this.approvalRecord = approvalRecord === null ? null : Object.freeze(structuredClone(approvalRecord));
+    this.requestedApproval = requestedApproval;
+    this.autoApprove = autoApprove;
+    Object.freeze(this);
+  }
+
+  get integrityFailure() {
+    if (this.approvalRecord !== null && this.requestedApproval) return "approval_already_recorded";
+    return null;
+  }
+
+  toJSON() { return { target: this.target.toJSON(), specPublicationDigest: this.specPublicationDigest, approvalRecord: this.approvalRecord, requestedApproval: this.requestedApproval, autoApprove: this.autoApprove }; }
+}
+
+export class AcceptanceReviewRouteFacts {
+  constructor({ target, reviewArtifactDigest, requirementIds, findingDispositions, verdict, completed = true } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "acceptance-review") throw new Error("acceptance review facts require the acceptance-review target");
+    this.reviewArtifactDigest = digestText(reviewArtifactDigest, "acceptance review artifact digest");
+    this.requirementIds = frozenStrings(requirementIds, "acceptance requirement IDs");
+    this.findingDispositions = frozenStrings(findingDispositions, "acceptance finding dispositions");
+    this.verdict = requireString(verdict, "acceptance review verdict");
+    if (!["pass", "repair_required", "user_decision_required", "blocked"].includes(this.verdict)) throw new Error("acceptance review verdict is invalid");
+    if (typeof completed !== "boolean") throw new Error("acceptance review completed must be boolean");
+    this.completed = completed;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { target: this.target.toJSON(), reviewArtifactDigest: this.reviewArtifactDigest, requirementIds: [...this.requirementIds], findingDispositions: [...this.findingDispositions], verdict: this.verdict, completed: this.completed }; }
+}
+
+export class AcceptanceDecisionRouteFacts {
+  constructor({ target, reviewArtifactDigest, requirementIds, findingDispositions, decisionRecord = null, choice = null } = {}) {
+    this.target = target instanceof DefinitionRouteTarget ? target : new DefinitionRouteTarget(target);
+    if (this.target.stepId !== "acceptance-decision") throw new Error("acceptance decision facts require the acceptance-decision target");
+    this.reviewArtifactDigest = digestText(reviewArtifactDigest, "acceptance decision review digest");
+    this.requirementIds = frozenStrings(requirementIds, "acceptance decision requirement IDs");
+    this.findingDispositions = frozenStrings(findingDispositions, "acceptance decision finding dispositions");
+    if (choice !== null && !["accept_risk_and_continue", "abort"].includes(choice)) throw new Error("acceptance decision choice is invalid");
+    if (decisionRecord !== null && (decisionRecord?.choice !== choice || decisionRecord?.reviewArtifactDigest !== this.reviewArtifactDigest)) {
+      throw new Error("acceptance decision record is not bound to canonical review evidence");
+    }
+    this.choice = choice;
+    this.decisionRecord = decisionRecord === null ? null : Object.freeze(structuredClone(decisionRecord));
+    Object.freeze(this);
+  }
+
+  get integrityFailure() {
+    if (this.choice === null && this.decisionRecord !== null) return "decision_record_without_choice";
+    return null;
+  }
+
+  toJSON() { return { target: this.target.toJSON(), reviewArtifactDigest: this.reviewArtifactDigest, requirementIds: [...this.requirementIds], findingDispositions: [...this.findingDispositions], decisionRecord: this.decisionRecord, choice: this.choice }; }
+}
+
+export class DefinitionRoutePlan {
+  constructor(token, { facts, route, reason = null } = {}) {
+    if (token !== DEFINITION_ROUTE_TOKEN) throw new Error("Definition route plans are created only by the Definition resolver");
+    this.facts = facts;
+    this.route = requireString(route, "definition route");
+    this.reason = reason === null ? null : requireString(reason, "definition blocked reason");
+    Object.freeze(this);
+  }
+  toJSON() { return { route: this.route, facts: this.facts.toJSON(), ...(this.reason === null ? {} : { reason: this.reason }) }; }
+}
+
+export class AwaitApproval extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "await-approval" }); } apply(adapter) { return adapter.awaitApproval(this); } }
+export class ConfirmAndAdvance extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "confirm-and-advance" }); } apply(adapter) { return adapter.confirmAndAdvance(this); } }
+export class RepairAcceptanceToImplTriage extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "repair-acceptance-to-impl-triage" }); } apply(adapter) { return adapter.repairAcceptanceToImplTriage(this); } }
+export class AwaitAcceptanceDecision extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "await-acceptance-decision" }); } apply(adapter) { return adapter.awaitAcceptanceDecision(this); } }
+export class AdvanceFinalRegression extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "advance-final-regression" }); } apply(adapter) { return adapter.advanceFinalRegression(this); } }
+export class Park extends DefinitionRoutePlan { constructor(token, facts) { super(token, { facts, route: "park" }); } apply(adapter) { return adapter.park(this); } }
+export class Blocked extends DefinitionRoutePlan { constructor(token, facts, reason) { super(token, { facts, route: "blocked", reason }); } apply(adapter) { return adapter.blocked(this); } }
+
+/**
+ * Sole policy owner for the approval / acceptance boundary.  Setters and
+ * registry post hooks may construct facts and apply this plan, but may not
+ * branch on verdict, choice, or auto policy.
+ */
+export function resolveDefinitionRoute(facts) {
+  if (facts instanceof ApprovalRouteFacts) {
+    if (facts.integrityFailure !== null) return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.integrityFailure);
+    if (facts.approvalRecord !== null) return new ConfirmAndAdvance(DEFINITION_ROUTE_TOKEN, facts);
+    // autoApprove is an approval policy fact; it never authorizes an
+    // acceptance decision and never bypasses a stale/missing Spec binding.
+    return facts.requestedApproval || facts.autoApprove
+      ? new ConfirmAndAdvance(DEFINITION_ROUTE_TOKEN, facts)
+      : new AwaitApproval(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  if (facts instanceof AcceptanceReviewRouteFacts) {
+    if (!facts.completed || facts.verdict === "blocked") return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.completed ? "acceptance_blocked" : "partial_completion");
+    if (facts.verdict === "repair_required") return new RepairAcceptanceToImplTriage(DEFINITION_ROUTE_TOKEN, facts);
+    if (facts.verdict === "user_decision_required") return new AwaitAcceptanceDecision(DEFINITION_ROUTE_TOKEN, facts);
+    return new AdvanceFinalRegression(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  if (facts instanceof AcceptanceDecisionRouteFacts) {
+    if (facts.integrityFailure !== null) return new Blocked(DEFINITION_ROUTE_TOKEN, facts, facts.integrityFailure);
+    // This is intentionally tokenless and ignores autoApprove.
+    if (facts.choice === null) return new AwaitAcceptanceDecision(DEFINITION_ROUTE_TOKEN, facts);
+    return facts.choice === "accept_risk_and_continue"
+      ? new AdvanceFinalRegression(DEFINITION_ROUTE_TOKEN, facts)
+      : new Park(DEFINITION_ROUTE_TOKEN, facts);
+  }
+  throw new Error("Definition route facts are unsupported");
+}
+
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
 export class SetStepStatus {

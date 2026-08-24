@@ -519,6 +519,7 @@ export class CanonicalAcceptanceDecision {
         choice: this.choice,
         decidedAt,
         acceptanceReviewAttempt: review.attempt,
+        acceptanceReviewDigest: review.descriptor.hash,
         repairFingerprint: acceptance.repairFingerprint,
       },
     }));

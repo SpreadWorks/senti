@@ -424,14 +424,17 @@ describe("artifact human views", () => {
     assert.equal(embedded.choice, "abort");
     assert.equal(embedded.source, null);
     assert.equal(embeddedAcceptanceDecision({ verdict: "pass", userDecision: null }), null);
+    const reviewSource = attemptHistorySource("acceptance.review", "steps/acceptance-review/result.json", review);
     const matching = ArtifactViewAcceptanceDecision.resolve({
       review,
       reviewAttempt: 1,
+      reviewSource,
       decisionSource: attemptHistorySource("acceptance.decision", "steps/acceptance-decision/result.json", {
         version: 1,
         choice: "abort",
         decidedAt: "2026-08-15T00:00:00.000Z",
         acceptanceReviewAttempt: 1,
+        acceptanceReviewDigest: reviewSource.hash,
         repairFingerprint: review.repairFingerprint,
       }),
     });
@@ -441,11 +444,13 @@ describe("artifact human views", () => {
       () => ArtifactViewAcceptanceDecision.resolve({
         review,
         reviewAttempt: 1,
+        reviewSource,
         decisionSource: attemptHistorySource("acceptance.decision", "steps/acceptance-decision/result.json", {
           version: 1,
           choice: "accept_risk_and_continue",
           decidedAt: "2026-08-15T00:00:00.000Z",
           acceptanceReviewAttempt: 1,
+          acceptanceReviewDigest: reviewSource.hash,
           repairFingerprint: review.repairFingerprint,
         }),
       }),
@@ -455,15 +460,27 @@ describe("artifact human views", () => {
       () => ArtifactViewAcceptanceDecision.resolve({
         review: { ...review, userDecision: null },
         reviewAttempt: 1,
+        reviewSource,
         decisionSource: attemptHistorySource("acceptance.decision", "steps/acceptance-decision/result.json", {
           version: 1,
           choice: "abort",
           decidedAt: "2026-08-15T00:00:00.000Z",
           acceptanceReviewAttempt: 2,
+          acceptanceReviewDigest: reviewSource.hash,
           repairFingerprint: review.repairFingerprint,
         }),
       }),
       /not linked to the current acceptance\.review attempt/,
+    );
+    assert.throws(
+      () => ArtifactViewAcceptanceDecision.resolve({
+        review, reviewAttempt: 1, reviewSource,
+        decisionSource: attemptHistorySource("acceptance.decision", "steps/acceptance-decision/result.json", {
+          version: 1, choice: "abort", decidedAt: "2026-08-15T00:00:00.000Z",
+          acceptanceReviewAttempt: 1, acceptanceReviewDigest: "b".repeat(64), repairFingerprint: review.repairFingerprint,
+        }),
+      }),
+      /review digest does not match acceptance\.review/,
     );
     assert.throws(
       () => embeddedAcceptanceDecision({
