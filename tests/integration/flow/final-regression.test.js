@@ -5,6 +5,11 @@ import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunClaimNextActionCommand from "../../../src/flow/lib/run-claim-next-action.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "../../../src/flow/lib/final-regression-transition-facts.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
@@ -95,6 +100,19 @@ async function executeFinalRegression(ctx) {
   await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
   ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
   return result;
+}
+
+function resolveFinalRegressionDecision(ctx) {
+  const state = ctx.flowManager.canonicalState(SPEC_ID);
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  return resolveCanonicalFinalRegressionTransition({
+    flowManager: ctx.flowManager,
+    specId: SPEC_ID,
+    changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+      root: ctx.executionRoot,
+      relativeSpecFile: store.location.relativeSpecFile,
+    }),
+  });
 }
 
 describe("flow run final-regression", () => {
@@ -212,14 +230,29 @@ describe("flow run final-regression", () => {
     assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure.code, "FINAL_REGRESSION_FAILED");
     assert.equal(
       ctx.flowManager.canonicalState(SPEC_ID).nextAction().operation,
-      "blocked",
-      "the generic compatibility policy must not authorize the repair Attempt",
+      "resolve-step-definition",
+      "CurrentFlowState exposes a route-neutral cursor while the Step Definition owns canonical final-regression routing",
     );
+    const restart = ctx.flowManager.restartFlow(SPEC_ID);
+    assert.equal(restart.nextAction.operation, "resolve-step-definition");
+    const beforeRejectedClaim = ctx.flowManager.canonicalState(SPEC_ID);
+    const beforeRejectedActivities = ctx.flowManager.activityLedger(SPEC_ID).length;
+    const beforeRejectedCatalog = ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length;
+    assert.throws(
+      () => ctx.flowManager.beginNextAction(SPEC_ID),
+      /requires its canonical Definition-selected Action/,
+    );
+    const afterRejectedClaim = ctx.flowManager.canonicalState(SPEC_ID);
+    assert.equal(afterRejectedClaim.attempt.id, beforeRejectedClaim.attempt.id);
+    assert.equal(ctx.flowManager.activityLedger(SPEC_ID).length, beforeRejectedActivities);
+    assert.equal(ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length, beforeRejectedCatalog);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const next = await new GetNextActionCommand().execute(ctx);
     assert.equal(next.directive.kind, "execute_command");
     assert.equal(next.directive.actionId, "FINAL_REGRESSION_REPAIR");
     assert.match(next.directive.nextAction, /flow run claim-next-action/);
+    const decision = resolveFinalRegressionDecision(ctx);
+    assert.deepEqual(next.definitionTransition.action, decision.plan.action.toJSON());
     const projected = ctx.flowManager.canonicalState(SPEC_ID).attempt;
     assert.equal(projected.sequence, 1);
     assert.equal(projected.failure.code, "FINAL_REGRESSION_FAILED");
@@ -271,7 +304,14 @@ describe("flow run final-regression", () => {
     assert.equal(next.directive.kind, "await_user_decision");
     assert.deepEqual(
       next.directive.actionPrompt.choices.map((choice) => choice.actionId),
-      ["ACCEPT_EXISTING_REGRESSION", "KEEP_BLOCKED"],
+      ["ACCEPT_FINAL_REGRESSION_FAILURE", "KEEP_BLOCKED"],
+    );
+    const decision = resolveFinalRegressionDecision(ctx);
+    assert.deepEqual(next.definitionTransition.action, decision.plan.action.toJSON());
+    assert.deepEqual(next.definitionTransition.userAction, decision.plan.userActions[0].toJSON());
+    assert.deepEqual(
+      next.definitionTransition.userAction.identity.transition,
+      next.definitionTransition.action.identity,
     );
     assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
   });

@@ -6,6 +6,9 @@
 import crypto from "node:crypto";
 import { NonGateStepFacts } from "./non-gate-transition.js";
 
+/** Stable guarded user-action name; Definition binds it to canonical facts. */
+export const FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID = "ACCEPT_FINAL_REGRESSION_FAILURE";
+
 function text(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
   return value;

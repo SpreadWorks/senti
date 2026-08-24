@@ -569,7 +569,7 @@ describe("definition-owned non-Gate transition boundary", () => {
     assert.equal(workerStarts, 0);
   });
 
-  it("keeps legacy route fields out of non-Gate producers and consumers", () => {
+  it("keeps legacy route fields and route construction out of non-Gate producers and consumers", () => {
     const sources = [
       "../../../src/flow/lib/run-scenario-validity.js",
       "../../../src/flow/lib/run-test-execute.js",
@@ -579,15 +579,24 @@ describe("definition-owned non-Gate transition boundary", () => {
       "../../../src/flow/lib/canonical-review-artifacts.js",
       "../../../src/flow/lib/run-acceptance-review.js",
       "../../../src/flow/lib/run-final-regression.js",
+      "../../../src/flow/lib/canonical-acceptance-artifacts.js",
       "../../../src/flow/registry.js",
-    ].map((relative) => readFileSync(new URL(relative, import.meta.url), "utf8"));
-    for (const source of sources) {
+    ].map((relative) => ({ relative, source: readFileSync(new URL(relative, import.meta.url), "utf8") }));
+    for (const { relative, source } of sources) {
       assert.doesNotMatch(source, /\bnext\s*:/, "non-Gate producer/registry must not emit a legacy next route");
       assert.doesNotMatch(source, /\bnextAction\s*:/, "non-Gate producer/registry must not emit a legacy nextAction route");
       assert.doesNotMatch(source, /(?:artifact|result)\?*\.(?:next|nextAction)\b/, "non-Gate consumer must not read a legacy route field");
     }
     const nextAction = readFileSync(new URL("../../../src/flow/lib/get-next-action.js", import.meta.url), "utf8");
     assert.doesNotMatch(nextAction, /(?:artifact|result)\?*\.(?:next|nextAction)\b/, "get-next-action may render directives but cannot consume producer route fields");
+    assert.match(nextAction, /resolveCanonicalFinalRegressionTransition/, "get-next-action must project final-regression from canonical Definition facts");
+    assert.match(nextAction, /selectedNonGateUserAction/, "get-next-action must project Definition-selected user Actions rather than invent them");
+
+    const registry = sources.find(({ relative }) => relative.endsWith("registry.js")).source;
+    assert.match(registry, /resolveCanonicalFinalRegressionTransition/, "registry must re-read final-regression Definition facts before applying a plan");
+    assert.match(registry, /applyFinalRegressionTransition/, "registry must apply the sealed final-regression plan");
+    const finalRunner = sources.find(({ relative }) => relative.endsWith("run-final-regression.js")).source;
+    assert.match(finalRunner, /selectedNonGateUserAction/, "direct final-regression admission must require the selected typed user Action");
   });
 
   it("rejects actual test-chain commands before their worker/process boundary", async () => {

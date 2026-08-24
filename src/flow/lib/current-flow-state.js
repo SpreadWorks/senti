@@ -43,7 +43,7 @@ const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const LIFECYCLE_STATES = new Set(["active", "parked", "finalized"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
-const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block", "test-chain-retry", "test-chain-repair"]);
+const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block", "step-definition", "test-chain-retry", "test-chain-repair"]);
 const RECORDING_FAILURE_POLICIES = new Set(["retry", "record"]);
 const ATTEMPT_TYPES = new Set([
   "flow_created",
@@ -2142,6 +2142,20 @@ export class DefinitionFailurePolicy {
     const remaining = failure.retryKind === null
       ? 0
       : Math.max(0, contract.remainingRetries(consumption, failure.retryKind));
+    // This marker deliberately selects no lifecycle route.  Some Steps need
+    // cataloged artifacts in addition to state before their dedicated
+    // Definition can decide; CurrentFlowState therefore exposes only this
+    // route-neutral cursor and never substitutes a generic block/record.
+    if (this.value === "step-definition") {
+      return new DefinitionFailureDecision({
+        policy: this,
+        operation: "resolve-step-definition",
+        retryKind: null,
+        remaining: 0,
+        targetNodeId: null,
+        reason: "the active Step Definition must resolve this failure from canonical facts",
+      });
+    }
     if (this.value === "test-chain-retry") {
       if (failure.code === "TEST_CHAIN_REJECTED" && failure.retryable && remaining > 0) {
         return new DefinitionFailureDecision({
@@ -2223,7 +2237,7 @@ export class DefinitionFailureDecision {
     if (!(policy instanceof DefinitionFailurePolicy)) {
       throw new CurrentFlowStateInvariantError("failure decision requires a definition-owned policy");
     }
-    if (!["retry", "record", "rewind", "blocked"].includes(operation)) {
+    if (!["retry", "record", "rewind", "blocked", "resolve-step-definition"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("failure decision operation is invalid");
     }
     if (retryKind !== null && !RETRY_KINDS.has(retryKind)) {
@@ -2905,7 +2919,7 @@ export class CurrentNextActionDescriptor {
     if (!(node instanceof CurrentFlowNode)) {
       throw new CurrentFlowStateInvariantError("next action requires a current-state node");
     }
-    if (!["start", "recover", "resume", "retry", "record", "rewind", "blocked"].includes(operation)) {
+    if (!["start", "recover", "resume", "retry", "record", "rewind", "blocked", "resolve-step-definition"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("next action operation is invalid");
     }
     if (!(action instanceof DefinitionAction)) {
@@ -2914,7 +2928,7 @@ export class CurrentNextActionDescriptor {
     if (failureDisposition !== null && !(failureDisposition instanceof CurrentFailureDisposition)) {
       throw new CurrentFlowStateInvariantError("next action failure disposition is invalid");
     }
-    if (["retry", "record", "rewind", "blocked"].includes(operation) !== (failureDisposition !== null)) {
+    if (["retry", "record", "rewind", "blocked", "resolve-step-definition"].includes(operation) !== (failureDisposition !== null)) {
       throw new CurrentFlowStateInvariantError("failed next action requires exactly one typed failure disposition");
     }
     if (reviewDisposition !== null && !(reviewDisposition instanceof DefinitionReviewDisposition)) {

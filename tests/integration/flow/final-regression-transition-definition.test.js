@@ -55,7 +55,7 @@ describe("final-regression Definition transition policy", () => {
       [{ result: "pass" }, "advance"], [{ result: "skipped" }, "advance"],
       [{ category: "caused_by_current_change" }, "repair"], [{ category: "existing_failure" }, "await-user-input"],
       [{ category: "environment" }, "external-blocked"], [{ accepted: true }, "record-and-proceed"],
-      [{ current: false }, "blocked"], [{ retry: { used: 1, maximum: 1 } }, "blocked"],
+      [{ current: false }, "blocked"], [{ retry: { used: 1, maximum: 1 } }, "await-user-input"],
     ];
     for (const [input, operation] of cases) assert.equal(resolveNonGateTransition(facts(input), FINAL_REGRESSION_STEP_DEFINITION).disposition.operation, operation);
   });
@@ -84,6 +84,21 @@ describe("final-regression Definition transition policy", () => {
     }), FINAL_REGRESSION_STEP_DEFINITION);
     assert.equal(mismatched.disposition.operation, "blocked");
     assert.equal(mismatched.disposition.reason, "retry_history_mismatch");
+  });
+
+  it("binds record-and-proceed to the exhausted current-change Definition Action", () => {
+    const decision = resolveNonGateTransition(facts({
+      category: "caused_by_current_change",
+      retry: { used: 1, maximum: 1 },
+    }), FINAL_REGRESSION_STEP_DEFINITION);
+    assert.equal(decision.disposition.operation, "await-user-input");
+    assert.equal(decision.disposition.reason, "retry_exhausted");
+    assert.equal(decision.plan.userActions.length, 1);
+    assert.equal(decision.plan.userActions[0].actionId, "ACCEPT_FINAL_REGRESSION_FAILURE");
+    assert.equal(
+      decision.plan.userActions[0].identity.transition.matches(decision.plan.action.identity),
+      true,
+    );
   });
 
   it("applies Definition-selected failure settlement without inventing a route", () => {

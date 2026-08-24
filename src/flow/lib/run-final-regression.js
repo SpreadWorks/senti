@@ -51,6 +51,8 @@ import {
   captureFinalRegressionChangedSnapshotDigest,
   resolveCanonicalFinalRegressionTransition,
 } from "./final-regression-transition-facts.js";
+import { selectedNonGateUserAction } from "../definition.js";
+import { FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID } from "./final-regression-transition.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -790,12 +792,15 @@ async function executeCanonicalFinalRegression(ctx) {
         relativeSpecFile: store.location.relativeSpecFile,
       }),
     });
-    const admissionOperation = admission.disposition.operation;
-    const explicitRecordAllowed = admissionOperation === "await-user-input"
-      || admissionOperation === "repair"
-      || (admissionOperation === "blocked" && admission.disposition.reason === "retry_exhausted");
-    if (!explicitRecordAllowed) {
-      throw new Error(`final-regression record-and-proceed admission rejected: Definition selected ${admissionOperation}`);
+    // The command name is never an admission capability.  Only the exact
+    // user Action sealed by the fresh canonical Definition decision may
+    // create the accepted replacement Attempt.
+    try {
+      selectedNonGateUserAction(admission, FINAL_REGRESSION_RECORD_AND_PROCEED_ACTION_ID);
+    } catch {
+      throw new Error(
+        `final-regression record-and-proceed admission rejected: Definition selected ${admission.disposition.operation}`,
+      );
     }
     const prior = store.readCurrentAttempt({
       logicalKey: "final.regression",

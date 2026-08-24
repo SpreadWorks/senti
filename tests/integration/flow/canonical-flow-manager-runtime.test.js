@@ -1288,7 +1288,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowManager: manager,
       flowState: manager.load(created.specId),
     });
-    assert.equal(result.next, "final-regression");
+    assert.equal(Object.hasOwn(result, "next"), false);
     const reviewHistory = JSON.parse(manager.readArtifact({
       specId: created.specId,
       logicalKey: "acceptance.review",
@@ -1336,7 +1336,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowState: manager.load(created.specId),
     });
 
-    assert.equal(result.next, "parked");
+    assert.equal(Object.hasOwn(result, "next"), false);
     const state = manager.load(created.specId);
     assert.equal(state.lifecycle, "parked");
     assert.equal(state.currentNodeId, null);

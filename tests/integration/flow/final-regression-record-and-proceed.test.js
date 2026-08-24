@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
+import RunClaimNextActionCommand from "../../../src/flow/lib/run-claim-next-action.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import {
   validateFinalRegressionEvidence,
   validateFinalRegressionResult,
@@ -182,7 +184,7 @@ describe("canonical final-regression record-and-proceed", () => {
     });
   });
 
-  test("accepts a current-diff failure only through a second typed Attempt with explicit evidence", async () => {
+  test("accepts a current-diff failure only after Definition exhausts repair and selects its user Action", async () => {
     tmp = createTmpDir("unit-final-regression-record-proceed-current-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'initial pass'\n");
     writeFile(tmp, FIXTURE_PATH, [
@@ -198,6 +200,31 @@ describe("canonical final-regression record-and-proceed", () => {
     const failed = latestArtifact(ctx);
     assert.equal(failed.failureKind, "caused_by_current_change");
     assert.equal(failed.recordAndProceed.eligible, false);
+
+    await assert.rejects(() => new RunFinalRegressionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+      recordAndProceed: true,
+      recordCategory: "out_of_scope",
+      recordEvidence: "User approved recording this unrelated regression failure.",
+      remainingRisk: "The full regression remains red for the recorded unrelated failure.",
+    }), /Definition selected repair/);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
+
+    const repair = await new RunClaimNextActionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+    });
+    assert.equal(repair.ok, true, JSON.stringify(repair));
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    await executeAndApply(ctx);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 2);
+    const prompted = await new GetNextActionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+    });
+    assert.equal(prompted.directive.kind, "await_user_decision");
+    assert.equal(prompted.directive.actionPrompt.choices[0].actionId, "ACCEPT_FINAL_REGRESSION_FAILURE");
 
     const recorded = await new RunFinalRegressionCommand().execute({
       ...ctx,
@@ -231,7 +258,7 @@ describe("canonical final-regression record-and-proceed", () => {
       commandResult: tamperedResult,
       decision,
     }), /does not match the sealed Definition decision/);
-    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 2);
 
     await FLOW_COMMANDS.run["final-regression"].post(ctx, recorded);
     const artifact = latestArtifact(ctx);
@@ -245,11 +272,58 @@ describe("canonical final-regression record-and-proceed", () => {
     assert.equal(artifact.completed, true);
     assert.equal(artifact.failureCategory, "out_of_scope");
     assert.equal(artifact.recordAndProceed.validated, true);
-    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1, 2]);
+    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1, 2, 3]);
     assert.equal(ctx.flowManager.canonicalState(SPEC_ID).findNode("final-regression").status, "done");
     assert.ok(ctx.flowManager.activityLedger(SPEC_ID).some((activity) => (
       activity.transition.operation === "accept_final_regression_failure"
     )));
+  });
+
+  test("rejects record-and-proceed when facts change after its guarded user-decision projection", async () => {
+    tmp = createTmpDir("unit-final-regression-record-proceed-stale-");
+    const ctx = setupProject(tmp, "printf '%s\\n' 'initial pass'\n");
+    writeFile(tmp, FIXTURE_PATH, [
+      "printf '%s\\n' 'current failure' >&2",
+      shellPrintChildProcessRecord({
+        stderr: `ERR_ASSERTION\\n${FIXTURE_PATH}: current failure\\n`,
+      }),
+      "exit 1",
+      "",
+    ].join("\n"));
+
+    await executeAndApply(ctx);
+    const repair = await new RunClaimNextActionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+    });
+    assert.equal(repair.ok, true, JSON.stringify(repair));
+    await executeAndApply(ctx);
+    const prompt = await new GetNextActionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+    });
+    assert.equal(prompt.directive.kind, "await_user_decision");
+    assert.equal(prompt.directive.actionPrompt.choices[0].actionId, "ACCEPT_FINAL_REGRESSION_FAILURE");
+
+    const before = ctx.flowManager.canonicalState(SPEC_ID);
+    const beforeActivities = ctx.flowManager.activityLedger(SPEC_ID).length;
+    const beforeCatalog = ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length;
+    writeFile(tmp, "changed-after-user-decision.txt", "canonical facts changed after the prompt\n");
+
+    await assert.rejects(() => new RunFinalRegressionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+      recordAndProceed: true,
+      recordCategory: "out_of_scope",
+      recordEvidence: "User approved recording this existing regression failure.",
+      remainingRisk: "The full regression remains red for the recorded existing failure.",
+    }), /Definition selected blocked/);
+
+    const after = ctx.flowManager.canonicalState(SPEC_ID);
+    assert.equal(after.attempt.id, before.attempt.id);
+    assert.equal(after.attempt.sequence, before.attempt.sequence);
+    assert.equal(ctx.flowManager.activityLedger(SPEC_ID).length, beforeActivities);
+    assert.equal(ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID).catalog.length, beforeCatalog);
   });
 
   test("schema accepts only fully validated failed-recorded artifacts", () => {
