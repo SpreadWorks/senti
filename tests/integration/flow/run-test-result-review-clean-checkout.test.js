@@ -6,6 +6,7 @@ import { attachedCanonicalCommandResultArtifact } from "../../../src/flow/lib/ca
 import { CanonicalFlowFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
 
 const roots = [];
 
@@ -21,10 +22,13 @@ function testExecuteHistory(payload) {
   }, null, 2)}\n`, "utf8");
 }
 
-function testExecutePayload(repairFingerprint) {
+function testExecutePayload(repairFingerprint, testSourceRevision) {
   return {
     version: "2",
     repairFingerprint,
+    testSourceRevision,
+    rawEvidenceFingerprint: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
     raw_output_path: "specs/001-test/001/artifacts/test.execute.raw-log",
     summary: [{
       id: "R1",
@@ -81,6 +85,10 @@ function fixture() {
     artifactRoot: repository,
     specPath: flow.location().relativeSpecFile,
   }).hash;
+  const testSourceRevision = new CanonicalTestArtifactStore({
+    flowManager,
+    state: flow.state(),
+  }).testSourceRevision().digest;
   flowManager.publishArtifacts({
     specId: flow.specId,
     nodeId: "test-execute",
@@ -88,7 +96,7 @@ function fixture() {
       {
         logicalKey: "test.execute",
         mediaType: "application/json",
-        bytes: testExecuteHistory(testExecutePayload(repairFingerprint)),
+        bytes: testExecuteHistory(testExecutePayload(repairFingerprint, testSourceRevision)),
       },
     ],
   });

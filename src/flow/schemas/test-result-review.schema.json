@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["verdict", "checked_items", "result_file_path", "raw_output_path"],
+  "required": ["verdict", "checked_items", "result_file_path", "raw_output_path", "repairFingerprint", "testSourceRevision", "testExecute", "rawEvidenceFingerprint"],
   "additionalProperties": false,
   "properties": {
     "verdict": { "type": "string", "enum": ["pass", "fail"] },
@@ -20,6 +20,20 @@
     "invalid_reason": { "type": "string" },
     "result_file_path": { "type": "string" },
     "raw_output_path": { "type": "string" },
+    "repairFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "testSourceRevision": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "rawEvidenceFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "testExecute": {
+      "type": "object",
+      "required": ["historyAttempt", "producerActivityId", "attemptId", "sequence"],
+      "additionalProperties": false,
+      "properties": {
+        "historyAttempt": { "type": "integer", "minimum": 1 },
+        "producerActivityId": { "type": "string", "minLength": 1 },
+        "attemptId": { "type": "string", "minLength": 1 },
+        "sequence": { "type": "integer", "minimum": 1 }
+      }
+    },
     "contractSummary": {
       "type": "object",
       "additionalProperties": true

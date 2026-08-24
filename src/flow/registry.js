@@ -24,6 +24,11 @@ import {
   findActiveNode,
   resolveLifecyclePlan,
   resolveRuntimeStep,
+  resolveNonGateTransition,
+  NonGateRecordNonblockingAction,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
   SetStepStatus,
   taskIdForResolvedStep,
 } from "./definition.js";
@@ -44,10 +49,19 @@ import {
 } from "./lib/step-transition-policy.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
-import { attachedCanonicalCommandResultPublications } from "./lib/canonical-command-result.js";
+import {
+  attachedCanonicalCommandResultArtifact,
+  attachedCanonicalCommandResultPublications,
+} from "./lib/canonical-command-result.js";
 import { CanonicalFlowArtifactWrite } from "./lib/current-flow-state.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
+import { readCurrentNonGateTransitionFacts } from "./lib/non-gate-transition-facts.js";
+import { readCurrentTestChainTransitionFacts } from "./lib/test-chain-transition-facts.js";
+import {
+  validateScenarioValidityArtifactShape,
+  validateScenarioValidityObservationCoherence,
+} from "./lib/test-artifacts.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -336,6 +350,43 @@ function tryAppendIssueLog(fn) {
     }
     throw err;
   }
+}
+
+const TEST_CHAIN_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
+
+/**
+ * The post hook does not classify test evidence. It first makes the producer
+ * observation durable, then asks Definition to select the sealed plan and
+ * applies only the typed plan effects. In particular, an integrity decision
+ * has an empty plan, so stale/partial observations cannot settle an Attempt.
+ */
+async function applyTestChainTransition(ctx, result, stepId) {
+  const specId = ctx.specId ?? ctx.flowState.specId;
+  const definition = TEST_CHAIN_DEFINITIONS[stepId];
+  if (!definition) throw new Error(`unknown test-chain Definition: ${stepId}`);
+  ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+  const facts = readCurrentNonGateTransitionFacts({
+    flowManager: ctx.flowManager,
+    specId,
+    readFacts: () => readCurrentTestChainTransitionFacts({ flowManager: ctx.flowManager, specId }),
+  });
+  const decision = resolveNonGateTransition(facts, definition);
+  const recordAction = decision.plan.actions.find((action) => action instanceof NonGateRecordNonblockingAction) ?? null;
+  let nonblockingRecord = null;
+  if (recordAction !== null) {
+    const { deriveEligibleNonblockingObservation } = await import("./lib/nonblocking.js");
+    nonblockingRecord = deriveEligibleNonblockingObservation(
+      { ...ctx, flowState: ctx.flowManager.loadReadOnly(specId) },
+      recordAction.stepId,
+    );
+  }
+  ctx.flowManager.applyTestChainTransitionDecision({ specId, decision, nonblockingRecord });
+  ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+  return decision;
 }
 
 function gateRuntimeLogStepId(ctx) {
@@ -1953,7 +2004,7 @@ export const FLOW_COMMANDS = {
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "test.execute") throw new Error("test-execute canonical result artifact is missing");
         validateTestExecuteResultV2(attached.payload);
-        tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post", result });
+        await applyTestChainTransition(ctx, result, "test-execute");
       },
     },
     "scenario-validity": {
@@ -1972,44 +2023,11 @@ export const FLOW_COMMANDS = {
         "  steps/scenario-validity/output.log (transient raw output)",
       ].join("\n"),
       post(ctx, result) {
-        if (result?.result === "pass") {
-          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, {
-            event: "scenario-validity:post",
-            result,
-          });
-          return;
-        }
-        if (
-          result?.result === "block"
-          && ctx.flowState?.policy?.nonblocking?.enabled !== true
-        ) {
-          // RunScenarioValidityCommand already published its cataloged result
-          // and immutable blocking evidence.  Record the matching canonical
-          // failure here so every plan gate reaches next-action through the
-          // same typed lifecycle decision, without duplicating that artifact
-          // publication in the registry hook.
-          ctx.flowManager.failCurrentAttempt({
-            specId: ctx.specId ?? ctx.flowState.specId,
-            failure: {
-              category: "semantic",
-              code: "SCENARIO_VALIDITY_REJECTED",
-              message: "Scenario validity rejected the current test evidence.",
-              retryable: false,
-              retryKind: null,
-            },
-            result: {
-              outcome: "failed",
-              summary: "Scenario validity rejected the current test evidence.",
-              confirmedAt: new Date().toISOString(),
-              artifactRefs: [],
-            },
-          });
-          ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
-        }
-      },
-      async nonblockingPost(ctx, result) {
-        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "scenario-validity", result);
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "scenario.validity") throw new Error("scenario-validity canonical result artifact is missing");
+        validateScenarioValidityArtifactShape(attached.payload);
+        validateScenarioValidityObservationCoherence(attached.payload);
+        return applyTestChainTransition(ctx, result, "scenario-validity");
       },
     },
     "test-result-review": {
@@ -2029,16 +2047,8 @@ export const FLOW_COMMANDS = {
         const { validateTestResultReview } = await import("./lib/test-artifacts.js");
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "test.result.review") throw new Error("test-result-review canonical result artifact is missing");
-        if (attached.payload.verdict !== "pass") {
-          ctx.flowManager.publishCurrentAttemptResult({ specId: ctx.specId, commandResult: result });
-          throw new Error("test-result-review verdict is not pass");
-        }
         validateTestResultReview(attached.payload);
-        tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post", result });
-      },
-      async nonblockingPost(ctx, result) {
-        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "test-result-review", result);
+        await applyTestChainTransition(ctx, result, "test-result-review");
       },
     },
     // retro is a mainline impl-phase step that aggregates test-execute results.

@@ -8,15 +8,11 @@ import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
 import { PRODUCT } from "../../lib/product.js";
 import { validateScenarioValidityResult } from "./test-artifacts.js";
 import {
-  CanonicalTestSourceRevision,
   CanonicalTestArtifactStore,
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
-import {
-  scenarioValidityBlockingEntries,
-  scenarioValidityRepairObservations,
-} from "./plan-gate-repair.js";
+import { admitTestChainDirectExecution } from "./test-chain-transition-facts.js";
 const SCENARIO_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
 
@@ -328,82 +324,6 @@ export function buildScenarioValiditySummary({
 }
 
 /**
- * One immutable, catalog-bound scenario-validity blocker fact.
- *
- * The old root issue-log writer used a filename as its source identity.  V1
- * keeps that fact in the cataloged issue log and refers to the producer's
- * logical artifact identity instead.  The source test-tree revision makes a
- * repair fail closed if the tests change before the gate rewind.
- */
-export class CanonicalScenarioValidityRepairEvidence {
-  constructor({ state, summary, testSourceRevision, timestamp = new Date().toISOString() } = {}) {
-    if (state?.schemaRevision !== 3) throw new Error("canonical scenario-validity repair evidence requires a Version-1 Flow");
-    if (!Array.isArray(summary)) throw new Error("canonical scenario-validity repair evidence summary must be an array");
-    if (!(testSourceRevision instanceof CanonicalTestSourceRevision)) {
-      throw new Error("canonical scenario-validity repair evidence requires a catalog test revision");
-    }
-    if (testSourceRevision.runId !== state.runId || testSourceRevision.specId !== state.specId) {
-      throw new Error("canonical scenario-validity repair evidence test revision does not match the Flow");
-    }
-    if (!Number.isFinite(Date.parse(timestamp))) {
-      throw new Error("canonical scenario-validity repair evidence timestamp must be ISO-8601");
-    }
-    this.runId = state.runId;
-    this.specId = state.specId;
-    this.testRevisionDigest = testSourceRevision.digest;
-    this.timestamp = timestamp;
-    this.blocking = scenarioValidityBlockingEntries(summary);
-    Object.freeze(this);
-  }
-
-  get exists() { return this.blocking.length > 0; }
-
-  get idempotencyKey() {
-    return ["scenario-validity-test-repair", this.runId, this.testRevisionDigest].join("-");
-  }
-
-  toIssueLogEntry() {
-    if (!this.exists) return null;
-    return {
-      step: "scenario-validity",
-      phase: "test",
-      reason: this.blocking.map(({ entry }) => `${entry.id}=${entry.classification}`).join(", "),
-      trigger: "scenario-validity found a test-design blocker before implementation",
-      resolution: "Rewind to the governed test handoff and replace the invalid test premise.",
-      sourceArtifact: "scenario.validity",
-      testRevisionDigest: this.testRevisionDigest,
-      observations: scenarioValidityRepairObservations(this.blocking),
-      timestamp: this.timestamp,
-    };
-  }
-}
-
-export function recordCanonicalScenarioValidityRepairEvidence({
-  flowManager,
-  state,
-  summary,
-  testSourceRevision,
-  timestamp = new Date().toISOString(),
-} = {}) {
-  if (!flowManager || typeof flowManager.appendIssueLog !== "function") {
-    throw new Error("canonical scenario-validity repair evidence requires FlowManager.appendIssueLog");
-  }
-  const evidence = new CanonicalScenarioValidityRepairEvidence({
-    state,
-    summary,
-    testSourceRevision,
-    timestamp,
-  });
-  if (!evidence.exists) return null;
-  const stored = flowManager.appendIssueLog({
-    specId: state.specId,
-    entry: evidence.toIssueLogEntry(),
-    idempotencyKey: evidence.idempotencyKey,
-  });
-  return stored.entry;
-}
-
-/**
  * V1 execution path.  It reads only cataloged tests/source Spec, retains the
  * diagnostic output as a typed transient, and leaves the durable attempts[]
  * result for the registry confirmation transaction.
@@ -412,11 +332,11 @@ async function executeCanonicalScenarioValidity(ctx, scenarioTestExecutor, confi
   const state = ctx.flowState;
   const executionRoot = ctx.executionRoot || ctx.root;
   const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  const testSourceRevision = store.testSourceRevision();
   const repositoryRoot = store.location.repositoryRoot;
   const spec = store.readSpec("scenario-validity");
   const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
   const sources = store.testSources("scenario-validity");
-  const testSourceRevision = store.testSourceRevision();
   const files = sources
     .map((source) => source.absolutePath)
     .filter((file) => SCENARIO_TEST_FILE_RE.test(path.basename(file)));
@@ -492,6 +412,7 @@ async function executeCanonicalScenarioValidity(ctx, scenarioTestExecutor, confi
   const rawRelativePath = store.location.relativeArtifact("scenario.validity.raw-log");
   const artifact = {
     version: "1",
+    testSourceRevision: testSourceRevision.digest,
     raw_output_path: rawRelativePath,
     command,
     process: {
@@ -530,22 +451,10 @@ async function executeCanonicalScenarioValidity(ctx, scenarioTestExecutor, confi
       artifact_version: "1",
       result,
     },
-    next: result === "pass" ? "test-review" : null,
   }, {
     logicalKey: "scenario.validity",
     payload: artifact,
   });
-  if (result !== "pass") {
-    // A blocked command is not confirmed, but its observed attempt must still
-    // be durable for retry/recovery and for subsequent human diagnosis.
-    ctx.flowManager.publishCurrentAttemptResult({ specId: state.specId, commandResult: output });
-    recordCanonicalScenarioValidityRepairEvidence({
-      flowManager: ctx.flowManager,
-      state,
-      summary,
-      testSourceRevision,
-    });
-  }
   return output;
 }
 
@@ -564,6 +473,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
     if (!isCanonicalFlowState(state)) {
       throw new Error("scenario-validity requires a Version-1 Flow");
     }
+    admitTestChainDirectExecution({ flowManager: ctx.flowManager, specId: state.specId, stepId: "scenario-validity" });
     return executeCanonicalScenarioValidity(ctx, this.scenarioTestExecutor, config);
   }
 }

@@ -17,9 +17,9 @@ import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.j
 import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
+  BlockedDirective,
   AwaitDraftQuestionDirective,
   AwaitUserDecisionDirective,
-  BlockedDirective,
   CompletedDirective,
   ExecuteCommandDirective,
   ExecuteStepDirective,
@@ -68,11 +68,44 @@ import {
   DraftTransitionFactsError,
   readDraftTransitionFacts,
 } from "./draft-transition-facts.js";
+import {
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
+} from "../definition.js";
+import { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+import { hasCurrentTestChainPublication, readCurrentTestChainTransitionFacts } from "./test-chain-transition-facts.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
 // their scoped boundaries until they are explicitly moved.
 export { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+
+const TEST_CHAIN_NEXT_ACTION_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
+const TEST_CHAIN_RESULT_KEYS = Object.freeze({
+  "scenario-validity": "scenario.validity",
+  "test-execute": "test.execute",
+  "test-result-review": "test.result.review",
+});
+
+function blockedTestChainProjection(ctx, typedState, descriptor) {
+  const definition = TEST_CHAIN_NEXT_ACTION_DEFINITIONS[descriptor.nodeId] ?? null;
+  const resultKey = TEST_CHAIN_RESULT_KEYS[descriptor.nodeId] ?? null;
+  if (definition === null || resultKey === null || descriptor.operation !== "resume") return null;
+  const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(typedState.specId);
+  if (snapshot?.stepId !== descriptor.nodeId || !hasCurrentTestChainPublication(snapshot, resultKey)) return null;
+  const selected = resolveNonGateNextAction({
+    flowManager: ctx.flowManager,
+    specId: typedState.specId,
+    readStepFacts: () => readCurrentTestChainTransitionFacts({ flowManager: ctx.flowManager, specId: typedState.specId }),
+    stepDefinition: definition,
+  });
+  return ["blocked", "await-user-input"].includes(selected.decision.disposition.operation) ? selected : null;
+}
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -625,8 +658,35 @@ export default class GetNextActionCommand extends FlowCommand {
     if (descriptor === null) {
       return completedNextAction(binding);
     }
+    let result = null;
+    if (descriptor.nodeId === "scenario-validity") {
+      result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null, selectedFinalRegressionAction);
+      if (result.directive.actionId === "RECOVER_PREIMPLEMENTATION_BOOTSTRAP") {
+        return result;
+      }
+    }
+    const nonGateBlocked = blockedTestChainProjection(ctx, typedState, descriptor);
+    if (nonGateBlocked !== null) {
+      result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null);
+      const awaitingNonblockingDecision = nonGateBlocked.decision.disposition.operation === "await-user-input";
+      const reason = nonGateBlocked.decision.disposition.reason
+        ?? (awaitingNonblockingDecision
+          ? "the nonblocking observation requires an explicit advisory decision"
+          : "Definition rejected the current canonical test-chain evidence.");
+      return {
+        ...result,
+        definitionTransition: nonGateBlocked.action.toJSON(),
+        directive: new BlockedDirective({
+          code: awaitingNonblockingDecision ? "TEST_CHAIN_NONBLOCKING_DECISION_REQUIRED" : "TEST_CHAIN_EVIDENCE_BLOCKED",
+          reason: awaitingNonblockingDecision ? `Definition selected an explicit nonblocking decision boundary: ${reason}` : `Definition selected blocked: ${reason}`,
+          resumeInstruction: awaitingNonblockingDecision
+            ? "Record the evidence-bound nonblocking repair, retry, or continue decision; do not rerun the observed producer directly."
+            : "Publish a fresh, complete canonical test-chain observation; do not rerun the blocked producer directly.",
+        }).toJSON(),
+      };
+    }
     const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
-    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute, selectedFinalRegressionAction);
+    result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute, selectedFinalRegressionAction);
     if (selectedFinalRegressionAction?.decision?.disposition.operation === "repair") {
       beginFinalRegressionRepairTransition({
         flowManager: ctx.flowManager,

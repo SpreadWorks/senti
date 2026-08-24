@@ -11,7 +11,19 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { buildCurrentFlowDefinition, NonGateTransitionDecision } from "../definition.js";
+import {
+  buildCurrentFlowDefinition,
+  NonGateAppendRepairEvidenceAction,
+  NonGateFailCurrentAttemptAction,
+  NonGateIncrementRetryAction,
+  NonGateRecordNonblockingAction,
+  NonGateSetStepStatusAction,
+  NonGateTransitionDecision,
+  resolveNonGateTransition,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
+} from "../definition.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { managedDir } from "../../lib/config.js";
@@ -31,6 +43,8 @@ import {
   ActivityDispatchApproval,
   CurrentAttempt,
   CurrentAttemptIdentity,
+  CanonicalFlowArtifactBaseline,
+  CanonicalFlowRuntimeArtifactRead,
   CanonicalFlowRuntimeArtifactWrite,
   FlowExecution,
   CurrentFlowSpecRecord,
@@ -51,6 +65,10 @@ import {
 } from "./canonical-command-result.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { IssueLogDocument } from "./issue-log-store.js";
+import { CanonicalScenarioValidityRepairEvidence } from "./scenario-validity-repair-evidence.js";
+import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
+import { sameNonGateTransitionDecision } from "./non-gate-transition-application.js";
+import { readTestChainTransitionFactsFromSnapshot, TestChainTransitionSnapshot } from "./test-chain-transition-facts.js";
 import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
@@ -156,6 +174,123 @@ function executionMode(value) {
 function activityId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
+
+function testChainPlanDigest(decision) {
+  const plan = JSON.stringify(decision.plan.toJSON());
+  return crypto.createHash("sha256").update(plan).digest("hex");
+}
+
+function testChainPlanActivityId(decision) {
+  return `test-chain-plan-${testChainPlanDigest(decision)}`;
+}
+
+function testChainPlanTiming(state) {
+  const timestamp = state.attempt?.startedAt;
+  if (typeof timestamp !== "string" || timestamp === "") {
+    throw new CurrentFlowStateInvariantError("test-chain plan settlement requires the current Attempt timestamp");
+  }
+  return Object.freeze({ startedAt: timestamp, finishedAt: timestamp, durationMs: 0 });
+}
+
+function testChainPlanResult(state, { outcome, summary }) {
+  return Object.freeze({
+    outcome,
+    summary,
+    confirmedAt: testChainPlanTiming(state).finishedAt,
+    artifactRefs: [],
+  });
+}
+
+function testChainReplacementAttempt(state, nodeId, decision) {
+  const node = state.findNode(nodeId);
+  if (node === null || node.steps.length !== 0) {
+    throw new CurrentFlowStateInvariantError("test-chain plan replacement target must be a definition leaf");
+  }
+  const requiredResources = state.definition.contractForNode(node).resourceContract.required;
+  return new CurrentAttempt({
+    id: `attempt-${nodeId}-test-chain-${testChainPlanDigest(decision)}`,
+    nodeId,
+    sequence: node.attemptSequence + 1,
+    startedAt: testChainPlanTiming(state).startedAt,
+    consumption: { semantic: 0, tooling: 0 },
+    failure: null,
+    blocker: null,
+    incomplete: [],
+    operationClaims: requiredResources.length === 0
+      ? []
+      : [{ operation: "resolve-command-context", resources: requiredResources }],
+  }).toJSON();
+}
+
+function hasExactTestChainStatus(actions, { stepId, status }) {
+  return actions.length === 1
+    && actions[0].update.stepId === stepId
+    && actions[0].update.status === status;
+}
+
+/**
+ * Rechecks the Definition-selected action against the authoritative catalog
+ * while the Version Store holds its publication lock. This is deliberately a
+ * verifier, never another route selector.
+ */
+class TestChainPlanAdmission {
+  constructor(decision) {
+    if (!(decision instanceof NonGateTransitionDecision)) {
+      throw new CurrentFlowStateInvariantError("test-chain plan admission requires a typed Definition decision");
+    }
+    this.decision = decision;
+    this.facts = decision.facts;
+    Object.freeze(this);
+  }
+
+  assert(view) {
+    const { state, catalog, activities } = view;
+    const descriptors = Array.isArray(catalog) ? catalog : catalog.artifacts;
+    if (state.runId !== this.facts.runId
+      || state.specId !== this.facts.specId
+      || state.current?.at(-1) !== this.facts.stepId
+      || state.attempt?.id !== this.facts.currentAttempt.id
+      || state.attempt?.sequence !== this.facts.currentAttempt.sequence) {
+      throw new CurrentFlowStateConflictError("Definition plan no longer addresses the current test-chain Attempt");
+    }
+    for (const publication of [this.facts.catalogPublication, this.facts.sourcePublication]) {
+      const descriptor = descriptors.find((entry) => entry.relativePath === publication.artifactId) ?? null;
+      const activity = activities.find((entry) => entry.id === publication.producerActivityId) ?? null;
+      if (descriptor === null || descriptor.hash !== publication.fingerprint
+        || descriptor.activityId !== publication.producerActivityId
+        || activity === null || activity.nodeId !== publication.stepId
+        || activity.attemptId !== publication.attempt.id
+        || activity.sequence !== publication.attempt.sequence) {
+        throw new CurrentFlowStateConflictError("Definition plan catalog publication changed before settlement");
+      }
+    }
+    const definition = TEST_CHAIN_TRANSITION_DEFINITIONS[this.facts.stepId] ?? null;
+    if (definition === null) {
+      throw new CurrentFlowStateInvariantError("test-chain plan admission has no Definition");
+    }
+    let current;
+    try {
+      const facts = readTestChainTransitionFactsFromSnapshot({
+        snapshot: new TestChainTransitionSnapshot(view),
+        readCatalogedArtifact: (descriptor) => view.readCatalogedArtifact(descriptor),
+        readRuntimeArtifact: (input) => view.readRuntimeArtifact(input),
+      });
+      current = resolveNonGateTransition(facts, definition);
+    } catch (error) {
+      if (error instanceof CurrentFlowStateConflictError) throw error;
+      throw new CurrentFlowStateConflictError(`Definition plan facts changed before settlement: ${error.message}`);
+    }
+    if (!sameNonGateTransitionDecision(this.decision, current)) {
+      throw new CurrentFlowStateConflictError("Definition plan changed before test-chain settlement");
+    }
+  }
+}
+
+const TEST_CHAIN_TRANSITION_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
 
 function canonicalOutboxInput(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -814,6 +949,13 @@ export class CanonicalFlowManagerStore {
       activities: Object.freeze(snapshot.activities.map((activity) => Object.freeze(activity.toJSON()))),
       catalog: Object.freeze(snapshot.catalog.map((descriptor) => Object.freeze(structuredClone(descriptor)))),
     });
+  }
+
+  /** Read one lock-scoped canonical view for a Definition fact adapter. */
+  readCanonicalTransitionView({ specId = null, read } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    return this.runtime.readCanonicalTransitionView(resolved, read);
   }
 
   /**
@@ -2409,6 +2551,166 @@ export class CanonicalFlowManagerStore {
   }
 
   /**
+   * Apply one sealed Definition plan after its producer observation has been
+   * published.  This boundary is intentionally the only test-chain consumer
+   * that interprets typed Plan effects: the registry supplies no fallback
+   * route and no action may become visible without the full Store commit.
+   */
+  applyTestChainTransitionDecision({ specId = null, decision, nonblockingRecord = null } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(decision instanceof NonGateTransitionDecision)) {
+      throw new CurrentFlowStateInvariantError("test-chain settlement requires a typed Definition decision");
+    }
+    const state = this.runtime.load(resolved);
+    const admission = new TestChainPlanAdmission(decision);
+    const id = testChainPlanActivityId(decision);
+    const existing = this.runtime.activities(resolved).find((activity) => activity.id === id) ?? null;
+    if (existing !== null) return this.runtime.load(resolved);
+
+    const actions = decision.plan.actions;
+    const statuses = actions.filter((action) => action instanceof NonGateSetStepStatusAction);
+    const increments = actions.filter((action) => action instanceof NonGateIncrementRetryAction);
+    const failures = actions.filter((action) => action instanceof NonGateFailCurrentAttemptAction);
+    const repairs = actions.filter((action) => action instanceof NonGateAppendRepairEvidenceAction);
+    const nonblocking = actions.filter((action) => action instanceof NonGateRecordNonblockingAction);
+    if (statuses.length + increments.length + failures.length + repairs.length + nonblocking.length !== actions.length
+      || statuses.length > 1 || increments.length > 1 || failures.length > 1 || repairs.length > 1 || nonblocking.length > 1) {
+      throw new CurrentFlowStateInvariantError("test-chain Definition plan has an unsupported action composition");
+    }
+    if (actions.length === 0) return state;
+    if (statuses.some((action) => action.update.stepId !== decision.facts.stepId)) {
+      throw new CurrentFlowStateInvariantError("test-chain Definition plan status targets another Step");
+    }
+    if (increments.some((action) => action.stepId !== decision.facts.stepId)) {
+      throw new CurrentFlowStateInvariantError("test-chain Definition plan retry targets another Step");
+    }
+
+    if (repairs.length === 1) {
+      const repair = repairs[0];
+      const failure = failures[0] ?? null;
+      if (repair.stepId !== "scenario-validity" || failure === null
+        || failure.code !== "SCENARIO_VALIDITY_REJECTED" || failure.category !== "semantic"
+        || failure.retryable || failure.retryKind !== null
+        || nonblocking.length !== 0 || increments.length !== 0
+        || !hasExactTestChainStatus(statuses, { stepId: decision.facts.stepId, status: "in_progress" })) {
+        throw new CurrentFlowStateInvariantError("scenario repair must use its exact Definition-selected settlement actions");
+      }
+      const catalog = this.runtime.catalog(resolved);
+      const activities = this.runtime.activities(resolved);
+      const revision = CanonicalTestSourceRevision.fromCatalog({ state, catalog, activities });
+      if (revision.digest !== repair.testSourceRevision) {
+        throw new CurrentFlowStateConflictError("scenario repair test source revision changed before settlement");
+      }
+      const evidence = new CanonicalScenarioValidityRepairEvidence({
+        state,
+        summary: repair.summary,
+        testSourceRevision: revision,
+        timestamp: testChainPlanTiming(state).finishedAt,
+      });
+      const existingIssueLog = this.readArtifact({
+        specId: resolved,
+        logicalKey: "issue.log",
+        consumerNodeId: "scenario-validity",
+        optional: true,
+      });
+      const document = new IssueLogDocument(existingIssueLog === null
+        ? { entries: [] }
+        : JSON.parse(existingIssueLog.bytes.toString("utf8")));
+      const appended = evidence.exists
+        ? document.append(canonicalIssueLogEntry(evidence.toIssueLogEntry()), evidence.idempotencyKey)
+        : { appended: false };
+      const artifactWrites = appended.appended ? [{
+        logicalKey: "issue.log",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(document.toJSON(), null, 2)}\n`, "utf8"),
+      }] : [];
+      const artifactBaselines = [new CanonicalFlowArtifactBaseline({
+        logicalKey: "issue.log",
+        digest: existingIssueLog?.descriptor.hash ?? null,
+        byteLength: existingIssueLog?.bytes.length ?? 0,
+      })];
+      return this.runtime.repairScenarioValidity({
+        specId: resolved,
+        activityId: id,
+        attempt: testChainReplacementAttempt(state, "test", decision),
+        failure: {
+          category: failure.category,
+          code: failure.code,
+          message: failure.message,
+          retryable: failure.retryable,
+          retryKind: failure.retryKind,
+        },
+        result: testChainPlanResult(state, { outcome: "failed", summary: failure.message }),
+        timing: testChainPlanTiming(state),
+        references: {
+          evaluations: [],
+          findings: [],
+          repairs: evidence.exists ? [{ id: evidence.idempotencyKey, label: evidence.idempotencyKey }] : [],
+          artifacts: [],
+        },
+        artifactWrites,
+        artifactBaselines,
+        admission,
+      });
+    }
+
+    if (nonblocking.length === 1) {
+      if (failures.length !== 0 || increments.length !== 0 || nonblockingRecord === null
+        || nonblocking[0].stepId !== decision.facts.stepId
+        || !hasExactTestChainStatus(statuses, { stepId: decision.facts.stepId, status: "in_progress" })) {
+        throw new CurrentFlowStateInvariantError("nonblocking test-chain settlement requires its one typed observation");
+      }
+      return this.runtime.recordNonblocking({
+        specId: resolved,
+        activityId: id,
+        nodeId: decision.facts.stepId,
+        nonblocking: nonblockingRecord,
+        artifactWrites: [],
+        timing: testChainPlanTiming(state),
+        admission,
+      });
+    }
+
+    if (failures.length === 1) {
+      const failure = failures[0];
+      if (!hasExactTestChainStatus(statuses, { stepId: decision.facts.stepId, status: "in_progress" })
+        || (increments.length === 1) !== (failure.retryKind === "semantic" && failure.retryable)) {
+        throw new CurrentFlowStateInvariantError("test-chain failure settlement conflicts with its sealed Definition plan");
+      }
+      return this.runtime.failAttempt({
+        specId: resolved,
+        activityId: id,
+        failure: {
+          category: failure.category,
+          code: failure.code,
+          message: failure.message,
+          retryable: failure.retryable,
+          retryKind: failure.retryKind,
+        },
+        result: testChainPlanResult(state, { outcome: "failed", summary: failure.message }),
+        timing: testChainPlanTiming(state),
+        admission,
+      });
+    }
+
+    if (hasExactTestChainStatus(statuses, { stepId: decision.facts.stepId, status: "done" }) && increments.length === 0) {
+      return this.runtime.confirmAttempt({
+        specId: resolved,
+        activityId: id,
+        status: "done",
+        result: testChainPlanResult(state, {
+          outcome: "passed",
+          summary: `canonical runtime transition for ${decision.facts.stepId}`,
+        }),
+        timing: testChainPlanTiming(state),
+        admission,
+      });
+    }
+    throw new CurrentFlowStateInvariantError("test-chain Definition plan has no persistence settlement");
+  }
+
+  /**
    * Dispatcher command metadata is intentionally transient.  It is stored
    * beneath this Version's `.runtime` root and is resolved from a real node
    * id, never from a guessed legacy spec sibling path.
@@ -2435,15 +2737,15 @@ export class CanonicalFlowManagerStore {
    * the catalog and may be discarded without affecting resume/recovery, but
    * the contract still checks that their producer owns the typed path.
    */
-  writeRuntimeArtifact({ specId = null, nodeId, artifact } = {}) {
+  writeRuntimeArtifact({ specId = null, nodeId, artifact, expectedAttempt = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
-    const state = this.runtime.load(resolved);
-    const target = requiredText(nodeId, "canonical runtime artifact nodeId");
-    if (state.findNode(target) === null) {
-      throw new CurrentFlowStateInvariantError(`canonical runtime artifact node is absent: ${target}`);
-    }
-    return CanonicalFlowRuntimeArtifactWrite.from(artifact).write(this.location(resolved), target);
+    return this.runtime.writeRuntimeArtifact({
+      specId: resolved,
+      nodeId: requiredText(nodeId, "canonical runtime artifact nodeId"),
+      artifact: CanonicalFlowRuntimeArtifactWrite.from(artifact),
+      expectedAttempt,
+    });
   }
 
   /**
@@ -2454,33 +2756,13 @@ export class CanonicalFlowManagerStore {
   readRuntimeArtifact({ specId = null, logicalKey, parameters = {}, consumerNodeId, optional = false } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
-    if (optional !== true && optional !== false) {
-      throw new CurrentFlowStateInvariantError("canonical runtime artifact optional must be boolean");
-    }
-    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(requiredText(logicalKey, "canonical runtime artifact logicalKey"), parameters);
-    if (artifact.contract.cataloged || artifact.contract.retention.toString() !== "transient") {
-      throw new CurrentFlowStateInvariantError("canonical runtime artifact read requires a transient non-catalog contract");
-    }
-    const consumer = FlowArtifactUpdater.fromActivityNodeId(
-      requiredText(consumerNodeId, "canonical runtime artifact consumer nodeId"),
-    ).toString();
-    if (!artifact.contract.ownership.consumers.includes(consumer)) {
-      throw new CurrentFlowStateInvariantError(
-        `canonical runtime artifact consumer is not authorized: ${consumer}/${artifact.logicalKey}`,
-      );
-    }
-    const location = this.location(resolved);
-    const target = location.resolve(artifact.relativePath);
-    if (!fs.existsSync(target)) {
-      if (optional) return null;
-      throw new CurrentFlowStateInvariantError(`canonical runtime artifact is absent: ${artifact.relativePath}`);
-    }
-    location.assertAuthority(artifact.relativePath, { mustExist: true });
-    return Object.freeze({
-      relativePath: artifact.relativePath,
-      mediaType: artifact.contract.authoritySlot.kind === "test-execute-log" ? "text/plain" : "application/octet-stream",
-      bytes: Buffer.from(fs.readFileSync(target)),
-    });
+    return new CanonicalFlowRuntimeArtifactRead({
+      location: this.location(resolved),
+      logicalKey: requiredText(logicalKey, "canonical runtime artifact logicalKey"),
+      parameters,
+      consumerNodeId: requiredText(consumerNodeId, "canonical runtime artifact consumer nodeId"),
+      optional,
+    }).read();
   }
 
   /**

@@ -14,6 +14,10 @@ import { execFileSync } from "node:child_process";
 import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import {
+  CanonicalTestArtifactStore,
+  canonicalRawEvidenceFingerprint,
+} from "../../../src/flow/lib/canonical-test-artifacts.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
   FlowAtStepFixture,
@@ -35,9 +39,14 @@ function createRepo() {
   return root;
 }
 
-function executionArtifact({ repairFingerprint = undefined } = {}) {
+const FIXTURE_REPAIR_FINGERPRINT = "c".repeat(64);
+
+function executionArtifact({ repairFingerprint = FIXTURE_REPAIR_FINGERPRINT, testSourceRevision } = {}) {
   return {
     version: "2",
+    testSourceRevision,
+    rawEvidenceFingerprint: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
     raw_output_path: "test-execute.raw-log",
     summary: [{
       id: "R1",
@@ -59,17 +68,20 @@ function executionArtifact({ repairFingerprint = undefined } = {}) {
       reason: "unit fixture",
       classified_paths: [],
     },
-    ...(repairFingerprint === undefined ? {} : { repairFingerprint }),
+    repairFingerprint,
   };
 }
 
-function reviewArtifact({ repairFingerprint = undefined } = {}) {
+function reviewArtifact({ repairFingerprint = FIXTURE_REPAIR_FINGERPRINT, testSourceRevision, testExecute, rawEvidenceFingerprint } = {}) {
   return {
     verdict: "pass",
-    checked_items: [{ check: "project_regression_verification", result: "pass" }],
+    checked_items: [{ check: "project_regression_verification", result: "pass", detail: "fixture regression evidence" }],
     result_file_path: "test-execute-result.json",
     raw_output_path: "test-execute.raw-log",
-    ...(repairFingerprint === undefined ? {} : { repairFingerprint }),
+    testSourceRevision,
+    testExecute,
+    rawEvidenceFingerprint,
+    repairFingerprint,
   };
 }
 
@@ -97,15 +109,54 @@ function createRetroContext(root, {
       goal: "retro fixture",
       requirements: [{ id: "R1", desc: "first", priority: "must", status: "pending" }],
     },
-    targetStep: "test-execute",
+    targetStep: "test",
   }).create();
+  flowManager.publishArtifacts({
+    specId,
+    nodeId: "test",
+    artifactWrites: [{
+      logicalKey: "tests.source",
+      parameters: { testPath: "retro.fixture.test.js" },
+      mediaType: "text/javascript",
+      bytes: Buffer.from("// spec: R1\n", "utf8"),
+    }],
+  });
+  fixture.flow.flow.settle("test").activate("test-execute");
+  const store = new CanonicalTestArtifactStore({ flowManager, state: flowManager.loadReadOnly(specId) });
+  const testSourceRevision = store.testSourceRevision().digest;
+  const evidenceRepairFingerprint = repairFingerprint ?? buildRepairFingerprint({
+    root,
+    artifactRoot: root,
+    specPath: fixture.location().relativeSpecFile,
+  }).hash;
+  const rawBytes = Buffer.from("retro execution evidence\n", "utf8");
+  flowManager.writeRuntimeArtifact({
+    specId,
+    nodeId: "test-execute",
+    artifact: { logicalKey: "test.execute.raw-log", mediaType: "text/plain", bytes: rawBytes },
+  });
   if (includeExecution) {
-    publishAttemptResult(flowManager, specId, "test.execute", executionArtifact({ repairFingerprint }));
+    publishAttemptResult(flowManager, specId, "test.execute", executionArtifact({
+      repairFingerprint: evidenceRepairFingerprint,
+      testSourceRevision,
+    }));
   }
   flowManager.updateStepStatus({ stepId: "test-execute", requestedStatus: "done" }, { specId });
   flowManager.updateStepStatus({ stepId: "test-result-review", requestedStatus: "in_progress" }, { specId });
   if (includeReview) {
-    publishAttemptResult(flowManager, specId, "test.result.review", reviewArtifact({ repairFingerprint }));
+    const descriptor = flowManager.artifactCatalog(specId).artifacts.find((entry) => entry.logicalKey === "test.execute");
+    const activity = flowManager.activityLedger(specId).find((entry) => entry.id === descriptor.activityId);
+    publishAttemptResult(flowManager, specId, "test.result.review", reviewArtifact({
+      repairFingerprint: evidenceRepairFingerprint,
+      testSourceRevision,
+      testExecute: {
+        historyAttempt: 1,
+        producerActivityId: descriptor.activityId,
+        attemptId: activity.attemptId,
+        sequence: activity.sequence,
+      },
+      rawEvidenceFingerprint: canonicalRawEvidenceFingerprint(rawBytes),
+    }));
   }
   flowManager.updateStepStatus({ stepId: "test-result-review", requestedStatus: "done" }, { specId });
   // Retro is separated from test review by definition-owned leaves.  The
