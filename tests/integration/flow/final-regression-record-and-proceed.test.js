@@ -13,6 +13,16 @@ import {
   contractFromFinalRegressionArtifact,
 } from "../../../src/flow/lib/flow-judgment-contract.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import {
+  attachCanonicalCommandResultArtifact,
+  attachedCanonicalCommandResultArtifact,
+} from "../../../src/flow/lib/canonical-command-result.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "../../../src/flow/lib/final-regression-transition-facts.js";
+import { applyFinalRegressionTransition } from "../../../src/flow/lib/final-regression-transition-application.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../support/infrastructure/git-repo.js";
 import { FlowAtStepFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
@@ -84,6 +94,7 @@ function failedRecordedArtifact(overrides = {}) {
     }],
     changedFiles: [],
     changedFileFingerprints: [],
+    changedFileSnapshotDigest: "d".repeat(64),
     commandIdentity: {
       command: "npm test --",
       commandSource: "package.json",
@@ -108,7 +119,6 @@ function failedRecordedArtifact(overrides = {}) {
     fixAttempts: 1,
     retryable: false,
     nextAction: "report",
-    nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
     currentDiffRelationship: "non-current-diff",
     executionBinding: {
@@ -159,7 +169,7 @@ describe("canonical final-regression record-and-proceed", () => {
     assert.equal(result.result, "fail");
     assert.equal(artifact.failureCategory, "existing_failure");
     assert.equal(artifact.recordAndProceed.eligible, true);
-    assert.equal(artifact.nextRecommendedAction, "fix-and-rerun");
+    assert.equal(Object.hasOwn(artifact, "nextRecommendedAction"), false);
     fs.rmSync(path.join(tmp, artifact.rawOutputPath), { force: true });
     assert.deepEqual(validateFinalRegressionEvidence({ root: tmp, artifact }), {
       ok: true,
@@ -192,6 +202,32 @@ describe("canonical final-regression record-and-proceed", () => {
       recordEvidence: "User approved recording this unrelated regression failure.",
       remainingRisk: "The full regression remains red for the recorded unrelated failure.",
     });
+    const attached = attachedCanonicalCommandResultArtifact(recorded);
+    const state = ctx.flowManager.canonicalState(SPEC_ID);
+    const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+    const decision = resolveCanonicalFinalRegressionTransition({
+      flowManager: ctx.flowManager,
+      specId: SPEC_ID,
+      changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+        root: tmp,
+        relativeSpecFile: store.location.relativeSpecFile,
+      }),
+      candidateArtifact: attached.payload,
+    });
+    const tamperedArtifact = structuredClone(attached.payload);
+    tamperedArtifact.recordAndProceed.evidence = "tampered after Definition selection";
+    const tamperedResult = attachCanonicalCommandResultArtifact({ ...recorded }, {
+      logicalKey: "final.regression",
+      payload: tamperedArtifact,
+    });
+    assert.throws(() => applyFinalRegressionTransition({
+      flowManager: ctx.flowManager,
+      specId: SPEC_ID,
+      commandResult: tamperedResult,
+      decision,
+    }), /does not match the sealed Definition decision/);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
+
     await FLOW_COMMANDS.run["final-regression"].post(ctx, recorded);
     const artifact = latestArtifact(ctx);
     const history = JSON.parse(ctx.flowManager.readArtifact({
@@ -225,7 +261,8 @@ describe("canonical final-regression record-and-proceed", () => {
 
   test("prompt documents the explicit failed-regression decision", () => {
     const prompt = fs.readFileSync("src/flow/prompts/impl/final-regression.md", "utf8");
-    assert.match(prompt, /auto(?:Approve| mode).*recommended action/i);
-    assert.match(prompt, /record-and-proceed/);
+    assert.match(prompt, /follow only its guarded directive/i);
+    assert.match(prompt, /--record-and-proceed.*exact guarded user-decision command/i);
+    assert.doesNotMatch(prompt, /nextRecommendedAction/);
   });
 });

@@ -36,6 +36,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   rewind: "recovery",
   rewind_test_evidence: "recovery",
   repair_test_review: "recovery",
+  repair_scenario_validity: "recovery",
   repair_implementation: "recovery",
   triage_implementation_for_repair: "recovery",
   triage_implementation_no_repair: "recovery",
@@ -168,9 +169,16 @@ export class CanonicalFlowRuntime {
   loadTransitionSnapshot(specId) {
     return this.store(specId).loadTransitionSnapshot();
   }
+  readCanonicalTransitionView(specId, read) {
+    return this.store(specId).readCanonicalTransitionView(read);
+  }
 
   assertWritable(specId) {
     return this.store(specId).assertWritable();
+  }
+
+  writeRuntimeArtifact({ specId, nodeId, artifact, expectedAttempt = null } = {}) {
+    return this.store(specId).writeRuntimeArtifact({ nodeId, artifact, expectedAttempt });
   }
 
   activities(specId) {
@@ -329,7 +337,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  failAttempt({ specId, activityId, failure, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, artifactRemovals = undefined, expectedAttempt = null } = {}) {
+  failAttempt({ specId, activityId, failure, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, artifactRemovals = undefined, expectedAttempt = null, admission = undefined } = {}) {
     const state = this.#state(specId);
     const expected = expectedAttempt === null ? null : CurrentAttemptIdentity.from(expectedAttempt);
     if (expected !== null && !expected.matches(state)) return null;
@@ -348,6 +356,7 @@ export class CanonicalFlowRuntime {
       references,
       artifactWrites,
       artifactRemovals,
+      admission,
     });
   }
 
@@ -462,6 +471,25 @@ export class CanonicalFlowRuntime {
       effort,
       usage,
       references,
+    });
+  }
+
+  /** Atomically retain scenario repair evidence and reopen the test handoff. */
+  repairScenarioValidity({ specId, activityId, attempt, failure, result, timing = null, references, artifactWrites = undefined, artifactBaselines = undefined, admission = undefined } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "scenario-validity",
+      operation: "repair_scenario_validity",
+      attempt: requiredAttempt(attempt, "repairScenarioValidity"),
+      failure,
+      result,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      references,
+      artifactWrites,
+      artifactBaselines,
+      admission,
     });
   }
 
@@ -843,13 +871,13 @@ export class CanonicalFlowRuntime {
   }
 
   /** Persist one immutable advisory evidence fact without creating flow.json state. */
-  recordNonblocking({ specId, activityId, nodeId, nonblocking, artifactWrites = undefined } = {}) {
+  recordNonblocking({ specId, activityId, nodeId, nonblocking, timing = null, artifactWrites = undefined, artifactBaselines = undefined, admission = undefined } = {}) {
     const state = this.#state(specId);
     const target = requiredText(nodeId, "nonblocking nodeId");
     return this.apply(specId, this.#activity(state, {
       id: activityId,
       nodeId: target,
-      timing: (() => {
+      timing: timing ?? (() => {
         const now = new Date().toISOString();
         return { startedAt: now, finishedAt: now, durationMs: 0 };
       })(),
@@ -862,7 +890,7 @@ export class CanonicalFlowRuntime {
         nonblocking: null,
         nonblocking,
       },
-    }), { artifactWrites });
+    }), { artifactWrites, artifactBaselines, admission });
   }
 
   continueNonblocking({ specId, activityId, nodeId, nonblocking, skippedNodeIds = [] } = {}) {
@@ -1021,10 +1049,10 @@ export class CanonicalFlowRuntime {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review"].includes(operation)
       ? attempt
       : null;
-    const activityAttempt = new Set(["repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]).has(operation)
+    const activityAttempt = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]).has(operation)
       ? state.attempt ?? attempt
       : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt

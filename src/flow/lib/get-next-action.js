@@ -20,11 +20,15 @@ import {
   deriveNextAction,
   resolveDefinitionRoute,
   resolveDraftTransition,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
 } from "../definition.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
+  BlockedDirective,
   AwaitDraftQuestionDirective,
   AwaitUserDecisionDirective,
   CompletedDirective,
@@ -45,6 +49,12 @@ import {
 } from "./flow-decision-prompt.js";
 import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import { guardedCommand } from "./guarded-command.js";
+import { CanonicalTestArtifactStore } from "./canonical-test-artifacts.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "./final-regression-transition-facts.js";
+import { beginFinalRegressionRepairTransition } from "./final-regression-transition-application.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 import {
@@ -74,11 +84,39 @@ import {
   approvalRouteFacts,
 } from "./definition-route-facts.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
+import { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+import { hasCurrentTestChainPublication, readCurrentTestChainTransitionFacts } from "./test-chain-transition-facts.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
 // their scoped boundaries until they are explicitly moved.
 export { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+
+const TEST_CHAIN_NEXT_ACTION_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
+const TEST_CHAIN_RESULT_KEYS = Object.freeze({
+  "scenario-validity": "scenario.validity",
+  "test-execute": "test.execute",
+  "test-result-review": "test.result.review",
+});
+
+function blockedTestChainProjection(ctx, typedState, descriptor) {
+  const definition = TEST_CHAIN_NEXT_ACTION_DEFINITIONS[descriptor.nodeId] ?? null;
+  const resultKey = TEST_CHAIN_RESULT_KEYS[descriptor.nodeId] ?? null;
+  if (definition === null || resultKey === null || descriptor.operation !== "resume") return null;
+  const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(typedState.specId);
+  if (snapshot?.stepId !== descriptor.nodeId || !hasCurrentTestChainPublication(snapshot, resultKey)) return null;
+  const selected = resolveNonGateNextAction({
+    flowManager: ctx.flowManager,
+    specId: typedState.specId,
+    readStepFacts: () => readCurrentTestChainTransitionFacts({ flowManager: ctx.flowManager, specId: typedState.specId }),
+    stepDefinition: definition,
+  });
+  return ["blocked", "await-user-input"].includes(selected.decision.disposition.operation) ? selected : null;
+}
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -145,6 +183,54 @@ function captureNextActionBinding(ctx, state) {
     if (resumedFromMainAfterWorktreeRemoval) return null;
     throw error;
   }
+}
+
+class FinalRegressionNextAction {
+  constructor({ decision = null, directive } = {}) {
+    this.decision = decision;
+    this.directive = directive;
+    Object.freeze(this);
+  }
+}
+
+function finalRegressionNextAction(ctx, state, typedState, binding) {
+  if (typedState.current?.at(-1) !== "final-regression" || typedState.attempt?.failure === null) return null;
+  let decision;
+  try {
+    const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state: typedState });
+    decision = resolveCanonicalFinalRegressionTransition({
+      flowManager: ctx.flowManager,
+      specId: state.specId,
+      changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+        root: ctx.executionRoot || ctx.root,
+        relativeSpecFile: store.location.relativeSpecFile,
+      }),
+    });
+  } catch (error) {
+    return new FinalRegressionNextAction({
+      directive: new BlockedDirective({ code: "FINAL_REGRESSION_FACTS_UNAVAILABLE", reason: error.message, resumeInstruction: "Restore a current cataloged final-regression artifact before continuing." }),
+    });
+  }
+  const operation = decision.disposition.operation;
+  if (operation === "repair") {
+    return new FinalRegressionNextAction({ decision, directive: new ExecuteCommandDirective({ actionId: "FINAL_REGRESSION_REPAIR", nextAction: guardedCommand("sennel flow run final-regression", state, binding), instruction: "Repair the current regression failure, then rerun final-regression through its guarded command.", reason: "The final-regression Definition selected bounded repair from canonical current-change evidence." }) });
+  }
+  if (operation === "await-user-input") {
+    return new FinalRegressionNextAction({ decision, directive: new AwaitUserDecisionDirective({
+      reason: "The final-regression Definition classified this failure as existing work and requires an explicit decision.",
+      prompt: new UserActionPrompt({
+        question: "Accept the recorded existing regression failure?",
+        choices: [
+          new UserActionChoice({ actionId: "ACCEPT_EXISTING_REGRESSION", label: "Record and proceed", nextAction: guardedCommand("sennel flow run final-regression --record-and-proceed", state, binding), impact: new UserActionImpact({ retains: ["the immutable failed regression Attempt"], changes: ["the explicit acceptance record"] }) }),
+          new UserActionChoice({ actionId: "KEEP_BLOCKED", label: "Keep blocked", stateTransition: "remain-blocked", impact: new UserActionImpact({ retains: ["the failed regression evidence"], changes: ["the Flow remains blocked"] }) }),
+        ], recommendedActionId: "KEEP_BLOCKED", recommendationReason: "Existing failures require explicit acceptance evidence; leaving the Flow blocked preserves the failure by default.",
+      }),
+    }) });
+  }
+  if (["external-blocked", "blocked"].includes(operation)) {
+    return new FinalRegressionNextAction({ decision, directive: new BlockedDirective({ code: operation === "external-blocked" ? "FINAL_REGRESSION_EXTERNAL_BLOCKED" : "FINAL_REGRESSION_BLOCKED", reason: decision.disposition.reason || "The final-regression Definition selected a blocked disposition.", resumeInstruction: "Provide changed canonical evidence or an explicit allowed decision; do not rerun the worker directly." }) });
+  }
+  return null;
 }
 
 function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
@@ -456,7 +542,7 @@ export function projectApprovalRequirements({ plan, requiresApproval, autoApprov
  * established field order; only the source of identity and lifecycle facts
  * changes from mutable state to the Version Store.
  */
-function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, binding, missingProducerArtifactRoute = null) {
+function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, binding, missingProducerArtifactRoute = null, selectedFinalRegressionAction = null) {
   const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
   // First select a disposition from bounded result facts and accounting.  The
   // repair revision is an execution precondition, not a competing policy:
@@ -546,7 +632,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     flowManager: ctx.flowManager,
     state: typedState,
   });
-  const lifecycleDirective = new NextActionDirectiveResolver({
+  const lifecycleDirective = selectedFinalRegressionAction?.directive ?? new NextActionDirectiveResolver({
     state,
     binding,
     action: derived.action,
@@ -627,14 +713,49 @@ export default class GetNextActionCommand extends FlowCommand {
       return typedState.lifecycle.state === "finalized" ? completedNextAction(binding) : abortedNextAction(binding);
     }
 
+    const selectedFinalRegressionAction = finalRegressionNextAction(ctx, ctx.flowState, typedState, binding);
     const descriptor = typedState.nextAction();
 
     if (descriptor === null) {
       return completedNextAction(binding);
     }
+    let result = null;
+    if (descriptor.nodeId === "scenario-validity") {
+      result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null, selectedFinalRegressionAction);
+      if (result.directive.actionId === "RECOVER_PREIMPLEMENTATION_BOOTSTRAP") {
+        return result;
+      }
+    }
+    const nonGateBlocked = blockedTestChainProjection(ctx, typedState, descriptor);
+    if (nonGateBlocked !== null) {
+      result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null);
+      const awaitingNonblockingDecision = nonGateBlocked.decision.disposition.operation === "await-user-input";
+      const reason = nonGateBlocked.decision.disposition.reason
+        ?? (awaitingNonblockingDecision
+          ? "the nonblocking observation requires an explicit advisory decision"
+          : "Definition rejected the current canonical test-chain evidence.");
+      return {
+        ...result,
+        definitionTransition: nonGateBlocked.action.toJSON(),
+        directive: new BlockedDirective({
+          code: awaitingNonblockingDecision ? "TEST_CHAIN_NONBLOCKING_DECISION_REQUIRED" : "TEST_CHAIN_EVIDENCE_BLOCKED",
+          reason: awaitingNonblockingDecision ? `Definition selected an explicit nonblocking decision boundary: ${reason}` : `Definition selected blocked: ${reason}`,
+          resumeInstruction: awaitingNonblockingDecision
+            ? "Record the evidence-bound nonblocking repair, retry, or continue decision; do not rerun the observed producer directly."
+            : "Publish a fresh, complete canonical test-chain observation; do not rerun the blocked producer directly.",
+        }).toJSON(),
+      };
+    }
     const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
-    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute);
-    if (["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
+    result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute, selectedFinalRegressionAction);
+    if (selectedFinalRegressionAction?.decision?.disposition.operation === "repair") {
+      beginFinalRegressionRepairTransition({
+        flowManager: ctx.flowManager,
+        specId: ctx.specId,
+        decision: selectedFinalRegressionAction.decision,
+      });
+      ctx.flowState = ctx.flowManager.load(ctx.specId);
+    } else if (selectedFinalRegressionAction === null && ["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
       ctx.flowManager.beginNextAction(ctx.specId);
       ctx.flowState = ctx.flowManager.load(ctx.specId);
     }

@@ -123,7 +123,6 @@ function canonicalReportResults(store) {
       remainingRisk: artifact.remainingRisk || null,
       retryable: artifact.retryable,
       nextAction: artifact.nextAction,
-      nextRecommendedAction: artifact.nextRecommendedAction || null,
       recordAndProceed: artifact.recordAndProceed || null,
       humanSummary: artifact.humanSummary || null,
     };

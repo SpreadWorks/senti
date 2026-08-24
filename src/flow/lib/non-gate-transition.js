@@ -274,6 +274,7 @@ export class NonGateTransitionFacts {
     completion = {},
     nonblocking = false,
     stepFacts = null,
+    integrityFailure = null,
   } = {}) {
     this.runId = requiredText(runId, "non-Gate runId");
     this.specId = requiredText(specId, "non-Gate specId");
@@ -300,10 +301,12 @@ export class NonGateTransitionFacts {
       throw new Error("non-Gate transition facts require typed step facts");
     }
     this.stepFacts = stepFacts;
+    this.explicitIntegrityFailure = integrityFailure === null ? null : requiredText(integrityFailure, "non-Gate integrity failure");
     Object.freeze(this);
   }
 
   get integrityFailure() {
+    if (this.explicitIntegrityFailure !== null) return this.explicitIntegrityFailure;
     if (this.producer.runId !== this.runId || this.producer.specId !== this.specId || this.producer.stepId !== this.stepId) {
       return "producer_ownership_mismatch";
     }
@@ -357,6 +360,7 @@ export class NonGateTransitionFacts {
       lineage: this.lineage.toJSON(), retry: this.retry.toJSON(),
       recoveryEvidence: this.recoveryEvidence.toJSON(), completion: this.completion.toJSON(),
       nonblocking: this.nonblocking, stepFacts: this.stepFacts?.toJSON() ?? null,
+      integrityFailure: this.explicitIntegrityFailure,
     };
   }
 }

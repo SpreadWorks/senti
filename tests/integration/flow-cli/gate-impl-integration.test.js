@@ -30,6 +30,10 @@ import {
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
+import {
+  CanonicalTestArtifactStore,
+  canonicalRawEvidenceFingerprint,
+} from "../../../src/flow/lib/canonical-test-artifacts.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 const SPEC_ID = "001-test";
@@ -101,8 +105,13 @@ function publishIntegrationDesignArtifacts(fixture, flowManager, specId, require
     });
   }
   fixture.settle("test").activate("scenario-validity", { settlePredecessors: false });
+  const testSourceRevision = new CanonicalTestArtifactStore({
+    flowManager,
+    state: fixture.state(),
+  }).testSourceRevision().digest;
   publishAttemptArtifact(flowManager, specId, "scenario-validity", "scenario.validity", {
     version: "1",
+    testSourceRevision,
     command: "node --test artifacts/tests/*.test.js",
     process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
     result: "pass",
@@ -124,6 +133,16 @@ function publishIntegrationDesignArtifacts(fixture, flowManager, specId, require
 function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requirementIds) {
   fixture.activate("test-execute", { settlePredecessors: false });
   const rawOutputPath = flowManager.specLocation(specId).relativeArtifact("test.execute.raw-log");
+  const testSourceRevision = new CanonicalTestArtifactStore({
+    flowManager,
+    state: fixture.state(),
+  }).testSourceRevision().digest;
+  const rawBytes = Buffer.from("integration execution evidence\n", "utf8");
+  flowManager.writeRuntimeArtifact({
+    specId,
+    nodeId: "test-execute",
+    artifact: { logicalKey: "test.execute.raw-log", mediaType: "text/plain", bytes: rawBytes },
+  });
   const repairFingerprint = buildRepairFingerprint({
     root: fixture.location().repositoryRoot,
     artifactRoot: fixture.location().repositoryRoot,
@@ -132,14 +151,24 @@ function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requ
   publishAttemptArtifact(flowManager, specId, "test-execute", "test.execute", {
     version: "2",
     repairFingerprint,
+    testSourceRevision,
+    rawEvidenceFingerprint: canonicalRawEvidenceFingerprint(rawBytes),
+    process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
     raw_output_path: rawOutputPath,
     summary: requirementIds.map((id) => ({
       id,
       result: "pass",
-      evidence: { test_name: `${id}: validates integration gate trust` },
+      evidence: {
+        test_file: `${id}.test.js`,
+        test_name: `${id}: validates integration gate trust`,
+        command: "node --test artifacts/tests/*.test.js",
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
     })),
     regression: {
       required: false,
+      result: "skipped",
+      mode: "none",
       category: "full-regression-deferred",
       reason: "fixture full regression is deferred",
       classified_paths: [],
@@ -147,9 +176,19 @@ function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requ
       changed_files: [],
     },
   });
+  const descriptor = flowManager.artifactCatalog(specId).artifacts.find((entry) => entry.logicalKey === "test.execute");
+  const activity = flowManager.activityLedger(specId).find((entry) => entry.id === descriptor.activityId);
   fixture.settle("test-execute").activate("test-result-review", { settlePredecessors: false });
   publishAttemptArtifact(flowManager, specId, "test-result-review", "test.result.review", {
     repairFingerprint,
+    testSourceRevision,
+    testExecute: {
+      historyAttempt: 1,
+      producerActivityId: descriptor.activityId,
+      attemptId: activity.attemptId,
+      sequence: activity.sequence,
+    },
+    rawEvidenceFingerprint: canonicalRawEvidenceFingerprint(rawBytes),
     verdict: "pass",
     checked_items: [{ check: "project_regression_verification", result: "pass", detail: "fixture evidence verified" }],
     result_file_path: flowManager.specLocation(specId).relativeArtifact("test.execute"),
