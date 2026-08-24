@@ -1,9 +1,8 @@
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { runtimeLogFileForContext } from "../../lib/runtime-log.js";
-import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { FlowOutboxStore, finalizationOutboxIdentity } from "./flow-outbox.js";
-import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
+import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 import { findStepById } from "./step-tree.js";
 
 function incompleteRuntimeLog(root, state) {
@@ -25,6 +24,23 @@ function incompleteRuntimeLog(root, state) {
     startedAt: block.startedAt,
     complete: false,
   };
+}
+
+/**
+ * Read the exact interruption receipt without claiming a lock or changing
+ * state.  `get next-action` may use this fact, but only the recovery command
+ * is allowed to settle it.
+ */
+export function inspectInterruptedFinalizeSync(ctx) {
+  const localState = ctx.flowState;
+  const localSyncStep = findStepById(localState?.steps || [], "finalize-sync");
+  if (localSyncStep?.status !== "in_progress" || typeof ctx.flowManager?.forRoot !== "function") return null;
+  const stateOwner = FinalizeFlowStateOwner.forMainContext(ctx);
+  const state = stateOwner.loadReadOnly();
+  if (!state || findStepById(state.steps || [], "finalize-sync")?.status !== "in_progress") return null;
+  const identity = finalizationOutboxIdentity(state, "finalize-sync");
+  if (stateOwner.outbox().status(identity)?.status !== "pending") return null;
+  return incompleteRuntimeLog(stateOwner.mainRepoPath, state);
 }
 
 /**
@@ -50,7 +66,10 @@ export function recoverInterruptedFinalizeSync(ctx) {
   const entry = stateOwner.outbox().status(identity);
   if (entry?.status !== "pending") return { recovered: false, busy: false };
 
-  const operation = new RepositoryFlowOperationLock({ mainRoot: stateOwner.mainRepoPath });
+  const operation = new RepositoryFlowOperationLock({
+    mainRoot: stateOwner.mainRepoPath,
+    allowProcessOwnerBorrow: false,
+  });
   let token;
   try {
     token = operation.acquire();
@@ -61,47 +80,25 @@ export function recoverInterruptedFinalizeSync(ctx) {
     throw error;
   }
 
-  const runtimeLog = incompleteRuntimeLog(stateOwner.mainRepoPath, state);
-  const interruption = new FinalizeSyncInterruptedError({ runtimeLog });
   try {
-    stateOwner.outbox({ operationOwnerToken: token }).fail(identity, interruption);
-    const transition = createLifecycleStepTransition({
-      flowState: stateOwner.loadReadOnly(),
-      stepId: "finalize-sync",
-      status: "skipped",
-      event: "finalize:interrupted",
-      taskId: null,
-      currentStepId: "finalize-sync",
-    });
-    stateOwner.updateStepStatus(transition, { operationOwnerToken: token });
+    const lockedState = stateOwner.loadReadOnly();
+    const runtimeLog = incompleteRuntimeLog(stateOwner.mainRepoPath, lockedState);
+    const lockedContext = stateOwner.bindContext({ ...ctx, flowState: lockedState });
+    const selected = resolveFinalizationOutboxRecovery(
+      lockedContext,
+      lockedState,
+      { scope: "flow", stepId: "finalize-sync" },
+      null,
+      runtimeLog,
+      token,
+    );
+    if (selected?.decision?.operation !== "interrupted-sync-settlement") {
+      return { recovered: false, busy: false };
+    }
+    operation.assertOwned();
+    stateOwner.flowManager.recoverInterruptedFinalizeSync({ specId: stateOwner.specId, runtimeLog, operationOwnerToken: token });
+    return { recovered: true, busy: false, stateOwner, runtimeLog, decision: selected.decision };
   } finally {
     operation.release();
   }
-  // The skipped leaf no longer owns a producer Activity, so its issue-log
-  // evidence must be appended only after next-action claims finalize-cleanup.
-  // The caller performs that second, ordered half of recovery; attempting it
-  // here would leave a non-authoritative direct issue-log writer.
-  return { recovered: true, busy: false, stateOwner, interruption };
-}
-
-/**
- * Claim cleanup with the interrupted-sync audit in its same Store Activity.
- * The cleanup Attempt owns the issue-log publication, so a crash cannot leave
- * recovery state without its cataloged explanation.
- */
-export function recordInterruptedFinalizeSyncIssue(ctx, recovery) {
-  if (!recovery?.recovered || !recovery.interruption) return;
-  const state = recovery.stateOwner.loadReadOnly();
-  const runtimeLog = recovery.interruption.data?.runtimeLog;
-  recovery.stateOwner.flowManager.beginInterruptedFinalizeSyncCleanup({
-    specId: recovery.stateOwner.specId,
-    entry: {
-      step: "finalize-sync",
-      reason: recovery.interruption.message,
-      trigger: "interrupted",
-      timestamp: new Date().toISOString(),
-      ...(runtimeLog ? { runtimeLog } : {}),
-    },
-    idempotencyKey: `interrupted-finalize-sync-${state.runId}-${runtimeLog?.sequence ?? "unknown"}`,
-  });
 }

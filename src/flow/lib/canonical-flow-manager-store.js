@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   buildCurrentFlowDefinition,
+  InterruptedFinalizeSyncRuntimeLogFact,
   NonGateAppendRepairEvidenceAction,
   NonGateFailCurrentAttemptAction,
   NonGateIncrementRetryAction,
@@ -66,6 +67,8 @@ import {
 } from "./canonical-command-result.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { IssueLogDocument } from "./issue-log-store.js";
+import { finalizationOutboxIdentity } from "./flow-outbox.js";
+import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
 import { CanonicalScenarioValidityRepairEvidence } from "./scenario-validity-repair-evidence.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 import { sameNonGateTransitionDecision } from "./non-gate-transition-application.js";
@@ -175,6 +178,17 @@ function executionMode(value) {
 
 function activityId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function stableActivityId(prefix, facts) {
+  const digest = crypto.createHash("sha256").update(JSON.stringify(facts)).digest("hex");
+  return `${prefix}-${digest}`;
+}
+
+function timestampAfter(value) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) throw new CurrentFlowStateInvariantError("recovery timestamp source is invalid");
+  return new Date(timestamp + 1).toISOString();
 }
 
 function testChainPlanDigest(decision) {
@@ -293,7 +307,6 @@ const TEST_CHAIN_TRANSITION_DEFINITIONS = Object.freeze({
   "test-execute": testExecuteTransitionDefinition,
   "test-result-review": testResultReviewTransitionDefinition,
 });
-
 function canonicalOutboxInput(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new CurrentFlowStateInvariantError("canonical outbox input must be an object");
@@ -1015,50 +1028,63 @@ export class CanonicalFlowManagerStore {
     return state;
   }
 
-  /**
-   * Claim finalize-cleanup and publish its interrupted-sync audit in one
-   * Activity transaction.  The cleanup Attempt is the sole issue-log
-   * producer, so the evidence cannot be orphaned between recovery commands.
-   */
-  beginInterruptedFinalizeSyncCleanup({ specId = null, entry, idempotencyKey } = {}) {
+  recoverInterruptedFinalizeSync({ specId = null, runtimeLog = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
-    const next = state.nextAction();
-    if (next?.operation !== "start" || next.nodeId !== "finalize-cleanup") {
-      throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery requires finalize-cleanup to be next");
+    const runtimeReceipt = new InterruptedFinalizeSyncRuntimeLogFact({ receipt: runtimeLog }).receipt;
+    if (runtimeReceipt === null || runtimeReceipt.runId !== state.runId) {
+      throw new CurrentFlowStateInvariantError("interrupted finalize-sync runtime receipt does not match the active Flow");
     }
-    const existing = this.readArtifact({
-      specId: resolved,
-      logicalKey: "issue.log",
-      consumerNodeId: next.nodeId,
-      optional: true,
-    });
-    let document;
-    try {
-      document = new IssueLogDocument(existing === null
-        ? { entries: [] }
-        : JSON.parse(existing.bytes.toString("utf8")));
-    } catch (error) {
-      throw new CurrentFlowStateInvariantError(`canonical issue-log is invalid: ${error.message}`);
+    const identity = finalizationOutboxIdentity(state, "finalize-sync");
+    const existing = this.outboxStatus({ specId: resolved, id: identity.idempotencyKey, operation: identity.operation });
+    if (state.current?.at(-1) !== "finalize-sync" || state.attempt === null || existing.status !== "pending") {
+      throw new CurrentFlowStateInvariantError("interrupted finalize-sync recovery is no longer eligible");
     }
-    const appended = document.append(canonicalIssueLogEntry(entry), requiredText(
-      idempotencyKey,
-      "interrupted finalize-sync issue-log idempotencyKey",
-    ));
-    this.runtime.startAttempt({
+    const recoveryIdentity = {
+      flowVersionId: state.identity.flowVersionId,
+      runId: state.runId,
+      outboxId: identity.idempotencyKey,
+      outboxAttempt: existing.attempt,
+      runtimeLog: runtimeReceipt,
+    };
+    const recoveryDigest = crypto.createHash("sha256").update(JSON.stringify(recoveryIdentity)).digest("hex");
+    const cleanupNode = state.findNode("finalize-cleanup");
+    const requiredResources = state.definition.contractForNode(cleanupNode).resourceContract.required;
+    const cleanupAttempt = new CurrentAttempt({
+      id: `attempt-finalize-cleanup-${recoveryDigest}`,
+      nodeId: "finalize-cleanup",
+      sequence: cleanupNode.attemptSequence + 1,
+      startedAt: runtimeReceipt.startedAt,
+      consumption: { semantic: 0, tooling: 0 },
+      failure: null,
+      blocker: null,
+      incomplete: [],
+      operationClaims: requiredResources.length === 0
+        ? []
+        : [{ operation: "resolve-command-context", resources: requiredResources }],
+    }).toJSON();
+    const interruption = new FinalizeSyncInterruptedError({ runtimeLog: runtimeReceipt });
+    const issue = new IssueLogDocument((() => {
+      const existingIssue = this.readArtifact({ specId: resolved, logicalKey: "issue.log", consumerNodeId: "finalize-cleanup", optional: true });
+      return existingIssue === null ? { entries: [] } : JSON.parse(existingIssue.bytes.toString("utf8"));
+    })());
+    issue.append(canonicalIssueLogEntry({
+      step: "finalize-sync",
+      reason: interruption.message,
+      trigger: "interrupted",
+      timestamp: runtimeReceipt.startedAt,
+      runtimeLog: runtimeReceipt,
+    }), `interrupted-finalize-sync-${state.runId}-${runtimeReceipt.sequence}`);
+    return this.runtime.recoverInterruptedFinalizeSync({
       specId: resolved,
-      activityId: activityId("interrupted-finalize-sync-cleanup-started"),
-      nodeId: next.nodeId,
-      attempt: commandContextAttempt(state, next.nodeId),
-      artifactWrites: appended.appended ? [{
-        logicalKey: "issue.log",
-        mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(document.toJSON(), null, 2)}\n`, "utf8"),
-      }] : [],
-      admission: this.#consumerAdmission(state, next.nodeId),
+      activityId: `interrupted-finalize-sync-recovered-${recoveryDigest}`,
+      cleanupAttempt,
+      outbox: canonicalOutboxActivity({ outbox: { id: identity.idempotencyKey, operation: identity.operation }, attempt: existing.attempt, failure: interruption.message, failureCode: interruption.code, recovery: null, exactRecoveryReceipt: existing.exactRecoveryReceipt }),
+      artifactWrites: [{ logicalKey: "issue.log", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(issue.toJSON(), null, 2)}\n`, "utf8") }],
+      timing: { startedAt: runtimeReceipt.startedAt, finishedAt: runtimeReceipt.startedAt, durationMs: 0 },
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     });
-    return this.runtime.load(resolved);
   }
 
   createFresh(request) {
@@ -2092,7 +2118,17 @@ export class CanonicalFlowManagerStore {
     }
     this.runtime.reopenOutbox({
       specId: resolved,
-      activityId: activityId("outbox-reopened"),
+      activityId: stableActivityId("outbox-reopened", {
+        id: outbox.id,
+        operation: outbox.operation,
+        attempt,
+        failure,
+        recoveryKey,
+      }),
+      timing: (() => {
+        const recoveredAt = timestampAfter(existing.updatedAt);
+        return { startedAt: recoveredAt, finishedAt: recoveredAt, durationMs: 0 };
+      })(),
       outbox: canonicalOutboxActivity({
         outbox,
         attempt,
@@ -2112,7 +2148,8 @@ export class CanonicalFlowManagerStore {
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const outbox = canonicalOutboxInput({ id, operation });
     const snapshot = this.runtime.loadSnapshot(resolved);
-    const matching = snapshot.activities.filter((activity) => (
+    const confirmedActivities = snapshot.activities.slice(0, snapshot.state.confirmationOrder);
+    const matching = confirmedActivities.filter((activity) => (
       activity.transition.outbox !== null && activity.transition.outbox.id === outbox.id
     ));
     for (const activity of matching) {
@@ -2131,7 +2168,7 @@ export class CanonicalFlowManagerStore {
       ? "pending"
       : latest?.transition.operation === "complete_outbox"
         ? "done"
-        : latest?.transition.operation === "fail_outbox"
+        : ["fail_outbox", "recover_interrupted_finalize_sync"].includes(latest?.transition.operation)
           ? "failed"
           : "missing";
     return Object.freeze({
@@ -2145,7 +2182,7 @@ export class CanonicalFlowManagerStore {
       updatedAt: timing?.finishedAt ?? null,
       failure: latest?.transition.outbox?.failure ?? null,
       failureHistory: Object.freeze(matching
-        .filter((activity) => activity.transition.operation === "fail_outbox")
+        .filter((activity) => ["fail_outbox", "recover_interrupted_finalize_sync"].includes(activity.transition.operation))
         .map((activity) => Object.freeze({
           attempt: activity.transition.outbox.attempt,
           failure: activity.transition.outbox.failure,

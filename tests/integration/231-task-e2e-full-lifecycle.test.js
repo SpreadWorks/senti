@@ -92,6 +92,9 @@ function assertNext(tmp, step, taskId) {
     JSON.stringify(makeFlowManager(tmp).loadReadOnly(SPEC_ID), null, 2),
   );
   assert.equal(envelope.data.taskId, taskId);
+  if (envelope.data.directive?.actionId === "CLAIM_NEXT_ACTION") {
+    runEnvelope(tmp, ["flow", "run", "claim-next-action"]);
+  }
 }
 
 function git(tmp, args) {

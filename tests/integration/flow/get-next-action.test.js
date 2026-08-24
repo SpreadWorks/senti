@@ -559,7 +559,7 @@ describe("flow get next-action", () => {
     assert.equal(stateFor(scenario).currentNodeId, "draft");
   });
 
-  it("claims a pending Task frontier once through the typed Attempt Store", () => {
+  it("projects a pending Task frontier read-only and claims it once through the explicit command", () => {
     tmp = createTmpDir();
     const scenario = createScenario(tmp, {
       tasks: [taskDocument("T-2")],
@@ -568,19 +568,30 @@ describe("flow get next-action", () => {
     const before = manager.activityLedger(SPEC_ID).length;
 
     const first = runCli(tmp, ["flow", "get", "next-action"]);
-    const afterFirst = manager.activityLedger(SPEC_ID);
-    const persisted = fs.readFileSync(canonicalFlowFile(scenario));
+    const projected = fs.readFileSync(canonicalFlowFile(scenario));
     const repeated = runCli(tmp, ["flow", "get", "next-action"]);
 
     assert.equal(first.exitCode, 0);
     assert.equal(first.envelope.data.taskId, "T-2");
     assert.equal(first.envelope.data.step, "task-impl");
-    assert.equal(stateFor(scenario).currentNodeId, "T-2-impl");
-    assert.equal(afterFirst.length, before + 1);
-    assert.equal(afterFirst.at(-1).transition.operation, "start_attempt");
+    assert.equal(first.envelope.data.directive.actionId, "CLAIM_NEXT_ACTION");
+    assert.equal(stateFor(scenario).currentNodeId, null);
+    assert.equal(manager.activityLedger(SPEC_ID).length, before);
     assert.equal(repeated.exitCode, 0);
     assert.equal(repeated.envelope.data.step, "task-impl");
-    assert.equal(manager.activityLedger(SPEC_ID).length, afterFirst.length);
+    assert.equal(manager.activityLedger(SPEC_ID).length, before);
+    assert.deepEqual(fs.readFileSync(canonicalFlowFile(scenario)), projected);
+
+    const claimed = runCli(tmp, ["flow", "run", "claim-next-action"]);
+    const afterClaim = manager.activityLedger(SPEC_ID);
+    assert.equal(claimed.exitCode, 0);
+    assert.equal(stateFor(scenario).currentNodeId, "T-2-impl");
+    assert.equal(afterClaim.length, before + 1);
+    assert.equal(afterClaim.at(-1).transition.operation, "start_attempt");
+    const persisted = fs.readFileSync(canonicalFlowFile(scenario));
+    const stale = runCli(tmp, ["flow", "run", "claim-next-action"]);
+    assert.equal(stale.exitCode, 1);
+    assert.equal(manager.activityLedger(SPEC_ID).length, afterClaim.length);
     assert.deepEqual(fs.readFileSync(canonicalFlowFile(scenario)), persisted);
   });
 
@@ -878,10 +889,10 @@ describe("flow get next-action", () => {
     assert.equal(exitCode, 0);
     assert.equal(envelope.data.directive.kind, "execute_command");
     assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_COMMIT_OUTBOX");
-    assert.match(envelope.data.directive.nextAction, /^sennel flow run finalize-commit /);
-    assert.equal(status.status, "pending");
-    assert.ok(status.exactRecoveryReceipt);
-    assert.equal(managerFor(scenario).activityLedger(SPEC_ID).at(-1).transition.operation, "reopen_outbox");
+    assert.match(envelope.data.directive.nextAction, /^sennel flow run recover-finalization /);
+    assert.equal(status.status, "failed");
+    assert.equal(status.exactRecoveryReceipt, null);
+    assert.equal(managerFor(scenario).activityLedger(SPEC_ID).at(-1).transition.operation, "fail_outbox");
   });
 
   it("fails closed after an exact V1 finalization recovery is consumed", () => {
@@ -917,7 +928,7 @@ describe("flow get next-action", () => {
     assert.equal(envelope.data.directive.code, "FINALIZE_OUTBOX_RECOVERY_EXHAUSTED");
   });
 
-  it("recovers an interrupted sync through typed cleanup and cataloged issue evidence", () => {
+  it("projects interrupted sync recovery without settling state", () => {
     tmp = createTmpDir();
     initGitRepo(tmp);
     fs.writeFileSync(path.join(tmp, "README.md"), "baseline\n");
@@ -937,19 +948,13 @@ describe("flow get next-action", () => {
 
     const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
     const status = outbox.status(identity);
-    const issueLog = JSON.parse(manager.readArtifact({
-      specId: SPEC_ID,
-      logicalKey: "issue.log",
-      consumerNodeId: "finalize-cleanup",
-    }).bytes.toString("utf8"));
-
     assert.equal(exitCode, 0);
-    assert.equal(envelope.data.step, "finalize-cleanup");
-    assert.equal(stateFor(scenario).currentNodeId, "finalize-cleanup");
-    assert.equal(findStepById(stateFor(scenario).steps, "finalize-sync").status, "skipped");
-    assert.equal(status.status, "failed");
-    assert.equal(status.failureHistory.at(-1).code, "FINALIZE_SYNC_INTERRUPTED");
-    assert.equal(issueLog.entries.at(-1).trigger, "interrupted");
+    assert.equal(envelope.data.step, "finalize-sync");
+    assert.equal(envelope.data.directive.actionId, "RECOVER_INTERRUPTED_FINALIZE_SYNC");
+    assert.match(envelope.data.directive.nextAction, /^sennel flow run recover-finalization /);
+    assert.equal(stateFor(scenario).currentNodeId, "finalize-sync");
+    assert.equal(findStepById(stateFor(scenario).steps, "finalize-sync").status, "in_progress");
+    assert.equal(status.status, "pending");
   });
 
   it("rejects legacy state creation rather than creating a root flow.json fallback", () => {

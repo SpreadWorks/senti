@@ -54,13 +54,9 @@ import {
   captureFinalRegressionChangedSnapshotDigest,
   resolveCanonicalFinalRegressionTransition,
 } from "./final-regression-transition-facts.js";
-import { beginFinalRegressionRepairTransition } from "./final-regression-transition-application.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
-import {
-  recoverInterruptedFinalizeSync,
-  recordInterruptedFinalizeSyncIssue,
-} from "./recover-interrupted-finalize-sync.js";
+import { inspectInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
 import {
   flowArtifactAuthorityForStep,
   requiresWorkerArtifactHandoff,
@@ -213,7 +209,7 @@ function finalRegressionNextAction(ctx, state, typedState, binding) {
   }
   const operation = decision.disposition.operation;
   if (operation === "repair") {
-    return new FinalRegressionNextAction({ decision, directive: new ExecuteCommandDirective({ actionId: "FINAL_REGRESSION_REPAIR", nextAction: guardedCommand("sennel flow run final-regression", state, binding), instruction: "Repair the current regression failure, then rerun final-regression through its guarded command.", reason: "The final-regression Definition selected bounded repair from canonical current-change evidence." }) });
+    return new FinalRegressionNextAction({ decision, directive: new ExecuteCommandDirective({ actionId: "FINAL_REGRESSION_REPAIR", nextAction: guardedCommand("sennel flow run claim-next-action", state, binding), instruction: "Claim the Definition-selected repair episode, then repair the current regression failure and rerun final-regression through the next guarded directive.", reason: "The final-regression Definition selected bounded repair from canonical current-change evidence." }) });
   }
   if (operation === "await-user-input") {
     return new FinalRegressionNextAction({ decision, directive: new AwaitUserDecisionDirective({
@@ -543,7 +539,7 @@ export function projectApprovalRequirements({ plan, requiresApproval, autoApprov
  * established field order; only the source of identity and lifecycle facts
  * changes from mutable state to the Version Store.
  */
-function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, binding, missingProducerArtifactRoute = null, selectedFinalRegressionAction = null) {
+function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, binding, missingProducerArtifactRoute = null, selectedFinalRegressionAction = null, interruptedRuntimeLog = null) {
   const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
   // First select a disposition from bounded result facts and accounting.  The
   // repair revision is an execution precondition, not a competing policy:
@@ -602,7 +598,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
   const outputSchema = derived.outputSchemaRef ? loadSchema(derived.outputSchemaRef) : {};
   const instruction = canonicalInstruction(derived, target, state);
   const outboxRecovery = target.scope === "flow"
-    ? resolveFinalizationOutboxRecovery(ctx, state, target, null)
+    ? resolveFinalizationOutboxRecovery(ctx, state, target, null, interruptedRuntimeLog)
     : null;
   const strictDirective = target.scope === "flow"
     ? buildPreimplementationBootstrapDirective(ctx, state, target, binding)
@@ -643,6 +639,16 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     planGateRepairRoute: planGateRepair?.route ?? null,
     planGateRepairReason: planGateRepair?.reason ?? null,
   }).resolve();
+  const selectedDirective = userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective;
+  const claimDirective = selectedDirective instanceof ExecuteStepDirective
+    && ["start", "recover", "retry"].includes(descriptor.operation)
+    ? new ExecuteCommandDirective({
+        actionId: "CLAIM_NEXT_ACTION",
+        nextAction: guardedCommand("sennel flow run claim-next-action", state, binding),
+        instruction: "Claim the current Definition-selected action through the canonical Store before starting its worker.",
+        reason: "get-next-action is read-only; the explicit claim command rechecks canonical facts immediately before creating the Attempt.",
+      })
+    : selectedDirective;
   const approvalProjection = projectApprovalRequirements({
     plan: target.stepId === "approval" ? routePlan : null,
     requiresApproval: derived.requiresApproval,
@@ -661,7 +667,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
       auto_approval_choice_id: approvalProjection.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
-    directive: (userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective).toJSON(),
+    directive: claimDirective.toJSON(),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;
@@ -695,12 +701,6 @@ export default class GetNextActionCommand extends FlowCommand {
       );
     }
     ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
-    const interruptedSync = recoverInterruptedFinalizeSync(ctx);
-    if (interruptedSync.recovered) {
-      ctx.flowState = ctx.flowManager.load(ctx.specId);
-      recordInterruptedFinalizeSyncIssue(ctx, interruptedSync);
-      ctx.flowState = ctx.flowManager.load(ctx.specId);
-    }
     return this.executeCanonical(ctx);
   }
 
@@ -748,18 +748,7 @@ export default class GetNextActionCommand extends FlowCommand {
       };
     }
     const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
-    result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute, selectedFinalRegressionAction);
-    if (selectedFinalRegressionAction?.decision?.disposition.operation === "repair") {
-      beginFinalRegressionRepairTransition({
-        flowManager: ctx.flowManager,
-        specId: ctx.specId,
-        decision: selectedFinalRegressionAction.decision,
-      });
-      ctx.flowState = ctx.flowManager.load(ctx.specId);
-    } else if (selectedFinalRegressionAction === null && ["start", "recover", "retry"].includes(descriptor.operation) && missingRoute === null) {
-      ctx.flowManager.beginNextAction(ctx.specId);
-      ctx.flowState = ctx.flowManager.load(ctx.specId);
-    }
-    return result;
+    const interruptedRuntimeLog = inspectInterruptedFinalizeSync(ctx);
+    return buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, missingRoute, selectedFinalRegressionAction, interruptedRuntimeLog);
   }
 }

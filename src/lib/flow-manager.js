@@ -456,8 +456,8 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
-  beginInterruptedFinalizeSyncCleanup(input = {}) {
-    return this._store.beginInterruptedFinalizeSyncCleanup({
+  recoverInterruptedFinalizeSync(input = {}) {
+    return this._store.recoverInterruptedFinalizeSync({
       ...input,
       specId: input.specId ?? this._boundSpecId,
     });
