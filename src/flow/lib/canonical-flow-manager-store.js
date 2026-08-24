@@ -11,7 +11,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { buildCurrentFlowDefinition } from "../definition.js";
+import { buildCurrentFlowDefinition, NonGateTransitionDecision } from "../definition.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { managedDir } from "../../lib/config.js";
@@ -1326,11 +1326,45 @@ export class CanonicalFlowManagerStore {
     if (specId === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(specId);
     const attempt = retryAttempt(state);
+    if (state.nextAction()?.operation !== "retry") {
+      throw new CurrentFlowStateInvariantError("the definition failure policy does not authorize retry");
+    }
     return this.runtime.retryAttempt({
       specId,
       activityId: activityId("attempt-retried"),
       attempt,
       retryRecoveryPublication: this.#retryBaselinePublication(state, state.current?.at(-1), attempt),
+    });
+  }
+
+  /** Begin only the repair episode selected by the final-regression Definition. */
+  beginFinalRegressionRepair({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(decision instanceof NonGateTransitionDecision)
+      || decision.facts.stepId !== "final-regression"
+      || decision.disposition.operation !== "repair") {
+      throw new CurrentFlowStateInvariantError("final-regression repair requires its typed Definition decision");
+    }
+    const snapshot = this.transitionSnapshot(resolved);
+    const state = snapshot?.state ?? null;
+    const identity = decision.plan.action.identity;
+    if (state === null
+      || decision.facts.specId !== resolved
+      || decision.facts.snapshotRevision !== snapshot.revision
+      || state.current?.at(-1) !== "final-regression"
+      || state.attempt?.failure === null
+      || identity.specId !== resolved
+      || identity.attempt.id !== state.attempt.id
+      || identity.attempt.sequence !== state.attempt.sequence) {
+      throw new CurrentFlowStateInvariantError("final-regression repair decision is stale or targets another Attempt");
+    }
+    const attempt = retryAttempt(state);
+    return this.runtime.retryAttempt({
+      specId: resolved,
+      activityId: activityId("final-regression-repair-started"),
+      attempt,
+      retryRecoveryPublication: this.#retryBaselinePublication(state, "final-regression", attempt),
     });
   }
 

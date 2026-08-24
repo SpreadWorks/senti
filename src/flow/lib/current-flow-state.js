@@ -3545,13 +3545,35 @@ export class CurrentFlowState {
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires an active Attempt");
     }
-    const leaf = nodeAtPath(this.root, this.current);
-    const next = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
     if (this.attempt.failure === null || !this.attempt.failure.retryable) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires a retryable failed active Attempt");
     }
     if (this.failureDisposition().operation !== "retry") {
       throw new CurrentFlowStateInvariantError("the definition failure policy does not authorize retry");
+    }
+    return this.#replaceFailedAttemptForRetry({ attempt, kind });
+  }
+
+  /** Replay the repair episode already admitted by the typed Step Definition. */
+  retryFinalRegressionAttempt({ attempt }) {
+    const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
+    if (leaf?.id !== "final-regression"
+      || this.attempt?.failure?.category !== "caused_by_current_change"
+      || this.attempt.failure.retryKind !== "semantic") {
+      throw new CurrentFlowStateInvariantError("final-regression repair requires a current-change failed Attempt");
+    }
+    return this.#replaceFailedAttemptForRetry({ attempt, kind: "semantic" });
+  }
+
+  #replaceFailedAttemptForRetry({ attempt, kind }) {
+    this.#assertExecutionActive();
+    if (this.current == null || this.attempt == null) {
+      throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires an active Attempt");
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    const next = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (this.attempt.failure === null || !this.attempt.failure.retryable) {
+      throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires a retryable failed active Attempt");
     }
     if (kind !== this.attempt.failure.retryKind) {
       throw new CurrentFlowStateInvariantError("retry kind must match the active Attempt failure decision");
@@ -5242,7 +5264,9 @@ export class ActivityTransition {
       if (activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("retry_attempt Activity must identify the active Attempt being replaced");
       }
-      return state.retryCurrentAttempt({ attempt: this.attempt, kind: state.attempt.failure.retryKind });
+      return targetId === "final-regression"
+        ? state.retryFinalRegressionAttempt({ attempt: this.attempt })
+        : state.retryCurrentAttempt({ attempt: this.attempt, kind: state.attempt.failure.retryKind });
     }
     if (this.operation === "update_attempt") {
       if (state.current == null || state.current.at(-1) !== targetId) {

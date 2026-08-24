@@ -693,6 +693,12 @@ export class FlowManager {
     });
   }
   retryCurrentAttempt(opts) { return this._store.retryCurrentAttempt(withSpecIdDefault(opts, this._boundSpecId)); }
+  beginFinalRegressionRepair(input = {}) {
+    return this._store.beginFinalRegressionRepair({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   retryExhaustedAttempt(input = {}) {
     return this._store.retryExhaustedAttempt({
       ...input,

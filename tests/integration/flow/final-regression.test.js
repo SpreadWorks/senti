@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
@@ -190,6 +191,39 @@ describe("flow run final-regression", () => {
     assert.equal(failed.code, "FINAL_REGRESSION_FAILED");
     assert.equal(failed.retryable, true);
     assert.equal(failed.retryKind, "semantic");
+
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure.code, "FINAL_REGRESSION_FAILED");
+    assert.equal(
+      ctx.flowManager.canonicalState(SPEC_ID).nextAction().operation,
+      "blocked",
+      "the generic compatibility policy must not authorize the repair Attempt",
+    );
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const next = await new GetNextActionCommand().execute(ctx);
+    assert.equal(next.directive.kind, "execute_command");
+    assert.equal(next.directive.actionId, "FINAL_REGRESSION_REPAIR");
+    assert.match(next.directive.nextAction, /flow run final-regression/);
+    const replacement = ctx.flowManager.canonicalState(SPEC_ID).attempt;
+    assert.equal(replacement.sequence, 2);
+    assert.equal(replacement.failure, null);
+  });
+
+  it("blocks get-next repair when the changed-file snapshot became stale", async () => {
+    tmp = createTmpDir("final-regression-stale-get-next-");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeChangedFileReferencingFailureFixture(tmp, "first failure snapshot");
+
+    const result = await executeFinalRegression(ctx);
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+    writeChangedFileReferencingFailureFixture(tmp, "changed after failure");
+
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const next = await new GetNextActionCommand().execute(ctx);
+    assert.equal(next.directive.kind, "blocked");
+    assert.equal(next.directive.code, "FINAL_REGRESSION_BLOCKED");
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.failure.code, "FINAL_REGRESSION_FAILED");
   });
 
   it("classifies failure with no project change as unattributed_existing_failure", async () => {
@@ -210,6 +244,16 @@ describe("flow run final-regression", () => {
       retryable: false,
       nextAction: "user-confirmation",
     });
+
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const next = await new GetNextActionCommand().execute(ctx);
+    assert.equal(next.directive.kind, "await_user_decision");
+    assert.deepEqual(
+      next.directive.actionPrompt.choices.map((choice) => choice.actionId),
+      ["ACCEPT_EXISTING_REGRESSION", "KEEP_BLOCKED"],
+    );
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
   });
 
   it("prioritizes a TAP assertion failure over an earlier successful not-found warning", async () => {
@@ -322,7 +366,7 @@ describe("flow run final-regression", () => {
     assert.equal(artifact.failureCategory, "unknown");
     assert.equal(artifact.failureNature, "execution");
     assert.equal(artifact.recordAndProceed.eligible, false);
-    assert.equal(artifact.nextRecommendedAction, "stop");
+    assert.equal(Object.hasOwn(artifact, "nextRecommendedAction"), false);
   });
 
   it("classifies child-process EPERM output distinctly", async () => {
@@ -342,6 +386,12 @@ describe("flow run final-regression", () => {
       retryable: false,
       nextAction: "stop",
     });
+
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const next = await new GetNextActionCommand().execute(ctx);
+    assert.equal(next.directive.kind, "blocked");
+    assert.equal(next.directive.code, "FINAL_REGRESSION_EXTERNAL_BLOCKED");
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).attempt.sequence, 1);
   });
 
   it("stops on the second final-regression failure and omits previous failure state", async () => {
@@ -350,7 +400,8 @@ describe("flow run final-regression", () => {
     writeChangedFileReferencingFailureFixture(tmp, "still failing");
 
     await new RunFinalRegressionCommand().execute(ctx);
-    ctx.flowManager.retryCurrentAttempt({ specId: SPEC_ID });
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    await new GetNextActionCommand().execute(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
@@ -369,7 +420,8 @@ describe("flow run final-regression", () => {
     writeChangedFileReferencingFailureFixture(tmp, "first attempt fails");
 
     await new RunFinalRegressionCommand().execute(ctx);
-    ctx.flowManager.retryCurrentAttempt({ specId: SPEC_ID });
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    await new GetNextActionCommand().execute(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     writeFile(tmp, FIXTURE_PATH, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - repaired final pass'\n");
     await executeFinalRegression(ctx);

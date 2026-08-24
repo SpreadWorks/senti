@@ -5,6 +5,11 @@ import os from "node:os";
 import path from "node:path";
 
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
+import {
+  captureFinalRegressionChangedSnapshotDigest,
+  resolveCanonicalFinalRegressionTransition,
+} from "../../../src/flow/lib/final-regression-transition-facts.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../support/builders/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js";
 import { FlowAtStepFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
@@ -38,6 +43,19 @@ function setupCanonical(root, script) {
   };
 }
 
+function resolveTransition(ctx, flowManager = ctx.flowManager) {
+  const state = flowManager.canonicalState(SPEC_ID);
+  const store = new CanonicalTestArtifactStore({ flowManager, state });
+  return resolveCanonicalFinalRegressionTransition({
+    flowManager,
+    specId: SPEC_ID,
+    changedFileSnapshotDigest: () => captureFinalRegressionChangedSnapshotDigest({
+      root: ctx.executionRoot,
+      relativeSpecFile: store.location.relativeSpecFile,
+    }),
+  });
+}
+
 describe("final-regression terminal replay guard", () => {
   let root;
   let invocationFile;
@@ -58,6 +76,7 @@ describe("final-regression terminal replay guard", () => {
 
     const first = await new RunFinalRegressionCommand().execute(ctx);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const decision = resolveTransition(ctx);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
     assert.equal(first.result, "fail");
@@ -65,6 +84,24 @@ describe("final-regression terminal replay guard", () => {
     assert.equal(second.result, "fail");
     assert.equal(second.artifacts.retryable, false);
     assert.equal(second.artifacts.replayed, true);
+    assert.equal(decision.disposition.operation, "blocked");
+
+    const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(SPEC_ID);
+    const mismatchedManager = new Proxy(ctx.flowManager, {
+      get(target, property) {
+        if (property === "readCanonicalTransitionSnapshot") {
+          return () => ({
+            ...snapshot,
+            catalog: snapshot.catalog.map((descriptor) => descriptor.logicalKey === "final.regression"
+              ? { ...descriptor, hash: descriptor.hash === "0".repeat(64) ? "f".repeat(64) : "0".repeat(64) }
+              : descriptor),
+          });
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    assert.throws(() => resolveTransition(ctx, mismatchedManager), /snapshot catalog hash is stale/);
     assert.equal(fs.readFileSync(invocationFile, "utf8"), "invoked\n");
     assert.equal(fs.existsSync(path.join(
       root,
@@ -85,11 +122,14 @@ describe("final-regression terminal replay guard", () => {
     const first = await new RunFinalRegressionCommand().execute(ctx);
     writeFile(root, SCRIPT_PATH, `# changed input\n${script}`);
     ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    const decision = resolveTransition(ctx);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
     assert.equal(first.result, "fail");
     assert.equal(second.result, "fail");
     assert.equal(second.artifacts.replayed, true);
+    assert.equal(decision.disposition.operation, "blocked");
+    assert.equal(decision.disposition.reason, "stale_changed_file_snapshot");
     assert.equal(fs.readFileSync(invocationFile, "utf8"), "invoked\n");
     assert.equal(fs.existsSync(path.join(
       root,

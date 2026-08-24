@@ -507,12 +507,18 @@ function validateFinalRegressionFailureKind(result) {
 }
 
 function validateFinalRegressionRecordAndProceed(result) {
-  const recommended = ["fix-and-rerun", "record-and-proceed", "stop"];
-  if (Object.hasOwn(result, "nextRecommendedAction") && !recommended.includes(result.nextRecommendedAction)) {
-    throw new Error(`final-regression nextRecommendedAction invalid: ${result.nextRecommendedAction}`);
+  if (Object.hasOwn(result, "nextRecommendedAction")) {
+    throw new Error("final-regression nextRecommendedAction is obsolete; route through the typed Definition");
   }
   if (!Array.isArray(result.changedFileFingerprints)) {
     throw new Error("final-regression changedFileFingerprints must be array");
+  }
+  if (typeof result.changedFileSnapshotDigest !== "string" || !/^[a-f0-9]{64}$/.test(result.changedFileSnapshotDigest)) {
+    throw new Error("final-regression changedFileSnapshotDigest must be sha256");
+  }
+  if (result.executionBinding?.worktreeSha256 !== undefined
+    && result.executionBinding.worktreeSha256 !== result.changedFileSnapshotDigest) {
+    throw new Error("final-regression changed-file snapshot does not match execution binding");
   }
   if (result.result !== "fail") {
     if (result.completed === true && result.selectedAction === "record-and-proceed") {
@@ -563,6 +569,20 @@ function validateFinalRegressionRecordAndProceed(result) {
     throw new Error("final-regression record-and-proceed validated must be boolean");
   }
   if (result.completed === true) {
+    const recordCategory = [
+      "existing_failure", "environment", "sandbox", "timeout", "dependency",
+      "out_of_scope", "flaky_suspected",
+    ].includes(result.failureCategory);
+    const recordEligible = recordCategory && (
+      [
+        "unattributed_existing_failure", "timeout", "dependency_failure",
+        "sandbox_restriction", "permission_error", "child_process_eperm",
+      ].includes(result.failureKind)
+      || (result.failureKind === "caused_by_current_change" && result.failureCategory === "out_of_scope")
+    );
+    if (!recordEligible) {
+      throw new Error("final-regression completed fail category is not eligible for record-and-proceed");
+    }
     if (result.selectedAction !== "explicit-record-and-proceed") {
       throw new Error("final-regression completed fail requires explicit operator proceed");
     }

@@ -124,6 +124,7 @@ function fixtureFinalRegressionResult(flowManager, specId) {
     childProcesses: [],
     changedFiles: [],
     changedFileFingerprints: [],
+    changedFileSnapshotDigest: "0".repeat(64),
     retryable: false,
     nextAction: "report",
     proof: {
