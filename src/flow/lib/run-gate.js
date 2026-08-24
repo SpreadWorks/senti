@@ -109,6 +109,7 @@ import {
   canonicalGateNodeId,
 } from "./canonical-gate-artifacts.js";
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
+import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
 
 export { resolveGateStepId };
 
@@ -1576,7 +1577,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 // Retry counter & escalation (spec 201, P2-R1〜P2-R4)
 // ---------------------------------------------------------------------------
 
-import { resolveMaxAttempts } from "../definition.js";
+import { resolveGateTransition, resolveMaxAttempts } from "../definition.js";
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 const GATE_RECOVERY_PHASES = new Set(["draft", "spec", "task-impl", "integration"]);
@@ -4064,6 +4065,9 @@ export class RunGateCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
     const executionRoot = ctx.executionRoot || root;
+    if (typeof ctx.flowManager?.loadReadOnly === "function" && ctx.flowState?.specId) {
+      ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
+    }
     const inferPhase = ctx.phase == null || ctx.phase === "";
     const resolution = inferPhase ? resolveGatePhaseFromState(ctx.flowState) : null;
     const phase = resolveEffectiveGatePhase(ctx, resolution);
@@ -4113,8 +4117,25 @@ export class RunGateCommand extends FlowCommand {
     if (state === null) throw new Error("canonical gate requires a loaded Version-1 Flow");
     const activeTaskId = ctx.flowState.currentTaskId ?? null;
     const nodeId = canonicalGateNodeId({ phase, taskId: activeTaskId });
-    if (state.current?.at(-1) !== nodeId) {
+    const selected = state.nextAction();
+    if (state.current?.at(-1) !== nodeId || state.attempt?.nodeId !== nodeId) {
       throw new Error(`canonical gate requires active ${nodeId}, found ${state.current?.at(-1) ?? "none"}`);
+    }
+    if (selected?.operation !== "resume" || selected.action?.action !== "run-gate") {
+      throw new Error(
+        `canonical gate admission rejected evaluation; definition selected ${selected?.operation ?? "no action"}`,
+      );
+    }
+    const existingFacts = readCurrentGateTransitionFacts({
+      flowManager,
+      flowState: ctx.flowState,
+      phase,
+    });
+    if (existingFacts !== null) {
+      const decision = resolveGateTransition(existingFacts);
+      throw new Error(
+        `canonical gate evaluation is not admitted after definition selected ${decision.disposition.operation}`,
+      );
     }
     const inputs = new CanonicalGateInputStore({ flowManager, state: ctx.flowState, nodeId });
     const specPath = flowManager.specLocation(ctx.flowState.specId).relativeSpecFile;
@@ -4211,7 +4232,12 @@ export class RunGateCommand extends FlowCommand {
     // confirms a pass with its lifecycle Activity; a non-pass is published
     // before the retry lifecycle keeps the Attempt active.
     if (result?.result === "pass" || result?.result === "fail") {
-      new CanonicalGatePromotion({ state: ctx.flowState, phase, nodeId }).promote(result);
+      new CanonicalGatePromotion({
+        state: ctx.flowManager.canonicalState(ctx.flowState.specId),
+        phase,
+        nodeId,
+        activeTaskId,
+      }).promote(result);
     }
     return result;
   }

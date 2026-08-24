@@ -6,6 +6,8 @@
  * artifacts, so no gate path guesses a legacy `*-gate-result.json` sibling.
  */
 
+import crypto from "node:crypto";
+import { GateFailureCategory } from "./gate-transition.js";
 import {
   CanonicalCommandAttemptArtifactHistory,
   CanonicalCommandResultArtifact,
@@ -66,7 +68,7 @@ function gateLogicalKeys(phase, activeTaskId) {
   });
 }
 
-function sourcePayload(result, phase, activeTaskId) {
+function sourcePayload(result, phase, activeTaskId, lineage) {
   const artifacts = jsonObject(result?.artifacts || {}, "canonical gate result artifacts");
   return Object.freeze({
     version: 1,
@@ -79,8 +81,26 @@ function sourcePayload(result, phase, activeTaskId) {
     issues: Array.isArray(artifacts.issues) ? [...artifacts.issues] : [],
     reasons: Array.isArray(artifacts.reasons) ? structuredClone(artifacts.reasons) : [],
     failureKind: artifacts.failureKind || null,
+    failureCategory: artifacts.gateTransitionFailureCategory ?? null,
+    lineage,
     ...(artifacts.failureCode == null ? {} : { failureCode: artifacts.failureCode }),
   });
+}
+
+function gateRevision(state, nodeId) {
+  const attempt = state.attempt;
+  if (attempt == null || attempt.nodeId !== nodeId) {
+    throw new Error("canonical Gate lineage requires the active producer Attempt");
+  }
+  return crypto.createHash("sha256")
+    .update(JSON.stringify({
+      runId: state.runId,
+      specId: state.specId,
+      nodeId,
+      attemptId: attempt.id,
+      sequence: attempt.sequence,
+    }))
+    .digest("hex");
 }
 
 /**
@@ -169,12 +189,15 @@ export class CanonicalGateInputStore {
  * confirms it in the same Store transaction as the Activity and catalog.
  */
 export class CanonicalGatePromotion {
-  constructor({ state, phase, nodeId = null } = {}) {
+  constructor({ state, phase, nodeId = null, activeTaskId = null } = {}) {
     this.state = canonicalState(state);
     this.phase = canonicalPhase(phase);
-    this.taskId = taskId(this.state.currentTaskId);
+    this.taskId = taskId(activeTaskId);
     this.nodeId = nodeId == null ? gateNodeId(this.phase, this.taskId) : requiredText(nodeId, "canonical gate nodeId");
-    if (this.state.currentNodeId !== this.nodeId) {
+    if (gateNodeId(this.phase, this.taskId) !== this.nodeId) {
+      throw new Error("canonical gate phase and Task scope do not own the producer node");
+    }
+    if (this.state.current?.at(-1) !== this.nodeId) {
       throw new Error(`canonical gate requires active Attempt for ${this.nodeId}`);
     }
     this.keys = gateLogicalKeys(this.phase, this.taskId);
@@ -186,6 +209,13 @@ export class CanonicalGatePromotion {
     result.artifacts ||= {};
     result.artifacts.phase = this.phase;
     if (this.taskId !== null) result.artifacts.taskId = this.taskId;
+    if (result.result === "fail") {
+      result.artifacts.gateTransitionFailureCategory = GateFailureCategory
+        .fromObservedGateResult(result)
+        .toJSON();
+    }
+    const lineage = gateRevision(this.state, this.nodeId);
+    result.artifacts.gateTransitionLineage = lineage;
     attachCanonicalCommandResultArtifact(result, new CanonicalCommandResultArtifact({
       logicalKey: this.keys.result,
       payload: result,
@@ -193,12 +223,12 @@ export class CanonicalGatePromotion {
     // Source artifacts are failure evidence used for retry/deferral.  A PASS
     // is fully represented by its producer result history and deliberately
     // does not create a duplicate "source" view.
-    if (result.result === "fail" && result.artifacts.failureKind === "ai_semantic_fail") {
+    if (result.result === "fail" && result.artifacts.gateTransitionFailureCategory.category === "semantic") {
       attachCanonicalCommandResultPublications(result, [new CanonicalCommandResultPublication({
         logicalKey: this.keys.source,
         parameters: this.keys.parameters,
         mediaType: "application/json",
-        payload: sourcePayload(result, this.phase, this.taskId),
+        payload: sourcePayload(result, this.phase, this.taskId, lineage),
       })]);
     }
     return result;
