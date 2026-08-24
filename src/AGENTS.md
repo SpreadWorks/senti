@@ -116,9 +116,7 @@ flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.
 
 ### Flow 状態遷移の責務境界
 
-**MUST:** `src/flow/` または Flow の状態遷移に関係する `src/lib/` のコードを変更する場合は、[`flow/AGENTS.md`](flow/AGENTS.md) を読み、その責務境界、不変条件、検証要件に従うこと。
-
-Flow の状態から次の遷移方針を決める責務は definition layer に一元化する。実行コマンド、registry、状態読取り、`get-next-action` が独自に遷移方針を決めてはならない。Gate の既存経路を段階的に移行する場合に限る一時例外と、その撤去条件も `flow/AGENTS.md` に定義する。
+**MUST:** `src/flow/`、Flow の状態遷移に関係する `src/lib/`（`flow-manager.js`、`flow-version.js` 等）、または対応するテストを変更する場合は、Flow 状態遷移規約の正本である [`flow/AGENTS.md`](flow/AGENTS.md) を読み、その責務境界、不変条件、検証要件に従うこと。
 
 ### flow step 命名規則
 

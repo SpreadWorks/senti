@@ -1,6 +1,6 @@
 # Flow 状態遷移アーキテクチャ
 
-このドキュメントは `src/flow/` と、Flow の状態遷移に関係する `src/lib/flow-manager.js`、`src/lib/flow-version.js`、および対応するテストに適用する。上位の `src/AGENTS.md` と併せて従うこと。
+このドキュメントを Flow 状態遷移の責務境界、不変条件、検証要件の正本とする。`src/flow/` と、Flow の状態遷移に関係する `src/lib/flow-manager.js`、`src/lib/flow-version.js`、および対応するテストに適用し、上位の `src/AGENTS.md` と併せて従うこと。
 
 ## 状態遷移方針の所有者
 
@@ -42,7 +42,7 @@
 - stale context、旧 Attempt、Attempt sequence 不一致、source/canonical lineage 不一致
 - semantic retry、tooling failure、retry exhaustion、部分完了、復旧、再ロード、冪等な再取得
 - definition layer が別の route を選んだ状態で直接コマンドを呼び、worker、Activity、状態に副作用がないこと
-- 実在する永続 Flow をコピーし、`get-next-action`、dispatcher の再検証、後続 worker handoff まで通す回帰テスト
+- canonical state と artifacts の局所的な fixture から definition layer の判断、transition plan、Action 投影、適用結果を決定論的に検証すること。検証のために Flow、dispatcher、worker、agent を起動しない
 
 既存テストが表す正当なシナリオを弱めて変更を通してはならない。
 
@@ -51,7 +51,7 @@
 Gate には、この規約より前から `run-gate.js`、registry、`get-next-action` に分散した遷移判断が存在する。Gate を phase 単位で移行する期間に限り、未移行 phase の既存判断経路を一時的に残してよい。
 
 - 未移行経路に新しい遷移方針を追加してはならない。
-- 移行対象 phase では、先に characterization test で旧挙動と新しい definition-owned 判断の対応を固定する。
+- 移行対象 phase では、先に必要な振る舞いを facts、disposition、transition plan の状態表として確定し、その契約を局所的な決定論的テストで固定する。現行経路がこの規約または確定した契約と矛盾する場合、旧挙動との一致を正しさの基準にしてはならない。
 - phase の移行完了時に、その phase の旧判断を `run-gate.js`、registry、`get-next-action` から除去する。
 - 未移行 phase を目的なく整理、統合、削除してはならない。
 - 全 Gate phase の移行後、旧判断経路を除去する最終タスクでこの一時例外も削除し、実装済みの最終責務境界に更新する。
