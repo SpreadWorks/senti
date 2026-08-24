@@ -2198,7 +2198,7 @@ export const FLOW_COMMANDS = {
         // Explicit acceptance is a Definition-selected replacement Attempt.
         // The producer merely publishes the evidence; this plan adapter owns
         // the canonical settlement and must not reinterpret artifact fields.
-        if (result?.result !== "fail") {
+        if (result?.failedRecorded !== true) {
           ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
         }
         const state = ctx.flowManager.canonicalState(specId);

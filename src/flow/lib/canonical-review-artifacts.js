@@ -28,7 +28,7 @@ import {
 import { DraftReviewEvidenceSet } from "./draft-review-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
-import { draftReviewRouteForRetryPhase, draftReviewSourceStepIds } from "./draft-review-routes.js";
+import { draftReviewSourceStepIds } from "./draft-review-routes.js";
 import { ReviewWorkUnit, ReviewWorkUnitOutput, ReviewWorkUnitOutputReceipt } from "./review-work-unit.js";
 import { renderTaskMarkdown } from "../../spec/commands/render.js";
 
@@ -673,17 +673,9 @@ export class CanonicalReviewPromotion {
     const findings = findingLists(artifact, this.phase);
     const blockingCount = findings.blocking.length;
     const advisoryCount = findings.advisory.length;
-    const next = this.phase === "draft-questions" || this.phase === "draft-coverage"
-      ? (verdict === "PASS" ? draftReviewRouteForRetryPhase(this.phase).passNextStepId : draftReviewRouteForRetryPhase(this.phase).triageStepId)
-      : this.phase === "spec"
-        ? (verdict === "REJECTED" ? "spec-triage" : "spec-gate")
-        : this.phase === "test"
-          ? (verdict === "REJECTED" ? null : "implement")
-          : (verdict === "REJECTED" ? null : "impl-gate");
     return {
       result: "ok",
       changed: [],
-      next,
       artifacts: {
         phase: this.phase,
         verdict,

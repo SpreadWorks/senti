@@ -86,10 +86,11 @@ describe("final-regression Definition transition policy", () => {
     assert.equal(mismatched.disposition.reason, "retry_history_mismatch");
   });
 
-  it("does not persist repair or blocked effects while applying sealed advancement", () => {
+  it("applies Definition-selected failure settlement without inventing a route", () => {
     const applied = [];
     const flowManager = {
       updateStepStatus(transition, options) { applied.push(["advance", transition, options]); },
+      failCurrentAttempt(input) { applied.push(["fail", input]); },
     };
     const apply = (input, commandResult = { result: "fixture" }) => applyFinalRegressionTransition({
       flowManager,
@@ -103,11 +104,16 @@ describe("final-regression Definition transition policy", () => {
     apply({ category: "existing_failure" });
     apply({ category: "environment" });
 
-    assert.equal(applied.length, 1);
+    assert.equal(applied.length, 4);
     assert.deepEqual(applied[0], [
       "advance",
       { stepId: "final-regression", requestedStatus: "done" },
       { specId: "001-final" },
+    ]);
+    assert.deepEqual(applied.slice(1).map(([kind, input]) => [kind, input.failure.code, input.failure.retryable]), [
+      ["fail", "FINAL_REGRESSION_FAILED", true],
+      ["fail", "FINAL_REGRESSION_FAILED", false],
+      ["fail", "FINAL_REGRESSION_FAILED", false],
     ]);
   });
 });

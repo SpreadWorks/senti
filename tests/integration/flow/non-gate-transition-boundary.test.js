@@ -1,6 +1,7 @@
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow-manager-store.js";
@@ -541,6 +542,52 @@ describe("definition-owned non-Gate transition boundary", () => {
       readFacts: () => blockedFacts,
     }), /Definition-selected repair/);
     assert.equal(workerStarts, 0);
+  });
+
+  it("rejects an unobserved failed Attempt before a worker starts when Definition selected blocked", () => {
+    const stepId = "scenario-validity";
+    const snapshot = {
+      runId: "run-10", specId: "010-non-gate-blocked", stepId, revision: "state-revision-10",
+      state: {
+        schemaRevision: 3, runId: "run-10", specId: "010-non-gate-blocked", current: [stepId],
+        attempt: {
+          id: "attempt-10", sequence: 10,
+          failure: { category: "semantic", code: "SCENARIO_VALIDITY_REJECTED" },
+        },
+      },
+      attempt: { id: "attempt-10", sequence: 10 }, activities: [], catalog: [],
+    };
+    const manager = {
+      canonicalState: () => ({ nextAction: () => ({ nodeId: stepId, operation: "blocked" }) }),
+      readCanonicalTransitionSnapshot: () => snapshot,
+    };
+    let workerStarts = 0;
+    assert.throws(() => {
+      admitTestChainDirectExecution({ flowManager: manager, specId: snapshot.specId, stepId });
+      workerStarts += 1;
+    }, /Definition-selected blocked/);
+    assert.equal(workerStarts, 0);
+  });
+
+  it("keeps legacy route fields out of non-Gate producers and consumers", () => {
+    const sources = [
+      "../../../src/flow/lib/run-scenario-validity.js",
+      "../../../src/flow/lib/run-test-execute.js",
+      "../../../src/flow/lib/run-test-result-review.js",
+      "../../../src/flow/lib/run-review.js",
+      "../../../src/flow/commands/review.js",
+      "../../../src/flow/lib/canonical-review-artifacts.js",
+      "../../../src/flow/lib/run-acceptance-review.js",
+      "../../../src/flow/lib/run-final-regression.js",
+      "../../../src/flow/registry.js",
+    ].map((relative) => readFileSync(new URL(relative, import.meta.url), "utf8"));
+    for (const source of sources) {
+      assert.doesNotMatch(source, /\bnext\s*:/, "non-Gate producer/registry must not emit a legacy next route");
+      assert.doesNotMatch(source, /\bnextAction\s*:/, "non-Gate producer/registry must not emit a legacy nextAction route");
+      assert.doesNotMatch(source, /(?:artifact|result)\?*\.(?:next|nextAction)\b/, "non-Gate consumer must not read a legacy route field");
+    }
+    const nextAction = readFileSync(new URL("../../../src/flow/lib/get-next-action.js", import.meta.url), "utf8");
+    assert.doesNotMatch(nextAction, /(?:artifact|result)\?*\.(?:next|nextAction)\b/, "get-next-action may render directives but cannot consume producer route fields");
   });
 
   it("rejects actual test-chain commands before their worker/process boundary", async () => {

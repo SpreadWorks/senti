@@ -510,6 +510,8 @@ export class CanonicalAcceptanceDecision {
       verdict: acceptance.verdict,
       choice: this.choice,
       userDecision,
+      // This is an explicit UserAction compatibility projection, never a
+      // route input; the setter separately resolves the Definition plan.
       next: this.choice === "accept_risk_and_continue" ? "final-regression" : "parked",
     };
     attachCanonicalCommandResultArtifact(result, new CanonicalCommandResultArtifact({

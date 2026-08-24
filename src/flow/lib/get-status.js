@@ -198,7 +198,6 @@ function finalRegressionStatus(artifact) {
     fixAttempts: artifact.fixAttempts ?? null,
     selectedAction: artifact.selectedAction || null,
     remainingRisk: artifact.remainingRisk || null,
-    nextAction: artifact.nextAction,
   };
 }
 

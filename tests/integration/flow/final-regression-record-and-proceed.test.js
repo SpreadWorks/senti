@@ -72,6 +72,13 @@ function latestArtifact(ctx) {
   return validateFinalRegressionResult(history.attempts.at(-1).artifact.payload);
 }
 
+async function executeAndApply(ctx) {
+  const result = await new RunFinalRegressionCommand().execute(ctx);
+  await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+  ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+  return result;
+}
+
 function failedRecordedArtifact(overrides = {}) {
   const rawOutputPath = "specs/001/001/steps/final-regression/attempt-002.log";
   return {
@@ -117,8 +124,6 @@ function failedRecordedArtifact(overrides = {}) {
     selectedAction: "explicit-record-and-proceed",
     remainingRisk: "full regression remains red for an existing failure",
     fixAttempts: 1,
-    retryable: false,
-    nextAction: "report",
     failureSummary: "existing failure",
     currentDiffRelationship: "non-current-diff",
     executionBinding: {
@@ -163,7 +168,7 @@ describe("canonical final-regression record-and-proceed", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeAndApply(ctx);
     const artifact = latestArtifact(ctx);
 
     assert.equal(result.result, "fail");
@@ -189,7 +194,7 @@ describe("canonical final-regression record-and-proceed", () => {
       "",
     ].join("\n"));
 
-    await new RunFinalRegressionCommand().execute(ctx);
+    await executeAndApply(ctx);
     const failed = latestArtifact(ctx);
     assert.equal(failed.failureKind, "caused_by_current_change");
     assert.equal(failed.recordAndProceed.eligible, false);

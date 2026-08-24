@@ -398,23 +398,26 @@ export function hasCurrentTestChainPublication(snapshot, logicalKey) {
 }
 
 /**
- * Admission at the worker/process boundary. A new execution is permitted
- * only for the active Definition-selected execute leaf with no observation
- * yet published. Once a current result is cataloged, Definition owns the
- * next route; re-running the producer would overwrite that evidence.
+ * Admission at the worker/process boundary. The canonical state already
+ * projects the Definition-selected Action descriptor; this guard verifies
+ * that it is this execute leaf before inspecting publication state. It does
+ * not choose a route. A new execution is permitted only for that resume
+ * descriptor with no observation yet published. Once a current result is
+ * cataloged, Definition owns the next route; re-running the producer would
+ * overwrite that evidence.
  */
 export function admitTestChainDirectExecution({ flowManager, specId, stepId, readFacts = readCurrentTestChainTransitionFacts } = {}) {
   const logicalKey = RESULT_KEYS[stepId];
   const definition = DEFINITIONS[stepId];
   if (!logicalKey || !definition) throw new Error(`test-chain direct admission has no Definition: ${stepId}`);
+  const typedState = flowManager.canonicalState(specId);
+  const selected = typedState?.nextAction?.() ?? null;
+  if (selected?.nodeId !== stepId || selected.operation !== "resume") {
+    throw new Error(`test-chain direct admission rejected Definition-selected ${selected?.operation ?? "missing"}`);
+  }
   const snapshot = flowManager.readCanonicalTransitionSnapshot(specId);
   if (snapshot === null || snapshot.stepId !== stepId) {
     throw new Error("test-chain direct admission rejected a non-current execute Action");
-  }
-  const current = flowManager.canonicalState(specId);
-  const next = current?.nextAction?.() ?? null;
-  if (next?.nodeId !== stepId || next.operation !== "resume") {
-    throw new Error("test-chain direct admission rejected a stale execute Action");
   }
   if (!hasCurrentTestChainPublication(snapshot, logicalKey)) return Object.freeze({ state: "execute", snapshot });
   try {

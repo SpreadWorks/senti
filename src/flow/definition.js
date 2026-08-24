@@ -692,15 +692,45 @@ function selectFinalRegressionTransition(stepFacts, facts = null) {
     return new NonGateTransitionSelection({ operation: "record-and-proceed" });
   }
   if (stepFacts.failure.tooling) {
-    return new NonGateTransitionSelection({ operation: "external-blocked", reason: stepFacts.failure.kind || "tooling_failure" });
+    return new NonGateTransitionSelection({
+      operation: "external-blocked",
+      reason: stepFacts.failure.kind || "tooling_failure",
+      beforeActions: finalRegressionFailureActions(stepFacts),
+    });
   }
   if (stepFacts.failure.currentChange) {
-    return new NonGateTransitionSelection({ operation: stepFacts.retryHistory.exhausted ? "blocked" : "repair", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : null });
+    return new NonGateTransitionSelection({
+      operation: stepFacts.retryHistory.exhausted ? "blocked" : "repair",
+      reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : null,
+      beforeActions: finalRegressionFailureActions(stepFacts, { retryable: !stepFacts.retryHistory.exhausted }),
+    });
   }
   if (stepFacts.failure.existing) {
-    return new NonGateTransitionSelection({ operation: "await-user-input" });
+    return new NonGateTransitionSelection({
+      operation: "await-user-input",
+      beforeActions: finalRegressionFailureActions(stepFacts),
+    });
   }
-  return new NonGateTransitionSelection({ operation: "blocked", reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure" });
+  return new NonGateTransitionSelection({
+    operation: "blocked",
+    reason: stepFacts.retryHistory.exhausted ? "retry_exhausted" : "unclassified_failure",
+    beforeActions: finalRegressionFailureActions(stepFacts),
+  });
+}
+
+/** The producer records the failure profile; Definition owns its settlement. */
+function finalRegressionFailureAction(stepFacts, { retryable = false } = {}) {
+  return new NonGateFailCurrentAttemptAction(NON_GATE_TRANSITION_TOKEN, {
+    category: stepFacts.failure.category || "unknown",
+    code: "FINAL_REGRESSION_FAILED",
+    retryable,
+    retryKind: retryable ? "semantic" : null,
+    message: `final-regression failed (${stepFacts.failure.kind || "unknown"})`,
+  });
+}
+
+function finalRegressionFailureActions(stepFacts, options = {}) {
+  return stepFacts.failureRecorded ? [] : [finalRegressionFailureAction(stepFacts, options)];
 }
 
 export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
@@ -708,20 +738,6 @@ export const FINAL_REGRESSION_STEP_DEFINITION = new NonGateStepDefinition({
   factsType: FinalRegressionStepFacts,
   select: selectFinalRegressionTransition,
 });
-
-/** Compatibility-only artifact projection of the Definition's selected route. */
-export function projectFinalRegressionTransition(stepFacts) {
-  const selection = selectFinalRegressionTransition(stepFacts);
-  const compatibility = {
-    "advance": { retryable: false, nextAction: "report" },
-    "repair": { retryable: true, nextAction: "regression-repair" },
-    "await-user-input": { retryable: false, nextAction: "user-confirmation" },
-    "record-and-proceed": { retryable: false, nextAction: "report" },
-    "external-blocked": { retryable: false, nextAction: "stop" },
-    "blocked": { retryable: false, nextAction: "stop" },
-  }[selection.operation];
-  return Object.freeze({ ...compatibility, operation: selection.operation, reason: selection.reason });
-}
 
 /** Stable Action identity; it intentionally contains no clock or caller data. */
 export class NonGateActionIdentity {
@@ -1738,18 +1754,6 @@ export function resolveReviewDeferralLifecycle({ scope, stepId, disposition } = 
   return actions;
 }
 
-/** Compatibility projection for review command envelopes; it is not routing authority. */
-export function resolveReviewResultNextStep({ phase, verdict, retryPhase = null, next = null, failNext = null } = {}) {
-  if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) {
-    throw new Error(`unknown review verdict: ${verdict}`);
-  }
-  if (phase !== "draft") {
-    return verdict === "PASS" || verdict === "ADVISORY" ? next : failNext;
-  }
-  const route = draftReviewRouteForRetryPhase(retryPhase || "draft-questions");
-  if (!route) throw new Error(`unknown draft review retry phase: ${retryPhase}`);
-  return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
-}
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || result?.data?.status || ""));
 }

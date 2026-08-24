@@ -692,9 +692,6 @@ function validateFinalRegressionRecordAndProceed(result) {
     if (result.selectedAction !== "explicit-record-and-proceed") {
       throw new Error("final-regression completed fail requires explicit operator proceed");
     }
-    if (result.nextAction !== "report") {
-      throw new Error("final-regression completed failed-recorded nextAction must be report");
-    }
     if (result.recordAndProceed.eligible !== true || result.recordAndProceed.validated !== true) {
       throw new Error("final-regression completed fail requires validated failed-recorded record-and-proceed evidence");
     }
@@ -723,8 +720,6 @@ function validateFinalRegressionSkipKind(result) {
   }
   if (!FINAL_REGRESSION_SKIP_KINDS.includes(result.skipKind)) throw new Error(`final-regression skipKind invalid: ${result.skipKind}`);
   if (typeof result.reason !== "string" || result.reason.length === 0) throw new Error("final-regression skipped reason is required");
-  if (result.retryable !== false) throw new Error("final-regression skipped retryable must be false");
-  if (result.nextAction !== "report") throw new Error("final-regression skipped nextAction must be report");
   if (result.completed !== true) throw new Error("final-regression skipped completed must be true");
   if (!result.proof || typeof result.proof !== "object" || Array.isArray(result.proof)) {
     throw new Error("final-regression skipped proof is required");
@@ -872,8 +867,6 @@ export function validateFinalRegressionResult(result) {
   if (typeof result.command !== "string" && result.command !== null) throw new Error("final-regression command must be string or null");
   if (typeof result.commandSource !== "string" && result.commandSource !== null) throw new Error("final-regression commandSource must be string or null");
   if (typeof result.rawOutputPath !== "string" || result.rawOutputPath.length === 0) throw new Error("final-regression rawOutputPath is required");
-  if (typeof result.retryable !== "boolean") throw new Error("final-regression retryable must be boolean");
-  if (typeof result.nextAction !== "string" || result.nextAction.length === 0) throw new Error("final-regression nextAction is required");
   if (!Array.isArray(result.changedFiles)) throw new Error("final-regression changedFiles[] is required");
   if (result.result === "skipped") assertCamelRange(result.rawOutputLines, "final-regression");
   else assertRange(result.rawOutputLines, "final-regression");

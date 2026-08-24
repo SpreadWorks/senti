@@ -102,7 +102,7 @@ const TEST_CHAIN_RESULT_KEYS = Object.freeze({
 function blockedTestChainProjection(ctx, typedState, descriptor) {
   const definition = TEST_CHAIN_NEXT_ACTION_DEFINITIONS[descriptor.nodeId] ?? null;
   const resultKey = TEST_CHAIN_RESULT_KEYS[descriptor.nodeId] ?? null;
-  if (definition === null || resultKey === null || descriptor.operation !== "resume") return null;
+  if (definition === null || resultKey === null || typedState.attempt === null) return null;
   const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(typedState.specId);
   if (snapshot?.stepId !== descriptor.nodeId || !hasCurrentTestChainPublication(snapshot, resultKey)) return null;
   const selected = resolveNonGateNextAction({
