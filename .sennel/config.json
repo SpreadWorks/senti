@@ -90,43 +90,7 @@
     "default": "codex",
     "workDir": ".tmp",
     "retryCount": 2,
-    "useProfile": "codex-only",
-    "providers": {
-      "codex/gpt-5.3": {
-        "command": "codex",
-        "args": [
-          "exec",
-          "--json",
-          "--sandbox",
-          "workspace-write",
-          "-m",
-          "gpt-5.3-codex",
-          "-C",
-          ".tmp",
-          "{{PROMPT}}"
-        ],
-        "jsonOutputFlag": "--json",
-        "jsonSchemaFlag": "--output-schema",
-        "jsonSchemaMode": "file"
-      },
-      "codex/gpt-5.4-mini": {
-        "command": "codex",
-        "args": [
-          "exec",
-          "--json",
-          "--sandbox",
-          "workspace-write",
-          "-m",
-          "gpt-5.4-mini",
-          "-C",
-          ".tmp",
-          "{{PROMPT}}"
-        ],
-        "jsonOutputFlag": "--json",
-        "jsonSchemaFlag": "--output-schema",
-        "jsonSchemaMode": "file"
-      }
-    }
+    "useProfile": "codex-only"
   },
   "plugin": {
     "packages": [
@@ -150,16 +114,16 @@
         },
         "agent": {
           "publish": {
-            "provider": "codex/gpt-5.5"
+            "provider": "codex/gpt-5.6-terra-low"
           },
           "classify": {
-            "provider": "codex/gpt-5.5"
+            "provider": "codex/gpt-5.6-luna-low"
           },
           "similarity": {
-            "provider": "codex/gpt-5.5"
+            "provider": "codex/gpt-5.6-luna-low"
           },
           "compose": {
-            "provider": "codex/gpt-5.5"
+            "provider": "codex/gpt-5.6-terra-medium"
           }
         },
         "languages": {

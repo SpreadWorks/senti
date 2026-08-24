@@ -80,7 +80,7 @@ function acceptanceContract() {
   return new AcceptanceArtifactSummaryContract({ title: "Acceptance summary", headings: ACCEPTANCE_HEADINGS });
 }
 
-function resolved(profileKey = "codex/gpt-5.4") {
+function resolved(profileKey = "codex/gpt-5.6-terra-medium") {
   return {
     providerKey: "codex",
     profileKey,
@@ -297,7 +297,7 @@ describe("artifact view summary", () => {
 
   it("includes the resolved provider and profile in cache identity and returns a matching cache hit", async () => {
     const view = specView();
-    const mutableResolved = resolved("codex/gpt-5.4");
+    const mutableResolved = resolved("codex/gpt-5.6-terra-medium");
     const first = new ArtifactViewSummaryFingerprint({
       fullMarkdown: view.markdown,
       contract: specContract(),
@@ -308,7 +308,7 @@ describe("artifact view summary", () => {
     const changedProfile = new ArtifactViewSummaryFingerprint({
       fullMarkdown: view.markdown,
       contract: specContract(),
-      resolved: resolved("codex/gpt-5.5"),
+      resolved: resolved("codex/gpt-5.6-sol-medium"),
       lang: "en",
       i18nRevision: "messages-v1",
     });
@@ -323,7 +323,7 @@ describe("artifact view summary", () => {
 
     const cache = new MemoryCache();
     cache.entries.set(`spec.record:summary:${first}`, { markdown: "# Cached summary" });
-    const agent = new FakeAgent([], { profileKey: "codex/gpt-5.4" });
+    const agent = new FakeAgent([], { profileKey: "codex/gpt-5.6-terra-medium" });
     const service = new ArtifactViewSummaryService({ agent, cache, lang: "en", i18nRevision: "messages-v1" });
     const result = await service.summarize({ fullView: view, contract: specContract() });
 

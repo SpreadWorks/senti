@@ -186,6 +186,8 @@ sennel は `.sennel/config.json` を唯一の設定ファイルとして読み�
 
 built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.sennel/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
 
+built-in の Codex tier は、軽量処理用の `codex/gpt-5.6-luna-low`、通常の生成・検証用の `codex/gpt-5.6-terra-low` / `codex/gpt-5.6-terra-medium`、品質重視のレビュー用の `codex/gpt-5.6-sol-medium` です。
+
 ```json
 {
   "agent": {

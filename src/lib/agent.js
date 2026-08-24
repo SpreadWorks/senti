@@ -44,7 +44,7 @@ const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
 const RETRY_BACKOFF_FACTOR = 2;
 const DEFAULT_PROVIDER_FAMILY_ALIASES = Object.freeze({
-  codex: "codex/gpt-5.4",
+  codex: "codex/gpt-5.6-terra-medium",
   claude: "claude/sonnet",
 });
 

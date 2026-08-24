@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-08-24T00:21:02.505Z",
+  "analyzedAt": "2026-08-24T02:38:16.693Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "bf84e699e3d60044a57300e6effc35f2",
+        "hash": "b280362d292be7e2eed13c27006419c0",
         "lines": 47,
-        "mtime": "2026-08-24T00:16:33.405Z",
+        "mtime": "2026-08-24T01:22:27.984Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -28,23 +28,23 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "Defines the Sennel package as an ESM-based Node.js CLI for spec-driven documentation generation. It exposes the `sennel` executable and packages only the source tree while excluding preset tests.",
-        "detail": "The package requires Node.js 18.19.0 or newer and uses pnpm 11.22.0 as its package manager. Its binary and root export both point to `src/sennel.js`, making the same entry point available to CLI users and consumers. Release, validation, and test scripts cover version synchronization, skill checks, and unit, integration, end-to-end, acceptance, and agent test scopes. The metadata identifies the project as MIT-licensed documentation and source-analysis tooling hosted on GitHub.",
+        "summary": "Defines the Sennel package metadata, executable entry point, supported Node.js version, and project scripts.",
+        "detail": "The package is an ES module named `sennel` and exposes `src/sennel.js` both as its CLI binary and package export. It targets Node.js 18.19.0 or newer and publishes the `src/` directory while excluding preset tests. Scripts cover release validation, skill validation, and unit, integration, end-to-end, acceptance, agent, and full test scopes. The package uses pnpm 11.22.0, is MIT licensed, and describes Sennel as tooling for spec-driven automated documentation generation.",
         "chapter": "stack_and_ops",
         "role": "config",
         "enrich": {
-          "processedAt": "2026-08-24T00:21:37.085Z",
+          "processedAt": "2026-08-24T01:24:50.876Z",
           "attempts": 1
         },
         "keywords": [
+          "package metadata",
           "Node.js",
           "ES modules",
-          "CLI package",
+          "CLI binary",
           "pnpm",
-          "spec-driven development",
-          "documentation generation",
-          "release scripts",
-          "test scopes"
+          "test scripts",
+          "release validation",
+          "documentation tooling"
         ]
       }
     ],
@@ -147,9 +147,9 @@
       },
       {
         "file": "src/check/commands/freshness.js",
-        "hash": "501d0892ffad76ccd1233cfed156672e",
+        "hash": "d31bc0250d01355fb5a207b30f8be919",
         "lines": 495,
-        "mtime": "2026-08-17T10:32:58.355Z",
+        "mtime": "2026-08-24T01:06:15.696Z",
         "className": "freshness",
         "methods": [
           "FreshnessFileInventory",
@@ -184,21 +184,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "b9efb503",
-        "summary": "Implements the `check freshness` command, which determines whether generated documentation is fresh, stale, missing, or indeterminate. It compares source and documentation timestamps while accounting for scan policies, exclusions, Git behavior, and managed inputs.",
-        "detail": "`FreshnessFileInventory` walks source and repository trees through scan policies and can use Git-aware file enumeration with traversal-limit reporting. `FreshnessScan` tracks the newest modification time and bounded traversal diagnostics, while `FreshnessResult` validates and formats the four supported outcomes. The command resolves documentation context, source roots, scan patterns, and build-input selections before comparing the newest relevant source timestamp with the documentation tree. Text and JSON output formats are supported, and unsuccessful results terminate with the configured error exit code.",
+        "summary": "Implements the `check freshness` command, which determines whether generated documentation is fresh, stale, missing, or indeterminate.",
+        "detail": "The module builds a policy-aware file inventory, applies source and managed-input selections, excludes configured directories, and can use Git file listings with bounded output buffering. `FreshnessScan` tracks the newest source modification time and traversal limits, while `FreshnessResult` validates status values and formats text or JSON output. The freshness check compares source timestamps against the documentation directory and handles missing documentation, invalid path relationships, traversal limits, and unsupported output formats. The command integrates with Sennel's CLI argument parser, command framework, documentation context, and exit-code conventions.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:50.907Z",
+          "processedAt": "2026-08-24T01:24:50.876Z",
           "attempts": 1
         },
         "keywords": [
           "freshness check",
-          "documentation staleness",
-          "timestamp comparison",
-          "scan policy",
-          "Git inventory",
+          "documentation status",
+          "stale detection",
+          "file inventory",
+          "Git",
+          "source timestamps",
           "JSON output",
+          "CLI command",
           "traversal limits"
         ]
       },
@@ -265,9 +267,9 @@
       },
       {
         "file": "src/check/lib/documentation-build-input-selection.js",
-        "hash": "c8514800429ee0608e9feaa2045ec211",
-        "lines": 84,
-        "mtime": "2026-08-17T10:24:44.055Z",
+        "hash": "09c6f3ac91fdb9985f786f760016e761",
+        "lines": 91,
+        "mtime": "2026-08-24T01:06:56.232Z",
         "className": "documentation-build-input-selection",
         "methods": [
           "DocumentationBuildInputSelection",
@@ -285,22 +287,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a34a97e8",
-        "summary": "Provides the selection model used to determine which files and directories participate in documentation builds and freshness checks. It combines configured source patterns with managed Flow workspace inputs and exclusions.",
-        "detail": "`DocumentationBuildInputSelection` normalizes repository-relative paths and validates relationships between the source root, Flow specification root, and managed input root. File matching accepts either scan-policy matches or explicitly managed files, while directory traversal similarly includes managed directories when required. The class generates pathspec exclusions and converts between repository-relative and source-relative paths. It also prevents Flow specification content from being treated as ordinary source input when it lies outside the configured source scope.",
+        "summary": "Encapsulates the rules for selecting source, supplemental, managed, and FlowSpec inputs used during documentation builds and freshness scans.",
+        "detail": "`DocumentationBuildInputSelection` combines a documentation source scan policy with normalized relative paths for supplemental files and managed inputs. It distinguishes conservative file matching from explicit or managed matching, allowing scanners to decide both whether to include files and whether to enter directories. Managed paths include the configured managed root, FlowSpec root, explicit files, and explicit directories, with descendant checks normalized to repository-relative POSIX paths. The class also generates scan exclusions and translates repository paths back to source-relative paths when needed.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:50.907Z",
+          "processedAt": "2026-08-24T01:24:50.876Z",
           "attempts": 1
         },
         "keywords": [
-          "documentation inputs",
+          "input selection",
           "source selection",
-          "managed files",
-          "Flow workspace",
+          "scan policy",
+          "managed inputs",
+          "FlowSpec",
           "path normalization",
           "directory traversal",
-          "pathspec exclusions"
+          "documentation build"
         ]
       },
       {
@@ -14390,14 +14393,15 @@
       },
       {
         "file": "src/lib/agent-defaults.js",
-        "hash": "96b8e8809a740c652cb0742c858360c6",
-        "lines": 240,
-        "mtime": "2026-08-10T16:21:08.668Z",
+        "hash": "292fcb8456ce8eaf1975794ec704d596",
+        "lines": 242,
+        "mtime": "2026-08-24T02:09:52.511Z",
         "className": "agent-defaults",
         "methods": [
           "defaultAgentProfiles",
           "defaultAgentProviders",
           "mergeAgentDefaults",
+          "codexProvider",
           "clone",
           "referencedProviderKeys"
         ],
@@ -14415,22 +14419,21 @@
           "src/setup.js"
         ],
         "id": "1af31edd",
-        "summary": "Supplies built-in agent provider and profile defaults, then merges them into user configuration. It ensures profile references remain internally consistent.",
-        "detail": "The file keeps canonical provider and profile tables, cloning them defensively before exposure so callers cannot mutate shared defaults. It derives which providers are referenced by the selected profiles and validates that each referenced key exists in the provider pool. `mergeAgentDefaults` overlays defaults onto a user-supplied agent object while preserving explicit configuration. This gives the rest of the system a normalized agent configuration without duplicating default-resolution logic in multiple places.",
+        "summary": "Defines built-in agent provider pools and profile defaults, then exposes cloned defaults and merging utilities for agent configuration.",
+        "detail": "The module centralizes provider definitions and reusable agent profiles in immutable-style configuration objects. It clones returned structures through JSON serialization to prevent callers from mutating shared defaults. Provider references used by profiles are validated, and unknown providers produce explicit errors. Agent-specific settings can be merged with these defaults while enforcing that the input agent configuration is an object.",
         "chapter": "configuration",
-        "role": "config",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-14T01:23:09.513Z",
+          "processedAt": "2026-08-24T02:38:36.000Z",
           "attempts": 1
         },
         "keywords": [
           "agent defaults",
-          "provider defaults",
-          "profile defaults",
-          "configuration merge",
-          "default profiles",
-          "provider validation",
-          "normalized config"
+          "provider pool",
+          "profile configuration",
+          "configuration merging",
+          "built-in profiles",
+          "provider validation"
         ]
       },
       {
@@ -14617,9 +14620,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "8d17ff8e42d30e5936db863557727ad8",
+        "hash": "0446743937fe5184de3d738759b42897",
         "lines": 1522,
-        "mtime": "2026-08-20T07:19:00.419Z",
+        "mtime": "2026-08-24T02:09:52.512Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -14680,22 +14683,22 @@
           "src/lib/plugin-registry.js"
         ],
         "id": "13ddf392",
-        "summary": "Runs external agents with profile resolution, prompt caching, bounded retries, structured output parsing, and process-tree supervision.",
-        "detail": "The Agent class resolves provider profiles, validates execution environments and working directories, constructs invocations, and supports JSON schema delivery through temporary files or command arguments. It applies retry policies with exponential backoff, records invocation and prompt-cache metrics, and filters provider streaming events before parsing output. ChildProcessSupervisor tracks process identities and descendant termination across platforms, including Linux process groups and Windows task termination. Prompt cache identities, flow attribution, diagnostic formatting, and a plugin-facing API provide stable integration around agent calls.",
-        "chapter": "configuration",
+        "summary": "Implements the agent execution engine, including profile and provider resolution, prompt caching, subprocess supervision, retries, timeouts, logging, and plugin integration.",
+        "detail": "The Agent class normalizes execution environments, resolves safe absolute working directories, selects profiles, constructs provider-specific commands, and invokes child processes with bounded environment data. It supports retry policies, exponential backoff, schema-file handling, prompt substitution, streaming-event filtering, output parsing, and invocation metrics. Process supervision tracks process groups and descendants, applies platform-specific termination behavior, and reports timeout diagnostics for unterminated members. Prompt-cache identities and entries are persisted under managed product paths, while resolution and execution failures are converted into structured diagnostic failures. A PluginAgentApi wrapper exposes resolve and call operations for plugin consumers.",
+        "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:51.256Z",
+          "processedAt": "2026-08-24T02:38:36.000Z",
           "attempts": 1
         },
         "keywords": [
           "agent execution",
-          "provider profiles",
+          "provider resolution",
+          "profile selection",
+          "subprocess supervision",
           "prompt cache",
           "retry backoff",
-          "JSON schema",
-          "process supervision",
-          "metrics",
+          "process timeout",
           "plugin API"
         ]
       },
@@ -18435,11 +18438,13 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "aa49bc63360d1da31d17923254bb2825",
-        "lines": 253,
-        "mtime": "2026-08-06T10:05:13.734Z",
+        "hash": "259ca901cf745aadeed7f2779b06dfa2",
+        "lines": 223,
+        "mtime": "2026-08-24T02:09:52.511Z",
         "className": "provider",
-        "methods": [],
+        "methods": [
+          "defaultProfilesForCommand"
+        ],
         "imports": [
           "./agent-defaults.js",
           "./provider-schema.js"
@@ -18457,22 +18462,23 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "summary": "Provider abstraction layer for agent backends such as Claude, Codex, and user-defined commands. It standardizes command construction, output parsing, schema adaptation, and profile lookup.",
-        "detail": "The base Provider class defines overridable hooks for parsing stdout, selecting system-prompt and working-directory flags, adapting schemas, and exposing telemetry fields. ClaudeProvider expects a JSON event envelope and extracts the final result plus optional structured output, while CodexProvider builds exec-based commands and parses line-oriented event output. UserProvider keeps parsing simple and delegates prompt and workdir flags to profile settings. ProviderRegistry merges built-in and configured profiles, supports prefix lookups for family-style keys, and returns the resolved provider, profile, and provider key together.",
-        "chapter": "configuration",
+        "summary": "Provides provider abstractions and concrete Claude, Codex, and user-defined provider implementations, plus registry-based profile lookup.",
+        "detail": "The Provider base class defines common parsing and command-construction hooks for provider integrations. ClaudeProvider and CodexProvider parse their respective JSON or event-stream output formats, expose system-prompt and working-directory flags, and adapt JSON schemas where required. UserProvider supplies a minimal passthrough implementation driven by profile-defined flags. ProviderRegistry merges built-in and configured profiles, resolves provider/profile keys including family prefixes, and exposes lookup and availability checks. Default command profiles are derived from the built-in provider defaults.",
+        "chapter": "project_structure",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-08T08:22:47.520Z",
+          "processedAt": "2026-08-24T02:38:36.000Z",
           "attempts": 1
         },
         "keywords": [
-          "provider registry",
+          "provider abstraction",
           "Claude provider",
           "Codex provider",
-          "agent backend",
+          "user provider",
+          "provider registry",
+          "JSON parsing",
           "profile lookup",
-          "command builder",
-          "output parser"
+          "JSON schema adaptation"
         ]
       },
       {
@@ -20204,9 +20210,9 @@
     ],
     "summary": {
       "total": 362,
-      "totalMethods": 3684
+      "totalMethods": 3686
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-08-24T00:21:37.158Z"
+  "enrichedAt": "2026-08-24T02:38:36.000Z"
 }

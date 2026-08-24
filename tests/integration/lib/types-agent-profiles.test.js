@@ -192,7 +192,7 @@ describe("validateConfig — agent.profiles", () => {
             "docs.enrich": "claude/opus",
           },
           fast: {
-            "docs.text": "codex/gpt-5.3",
+            "docs.text": "codex/gpt-5.6-terra-low",
           },
         },
       },
@@ -200,7 +200,7 @@ describe("validateConfig — agent.profiles", () => {
     const result = validate(cfg);
     assert.equal(typeof result, "object");
     assert.equal(result.agent.profiles.default["docs.text"], "claude/sonnet");
-    assert.equal(result.agent.profiles.fast["docs.text"], "codex/gpt-5.3");
+    assert.equal(result.agent.profiles.fast["docs.text"], "codex/gpt-5.6-terra-low");
   });
 
   // GAP-8: src/lib/types.js モジュールのインポートが失敗しない

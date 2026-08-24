@@ -72,7 +72,7 @@ function realCodexAgent({ mainRoot, executionRoot, flowManager }) {
   return new Agent({
     config: {
       agent: {
-        default: "codex/gpt-5.4",
+        default: "codex/gpt-5.6-sol-medium",
         timeout: 240,
         retryCount: 0,
       },

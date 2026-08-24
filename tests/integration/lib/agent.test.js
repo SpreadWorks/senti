@@ -201,7 +201,7 @@ describe("Agent.call() — basic invocation", () => {
     const agentWorkDir = path.join(root, ".tmp");
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const agent = makeAgent(null, {
-      config: { agent: { default: "codex/gpt-5.4" } },
+      config: { agent: { default: "codex/gpt-5.6-terra-medium" } },
       paths: { root, agentWorkDir },
     });
     const schema = { type: "object", properties: { goal: { type: "string" } } };
@@ -227,7 +227,7 @@ describe("Agent.call() — basic invocation", () => {
     const agentWorkDir = path.join(root, ".tmp");
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const agent = makeAgent(null, {
-      config: { agent: { default: "codex/gpt-5.4" } },
+      config: { agent: { default: "codex/gpt-5.6-terra-medium" } },
       paths: { root, agentWorkDir },
     });
     const canonical = JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH, "utf8"));
@@ -700,14 +700,14 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
   it("falls back to the default profile when the active profile has no command entry", () => {
     const cfg = {
       agent: {
-        default: "codex/gpt-5.4",
+        default: "codex/gpt-5.6-terra-medium",
         useProfile: "codex",
         profiles: {
           default: {
             "plugin.sample.publish": "claude/sonnet",
           },
           codex: {
-            flow: "codex/gpt-5.4",
+            flow: "codex/gpt-5.6-terra-medium",
           },
         },
       },
@@ -728,7 +728,7 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
             "plugin.sample.publish": "claude/sonnet",
           },
           codex: {
-            "plugin.sample.publish": "codex/gpt-5.4",
+            "plugin.sample.publish": "codex/gpt-5.6-terra-medium",
           },
         },
       },

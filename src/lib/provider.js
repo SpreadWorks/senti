@@ -6,9 +6,8 @@
  *   - parse(stdout): output format parsing (JSON / NDJSON)
  *   - systemPromptFlag(): CLI flag for system prompt (or null to inline)
  *   - workDirFlag(): CLI flag for working directory (or null if unsupported)
- *   - builtinProfiles(): profile dictionary owned by this provider (args are
- *                        used literally; callers must include any required
- *                        CLI flags such as --json here)
+ *   - builtinProfiles(): profile dictionary selected from the shared default
+ *                        provider pool for this CLI
  *
  * The ProviderRegistry composes built-in providers with user-defined
  * profiles and exposes lookup APIs for the Agent service.
@@ -16,6 +15,13 @@
 
 import { defaultAgentProviders } from "./agent-defaults.js";
 import { adaptJsonSchemaForProvider } from "./provider-schema.js";
+
+function defaultProfilesForCommand(command) {
+  return Object.fromEntries(
+    Object.entries(defaultAgentProviders())
+      .filter(([, profile]) => profile.command === command),
+  );
+}
 
 class Provider {
   static key = null;
@@ -81,32 +87,12 @@ class ClaudeProvider extends Provider {
   }
 
   builtinProfiles() {
-    return {
-      "claude/opus": {
-        command: "claude",
-        args: ["-p", "{{PROMPT}}", "--model", "opus", "--output-format", "json"],
-        jsonOutputFlag: "--output-format json",
-        jsonSchemaFlag: "--json-schema",
-        jsonSchemaMode: "inline",
-      },
-      "claude/sonnet": {
-        command: "claude",
-        args: ["-p", "{{PROMPT}}", "--model", "sonnet", "--output-format", "json"],
-        jsonOutputFlag: "--output-format json",
-        jsonSchemaFlag: "--json-schema",
-        jsonSchemaMode: "inline",
-      },
-    };
+    return defaultProfilesForCommand(ClaudeProvider.key);
   }
 }
 
 class CodexProvider extends Provider {
   static key = "codex";
-  static jsonOutputFlag = "--json";
-
-  static execArgs(model) {
-    return ["exec", this.jsonOutputFlag, "-m", model, "--sandbox", "workspace-write", "{{PROMPT}}"];
-  }
 
   parse(stdout) {
     let text = "";
@@ -145,22 +131,7 @@ class CodexProvider extends Provider {
   }
 
   builtinProfiles() {
-    return {
-      "codex/gpt-5.4": {
-        command: "codex",
-        args: CodexProvider.execArgs("gpt-5.4"),
-        jsonOutputFlag: CodexProvider.jsonOutputFlag,
-        jsonSchemaFlag: "--output-schema",
-        jsonSchemaMode: "file",
-      },
-      "codex/gpt-5.3": {
-        command: "codex",
-        args: CodexProvider.execArgs("gpt-5.3-codex"),
-        jsonOutputFlag: CodexProvider.jsonOutputFlag,
-        jsonSchemaFlag: "--output-schema",
-        jsonSchemaMode: "file",
-      },
-    };
+    return defaultProfilesForCommand(CodexProvider.key);
   }
 }
 
@@ -193,7 +164,6 @@ class ProviderRegistry {
     for (const provider of this._providers) {
       Object.assign(merged, provider.builtinProfiles());
     }
-    Object.assign(merged, defaultAgentProviders());
     Object.assign(merged, userProviders);
     return merged;
   }

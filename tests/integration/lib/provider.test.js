@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { Provider, ClaudeProvider, CodexProvider, ProviderRegistry } from "../../../src/lib/provider.js";
+import { defaultAgentProfiles } from "../../../src/lib/agent-defaults.js";
 
 describe("Provider (abstract base)", () => {
   it("exposes the expected method surface", () => {
@@ -184,6 +185,23 @@ describe("CodexProvider", () => {
       );
     }
   });
+
+  it("builtin profiles use GPT-5.6 tiers with explicit reasoning effort", () => {
+    const profiles = provider.builtinProfiles();
+    const expected = {
+      "codex/gpt-5.6-luna-low": ["gpt-5.6-luna", 'model_reasoning_effort="low"'],
+      "codex/gpt-5.6-terra-low": ["gpt-5.6-terra", 'model_reasoning_effort="low"'],
+      "codex/gpt-5.6-terra-medium": ["gpt-5.6-terra", 'model_reasoning_effort="medium"'],
+      "codex/gpt-5.6-sol-medium": ["gpt-5.6-sol", 'model_reasoning_effort="medium"'],
+    };
+
+    assert.deepEqual(Object.keys(profiles).sort(), Object.keys(expected).sort());
+    for (const [key, [model, effort]] of Object.entries(expected)) {
+      const args = profiles[key].args;
+      assert.equal(args[args.indexOf("-m") + 1], model);
+      assert.equal(args[args.indexOf("-c") + 1], effort);
+    }
+  });
 });
 
 describe("ProviderRegistry", () => {
@@ -215,5 +233,24 @@ describe("ProviderRegistry", () => {
   it("returns null when profile key is not registered", () => {
     const registry = new ProviderRegistry();
     assert.equal(registry.resolveProfile("nonexistent/key"), null);
+    assert.equal(registry.resolveProfile("codex/gpt-5.4"), null);
+  });
+});
+
+describe("built-in agent routing", () => {
+  it("routes Codex work by GPT-5.6 tier and explicit effort", () => {
+    const profiles = defaultAgentProfiles();
+    const codexOnly = profiles["codex-only"];
+
+    assert.equal(codexOnly["docs.readme"], "codex/gpt-5.6-luna-low");
+    assert.equal(codexOnly["docs.text"], "codex/gpt-5.6-terra-low");
+    assert.equal(codexOnly["flow.spec.gate"], "codex/gpt-5.6-terra-medium");
+    assert.equal(codexOnly["flow.impl.review.final"], "codex/gpt-5.6-sol-medium");
+
+    for (const profile of Object.values(profiles)) {
+      for (const providerKey of Object.values(profile)) {
+        assert.doesNotMatch(providerKey, /^codex\/gpt-5\.[345](?:$|-)/);
+      }
+    }
   });
 });

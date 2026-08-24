@@ -14,7 +14,7 @@ import { verifyWithAI } from "./ai-verify.js";
 describe("agent acceptance quality", { timeout: 600000 }, () => {
   const configOverrides = {
     type: "base",
-    agent: { default: "codex/gpt-5.4", timeout: 240, retryCount: 1 },
+    agent: { default: "codex/gpt-5.6-terra-medium", timeout: 240, retryCount: 1 },
   };
   const root = copyFixture(getAcceptanceFixtureDir("base"), configOverrides);
   initGitRepo(root);

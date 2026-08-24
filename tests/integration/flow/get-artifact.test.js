@@ -108,7 +108,7 @@ class CountingAgent {
     this.resolveCalls += 1;
     return {
       providerKey: "codex",
-      profileKey: "codex/gpt-5.4",
+      profileKey: "codex/gpt-5.6-terra-medium",
       profile: { command: "codex", args: [] },
     };
   }

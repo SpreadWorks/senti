@@ -94,7 +94,7 @@ The default input set follows Git policy rather than directory names. An ignored
 
 **Agent Providers**
 
-You can define custom agent providers or override built-in ones under `agent.providers`. Built-in providers include `claude/opus`, `claude/sonnet`, `codex/gpt-5.4`, and `codex/gpt-5.3`. Use `{{PROMPT}}` in the `args` array as the injection point for the generated prompt.
+You can define custom agent providers or override built-in ones under `agent.providers`. Built-in Codex providers use GPT-5.6 Luna, Terra, and Sol with an explicit reasoning effort in each provider key. Use `{{PROMPT}}` in the `args` array as the injection point for the generated prompt.
 
 ```json
 {
@@ -120,7 +120,7 @@ Profiles map command prefixes to provider keys, allowing different agent provide
   "agent": {
     "profiles": {
       "ci": {
-        "docs": "codex/gpt-5.4",
+        "docs": "codex/gpt-5.6-terra-low",
         "flow": "claude/sonnet"
       }
     },
@@ -223,6 +223,8 @@ Flow runtime command logs are separate human-readable files. Use `sennel flow ru
 `sennel setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
 
 Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.sennel/config.json`. Define the same key locally only when you want to override the package default.
+
+The built-in Codex tiers are `codex/gpt-5.6-luna-low` for lightweight work, `codex/gpt-5.6-terra-low` and `codex/gpt-5.6-terra-medium` for routine generation and validation, and `codex/gpt-5.6-sol-medium` for quality-sensitive reviews.
 
 ```json
 {

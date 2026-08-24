@@ -80,7 +80,7 @@ describe("Agent.resolve(commandId)", () => {
         default: "claude/opus",
         useProfile: "test-profile",
         profiles: {
-          "test-profile": { "docs.review": "codex/gpt-5.4" },
+          "test-profile": { "docs.review": "codex/gpt-5.6-terra-medium" },
         },
       },
     };
@@ -93,7 +93,7 @@ describe("Agent.resolve(commandId)", () => {
     const agent = makeAgent({ config: { agent: { default: "codex" } } });
     const resolved = agent.resolve("workflow.publish");
     assert.ok(resolved);
-    assert.equal(resolved.profileKey, "codex/gpt-5.4");
+    assert.equal(resolved.profileKey, "codex/gpt-5.6-terra-medium");
     assert.equal(resolved.profile.command, "codex");
   });
 });
@@ -154,7 +154,7 @@ describe("Agent — workDir auto-injection", () => {
   it("appends [workDirFlag, paths.agentWorkDir] to args when provider declares workDirFlag", () => {
     const root = tmpDir();
     const agentWorkDir = path.join(root, ".tmp");
-    const cfg = { agent: { default: "codex/gpt-5.4", timeout: 300 } };
+    const cfg = { agent: { default: "codex/gpt-5.6-terra-medium", timeout: 300 } };
     const agent = makeAgent({ config: cfg, paths: { root, agentWorkDir } });
     const built = agent._buildInvocationForTest("hello", { commandId: "test" });
     const idx = built.finalArgs.indexOf("-C");
