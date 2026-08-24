@@ -34,6 +34,34 @@ import {
   reviewPhaseForFlowStepId,
 } from "./lib/review-route.js";
 
+import {
+  GateAttemptIdentity,
+  GateCatalogPublication,
+  GateFailureCategory,
+  GateLineage,
+  GateRecoveryEvidence,
+  GateRetryMetrics,
+  GateProducerOwnership,
+  GateTargetBinding,
+  GateTransitionFacts,
+} from "./lib/gate-transition.js";
+
+// Facts are read by a focused boundary, but every Gate policy value and the
+// only resolver live in this definition module. Commands, registry hooks,
+// persistence, and next-action must consume this API instead of selecting a
+// route themselves.
+export {
+  GateAttemptIdentity,
+  GateCatalogPublication,
+  GateFailureCategory,
+  GateLineage,
+  GateRecoveryEvidence,
+  GateRetryMetrics,
+  GateProducerOwnership,
+  GateTargetBinding,
+  GateTransitionFacts,
+};
+
 const MAX_DEPTH = 3;
 
 function isPositiveInteger(value) {
@@ -106,6 +134,198 @@ function requireStepList(value, field) {
     throw new Error(`${field} must be a non-empty array`);
   }
   return Object.freeze(value.map((step) => requireString(step, field)));
+}
+
+const GATE_DISPOSITIONS = new Set([
+  "pass", "retry", "repair", "defer", "external-blocked", "blocked", "recovery", "advance",
+]);
+const GATE_TRANSITION_TOKEN = Symbol("definition-gate-transition");
+
+export class GateTransitionDisposition {
+  constructor(token, { operation, reason = null } = {}) {
+    if (token !== GATE_TRANSITION_TOKEN) {
+      throw new Error("Gate dispositions are created only by the definition resolver");
+    }
+    this.operation = requireString(operation, "gate disposition operation");
+    if (!GATE_DISPOSITIONS.has(this.operation)) throw new Error("gate disposition operation is invalid");
+    this.reason = reason == null ? null : requireString(reason, "gate disposition reason");
+    Object.freeze(this);
+  }
+
+  toJSON() { return { operation: this.operation, reason: this.reason }; }
+}
+
+class GateDisposition extends GateTransitionDisposition {
+  constructor(token, operation, reason = null) { super(token, { operation, reason }); }
+}
+
+export class GatePassDisposition extends GateDisposition {
+  constructor(token) { super(token, "pass"); }
+}
+export class GateRetryDisposition extends GateDisposition {
+  constructor(token) { super(token, "retry"); }
+}
+export class GateRepairDisposition extends GateDisposition {
+  constructor(token) { super(token, "repair"); }
+}
+export class GateDeferDisposition extends GateDisposition {
+  constructor(token) { super(token, "defer"); }
+}
+export class GateExternalBlockedDisposition extends GateDisposition {
+  constructor(token, reason) { super(token, "external-blocked", reason); }
+}
+export class GateBlockedDisposition extends GateDisposition {
+  constructor(token, reason) { super(token, "blocked", reason); }
+}
+export class GateRecoveryDisposition extends GateDisposition {
+  constructor(token) { super(token, "recovery"); }
+}
+export class GateAdvanceDisposition extends GateDisposition {
+  constructor(token) { super(token, "advance"); }
+}
+
+export class GateStepUpdate {
+  constructor({ stepId, status } = {}) {
+    this.stepId = requireString(stepId, "gate step update stepId");
+    this.status = requireString(status, "gate step update status");
+    if (!["in_progress", "done"].includes(this.status)) {
+      throw new Error("gate step update status is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return { stepId: this.stepId, status: this.status }; }
+}
+
+export class GateStepUpdatePlan {
+  constructor(token, { updates, incrementRetry = false } = {}) {
+    if (token !== GATE_TRANSITION_TOKEN) {
+      throw new Error("Gate step update plans are created only by the definition resolver");
+    }
+    if (!Array.isArray(updates) || updates.some((entry) => !(entry instanceof GateStepUpdate))) {
+      throw new Error("gate step update plan requires typed updates");
+    }
+    if (typeof incrementRetry !== "boolean") throw new Error("gate step update incrementRetry must be boolean");
+    this.updates = Object.freeze([...updates]);
+    this.incrementRetry = incrementRetry;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      updates: this.updates.map((entry) => entry.toJSON()),
+      incrementRetry: this.incrementRetry,
+    };
+  }
+}
+
+export class GateTransitionDecision {
+  constructor(token, { facts, disposition, advance = null, plan } = {}) {
+    if (token !== GATE_TRANSITION_TOKEN) {
+      throw new Error("Gate transition decisions are created only by definition resolver");
+    }
+    if (!(facts instanceof GateTransitionFacts)) throw new Error("gate decision requires typed facts");
+    if (!(disposition instanceof GateTransitionDisposition)) throw new Error("gate decision requires typed disposition");
+    if (advance !== null && !(advance instanceof GateAdvanceDisposition)) {
+      throw new Error("gate decision advance must be typed");
+    }
+    if (!(plan instanceof GateStepUpdatePlan)) throw new Error("gate decision requires typed plan");
+    this.facts = facts;
+    this.disposition = disposition;
+    this.advance = advance;
+    this.plan = plan;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      facts: this.facts.toJSON(),
+      disposition: this.disposition.toJSON(),
+      advance: this.advance?.toJSON() ?? null,
+      plan: this.plan.toJSON(),
+    };
+  }
+}
+
+function gateActivePlan(facts, { incrementRetry = false } = {}) {
+  return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
+    updates: [new GateStepUpdate({ stepId: facts.target.stepId, status: "in_progress" })],
+    incrementRetry,
+  });
+}
+
+function gateSettledPlan(facts) {
+  return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
+    updates: [new GateStepUpdate({ stepId: facts.target.stepId, status: "done" })],
+  });
+}
+
+/**
+ * The definition's phase-neutral Gate policy. Phase migrations may add their
+ * own facts, but execution and projection layers cannot choose a disposition.
+ */
+export function resolveGateTransition(facts) {
+  if (!(facts instanceof GateTransitionFacts)) {
+    throw new Error("resolveGateTransition requires GateTransitionFacts");
+  }
+  if (facts.integrityFailure !== null) {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateBlockedDisposition(GATE_TRANSITION_TOKEN, facts.integrityFailure),
+      plan: gateActivePlan(facts),
+    });
+  }
+  if (facts.result === "pass") {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GatePassDisposition(GATE_TRANSITION_TOKEN),
+      advance: new GateAdvanceDisposition(GATE_TRANSITION_TOKEN),
+      plan: gateSettledPlan(facts),
+    });
+  }
+  if (facts.result === "recovered" || facts.recoveryEvidence.kind === "recovered") {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateRecoveryDisposition(GATE_TRANSITION_TOKEN),
+      plan: gateActivePlan(facts),
+    });
+  }
+  if (facts.failure.category === "tooling") {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateExternalBlockedDisposition(
+        GATE_TRANSITION_TOKEN,
+        facts.failure.code || "tooling_failure",
+      ),
+      plan: gateActivePlan(facts),
+    });
+  }
+  if (!facts.retry.exhausted) {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateRetryDisposition(GATE_TRANSITION_TOKEN),
+      plan: gateActivePlan(facts, { incrementRetry: true }),
+    });
+  }
+  if (facts.recoveryEvidence.kind === "repair") {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateRepairDisposition(GATE_TRANSITION_TOKEN),
+      plan: gateActivePlan(facts),
+    });
+  }
+  if (facts.recoveryEvidence.kind === "defer") {
+    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+      facts,
+      disposition: new GateDeferDisposition(GATE_TRANSITION_TOKEN),
+      plan: gateSettledPlan(facts),
+    });
+  }
+  return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+    facts,
+    disposition: new GateBlockedDisposition(GATE_TRANSITION_TOKEN, "retry_exhausted"),
+    plan: gateActivePlan(facts),
+  });
 }
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
