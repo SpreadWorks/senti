@@ -14,6 +14,8 @@
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { CanonicalSpecApproval, MAX_APPROVAL_NOTES_LENGTH } from "./canonical-spec-approval.js";
+import { resolveDefinitionRoute } from "../definition.js";
+import { approvalRouteFacts } from "./definition-route-facts.js";
 
 function isValidIso8601(value) {
   if (typeof value !== "string" || value.length === 0) return false;
@@ -61,10 +63,30 @@ export default class SetApprovalCommand extends FlowCommand {
     }
 
     const approval = new CanonicalSpecApproval({ confirmedAt, notes });
-    const continuation = ctx.flowManager.approveSpecContinuation({
-      specId: ctx.flowState.specId,
-      approval,
+    const state = ctx.flowManager.load(ctx.flowState.specId);
+    const typedState = ctx.flowManager.canonicalState(state.specId);
+    const spec = ctx.flowManager.readArtifact({
+      specId: state.specId,
+      logicalKey: "spec.record",
+      consumerNodeId: "approval",
     });
-    return continuation;
+    const plan = resolveDefinitionRoute(approvalRouteFacts({
+      state: typedState,
+      specDescriptor: spec.descriptor,
+      spec: JSON.parse(spec.bytes.toString("utf8")),
+      requestedApproval: true,
+    }));
+    return plan.apply({
+      confirmAndAdvance() {
+        return ctx.flowManager.approveSpecContinuation({
+          specId: state.specId,
+          approval,
+          expectedSpecDigest: plan.facts.specPublicationDigest,
+        });
+      },
+      blocked(selected) {
+        throw new Error(`approval continuation is blocked: ${selected.reason}`);
+      },
+    });
   }
 }

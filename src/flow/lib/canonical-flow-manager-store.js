@@ -1738,7 +1738,7 @@ export class CanonicalFlowManagerStore {
    * approval Attempt remains active; a crash can therefore only replay the
    * missing additions before the one confirmation that writes approval.
    */
-  approveSpecContinuation({ specId = null, approval } = {}) {
+  approveSpecContinuation({ specId = null, approval, expectedSpecDigest = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const update = approval instanceof CanonicalSpecApproval
@@ -1753,6 +1753,9 @@ export class CanonicalFlowManagerStore {
       logicalKey: "spec.record",
       consumerNodeId: "approval",
     });
+    if (expectedSpecDigest !== null && source.descriptor.hash !== expectedSpecDigest) {
+      throw new CurrentFlowStateConflictError("canonical spec.record changed before approval confirmation");
+    }
     const document = JSON.parse(source.bytes.toString("utf8"));
     const sourceHash = source.descriptor.hash;
     const taskContainer = state.findNode(state.definition.dynamicTaskContainerId);
@@ -1787,14 +1790,18 @@ export class CanonicalFlowManagerStore {
       added.push(id.value);
       state = this.runtime.load(resolved);
     }
-    const approvedDocument = update.apply(document);
+    const existingApproval = document.user_approval?.approved === true
+      ? document.user_approval
+      : null;
+    const approvedDocument = existingApproval === null ? update.apply(document) : document;
+    const confirmedAt = existingApproval?.confirmed_at ?? update.confirmedAt;
     this.runtime.confirmAttempt({
       specId: resolved,
       activityId: activityId("spec-approval-confirmed"),
       result: {
         outcome: "passed",
         summary: "explicit Spec approval confirmed",
-        confirmedAt: update.confirmedAt,
+        confirmedAt,
         artifactRefs: [],
       },
       specRecord: new CurrentFlowSpecRecord(approvedDocument, { specId: resolved }),

@@ -2155,6 +2155,8 @@ export const FLOW_COMMANDS = {
       async post(ctx, result) {
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
         const { validateAcceptanceReviewArtifact } = await import("./lib/acceptance-review-artifacts.js");
+        const { resolveDefinitionRoute } = await import("./definition.js");
+        const { acceptanceReviewRouteFacts } = await import("./lib/definition-route-facts.js");
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "acceptance.review") {
           throw new Error("acceptance-review canonical result artifact is missing");
@@ -2167,45 +2169,30 @@ export const FLOW_COMMANDS = {
         const requirementIds = JSON.parse(spec.bytes.toString("utf8")).requirements
           .map((entry) => entry.id);
         const artifact = validateAcceptanceReviewArtifact(attached.payload, { requirementIds });
-        if (artifact.verdict === "blocked") {
-          ctx.flowManager.publishCurrentAttemptResult({
-            specId: ctx.flowState.specId,
-            commandResult: result,
-          });
-          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
-          return;
-        }
-        if (artifact.verdict === "repair_required") {
-          // This is a producer-to-replacement transition, not a generic
-          // completion followed by a rewind: one Activity keeps the
-          // acceptance result, its catalog publication, and the replacement
-          // impl-triage Attempt indivisible for recovery.
-          ctx.flowManager.repairAcceptanceReview({
-            specId: ctx.flowState.specId,
-            commandResult: result,
-          });
-          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
-          return;
-        }
-        tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, {
-          event: "acceptance-review:post",
-          result,
-        });
         const specId = ctx.flowState.specId;
-        if (artifact.verdict === "pass") {
-          ctx.flowManager.completeAcceptanceDecisionNoOp({ specId });
-          ctx.flowManager.updateStepStatus({
-            stepId: "final-regression",
-            requestedStatus: "in_progress",
-          }, { specId });
-        } else if (artifact.verdict === "user_decision_required") {
-          ctx.flowManager.updateStepStatus({
-            stepId: "acceptance-decision",
-            requestedStatus: "in_progress",
-          }, { specId });
-        } else {
-          throw new Error(`unsupported canonical acceptance verdict: ${artifact.verdict}`);
-        }
+        const plan = resolveDefinitionRoute(acceptanceReviewRouteFacts({
+          state: ctx.flowManager.canonicalState(specId),
+          artifact,
+        }));
+        plan.apply({
+          blocked() {
+            ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+          },
+          repairAcceptanceToImplTriage() {
+            // One Store Activity retains the reviewed artifact and creates
+            // the replacement impl-triage Attempt together.
+            ctx.flowManager.repairAcceptanceReview({ specId, commandResult: result });
+          },
+          awaitAcceptanceDecision() {
+            tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, { event: "acceptance-review:post", result });
+            ctx.flowManager.updateStepStatus({ stepId: "acceptance-decision", requestedStatus: "in_progress" }, { specId });
+          },
+          advanceFinalRegression() {
+            tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, { event: "acceptance-review:post", result });
+            ctx.flowManager.completeAcceptanceDecisionNoOp({ specId });
+            ctx.flowManager.updateStepStatus({ stepId: "final-regression", requestedStatus: "in_progress" }, { specId });
+          },
+        });
         ctx.flowState = ctx.flowManager.load(specId);
       },
     },
