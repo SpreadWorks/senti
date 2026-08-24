@@ -21,6 +21,7 @@ export class DocumentationBuildInputSelection {
     this.flowSpecRoot = flowSpecRoot === null ? null : FlowSpecRoot.from(flowSpecRoot).toString();
     this.sourceRootRelativePath = normalizedRelativePath(sourceRootRelativePath, "source root relative path");
     this.managedRoot = managedRoot === null ? null : normalizedRelativePath(managedRoot, "managed root");
+    this.supplementalInputFiles = Object.freeze(["package.json"]);
     this.managedInputFiles = Object.freeze(this.managedRoot === null ? [] : ["config.json", "config.local.json", "overrides.json"].map((file) => `${this.managedRoot}/${file}`));
     this.managedInputDirectories = Object.freeze(this.managedRoot === null ? [] : ["templates", "presets", "plugins", "locale", "data"].map((directory) => `${this.managedRoot}/${directory}`));
     Object.freeze(this);
@@ -29,13 +30,15 @@ export class DocumentationBuildInputSelection {
   matchesConservativeFile(relativePath) {
     const repositoryPath = this.#repositoryPath(relativePath);
     if (this.#isManagedPath(repositoryPath)) return this.#isManagedInput(repositoryPath);
-    return this.flowSpecRoot === null || !isSameOrDescendant(repositoryPath, this.flowSpecRoot);
+    if (this.#isFlowSpecPath(repositoryPath)) return false;
+    return this.supplementalInputFiles.includes(relativePath) || this.scanSelection.matchesFile(relativePath);
   }
 
   shouldEnterConservativeDirectory(relativePath) {
     const repositoryPath = this.#repositoryPath(relativePath);
     if (this.#isManagedPath(repositoryPath)) return this.#isManagedInputDirectory(repositoryPath);
-    return this.flowSpecRoot === null || !isSameOrDescendant(repositoryPath, this.flowSpecRoot);
+    if (this.#isFlowSpecPath(repositoryPath)) return false;
+    return this.scanSelection.shouldEnterDirectory(relativePath);
   }
 
   matchesExplicitOrManagedFile(relativePath) {
@@ -64,6 +67,10 @@ export class DocumentationBuildInputSelection {
 
   #isManagedPath(repositoryPath) {
     return this.managedRoot !== null && isSameOrDescendant(repositoryPath, this.managedRoot);
+  }
+
+  #isFlowSpecPath(repositoryPath) {
+    return this.flowSpecRoot !== null && isSameOrDescendant(repositoryPath, this.flowSpecRoot);
   }
 
   #isManagedInput(repositoryPath) {

@@ -191,6 +191,31 @@ describe("bounded scan and freshness results", () => {
     assert.equal(result.srcNewest, untrackedNewer.toISOString());
   });
 
+  it("does not treat generated root documents outside scan selection as source inputs", async () => {
+    tmp = createTmpDir();
+    initGitRepo(tmp);
+    writeFile(tmp, "src/tracked.js", "export {};\n");
+    writeFile(tmp, "docs/overview.md", "# Overview\n");
+    writeFile(tmp, "README.md", "# Project\n");
+    writeFile(tmp, "AGENTS.md", "# Instructions\n");
+    commitAll(tmp, "initial fixture");
+
+    const sourceTime = new Date("2026-01-01T00:00:00.000Z");
+    const docsTime = new Date("2026-01-02T00:00:00.000Z");
+    const generatedTime = new Date("2026-01-03T00:00:00.000Z");
+    fs.utimesSync(path.join(tmp, "src/tracked.js"), sourceTime, sourceTime);
+    fs.utimesSync(path.join(tmp, "docs/overview.md"), docsTime, docsTime);
+    fs.utimesSync(path.join(tmp, "README.md"), generatedTime, generatedTime);
+    fs.utimesSync(path.join(tmp, "AGENTS.md"), generatedTime, generatedTime);
+
+    const result = await checkFreshness(tmp, tmp, {
+      sourceSelection: selectedSource(["src/**/*.js"]),
+    });
+
+    assert.equal(result.result, "fresh");
+    assert.equal(result.srcNewest, sourceTime.toISOString());
+  });
+
   it("keeps tracked files in freshness after a later ignore rule matches them", async () => {
     tmp = createTmpDir();
     initGitRepo(tmp);

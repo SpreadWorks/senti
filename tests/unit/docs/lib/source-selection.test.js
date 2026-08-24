@@ -81,7 +81,11 @@ describe("documentation source selection", () => {
     }
     assert.equal(selection.matchesConservativeFile(".sennel/output/analysis.json"), false);
     assert.equal(selection.matchesConservativeFile("specs/example/001/steps/result.json"), false);
+    assert.equal(selection.matchesConservativeFile("AGENTS.md"), false);
+    assert.equal(selection.matchesConservativeFile("README.md"), false);
+    assert.equal(selection.matchesConservativeFile("tests/example.test.js"), false);
     assert.equal(selection.shouldEnterConservativeDirectory("specs"), false);
+    assert.equal(selection.shouldEnterConservativeDirectory("tests"), false);
     assert.equal(selection.shouldEnterConservativeDirectory(".sennel/templates"), true);
     assert.equal(selection.matchesExplicitOrManagedFile("specs/example/001/steps/result.json"), false);
   });

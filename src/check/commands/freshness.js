@@ -39,10 +39,10 @@ const GIT_FILE_LIST_MAX_BUFFER = 16 * 1024 * 1024;
 
 /**
  * Resolves the bounded material-input set that can affect documentation
- * freshness. Git keeps its tracked/non-ignored conservative input inventory,
- * then adds filesystem paths that `docs scan` explicitly selects plus managed
- * build controls. Thus ignored source state matters only when explicitly
- * selected, while managed controls remain material regardless of ignore rules.
+ * freshness. Git contributes tracked/non-ignored files only when they match
+ * the documentation scan or a supplemental build input. The filesystem pass
+ * then adds explicitly selected source plus managed build controls, including
+ * ignored paths that `docs build` actually consumes.
  */
 export class FreshnessFileInventory {
   constructor({ root, policy, sourceSelection = null, excludedDirectory = null, gitRunner = runGit }) {
