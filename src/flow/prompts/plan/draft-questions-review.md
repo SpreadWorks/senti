@@ -1,10 +1,10 @@
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.
    - Run `sennel flow run review --phase draft` once to perform the draft question sanity check.
-   - This stage is not a question generator. An empty `qa[]` is valid.
-   - The review checks the finite user-decision boundary represented by pending/approved questions:
+   - This stage is not a question generator. An empty question ledger is valid.
+   - The review checks the finite user-decision boundary represented by candidates:
      - a question is empty, duplicated, not self-contained, or asks for internal implementation details that project patterns should decide.
      - the authoritative Issue/request, `decisionMap`, project rules, or supplied context already determines the answer, so asking would only reconfirm an existing requirement.
-     - a pending/approved question appears to include an answer or rationale instead of only the question text.
+   - a candidate question appears to include an answer or rationale instead of only the question text.
    - Do not ask "what else is missing"; do not add questions for category coverage; do not propose `NEW` QA entries.
    - The review writes the `draft-review-questions.json` artifact.
    - The review step is detection only. It must not edit `draft.json` and must not write repair audit files.

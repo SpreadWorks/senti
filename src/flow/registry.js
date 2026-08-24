@@ -24,6 +24,11 @@ import {
   findActiveNode,
   resolveLifecyclePlan,
   resolveRuntimeStep,
+  resolveNonGateTransition,
+  NonGateRecordNonblockingAction,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
   SetStepStatus,
   taskIdForResolvedStep,
 } from "./definition.js";
@@ -44,11 +49,20 @@ import {
 } from "./lib/step-transition-policy.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
-import { attachedCanonicalCommandResultPublications } from "./lib/canonical-command-result.js";
+import {
+  attachedCanonicalCommandResultArtifact,
+  attachedCanonicalCommandResultPublications,
+} from "./lib/canonical-command-result.js";
 import { CanonicalFlowArtifactWrite } from "./lib/current-flow-state.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
 import { RepositoryFlowOperationLock } from "../lib/repository-maintenance-lock.js";
+import { readCurrentNonGateTransitionFacts } from "./lib/non-gate-transition-facts.js";
+import { readCurrentTestChainTransitionFacts } from "./lib/test-chain-transition-facts.js";
+import {
+  validateScenarioValidityArtifactShape,
+  validateScenarioValidityObservationCoherence,
+} from "./lib/test-artifacts.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -355,6 +369,43 @@ function tryAppendIssueLog(fn) {
     }
     throw err;
   }
+}
+
+const TEST_CHAIN_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
+
+/**
+ * The post hook does not classify test evidence. It first makes the producer
+ * observation durable, then asks Definition to select the sealed plan and
+ * applies only the typed plan effects. In particular, an integrity decision
+ * has an empty plan, so stale/partial observations cannot settle an Attempt.
+ */
+async function applyTestChainTransition(ctx, result, stepId) {
+  const specId = ctx.specId ?? ctx.flowState.specId;
+  const definition = TEST_CHAIN_DEFINITIONS[stepId];
+  if (!definition) throw new Error(`unknown test-chain Definition: ${stepId}`);
+  ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+  const facts = readCurrentNonGateTransitionFacts({
+    flowManager: ctx.flowManager,
+    specId,
+    readFacts: () => readCurrentTestChainTransitionFacts({ flowManager: ctx.flowManager, specId }),
+  });
+  const decision = resolveNonGateTransition(facts, definition);
+  const recordAction = decision.plan.actions.find((action) => action instanceof NonGateRecordNonblockingAction) ?? null;
+  let nonblockingRecord = null;
+  if (recordAction !== null) {
+    const { deriveEligibleNonblockingObservation } = await import("./lib/nonblocking.js");
+    nonblockingRecord = deriveEligibleNonblockingObservation(
+      { ...ctx, flowState: ctx.flowManager.loadReadOnly(specId) },
+      recordAction.stepId,
+    );
+  }
+  ctx.flowManager.applyTestChainTransitionDecision({ specId, decision, nonblockingRecord });
+  ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+  return decision;
 }
 
 function gateRuntimeLogStepId(ctx) {
@@ -1107,10 +1158,10 @@ export const FLOW_COMMANDS = {
       args: {
         positional: ["questionId"],
         flags: withTargetGuardFlags(["--drop"]),
-        options: withTargetGuardOptions(["--answer", "--why", "--considered", "--dropped-reason"]),
+        options: withTargetGuardOptions(["--question-revision", "--answer", "--why", "--considered", "--dropped-reason"]),
       },
       help: [
-        `Usage: sennel flow set draft-answer <questionId> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>) ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: sennel flow set draft-answer <questionId> --question-revision <revision> (--answer <text> --why <text> [--considered <text>] | --drop --dropped-reason <text>) ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Record the explicit user's answer to the current draft question without completing draft-refine.",
         "The question id and active Flow target are guarded; the next unresolved question remains the dispatcher boundary.",
@@ -2036,7 +2087,7 @@ export const FLOW_COMMANDS = {
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "test.execute") throw new Error("test-execute canonical result artifact is missing");
         validateTestExecuteResultV2(attached.payload);
-        tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post", result });
+        await applyTestChainTransition(ctx, result, "test-execute");
       },
     },
     "scenario-validity": {
@@ -2055,44 +2106,11 @@ export const FLOW_COMMANDS = {
         "  steps/scenario-validity/output.log (transient raw output)",
       ].join("\n"),
       post(ctx, result) {
-        if (result?.result === "pass") {
-          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, {
-            event: "scenario-validity:post",
-            result,
-          });
-          return;
-        }
-        if (
-          result?.result === "block"
-          && ctx.flowState?.policy?.nonblocking?.enabled !== true
-        ) {
-          // RunScenarioValidityCommand already published its cataloged result
-          // and immutable blocking evidence.  Record the matching canonical
-          // failure here so every plan gate reaches next-action through the
-          // same typed lifecycle decision, without duplicating that artifact
-          // publication in the registry hook.
-          ctx.flowManager.failCurrentAttempt({
-            specId: ctx.specId ?? ctx.flowState.specId,
-            failure: {
-              category: "semantic",
-              code: "SCENARIO_VALIDITY_REJECTED",
-              message: "Scenario validity rejected the current test evidence.",
-              retryable: false,
-              retryKind: null,
-            },
-            result: {
-              outcome: "failed",
-              summary: "Scenario validity rejected the current test evidence.",
-              confirmedAt: new Date().toISOString(),
-              artifactRefs: [],
-            },
-          });
-          ctx.flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
-        }
-      },
-      async nonblockingPost(ctx, result) {
-        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "scenario-validity", result);
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "scenario.validity") throw new Error("scenario-validity canonical result artifact is missing");
+        validateScenarioValidityArtifactShape(attached.payload);
+        validateScenarioValidityObservationCoherence(attached.payload);
+        return applyTestChainTransition(ctx, result, "scenario-validity");
       },
     },
     "test-result-review": {
@@ -2112,16 +2130,8 @@ export const FLOW_COMMANDS = {
         const { validateTestResultReview } = await import("./lib/test-artifacts.js");
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "test.result.review") throw new Error("test-result-review canonical result artifact is missing");
-        if (attached.payload.verdict !== "pass") {
-          ctx.flowManager.publishCurrentAttemptResult({ specId: ctx.specId, commandResult: result });
-          throw new Error("test-result-review verdict is not pass");
-        }
         validateTestResultReview(attached.payload);
-        tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post", result });
-      },
-      async nonblockingPost(ctx, result) {
-        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "test-result-review", result);
+        await applyTestChainTransition(ctx, result, "test-result-review");
       },
     },
     // retro is a mainline impl-phase step that aggregates test-execute results.
@@ -2228,6 +2238,8 @@ export const FLOW_COMMANDS = {
       async post(ctx, result) {
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
         const { validateAcceptanceReviewArtifact } = await import("./lib/acceptance-review-artifacts.js");
+        const { resolveDefinitionRoute } = await import("./definition.js");
+        const { acceptanceReviewRouteFacts } = await import("./lib/definition-route-facts.js");
         const attached = attachedCanonicalCommandResultArtifact(result);
         if (attached?.logicalKey !== "acceptance.review") {
           throw new Error("acceptance-review canonical result artifact is missing");
@@ -2240,45 +2252,30 @@ export const FLOW_COMMANDS = {
         const requirementIds = JSON.parse(spec.bytes.toString("utf8")).requirements
           .map((entry) => entry.id);
         const artifact = validateAcceptanceReviewArtifact(attached.payload, { requirementIds });
-        if (artifact.verdict === "blocked") {
-          ctx.flowManager.publishCurrentAttemptResult({
-            specId: ctx.flowState.specId,
-            commandResult: result,
-          });
-          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
-          return;
-        }
-        if (artifact.verdict === "repair_required") {
-          // This is a producer-to-replacement transition, not a generic
-          // completion followed by a rewind: one Activity keeps the
-          // acceptance result, its catalog publication, and the replacement
-          // impl-triage Attempt indivisible for recovery.
-          ctx.flowManager.repairAcceptanceReview({
-            specId: ctx.flowState.specId,
-            commandResult: result,
-          });
-          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
-          return;
-        }
-        tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, {
-          event: "acceptance-review:post",
-          result,
-        });
         const specId = ctx.flowState.specId;
-        if (artifact.verdict === "pass") {
-          ctx.flowManager.completeAcceptanceDecisionNoOp({ specId });
-          ctx.flowManager.updateStepStatus({
-            stepId: "final-regression",
-            requestedStatus: "in_progress",
-          }, { specId });
-        } else if (artifact.verdict === "user_decision_required") {
-          ctx.flowManager.updateStepStatus({
-            stepId: "acceptance-decision",
-            requestedStatus: "in_progress",
-          }, { specId });
-        } else {
-          throw new Error(`unsupported canonical acceptance verdict: ${artifact.verdict}`);
-        }
+        const plan = resolveDefinitionRoute(acceptanceReviewRouteFacts({
+          state: ctx.flowManager.canonicalState(specId),
+          artifact,
+        }));
+        plan.apply({
+          blocked() {
+            ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+          },
+          repairAcceptanceToImplTriage() {
+            // One Store Activity retains the reviewed artifact and creates
+            // the replacement impl-triage Attempt together.
+            ctx.flowManager.repairAcceptanceReview({ specId, commandResult: result });
+          },
+          awaitAcceptanceDecision() {
+            tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, { event: "acceptance-review:post", result });
+            ctx.flowManager.updateStepStatus({ stepId: "acceptance-decision", requestedStatus: "in_progress" }, { specId });
+          },
+          advanceFinalRegression() {
+            tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, { event: "acceptance-review:post", result });
+            ctx.flowManager.completeAcceptanceDecisionNoOp({ specId });
+            ctx.flowManager.updateStepStatus({ stepId: "final-regression", requestedStatus: "in_progress" }, { specId });
+          },
+        });
         ctx.flowState = ctx.flowManager.load(specId);
       },
     },

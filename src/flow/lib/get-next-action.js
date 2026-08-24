@@ -12,14 +12,25 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
 import { getStepInstructions } from "./get-step-instructions.js";
-import { deriveNextAction, resolveDraftTransition } from "../definition.js";
+import {
+  AwaitAcceptanceDecision,
+  AwaitApproval,
+  ConfirmAndAdvance,
+  DefinitionRouteTarget,
+  deriveNextAction,
+  resolveDefinitionRoute,
+  resolveDraftTransition,
+  scenarioValidityTransitionDefinition,
+  testExecuteTransitionDefinition,
+  testResultReviewTransitionDefinition,
+} from "../definition.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
+  BlockedDirective,
   AwaitDraftQuestionDirective,
   AwaitUserDecisionDirective,
-  BlockedDirective,
   CompletedDirective,
   ExecuteCommandDirective,
   ExecuteStepDirective,
@@ -64,11 +75,44 @@ import {
   DraftTransitionFactsError,
   readDraftTransitionFacts,
 } from "./draft-transition-facts.js";
+import {
+  acceptanceDecisionRouteFacts,
+  approvalRouteFacts,
+} from "./definition-route-facts.js";
+import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
+import { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+import { hasCurrentTestChainPublication, readCurrentTestChainTransitionFacts } from "./test-chain-transition-facts.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
 // their scoped boundaries until they are explicitly moved.
 export { resolveNonGateNextAction } from "./non-gate-transition-application.js";
+
+const TEST_CHAIN_NEXT_ACTION_DEFINITIONS = Object.freeze({
+  "scenario-validity": scenarioValidityTransitionDefinition,
+  "test-execute": testExecuteTransitionDefinition,
+  "test-result-review": testResultReviewTransitionDefinition,
+});
+const TEST_CHAIN_RESULT_KEYS = Object.freeze({
+  "scenario-validity": "scenario.validity",
+  "test-execute": "test.execute",
+  "test-result-review": "test.result.review",
+});
+
+function blockedTestChainProjection(ctx, typedState, descriptor) {
+  const definition = TEST_CHAIN_NEXT_ACTION_DEFINITIONS[descriptor.nodeId] ?? null;
+  const resultKey = TEST_CHAIN_RESULT_KEYS[descriptor.nodeId] ?? null;
+  if (definition === null || resultKey === null || descriptor.operation !== "resume") return null;
+  const snapshot = ctx.flowManager.readCanonicalTransitionSnapshot(typedState.specId);
+  if (snapshot?.stepId !== descriptor.nodeId || !hasCurrentTestChainPublication(snapshot, resultKey)) return null;
+  const selected = resolveNonGateNextAction({
+    flowManager: ctx.flowManager,
+    specId: typedState.specId,
+    readStepFacts: () => readCurrentTestChainTransitionFacts({ flowManager: ctx.flowManager, specId: typedState.specId }),
+    stepDefinition: definition,
+  });
+  return ["blocked", "await-user-input"].includes(selected.decision.disposition.operation) ? selected : null;
+}
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -383,6 +427,7 @@ function draftQuestionDirective(disposition) {
   return new AwaitDraftQuestionDirective({
     questionId: disposition.questionId,
     question: disposition.question,
+    questionRevision: disposition.questionRevision,
   });
 }
 
@@ -392,8 +437,8 @@ function draftQuestionDirective(disposition) {
  * instruction inferred from a worker prompt. The actual approval token is
  * intentionally issued only by the dispatcher boundary.
  */
-function approvalDecisionDirective({ root, state, binding, target, config, action }) {
-  if (target.scope !== "flow" || target.stepId !== "approval") return null;
+function approvalDecisionDirective({ root, state, binding, target, config, action, plan }) {
+  if (target.scope !== "flow" || target.stepId !== "approval" || (plan !== null && !(plan instanceof AwaitApproval))) return null;
   return new ExecuteStepDirective({
     action,
     actionPrompt: new ApprovalDecisionPrompt({ root, config })
@@ -406,8 +451,8 @@ function approvalDecisionDirective({ root, state, binding, target, config, actio
  * approval.  Its review alternatives are executable read-only commands, so
  * the same target binding remains valid when the user returns to this scene.
  */
-function acceptanceDecisionDirective({ root, state, binding, target, config }) {
-  if (target.scope !== "flow" || target.stepId !== "acceptance-decision") return null;
+function acceptanceDecisionDirective({ root, state, binding, target, config, plan }) {
+  if (target.scope !== "flow" || target.stepId !== "acceptance-decision" || !(plan instanceof AwaitAcceptanceDecision)) return null;
   const messages = acceptanceDecisionMessages({ root, config });
   const command = (value) => guardedCommand(value, state, binding);
   return new AwaitUserDecisionDirective({
@@ -443,6 +488,48 @@ function acceptanceDecisionDirective({ root, state, binding, target, config }) {
       recommendationReason: messages.get("recommendationReason"),
     }),
     reason: messages.get("reason"),
+  });
+}
+
+function definitionRoutePlanForNextAction(ctx, state, typedState, target) {
+  if (target.scope !== "flow") return null;
+  // A pending leaf has no Attempt yet.  It is only a normal start projection;
+  // canonical route facts begin once the Version Store materializes it.
+  const active = typedState.current?.at(-1) === target.nodeId && typedState.attempt !== null;
+  if (target.stepId === "approval") {
+    const spec = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "spec.record", consumerNodeId: "approval" });
+    const node = typedState.findNode(target.nodeId);
+    return resolveDefinitionRoute(approvalRouteFacts({
+      state: typedState,
+      specDescriptor: spec.descriptor,
+      spec: JSON.parse(spec.bytes.toString("utf8")),
+      targetBinding: active ? null : new DefinitionRouteTarget({
+        runId: typedState.runId, specId: typedState.specId, stepId: "approval",
+        attemptId: `pending-${target.nodeId}`, sequence: node.attemptSequence + 1,
+      }),
+    }));
+  }
+  if (!active) return null;
+  if (target.stepId === "acceptance-decision") {
+    const review = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "acceptance.review", consumerNodeId: "acceptance-decision" });
+    const spec = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "spec.record", consumerNodeId: "acceptance-decision" });
+    const history = CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey: "acceptance.review", bytes: review.bytes });
+    return resolveDefinitionRoute(acceptanceDecisionRouteFacts({
+      state: typedState,
+      review: history.current.payload,
+      reviewDescriptor: review.descriptor,
+      spec: JSON.parse(spec.bytes.toString("utf8")),
+    }));
+  }
+  return null;
+}
+
+/** Pure compatibility projection for Definition-owned approval routes. */
+export function projectApprovalRequirements({ plan, requiresApproval, autoApproveChoiceId = null } = {}) {
+  const confirming = plan instanceof ConfirmAndAdvance;
+  return Object.freeze({
+    requiresApproval: confirming ? false : requiresApproval === true,
+    autoApproveChoiceId: confirming ? null : autoApproveChoiceId,
   });
 }
 
@@ -516,6 +603,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
   const strictDirective = target.scope === "flow"
     ? buildPreimplementationBootstrapDirective(ctx, state, target, binding)
     : null;
+  const routePlan = definitionRoutePlanForNextAction(ctx, state, typedState, target);
   const approvalDirective = approvalDecisionDirective({
     root: ctx.root,
     state,
@@ -523,6 +611,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     target,
     config: ctx.config,
     action: derived.action,
+    plan: routePlan,
   });
   const userDecisionDirective = acceptanceDecisionDirective({
     root: ctx.root,
@@ -530,6 +619,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     binding,
     target,
     config: ctx.config,
+    plan: routePlan,
   });
   const draftDecisionDirective = draftQuestionDirective(definitionDescriptor.draftDisposition);
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
@@ -559,6 +649,11 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
         reason: "get-next-action is read-only; the explicit claim command rechecks canonical facts immediately before creating the Attempt.",
       })
     : selectedDirective;
+  const approvalProjection = projectApprovalRequirements({
+    plan: target.stepId === "approval" ? routePlan : null,
+    requiresApproval: derived.requiresApproval,
+    autoApproveChoiceId: derived.autoApproveChoiceId,
+  });
   const result = {
     taskId: target.taskId,
     step: target.stepId,
@@ -566,10 +661,10 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     instructions: instruction,
     context: canonicalWorkerContext(ctx, derived, target, state, typedState),
     output_schema: outputSchema,
-    requires_approval: derived.requiresApproval === true,
+    requires_approval: approvalProjection.requiresApproval,
     ...(binding && { binding: binding.serialize() }),
-    ...(derived.autoApproveChoiceId && {
-      auto_approval_choice_id: derived.autoApproveChoiceId,
+    ...(approvalProjection.autoApproveChoiceId && {
+      auto_approval_choice_id: approvalProjection.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
     directive: claimDirective.toJSON(),
@@ -624,6 +719,33 @@ export default class GetNextActionCommand extends FlowCommand {
 
     if (descriptor === null) {
       return completedNextAction(binding);
+    }
+    let result = null;
+    if (descriptor.nodeId === "scenario-validity") {
+      result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null, selectedFinalRegressionAction);
+      if (result.directive.actionId === "RECOVER_PREIMPLEMENTATION_BOOTSTRAP") {
+        return result;
+      }
+    }
+    const nonGateBlocked = blockedTestChainProjection(ctx, typedState, descriptor);
+    if (nonGateBlocked !== null) {
+      result ??= buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null);
+      const awaitingNonblockingDecision = nonGateBlocked.decision.disposition.operation === "await-user-input";
+      const reason = nonGateBlocked.decision.disposition.reason
+        ?? (awaitingNonblockingDecision
+          ? "the nonblocking observation requires an explicit advisory decision"
+          : "Definition rejected the current canonical test-chain evidence.");
+      return {
+        ...result,
+        definitionTransition: nonGateBlocked.action.toJSON(),
+        directive: new BlockedDirective({
+          code: awaitingNonblockingDecision ? "TEST_CHAIN_NONBLOCKING_DECISION_REQUIRED" : "TEST_CHAIN_EVIDENCE_BLOCKED",
+          reason: awaitingNonblockingDecision ? `Definition selected an explicit nonblocking decision boundary: ${reason}` : `Definition selected blocked: ${reason}`,
+          resumeInstruction: awaitingNonblockingDecision
+            ? "Record the evidence-bound nonblocking repair, retry, or continue decision; do not rerun the observed producer directly."
+            : "Publish a fresh, complete canonical test-chain observation; do not rerun the blocked producer directly.",
+        }).toJSON(),
+      };
     }
     const missingRoute = missingProducerArtifactRouteFor({ ctx, typedState });
     const interruptedRuntimeLog = inspectInterruptedFinalizeSync(ctx);

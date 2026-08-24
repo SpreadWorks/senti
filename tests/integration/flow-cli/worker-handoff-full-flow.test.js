@@ -94,9 +94,20 @@ function inputDocument(request, name) {
   return request.inputs.find((entry) => entry.name === name)?.document ?? null;
 }
 
+function emptyQuestionLedgerDraft(goal = "full flow") {
+  return {
+    devType: "feature",
+    goal,
+    analysis: { problem: "Exercise the full flow.", proposedApproach: "Publish canonical artifacts.", validation: "Complete every deterministic step." },
+    decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
+    questionLedger: { revision: 0, publication: "fixture", evidenceDigest: "a".repeat(64), questions: [] },
+    approval: { approved: true },
+  };
+}
+
 function writeArtifactPayload(stepId, request) {
   if (["draft", "draft-refine"].includes(stepId)) {
-    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson(inputDocument(request, "draft.json") ?? { goal: "full flow" }));
+    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson(inputDocument(request, "draft.json") ?? emptyQuestionLedgerDraft()));
     return;
   }
   if (stepId === "spec") {

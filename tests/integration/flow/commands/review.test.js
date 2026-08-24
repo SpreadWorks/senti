@@ -1987,41 +1987,33 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
       requiresUserJudgment: ["Confirm the user-visible behavior"],
       deferredToSpec: ["Choose helper placement from existing code patterns"],
     },
-    qa: [
+    questionLedger: { revision: 0, publication: "fixture", evidenceDigest: "a".repeat(64), questions: [
       {
         id: "q1",
-        status: "pending",
+        state: "CandidateQuestion",
         category: "impact-scope",
         question: "Which CLI behavior is in scope?",
-        answer: "Do not leak this answer",
-        evidence: "Do not leak this evidence",
-        why: "Do not leak this rationale",
-        considered: "Do not leak this considered field",
-        droppedReason: "Do not leak this dropped reason",
+        revision: 0, provenance: { producer: "fixture" }, evidenceDigest: "a".repeat(64),
       },
       {
         id: "q2",
-        status: "answered",
+        state: "AnsweredQuestion",
         category: "acceptance-criteria",
         question: "Which acceptance criteria apply?",
         answer: "Keep this for coverage review",
-        evidence: "coverage evidence",
+        evidenceDigest: "b".repeat(64),
         why: "coverage rationale",
         considered: "coverage alternative",
-        droppedReason: "",
+        revision: 0, provenance: { producer: "fixture" },
       },
       {
         id: "q3",
-        status: "approved",
+        state: "CandidateQuestion",
         category: "risk-migration-policy",
         question: "Should this approved question be hidden from coverage?",
-        answer: "",
-        evidence: "",
-        why: "",
-        considered: "",
-        droppedReason: "",
+        revision: 0, provenance: { producer: "fixture" }, evidenceDigest: "c".repeat(64),
       },
-    ],
+    ] },
   };
 
   it("omits answer fields from draft-questions-review input", () => {
@@ -2045,7 +2037,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     assertAllDoesNotMatch(prompt, coverageOnlyPatterns);
     assert.match(prompt, /one-shot finite check of the persisted user-decision list/);
     assert.match(prompt, /This is not a question generation task/);
-    assert.match(prompt, /An empty qa\[\] is valid/);
+    assert.match(prompt, /An empty question ledger is valid/);
     assert.match(prompt, /redundant confirmation/);
     assert.match(prompt, /Do not identify missing first-pass questions/);
     assert.match(prompt, /Do not propose NEW QA entries/);
@@ -2059,7 +2051,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "coverage" });
     const renderedQaFieldPatterns = [
       /\*\*Answer:\*\* Keep this for coverage review/,
-      /\*\*Evidence:\*\* coverage evidence/,
+      /\*\*Evidence digest:\*\* b{64}/,
       /\*\*Why:\*\* coverage rationale/,
       /\*\*Considered:\*\* coverage alternative/,
     ];
@@ -2075,10 +2067,9 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     assertAllDoesNotMatch(prompt, omittedQuestionStagePatterns);
     assert.match(prompt, /one-shot final check/);
     assert.match(prompt, /at most 3 highest-impact blocking gaps/);
-    assert.match(prompt, /append QA entries/);
+    assert.match(prompt, /append ledger entries/);
     assert.match(prompt, /If no blocking user decision is required/);
-    assert.match(prompt, /pending: 1/);
-    assert.match(prompt, /approved: 1/);
+    assert.match(prompt, /candidates: 2/);
     assert.match(prompt, /answered: 1/);
     assert.match(prompt, /## Decision Map/);
     assert.match(prompt, /Decide whether draft coverage is blocking/);
@@ -2089,7 +2080,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
   it("renders empty considered as (none) in coverage review", () => {
     const prompt = buildDraftReviewPrompt({
       ...draftJson,
-      qa: [{ ...draftJson.qa[1], considered: "" }],
+      questionLedger: { ...draftJson.questionLedger, questions: [{ ...draftJson.questionLedger.questions[1], considered: "" }] },
     }, "request", [], { key: "coverage" });
 
     assert.match(prompt, /\*\*Considered:\*\* \(none\)/);

@@ -26,8 +26,8 @@
            "title": "copied triage item title",
            "target": "copied triage item target",
            "rationale": "how the draft was changed",
-           "evidence": "draft.json qa[0].question is now self-contained",
-           "changedFieldPaths": ["qa[0].question"]
+           "evidence": "draft.json questionLedger.questions[0].question is now self-contained",
+           "changedFieldPaths": ["questionLedger.questions[0].question"]
          }
        ]
      }

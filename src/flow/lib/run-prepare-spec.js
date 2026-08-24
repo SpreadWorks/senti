@@ -173,7 +173,12 @@ export function buildDraftTemplate() {
     },
     impactOnExisting: [],
     // Questions are created only when research leaves a genuine user decision.
-    qa: [],
+    questionLedger: {
+      revision: 0,
+      publication: "prepare-spec",
+      evidenceDigest: "0".repeat(64),
+      questions: [],
+    },
     openQuestions: [],
     approval: {
       approved: false,

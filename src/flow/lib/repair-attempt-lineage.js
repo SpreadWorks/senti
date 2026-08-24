@@ -4,6 +4,7 @@ const ENTRY_OPERATIONS = new Set([
   "rewind",
   "rewind_test_evidence",
   "repair_test_review",
+  "repair_scenario_validity",
   "plan_gate_repair",
   "recover_attempt",
   ...RETRY_OPERATIONS,
@@ -16,10 +17,15 @@ export class RepairAttemptLineageError extends Error {
   }
 }
 
+function entryTargetsStep(activity, targetStepId) {
+  return activity.nodeId === targetStepId
+    || activity.transition.operation === "repair_scenario_validity";
+}
+
 function matchingEntry({ activities, attempt, targetStepId }) {
   const matches = activities.filter((activity) => (
     ENTRY_OPERATIONS.has(activity?.transition?.operation)
-    && activity.nodeId === targetStepId
+    && entryTargetsStep(activity, targetStepId)
     && activity.transition?.attempt?.id === attempt.id
     && activity.transition.attempt?.nodeId === targetStepId
     && activity.transition.attempt?.sequence === attempt.sequence
@@ -39,7 +45,7 @@ function predecessorAttempt({ activities, attempt, targetStepId }) {
   }
   const matches = activities.filter((activity) => (
     ENTRY_OPERATIONS.has(activity?.transition?.operation)
-    && activity.nodeId === targetStepId
+    && entryTargetsStep(activity, targetStepId)
     && activity.transition?.attempt?.nodeId === targetStepId
     && activity.transition.attempt?.sequence === sequence
   ));

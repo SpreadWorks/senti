@@ -56,9 +56,10 @@ import {
   flowDispatchDigest,
 } from "./dispatch-invocation.js";
 import { buildFlowCommandHookContext } from "./flow-context.js";
-import { resolveDispatcherOwnedFlowAction } from "../definition.js";
+import { ConfirmAndAdvance, resolveDefinitionRoute, resolveDispatcherOwnedFlowAction } from "../definition.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { reconcileCompletedReviewWorkUnits } from "./review-work-unit.js";
+import { approvalRouteFacts } from "./definition-route-facts.js";
 
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
@@ -993,16 +994,41 @@ export default class RunDispatchCommand extends FlowCommand {
   }
 
   runApprovalContinuation(ctx, invocation) {
-    if (invocation.action.nextAction.step !== "approval" || !invocation.approved) return null;
+    if (invocation.action.nextAction.step !== "approval") return null;
     if (typeof ctx.flowManager?.approveSpecContinuation !== "function") {
       throw new Error("approval continuation requires the canonical parent Store operation");
     }
+    const state = ctx.flowManager.canonicalState(ctx.specId);
+    const spec = ctx.flowManager.readArtifact({
+      specId: ctx.specId,
+      logicalKey: "spec.record",
+      consumerNodeId: "approval",
+    });
+    const plan = resolveDefinitionRoute(approvalRouteFacts({
+      state,
+      specDescriptor: spec.descriptor,
+      spec: JSON.parse(spec.bytes.toString("utf8")),
+      requestedApproval: invocation.approved === true,
+    }));
     const confirmedAt = invocation.authorization instanceof ExplicitFlowDispatchAuthorization
       ? invocation.authorization.approvedAt
       : new Date().toISOString();
-    return ctx.flowManager.approveSpecContinuation({
-      specId: ctx.specId,
-      approval: new CanonicalSpecApproval({ confirmedAt }),
+    return plan.apply({
+      awaitApproval() { return null; },
+      confirmAndAdvance(selected) {
+        if (!(selected instanceof ConfirmAndAdvance)) throw new Error("Definition selected an invalid approval continuation plan");
+        const recorded = selected.facts.approvalRecord;
+        return ctx.flowManager.approveSpecContinuation({
+          specId: ctx.specId,
+          approval: new CanonicalSpecApproval(recorded === null
+            ? { confirmedAt }
+            : { confirmedAt: recorded.confirmed_at, notes: recorded.notes ?? null }),
+          expectedSpecDigest: selected.facts.specPublicationDigest,
+        });
+      },
+      blocked(selected) {
+        throw new Error(`approval continuation is blocked: ${selected.reason}`);
+      },
     });
   }
 

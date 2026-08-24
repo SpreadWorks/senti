@@ -801,6 +801,7 @@ describe("flow dispatch CLI", () => {
 
     const stale = invokeFlow(root, [
       "set", "draft-answer", "q1",
+      "--question-revision", String(first.envelope.data.nextAction.directive.questionRevision),
       "--answer", "A stale target must not write this answer.",
       "--why", "This invocation deliberately uses the wrong authority.",
       "--expect-binding", staleBinding(root, scenario.state),
@@ -810,6 +811,7 @@ describe("flow dispatch CLI", () => {
 
     const firstAnswer = invokeFlow(root, [
       "set", "draft-answer", "q1",
+      "--question-revision", String(first.envelope.data.nextAction.directive.questionRevision),
       "--answer", "Return the stable public representation selected by the user.",
       "--why", "The explicit user decision is part of the canonical draft.",
       "--expect-binding", first.envelope.data.dispatch.binding,
@@ -827,6 +829,7 @@ describe("flow dispatch CLI", () => {
 
     const secondAnswer = invokeFlow(root, [
       "set", "draft-answer", "q2",
+      "--question-revision", String(second.envelope.data.nextAction.directive.questionRevision),
       "--drop",
       "--dropped-reason", "The project contract already fixes this compatibility boundary.",
       "--expect-binding", second.envelope.data.dispatch.binding,

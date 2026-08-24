@@ -192,10 +192,12 @@ export class AwaitUserDecisionDirective extends NextActionDirective {
 }
 
 export class AwaitDraftQuestionDirective extends NextActionDirective {
-  constructor({ questionId, question, reason = "Draft refinement requires an explicit user answer before its worker can run." } = {}) {
+  constructor({ questionId, question, questionRevision, reason = "Draft refinement requires an explicit user answer before its worker can run." } = {}) {
     super({ kind: "await_draft_question", terminal: false, requiresUserAction: true });
     this.questionId = requireString(questionId, "directive.questionId", 100);
     this.question = requireString(question, "directive.question");
+    if (!Number.isSafeInteger(questionRevision) || questionRevision < 0) throw new Error("directive.questionRevision must be a non-negative integer");
+    this.questionRevision = questionRevision;
     this.reason = requireString(reason, "directive.reason");
     Object.freeze(this);
   }
@@ -205,6 +207,7 @@ export class AwaitDraftQuestionDirective extends NextActionDirective {
       ...super.toJSON(),
       questionId: this.questionId,
       question: this.question,
+      questionRevision: this.questionRevision,
       reason: this.reason,
     };
   }
