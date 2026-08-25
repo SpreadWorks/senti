@@ -69,12 +69,6 @@ npm への公開は、ユーザーがリリースの意図を明示した場合�
 テスト実行など長時間かかるコマンドの結果は `command > /tmp/output.log 2>&1` でファイルに保存し、`grep` や Read ツールで確認します。
 <!-- {{/text}} -->
 
-### alpha リリース invariant
-
-release train の全変更を commit し、対象 worktree が clean になった後で `npm run release:version:sync` を実行します。このコマンドは、専用 version commit の作成後に `git rev-list --count HEAD` と一致する `0.1.0-alpha.N` を `package.json` だけへ設定します。その manifest 変更だけを最後の release commit として commit し、続けて `npm run release:preflight` を実行します。
-
-preflight と単独実行用の `npm run release:version:validate` は、package version と HEAD の commit count を同じ validator で比較し、形式不正または stale な version なら失敗します。その後に別 commit を追加した場合、release 対象 HEAD は確定状態ではなくなるため、release 前に専用の version 同期 commit をやり直します。これらのコマンドは release 状態を検証するだけで、package の公開は行いません。
-
 ### テストコマンド契約
 
 | コマンド | 選択範囲 |
