@@ -590,9 +590,8 @@ describe("missing producer artifact recovery", () => {
         record,
         issueLog: { entries: [source] },
       }),
-      (error) => error?.code === "CANONICAL_PRODUCER_ARTIFACT_NOT_READY"
-        && error?.producerNodeId === "draft-gate"
-        && error?.consumerNodeId === "spec",
+      (error) => error?.code === "CURRENT_FLOW_STATE_INVARIANT_INVALID"
+        && /typed Gate decision/.test(error.message),
     );
     assert.deepEqual(unchangedPersistentSnapshot(manager, created.specId), before);
   });

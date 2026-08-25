@@ -7,6 +7,8 @@ import {
 } from "./final-regression-transition-facts.js";
 import { beginFinalRegressionRepairTransition } from "./final-regression-transition-application.js";
 import GetNextActionCommand from "./get-next-action.js";
+import { resolveGateTransition } from "../definition.js";
+import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
 
 /**
  * The only generic claim boundary for an ordinary Definition-selected worker
@@ -28,6 +30,20 @@ export default class RunClaimNextActionCommand extends FlowCommand {
       }
       const next = typed?.nextAction() ?? null;
       const projection = await new GetNextActionCommand().execute(ctx);
+      const gatePhase = typed?.current?.at(-1) === "draft-gate"
+        ? "draft"
+        : typed?.current?.at(-1) === "spec-gate" ? "spec" : null;
+      if (gatePhase !== null && projection?.directive?.actionId === "CLAIM_GATE_RETRY") {
+        const facts = readCurrentGateTransitionFacts({ flowManager: ctx.flowManager, flowState: ctx.flowState, phase: gatePhase });
+        if (facts === null) throw new Error("current Gate retry observation is unavailable");
+        const decision = resolveGateTransition(facts);
+        const claimed = ctx.flowManager.retryGateTransition({ specId: ctx.specId, decision });
+        return Envelope.ok("run", "claim-next-action", {
+          step: claimed.current?.at(-1) ?? null,
+          attemptId: claimed.attempt?.id ?? null,
+          attempt: claimed.attempt?.sequence ?? null,
+        });
+      }
       if (typed?.current?.at(-1) === "final-regression" && typed.attempt?.failure !== null) {
         if (projection?.directive?.actionId !== "FINAL_REGRESSION_REPAIR") {
           throw new Error("Definition does not project a claimable final-regression repair");

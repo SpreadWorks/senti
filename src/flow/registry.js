@@ -24,6 +24,7 @@ import {
   findActiveNode,
   resolveLifecyclePlan,
   resolveRuntimeStep,
+  resolveGateTransition,
   resolveNonGateTransition,
   NonGateRecordNonblockingAction,
   scenarioValidityTransitionDefinition,
@@ -32,6 +33,7 @@ import {
   SetStepStatus,
   taskIdForResolvedStep,
 } from "./definition.js";
+import { readCurrentGateTransitionFacts } from "./lib/gate-transition-facts.js";
 import { findStepById, flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { discoverFlowCommandHooks, runFlowCommandHooks } from "../lib/plugin-registry.js";
@@ -408,6 +410,26 @@ async function applyTestChainTransition(ctx, result, stepId) {
   return decision;
 }
 
+function isDefinitionOwnedPlanGate(phase) {
+  return phase === "draft" || phase === "spec";
+}
+
+/**
+ * The registry persists the observation, then asks Definition for its one
+ * Gate plan.  It intentionally has no phase route table or retry arithmetic.
+ */
+function resolvePersistedPlanGateDecision(ctx, result) {
+  const phase = result?.artifacts?.phase || ctx.phase;
+  if (!isDefinitionOwnedPlanGate(phase)) return null;
+  const facts = readCurrentGateTransitionFacts({
+    flowManager: ctx.flowManager,
+    flowState: ctx.flowState,
+    phase,
+  });
+  if (facts === null) throw new Error("Definition-owned Gate result was not published for the current Attempt");
+  return resolveGateTransition(facts);
+}
+
 function gateRuntimeLogStepId(ctx) {
   if (!ctx.flowState) return null;
   const phase = ctx.phase || resolveGatePhaseFromState(ctx.flowState)?.phase;
@@ -513,6 +535,9 @@ class RegistryLifecycleAdapter {
       : null;
     if (status === "in_progress" && attempt?.outcome instanceof DeferOutcome) return;
     const settledStatus = status;
+    const lifecycleResult = this.ctx.gateTransitionDecision?.facts?.result === "pass"
+      ? undefined
+      : this.result;
     if (step.startsWith("finalize-")) {
       const stateOwner = this.finalizeStateOwner();
       const current = stateOwner.loadReadOnly();
@@ -528,7 +553,7 @@ class RegistryLifecycleAdapter {
           plan: this.plan,
           currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
           event: this.input.event,
-          result: this.result,
+          result: lifecycleResult,
         },
       );
       return;
@@ -543,7 +568,7 @@ class RegistryLifecycleAdapter {
         plan: this.plan,
         currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
         event: this.input.event,
-        result: this.result,
+        result: lifecycleResult,
       },
     );
   }
@@ -1477,42 +1502,62 @@ export const FLOW_COMMANDS = {
             && result?.artifacts?.evidenceRefresh?.recovered === true
           )
         ) return;
-        // A non-pass gate remains in_progress for retry, so its lifecycle
-        // does not confirm the Attempt.  V1 still records the exact result
-        // (and semantic failure source) through the same Store before the
-        // retry metric/issue-log actions run; never recreate a root sibling.
-        if (result?.result !== "pass") {
-          const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
-          if (attachedCanonicalCommandResultArtifact(result) !== null) {
-            const specId = ctx.specId ?? ctx.flowState.specId;
-            if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
-              ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
-            } else {
-              ctx.flowManager.failCurrentAttempt({
-                specId,
-                failure: {
-                  category: "semantic",
-                  code: "GATE_REJECTED",
-                  message: "Gate rejected the current Attempt.",
-                  retryable: true,
-                  retryKind: "semantic",
-                },
-                result: {
-                  outcome: "failed",
-                  summary: "Gate rejected the current Attempt.",
-                  confirmedAt: new Date().toISOString(),
-                  artifactRefs: [],
-                },
-                commandResult: result,
-              });
-            }
+        const phase = result?.artifacts?.phase || ctx.phase;
+        if (result?.result === "recovered" && isDefinitionOwnedPlanGate(phase)) {
+          throw new Error("Draft and Spec Gate recovery results are not an executable route; publish a current Gate evaluation instead");
+        }
+        const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+        const canonicalResult = attachedCanonicalCommandResultArtifact(result) !== null;
+        const specId = ctx.specId ?? ctx.flowState.specId;
+        if (canonicalResult && isDefinitionOwnedPlanGate(phase)) {
+          // Publication precedes classification.  Definition therefore sees
+          // the exact current catalog result, including its Attempt binding,
+          // before the persistence adapter chooses whether the Attempt is
+          // retryable or must settle.
+          ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+          ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+          ctx.gateTransitionDecision = resolvePersistedPlanGateDecision(ctx, result);
+          if (result?.result !== "pass") {
+            ctx.flowManager.recordGateObservationDecision({
+              specId,
+              decision: ctx.gateTransitionDecision,
+            });
+            // Failure recording changes only the persisted observation
+            // envelope. Re-read it so repair evidence is visible to the
+            // Definition reducer; registry still chooses no route.
             ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+            ctx.gateTransitionDecision = resolvePersistedPlanGateDecision(ctx, result);
           }
+          ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+        } else if (result?.result !== "pass" && canonicalResult) {
+          if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
+            ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+          } else {
+            ctx.flowManager.failCurrentAttempt({
+              specId,
+              failure: {
+                category: "semantic",
+                code: "GATE_REJECTED",
+                message: "Gate rejected the current Attempt.",
+                retryable: true,
+                retryKind: "semantic",
+              },
+              result: {
+                outcome: "failed",
+                summary: "Gate rejected the current Attempt.",
+                confirmedAt: new Date().toISOString(),
+                artifactRefs: [],
+              },
+              commandResult: result,
+            });
+          }
+          ctx.flowState = ctx.flowManager.loadReadOnly(specId);
         }
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:post",
           command: "run-gate",
-          phase: result?.artifacts?.phase || ctx.phase,
+          phase,
+          gateTransitionDecision: ctx.gateTransitionDecision ?? null,
         }, result);
       },
       async nonblockingPost(ctx, result) {
@@ -1985,6 +2030,14 @@ export const FLOW_COMMANDS = {
         "Options:",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
+    },
+    "settle-gate-transition": {
+      helpKey: "flow.run.settle-gate-transition",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-settle-gate-transition.js"),
+      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
+      help: "Persist the Definition-selected exhausted Draft or Spec Gate finding and settle its current Attempt.",
     },
     "repair-test-review": {
       helpKey: "flow.run.repair-test-review",

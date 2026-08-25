@@ -26,6 +26,25 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim() !== "";
 }
 
+/** A Draft-owned delegation, deliberately not a free-form specification hole. */
+export class DeferredToSpecEntry {
+  constructor(value) {
+    if (!isObject(value)) throw new Error("deferredToSpec entry must be an object");
+    const allowed = new Set(["boundary", "relevance", "owner"]);
+    const extra = unknownFields(value, allowed);
+    if (extra.length > 0) throw new Error(`deferredToSpec entry has unknown field \"${extra[0]}\"`);
+    this.boundary = isNonEmptyString(value.boundary) ? value.boundary.trim() : null;
+    this.relevance = isNonEmptyString(value.relevance) ? value.relevance.trim() : null;
+    this.owner = value.owner === "spec" ? "spec" : null;
+    if (this.boundary === null || this.relevance === null || this.owner === null) {
+      throw new Error("deferredToSpec entry requires boundary, relevance, and owner: spec");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return { boundary: this.boundary, relevance: this.relevance, owner: this.owner }; }
+}
+
 function unknownFields(value, allowed) {
   return Object.keys(value).filter((field) => !allowed.has(field));
 }
@@ -49,7 +68,11 @@ class DraftDecisionMap {
         continue;
       }
       values.forEach((value, index) => {
-        if (!isNonEmptyString(value)) issues.push(`decisionMap.${field}[${index}] must be a non-empty string`);
+        if (field === "deferredToSpec") {
+          try { new DeferredToSpecEntry(value); } catch (error) { issues.push(`decisionMap.${field}[${index}] ${error.message}`); }
+        } else if (!isNonEmptyString(value)) {
+          issues.push(`decisionMap.${field}[${index}] must be a non-empty string`);
+        }
       });
     }
     return issues;

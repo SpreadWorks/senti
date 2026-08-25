@@ -13,7 +13,7 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { buildFlowCommandHookContext } from "../../../src/flow/lib/flow-context.js";
 import { CanonicalFlowFixture } from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
-import { ExecuteCommandDirective } from "../../../src/flow/lib/next-action-directive.js";
+import { ExecuteCommandDirective, RepairEvidenceDirective } from "../../../src/flow/lib/next-action-directive.js";
 
 function completedAction() {
   return {
@@ -119,6 +119,35 @@ test("dispatcher owns definition-selected Review settlement without starting a w
   );
   assert.deepEqual(result, { ok: true, errors: [] });
   assert.deepEqual(calls, [{ commandName: "settle-review-transition", args: [] }]);
+});
+
+test("dispatcher recognizes Definition-owned Gate retry, repair, and settlement directives without a worker", async () => {
+  const dispatcher = new RunDispatchCommand();
+  const calls = [];
+  dispatcher.runRegisteredFlowCommand = async (_ctx, _target, commandName, args) => {
+    calls.push({ commandName, args });
+    return { ok: true, errors: [] };
+  };
+  const retry = await dispatcher.runDispatcherOwnedRecovery({}, {}, { directive: new ExecuteCommandDirective({
+    actionId: "CLAIM_GATE_RETRY", nextAction: "sennel flow run claim-next-action --expect-run-id run",
+    instruction: "Retry.", reason: "fixture",
+  }) });
+  const settle = await dispatcher.runDispatcherOwnedRecovery({}, {}, { directive: new ExecuteCommandDirective({
+    actionId: "SETTLE_GATE_DEFER", nextAction: "sennel flow run settle-gate-transition --expect-run-id run",
+    instruction: "Settle.", reason: "fixture",
+  }) });
+  const repair = await dispatcher.runDispatcherOwnedRepair({}, {}, { directive: new RepairEvidenceDirective({
+    actionId: "REPAIR_PLAN_GATE_EVIDENCE", evidenceKind: "gate", phase: "draft",
+    nextAction: "sennel flow run repair-plan-gate --expect-run-id run", instruction: "Repair.", reason: "fixture",
+  }) });
+  assert.equal(retry.ok, true);
+  assert.equal(settle.ok, true);
+  assert.equal(repair.ok, true);
+  assert.deepEqual(calls, [
+    { commandName: "claim-next-action", args: [] },
+    { commandName: "settle-gate-transition", args: [] },
+    { commandName: "repair-plan-gate", args: [] },
+  ]);
 });
 
 test("dispatcher executes a definition-owned review in the parent without starting a worker", async () => {

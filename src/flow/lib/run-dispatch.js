@@ -78,6 +78,7 @@ const DISPATCHER_OWNED_RECOVERY_COMMANDS = new Set([
   "claim-next-action",
   "recover-finalization",
   "recover-missing-producer-artifact",
+  "settle-gate-transition",
   "settle-review-transition",
 ]);
 const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([

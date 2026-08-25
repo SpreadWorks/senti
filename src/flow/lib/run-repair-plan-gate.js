@@ -4,6 +4,8 @@ import {
   inspectCanonicalPlanGateRepair,
   planGateRepairRouteForGateStep,
 } from "./plan-gate-repair.js";
+import { resolveGateTransition } from "../definition.js";
+import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
 
 export default class RunRepairPlanGateCommand extends FlowCommand {
   constructor() {
@@ -40,10 +42,27 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         "run",
         "repair-plan-gate",
         "PLAN_GATE_REPAIR_STAGE_UNSUPPORTED",
-        "plan gate repair requires draft-gate, spec-gate, or scenario-validity to be in progress",
+        "plan gate repair requires scenario-validity to be in progress",
       );
     }
     const { phase } = route;
+    let decision = null;
+    if (phase === "draft" || phase === "spec") {
+      try {
+        const facts = readCurrentGateTransitionFacts({
+          flowManager: ctx.flowManager,
+          flowState: ctx.flowManager.loadReadOnly(state.specId),
+          phase,
+        });
+        decision = facts === null ? null : resolveGateTransition(facts);
+      } catch (error) {
+        return Envelope.fail("run", "repair-plan-gate", "PLAN_GATE_REPAIR_EVIDENCE_MISSING", error.message);
+      }
+      if (decision?.disposition.operation !== "repair") {
+        return Envelope.fail("run", "repair-plan-gate", "PLAN_GATE_REPAIR_NOT_ADMITTED",
+          "Definition did not select repair for the current Gate action");
+      }
+    }
     let evidence;
     try {
       evidence = inspectCanonicalPlanGateRepair({ flowManager: ctx.flowManager, state });
@@ -70,6 +89,7 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         specId: state.specId,
         record,
         issueLog: evidence.issueLog,
+        decision,
       });
     } catch (error) {
       return Envelope.fail(

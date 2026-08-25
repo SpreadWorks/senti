@@ -242,15 +242,43 @@ export class GateStepUpdate {
   toJSON() { return { stepId: this.stepId, status: this.status }; }
 }
 
+/** Static phase ownership, including the only Definition-authorized PASS route. */
+export class GatePhaseDefinition {
+  constructor({ phase, nextStepId } = {}) {
+    this.phase = requireString(phase, "gate phase definition phase");
+    this.nextStepId = requireString(nextStepId, "gate phase definition nextStepId");
+    Object.freeze(this);
+  }
+  toJSON() { return { phase: this.phase, nextStepId: this.nextStepId }; }
+}
+
+const GATE_PHASE_DEFINITIONS = new Map([
+  ["draft", new GatePhaseDefinition({ phase: "draft", nextStepId: "spec" })],
+  ["spec", new GatePhaseDefinition({ phase: "spec", nextStepId: "approval" })],
+  ["task-spec", new GatePhaseDefinition({ phase: "task-spec", nextStepId: "task-impl" })],
+  ["task-impl", new GatePhaseDefinition({ phase: "task-impl", nextStepId: "integration" })],
+  ["integration", new GatePhaseDefinition({ phase: "integration", nextStepId: "report" })],
+]);
+
+function gatePhaseDefinition(phase) {
+  const definition = GATE_PHASE_DEFINITIONS.get(phase);
+  if (definition === undefined) throw new Error(`missing Gate phase definition: ${phase}`);
+  return definition;
+}
+
 export class GateStepUpdatePlan {
-  constructor(token, { updates, incrementRetry = false } = {}) {
+  constructor(token, { action, phaseDefinition, updates, incrementRetry = false } = {}) {
     if (token !== GATE_TRANSITION_TOKEN) {
       throw new Error("Gate step update plans are created only by the definition resolver");
     }
+    if (!(action instanceof GateTransitionAction)) throw new Error("gate step update plan requires a typed Action");
+    if (!(phaseDefinition instanceof GatePhaseDefinition)) throw new Error("gate step update plan requires a typed phase definition");
     if (!Array.isArray(updates) || updates.some((entry) => !(entry instanceof GateStepUpdate))) {
       throw new Error("gate step update plan requires typed updates");
     }
     if (typeof incrementRetry !== "boolean") throw new Error("gate step update incrementRetry must be boolean");
+    this.action = action;
+    this.phaseDefinition = phaseDefinition;
     this.updates = Object.freeze([...updates]);
     this.incrementRetry = incrementRetry;
     Object.freeze(this);
@@ -258,10 +286,61 @@ export class GateStepUpdatePlan {
 
   toJSON() {
     return {
+      action: this.action.toJSON(),
+      phaseDefinition: this.phaseDefinition.toJSON(),
       updates: this.updates.map((entry) => entry.toJSON()),
       incrementRetry: this.incrementRetry,
     };
   }
+}
+
+/** Stable, persisted-fact-only identity for a Definition-selected Gate route. */
+export class GateActionIdentity {
+  constructor(token, { runId, specId, stepId, attempt, catalogFingerprint, factsFingerprint, selectedFingerprint, operation } = {}) {
+    if (token !== GATE_TRANSITION_TOKEN) throw new Error("Gate Action identities are created only by the definition resolver");
+    this.runId = requireString(runId, "gate Action runId");
+    this.specId = requireString(specId, "gate Action specId");
+    this.stepId = requireString(stepId, "gate Action stepId");
+    this.attempt = attempt instanceof GateAttemptIdentity ? attempt : new GateAttemptIdentity(attempt);
+    this.catalogFingerprint = requireString(catalogFingerprint, "gate Action catalog fingerprint");
+    this.factsFingerprint = requireString(factsFingerprint, "gate Action facts fingerprint");
+    this.selectedFingerprint = requireString(selectedFingerprint, "gate Action selected fingerprint");
+    this.operation = requireString(operation, "gate Action operation");
+    if (!GATE_DISPOSITIONS.has(this.operation)) throw new Error("gate Action operation is invalid");
+    Object.freeze(this);
+  }
+
+  matches(other) {
+    return other instanceof GateActionIdentity
+      && this.runId === other.runId
+      && this.specId === other.specId
+      && this.stepId === other.stepId
+      && this.attempt.matches(other.attempt)
+      && this.catalogFingerprint === other.catalogFingerprint
+      && this.factsFingerprint === other.factsFingerprint
+      && this.selectedFingerprint === other.selectedFingerprint
+      && this.operation === other.operation;
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId, specId: this.specId, stepId: this.stepId, attempt: this.attempt.toJSON(),
+      catalogFingerprint: this.catalogFingerprint, factsFingerprint: this.factsFingerprint,
+      selectedFingerprint: this.selectedFingerprint, operation: this.operation,
+    };
+  }
+}
+
+export class GateTransitionAction {
+  constructor(token, { identity } = {}) {
+    if (token !== GATE_TRANSITION_TOKEN || !(identity instanceof GateActionIdentity)) {
+      throw new Error("Gate Actions are created only by the definition resolver");
+    }
+    this.identity = identity;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { identity: this.identity.toJSON() }; }
 }
 
 export class GateTransitionDecision {
@@ -275,6 +354,9 @@ export class GateTransitionDecision {
       throw new Error("gate decision advance must be typed");
     }
     if (!(plan instanceof GateStepUpdatePlan)) throw new Error("gate decision requires typed plan");
+    if (plan.action.identity.operation !== disposition.operation) {
+      throw new Error("gate decision plan Action does not match disposition");
+    }
     this.facts = facts;
     this.disposition = disposition;
     this.advance = advance;
@@ -292,16 +374,38 @@ export class GateTransitionDecision {
   }
 }
 
-function gateActivePlan(facts, { incrementRetry = false } = {}) {
+function stableGateJson(value) {
+  if (Array.isArray(value)) return `[${value.map((entry) => stableGateJson(entry)).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableGateJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function gatePlan(facts, disposition, { status = "in_progress", incrementRetry = false } = {}) {
+  const phaseDefinition = gatePhaseDefinition(facts.phase);
+  const updates = [new GateStepUpdate({ stepId: facts.target.stepId, status })];
+  const selectedFingerprint = createHash("sha256").update(stableGateJson({
+    disposition: disposition.toJSON(), phaseDefinition: phaseDefinition.toJSON(), updates: updates.map((entry) => entry.toJSON()), incrementRetry,
+  })).digest("hex");
+  const identity = new GateActionIdentity(GATE_TRANSITION_TOKEN, {
+    runId: facts.producer.runId,
+    specId: facts.producer.specId,
+    stepId: facts.target.stepId,
+    attempt: facts.currentAttempt,
+    catalogFingerprint: facts.catalogPublication.fingerprint,
+    factsFingerprint: createHash("sha256").update(stableGateJson(facts.toJSON())).digest("hex"),
+    selectedFingerprint,
+    operation: disposition.operation,
+  });
   return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
-    updates: [new GateStepUpdate({ stepId: facts.target.stepId, status: "in_progress" })],
-    incrementRetry,
+    action: new GateTransitionAction(GATE_TRANSITION_TOKEN, { identity }), phaseDefinition, updates, incrementRetry,
   });
 }
 
-function gateSettledPlan(facts) {
-  return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
-    updates: [new GateStepUpdate({ stepId: facts.target.stepId, status: "done" })],
+function gateDecision(facts, disposition, { advance = null, status = "in_progress", incrementRetry = false } = {}) {
+  return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
+    facts, disposition, advance, plan: gatePlan(facts, disposition, { status, incrementRetry }),
   });
 }
 
@@ -314,63 +418,33 @@ export function resolveGateTransition(facts) {
     throw new Error("resolveGateTransition requires GateTransitionFacts");
   }
   if (facts.integrityFailure !== null) {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateBlockedDisposition(GATE_TRANSITION_TOKEN, facts.integrityFailure),
-      plan: gateActivePlan(facts),
-    });
+    return gateDecision(facts, new GateBlockedDisposition(GATE_TRANSITION_TOKEN, facts.integrityFailure));
   }
   if (facts.result === "pass") {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GatePassDisposition(GATE_TRANSITION_TOKEN),
-      advance: new GateAdvanceDisposition(GATE_TRANSITION_TOKEN),
-      plan: gateSettledPlan(facts),
+    return gateDecision(facts, new GatePassDisposition(GATE_TRANSITION_TOKEN), {
+      advance: new GateAdvanceDisposition(GATE_TRANSITION_TOKEN), status: "done",
     });
   }
   if (facts.result === "recovered" || facts.recoveryEvidence.kind === "recovered") {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateRecoveryDisposition(GATE_TRANSITION_TOKEN),
-      plan: gateActivePlan(facts),
-    });
+    return gateDecision(facts, new GateRecoveryDisposition(GATE_TRANSITION_TOKEN));
   }
   if (facts.failure.category === "tooling") {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateExternalBlockedDisposition(
-        GATE_TRANSITION_TOKEN,
-        facts.failure.code || "tooling_failure",
-      ),
-      plan: gateActivePlan(facts),
-    });
+    return gateDecision(facts, new GateExternalBlockedDisposition(
+      GATE_TRANSITION_TOKEN, facts.failure.code || "tooling_failure",
+    ));
+  }
+  // An explicit current repair receipt may reopen a failed observation only
+  // before the semantic budget is exhausted.  Exhaustion always settles the
+  // current finding; it can never select another repair or evaluation.
+  if (facts.recoveryEvidence.kind === "repair" && !facts.retry.exhausted) {
+    return gateDecision(facts, new GateRepairDisposition(GATE_TRANSITION_TOKEN));
   }
   if (!facts.retry.exhausted) {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateRetryDisposition(GATE_TRANSITION_TOKEN),
-      plan: gateActivePlan(facts, { incrementRetry: true }),
-    });
+    return gateDecision(facts, new GateRetryDisposition(GATE_TRANSITION_TOKEN), { incrementRetry: true });
   }
-  if (facts.recoveryEvidence.kind === "repair") {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateRepairDisposition(GATE_TRANSITION_TOKEN),
-      plan: gateActivePlan(facts),
-    });
-  }
-  if (facts.recoveryEvidence.kind === "defer") {
-    return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-      facts,
-      disposition: new GateDeferDisposition(GATE_TRANSITION_TOKEN),
-      plan: gateSettledPlan(facts),
-    });
-  }
-  return new GateTransitionDecision(GATE_TRANSITION_TOKEN, {
-    facts,
-    disposition: new GateBlockedDisposition(GATE_TRANSITION_TOKEN, "retry_exhausted"),
-    plan: gateActivePlan(facts),
-  });
+  // The failed Attempt remains current until the canonical settlement command
+  // records its finding.  `defer` therefore has no premature status advance.
+  return gateDecision(facts, new GateDeferDisposition(GATE_TRANSITION_TOKEN));
 }
 
 // Non-Gate transition policy is intentionally independent from the temporary
@@ -2043,6 +2117,16 @@ function resolveReviewLifecycle(input) {
 }
 
 function resolveGateLifecycle(input) {
+  if (input.gateTransitionDecision instanceof GateTransitionDecision) {
+    const decision = input.gateTransitionDecision;
+    const actions = decision.plan.updates.map((update) => new SetStepStatus({
+      step: update.stepId,
+      status: update.status,
+    }));
+    if (decision.disposition.operation === "pass") actions.push(new ExecuteSideEffects());
+    if (decision.facts.result === "fail") actions.push(new AppendIssueLog({ source: "gate-result" }));
+    return actions;
+  }
   const phase = input.result?.artifacts?.phase || input.phase;
   const active = findActiveNode(input.flowState || {});
   const taskStep = TaskStepIdentity.fromStateNode(input.flowState, active?.stepId);
@@ -2529,7 +2613,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
         gatePhase: ["draft"],
-        failurePolicy: "block",
+        failurePolicy: "step-definition",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("gate"),
         failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
@@ -2575,7 +2659,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
         gatePhase: ["spec", "task-spec"],
-        failurePolicy: "block",
+        failurePolicy: "step-definition",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("gate"),
         failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
@@ -2978,7 +3062,7 @@ export function buildCurrentFlowDefinition() {
     // definition still declares their reachable states so replay validation
     // remains an authority check rather than a persistence exception.
     ...(finalizationRoute ? ["pending:skipped", "skipped:pending"] : []),
-    ...(["retry", "record"].includes(failurePolicy)
+    ...(["retry", "record", "step-definition"].includes(failurePolicy)
       ? ["in_progress:failed", "failed:in_progress", "failed:invalidated"]
       : []),
     "done:in_progress",

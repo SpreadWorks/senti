@@ -69,7 +69,7 @@ Draft coverage review must not report missing priority markers as unresolved use
 
 ### Research and self-verification
 
-Before generating candidates, fill `decisionMap` from the request or issue, docs, project rules, and relevant source code. Record stated requirements in `knownFacts`, project-owned choices in `resolvedByProjectRules`, and spec-writing choices in `deferredToSpec`. Create a candidate only after research proves that none of those authorities determines the choice. Do not ask for confirmation of an explicit request or ask questions based on assumptions.
+Before generating candidates, fill `decisionMap` from the request or issue, docs, project rules, and relevant source code. Record stated requirements in `knownFacts`, project-owned choices in `resolvedByProjectRules`, and a bounded spec-writing delegation in `deferredToSpec` only as `{ "boundary": "...", "relevance": "...", "owner": "spec" }`. Draft owns boundary, relevance, and owner validation; Spec owns the final detail. Create a candidate only after research proves that none of those authorities determines the choice. Do not ask for confirmation of an explicit request or ask questions based on assumptions.
 
 ### Requirements category checklist
 

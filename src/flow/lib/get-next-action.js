@@ -36,6 +36,7 @@ import {
   ExecuteCommandDirective,
   ExecuteStepDirective,
   IdleDirective,
+  RepairEvidenceDirective,
   NextActionDirectiveResolver,
 } from "./next-action-directive.js";
 import { TaskNode } from "./current-flow-state.js";
@@ -84,6 +85,7 @@ import {
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { resolveNonGateNextAction } from "./non-gate-transition-application.js";
 import { hasCurrentTestChainPublication, readCurrentTestChainTransitionFacts } from "./test-chain-transition-facts.js";
+import { resolveGateNextAction } from "./gate-transition-application.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
@@ -262,6 +264,63 @@ function canonicalTestReviewRepairFact(ctx, state, target) {
     if (/absent from catalog/.test(error.message)) return null;
     throw error;
   }
+}
+
+/** Draft/spec Gate routing is projected only from its canonical typed facts. */
+function definitionOwnedGateSelection(ctx, state, target) {
+  const phase = target.stepId === "draft-gate"
+    ? "draft"
+    : target.stepId === "spec-gate"
+      ? "spec"
+      : null;
+  if (phase === null) return null;
+  return resolveGateNextAction({
+    flowManager: ctx.flowManager,
+    flowState: state,
+    phase,
+  });
+}
+
+function definitionOwnedGateDirective(selection, { state, binding }) {
+  if (selection === null) return null;
+  const operation = selection.decision.disposition.operation;
+  if (operation === "external-blocked") {
+    return new BlockedDirective({
+      code: "GATE_EXTERNAL_BLOCKED",
+      reason: selection.decision.disposition.reason || "Definition classified the current Gate observation as tooling failure.",
+      resumeInstruction: "Resolve the tooling failure and publish a fresh current Gate observation; do not consume semantic retry.",
+    });
+  }
+  if (operation === "blocked") {
+    return new BlockedDirective({
+      code: "GATE_EVIDENCE_BLOCKED",
+      reason: selection.decision.disposition.reason || "Definition rejected the current Gate evidence.",
+      resumeInstruction: "Restore a current, catalog-bound Gate observation before continuing.",
+    });
+  }
+  if (operation === "repair") {
+    return new RepairEvidenceDirective({
+      actionId: "REPAIR_PLAN_GATE_EVIDENCE",
+      evidenceKind: "gate",
+      phase: selection.decision.facts.phase,
+      nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
+      instruction: "Apply the current Definition-selected, evidence-bound Gate repair.",
+      reason: "The current repair receipt is bound to this Gate Attempt.",
+    });
+  }
+  if (operation === "retry") return new ExecuteCommandDirective({
+    actionId: "CLAIM_GATE_RETRY",
+    nextAction: guardedCommand("sennel flow run claim-next-action", state, binding),
+    instruction: "Claim Definition-selected Gate retry before evaluating again.",
+    reason: "The retry is bound to the current canonical Gate Attempt.",
+  });
+  if (operation === "defer") return new ExecuteCommandDirective({
+    actionId: "SETTLE_GATE_DEFER",
+    nextAction: guardedCommand("sennel flow run settle-gate-transition", state, binding),
+    instruction: "Persist the exhausted Gate findings and settle the Gate.",
+    reason: "Definition selected final defer; further Gate evaluation is not admitted.",
+  });
+  return null;
 }
 
 function nextActionWithBinding(result, binding) {
@@ -597,6 +656,8 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
   const definitionDescriptor = descriptor
     .withReviewDisposition(reviewSelection.disposition)
     .withDraftDisposition(draftDisposition);
+  const gateSelection = definitionOwnedGateSelection(ctx, state, target);
+  const gateDirective = definitionOwnedGateDirective(gateSelection, { state, binding });
   const derived = deriveNextAction({
     scope: target.scope,
     stepId: target.stepId,
@@ -638,10 +699,11 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
   const recoveryCommand = retryRecoveryCommandFor({ ctx, state, descriptor, target, binding });
   const missingRoute = missingProducerArtifactRoute
     ?? missingProducerArtifactRouteFor({ ctx, typedState });
-  const planGateRepair = inspectCanonicalPlanGateRepair({
-    flowManager: ctx.flowManager,
-    state: typedState,
-  });
+  // Scenario-validity has not migrated to the Gate reducer.  Draft/spec
+  // never ask this legacy repair inspector to select their route.
+  const planGateRepair = target.stepId === "scenario-validity"
+    ? inspectCanonicalPlanGateRepair({ flowManager: ctx.flowManager, state: typedState })
+    : null;
   const lifecycleDirective = selectedFinalRegressionAction?.directive ?? new NextActionDirectiveResolver({
     state,
     binding,
@@ -652,7 +714,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     planGateRepairRoute: planGateRepair?.route ?? null,
     planGateRepairReason: planGateRepair?.reason ?? null,
   }).resolve();
-  const selectedDirective = userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? lifecycleDirective;
+  const selectedDirective = userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? gateDirective ?? lifecycleDirective;
   const claimDirective = selectedDirective instanceof ExecuteStepDirective
     && ["start", "recover", "retry"].includes(descriptor.operation)
     ? new ExecuteCommandDirective({
@@ -686,6 +748,9 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
         action: selectedFinalRegressionAction.decision.plan.action.toJSON(),
         ...(selectedFinalRegressionAction.userAction && { userAction: selectedFinalRegressionAction.userAction.toJSON() }),
       },
+    }),
+    ...(gateSelection && {
+      definitionTransition: gateSelection.action.toJSON(),
     }),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {

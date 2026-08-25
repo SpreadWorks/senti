@@ -822,7 +822,7 @@ describe("Current Flow state foundation", () => {
         retryKind: "semantic",
       },
     });
-    assert.equal(blocked.nextAction().operation, "blocked");
+    assert.equal(blocked.nextAction().operation, "resolve-step-definition");
     assert.equal(blocked.retryEligibility().semantic, false);
     assert.throws(
       () => blocked.retryCurrentAttempt({

@@ -9,6 +9,8 @@ import {
   GateTransitionDecision,
   resolveGateTransition,
 } from "../definition.js";
+import { GateTransitionFacts } from "./gate-transition.js";
+import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
 
 const PROJECTION_TOKEN = Symbol("gate-transition-action-projection");
 
@@ -17,6 +19,7 @@ export class GateTransitionActionProjection {
     if (token !== PROJECTION_TOKEN || !(decision instanceof GateTransitionDecision)) {
       throw new Error("Gate action projections require a definition decision");
     }
+    this.actionId = decision.plan.action.identity;
     this.phase = decision.facts.phase;
     this.scope = decision.facts.scope;
     this.stepId = decision.facts.target.stepId;
@@ -31,6 +34,7 @@ export class GateTransitionActionProjection {
       phase: this.phase,
       scope: this.scope,
       stepId: this.stepId,
+      actionId: this.actionId.toJSON(),
       operation: this.operation,
       reason: this.reason,
       advance: this.advance,
@@ -64,7 +68,7 @@ export function admitGateTransition({ facts, decision } = {}) {
     throw new Error("gate admission requires a definition decision");
   }
   const current = resolveGateTransition(facts);
-  if (JSON.stringify(current.toJSON()) !== JSON.stringify(decision.toJSON())) {
+  if (!current.plan.action.identity.matches(decision.plan.action.identity)) {
     throw new Error("gate transition admission rejected a stale or bypassed decision");
   }
   return current;
@@ -73,4 +77,22 @@ export function admitGateTransition({ facts, decision } = {}) {
 /** Project a selected decision without interpreting Gate semantics. */
 export function projectGateTransitionDecision(decision) {
   return new GateTransitionActionProjection(PROJECTION_TOKEN, decision);
+}
+
+/** Shared canonical read → Definition → projection boundary for Gate readers. */
+export function resolveGateNextAction({ flowManager, flowState, phase, validateRoute = () => {} } = {}) {
+  if (typeof validateRoute !== "function") throw new Error("Gate next-action validateRoute must be a function");
+  const facts = readCurrentGateTransitionFacts({ flowManager, flowState, phase });
+  if (facts === null) return null;
+  if (!(facts instanceof GateTransitionFacts)) throw new Error("Gate next-action facts must be typed");
+  const decision = resolveGateTransition(facts);
+  validateRoute(decision.plan, decision);
+  return Object.freeze({ decision, action: projectGateTransitionDecision(decision) });
+}
+
+export function sameGateTransitionDecision(left, right) {
+  if (!(left instanceof GateTransitionDecision) || !(right instanceof GateTransitionDecision)) {
+    throw new Error("Gate transition comparison requires definition decisions");
+  }
+  return left.plan.action.identity.matches(right.plan.action.identity);
 }

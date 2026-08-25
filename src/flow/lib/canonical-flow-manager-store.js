@@ -20,6 +20,8 @@ import {
   NonGateRecordNonblockingAction,
   NonGateSetStepStatusAction,
   NonGateTransitionDecision,
+  GateTransitionDecision,
+  resolveGateTransition,
   resolveNonGateTransition,
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
@@ -66,6 +68,8 @@ import {
   attachedCanonicalCommandResultPublications,
 } from "./canonical-command-result.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
+import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { deferExhaustedSemanticFindings } from "./flow-findings.js";
 import { IssueLogDocument } from "./issue-log-store.js";
 import { finalizationOutboxIdentity } from "./flow-outbox.js";
 import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
@@ -624,6 +628,22 @@ function commandContextAttempt(state, nodeId) {
   }).toJSON();
 }
 
+function gateRetryAttempt(state) {
+  const nodeId = state.current?.at(-1);
+  if (!new Set(["draft-gate", "spec-gate"]).has(nodeId) || state.attempt === null) {
+    throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires the active Gate Attempt");
+  }
+  const node = state.findNode(nodeId);
+  const requiredResources = state.definition.contractForNode(node).resourceContract.required;
+  return new CurrentAttempt({
+    id: activityId(`attempt-${nodeId}-gate-retry`), nodeId,
+    sequence: node.attemptSequence + 1, startedAt: new Date().toISOString(),
+    consumption: { semantic: state.attempt.consumption.semantic + 1, tooling: state.attempt.consumption.tooling },
+    failure: null, blocker: null, incomplete: [],
+    operationClaims: requiredResources.length === 0 ? [] : [{ operation: "resolve-command-context", resources: requiredResources }],
+  }).toJSON();
+}
+
 function leafNodes(node, values = []) {
   if (node.steps.length === 0) {
     values.push(node);
@@ -952,6 +972,10 @@ export class CanonicalFlowManagerStore {
     return Object.freeze(snapshot.activities.map((activity) => Object.freeze(activity.toJSON())));
   }
 
+  // Gate evidence readers share the public FlowManager catalog vocabulary;
+  // the Store exposes the same read-only authority for its admission checks.
+  artifactCatalog(specId) { return this.catalog(specId); }
+
   /** Store-owned atomic source for Definition transition facts. */
   transitionSnapshot(specId) {
     const resolved = this.#resolveSpecId(specId);
@@ -1275,17 +1299,93 @@ export class CanonicalFlowManagerStore {
     return projectedState(snapshot.state, specRecordAt(location), snapshot.activities);
   }
 
+  /** Re-read the canonical observation before applying a selected Gate action. */
+  #admitGateDecision(state, decision, operation) {
+    if (!(decision instanceof GateTransitionDecision)) {
+      throw new CurrentFlowStateInvariantError("definition-owned Gate operation requires a typed Gate decision");
+    }
+    const facts = readCurrentGateTransitionFacts({
+      flowManager: this, flowState: this.loadReadOnly(state.specId), phase: decision.facts.phase,
+    });
+    if (facts === null) throw new CurrentFlowStateInvariantError("definition-owned Gate observation is no longer current");
+    const current = resolveGateTransition(facts);
+    if (current.disposition.operation !== operation
+      || !current.plan.action.identity.matches(decision.plan.action.identity)) {
+      throw new CurrentFlowStateInvariantError("definition-owned Gate action is stale or no longer admitted");
+    }
+    return current;
+  }
+
+  retryGateTransition({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    this.#admitGateDecision(state, decision, "retry");
+    return this.runtime.retryGateAttempt({
+      specId: resolved, activityId: activityId("gate-retry"), attempt: gateRetryAttempt(state),
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    });
+  }
+
+  recordGateObservationDecision({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    const current = this.#admitGateDecision(state, decision, decision.disposition.operation);
+    if (current.facts.result !== "fail") {
+      throw new CurrentFlowStateInvariantError("Gate observation recording requires a failed Gate result");
+    }
+    const failure = current.facts.failure;
+    return this.failCurrentAttempt({
+      specId: resolved,
+      failure: {
+        category: failure.category,
+        code: failure.code,
+        message: "Gate rejected the current Attempt.",
+        retryable: current.disposition.operation === "retry",
+        retryKind: current.disposition.operation === "retry" ? "semantic" : null,
+      },
+      result: {
+        outcome: "failed", summary: "Gate rejected the current Attempt.",
+        confirmedAt: new Date().toISOString(), artifactRefs: [],
+      },
+    });
+  }
+
+  settleGateTransition({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    const current = this.#admitGateDecision(state, decision, "defer");
+    const findingOutcome = deferExhaustedSemanticFindings({
+      flowManager: this, flowState: this.loadReadOnly(resolved), nodeId: state.current.at(-1),
+      sourceStep: state.current.at(-1), sourceArtifact: current.facts.catalogPublication.artifactId,
+      attempts: current.facts.retry.used + 1,
+    });
+    if (findingOutcome.deferred.length === 0) {
+      throw new CurrentFlowStateInvariantError("Gate settlement requires at least one canonical deferred finding");
+    }
+    return this.runtime.deferFailedGate({
+      specId: resolved, activityId: activityId("gate-failure-deferred"), nodeId: state.current.at(-1),
+      attempt: commandContextAttempt(state, state.current.at(-1)),
+      result: { outcome: "passed", summary: "Gate findings deferred after semantic retry exhaustion", confirmedAt: new Date().toISOString(), artifactRefs: [] },
+    });
+  }
+
   /**
    * Perform the guarded plan-gate rewind as one Version Store transaction.
    * The frozen source observations are appended to cataloged issue-log.json
    * and referenced by the replacement Attempt Activity; flow.json carries no
    * mutable repair marker or copied history.
    */
-  repairPlanGate({ specId = null, record, issueLog } = {}) {
+  repairPlanGate({ specId = null, record, issueLog, decision = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const repair = PlanGateRepairRecord.from(record);
     const state = this.runtime.load(resolved);
+    if (new Set(["draft-gate", "spec-gate"]).has(state.current?.at(-1))) {
+      this.#admitGateDecision(state, decision, "repair");
+    }
     repair.assertFlow(state);
     if (state.current?.at(-1) !== repair.route.gateStepId) {
       throw new CurrentFlowStateInvariantError("canonical plan gate repair source gate is not active");

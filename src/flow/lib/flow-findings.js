@@ -422,11 +422,16 @@ function reviewBlockingFindings(artifact, sourceStep) {
 }
 
 function sourceFindingsForArtifact(artifact, sourceStep) {
-  const evaluations = failedEvaluations(artifact);
+  // Command-result artifacts retain the producer payload under `artifacts`.
+  // Findings always inspect the evaluated payload, never the envelope.
+  const source = artifact?.artifacts && typeof artifact.artifacts === "object" && !Array.isArray(artifact.artifacts)
+    ? artifact.artifacts
+    : artifact;
+  const evaluations = failedEvaluations(source);
   if (evaluations.length > 0) return evaluations;
-  const review = reviewBlockingFindings(artifact, sourceStep);
+  const review = reviewBlockingFindings(source, sourceStep);
   if (review.length > 0) return review;
-  return blockingObservations(artifact);
+  return blockingObservations(source);
 }
 
 export function findSourceFinding(artifact, sourceStep, sourceFindingId) {

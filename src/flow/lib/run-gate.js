@@ -1584,6 +1584,14 @@ const GATE_RECOVERY_PHASES = new Set(["draft", "spec", "task-impl", "integration
 const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
 const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 
+// Draft/spec have a canonical Gate-facts reducer.  Their semantic budget is
+// consumed by the current persisted observation, not by this evaluator's
+// compatibility metric.  The remaining Gate phases still use their legacy
+// migration path until they are moved deliberately.
+function usesDefinitionOwnedGateBudget(phase) {
+  return phase === "draft" || phase === "spec";
+}
+
 export function resolveRetryMax(retryContext = {}, phase) {
   const flowState = retryContext.flowState || retryContext;
   const stepId = new GateMutationOwner({ flowState, phase }).stepId;
@@ -3767,6 +3775,7 @@ function gateFail(level, phase, targetPath, evaluations, issues, recovery = null
         : failedMechanicalEvaluations
           ? "mechanical_guardrail_fail"
           : "mechanical",
+      ...(!failedSemanticEvaluations ? { failureCode: "GATE_EXTERNAL_BLOCKED" } : {}),
       ...(recovery ? recovery.toJSON() : {}),
       nextAction,
     },
@@ -3841,7 +3850,7 @@ export async function runGateFlow(args) {
     return gateFail(level, phase, targetPath, ownedEvaluations, []);
   }
 
-  if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
+  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && !usesDefinitionOwnedGateBudget(phase)) {
     warnGateRetryBudget(ctx, phase);
     if (ctx.gitState) {
       const noProgressFail = checkNoProgressSinceLastFail({
@@ -4027,6 +4036,19 @@ export function resolveEffectiveGatePhase(ctx, inferredResolution = null) {
   return phase;
 }
 
+// Parent Draft/Spec Gate failures are represented by Definition facts and
+// therefore expose the common lifecycle block at the public boundary.  Task
+// specification evaluation is produced by the same Spec Gate Attempt. Other
+// gates retain their producer-specific public failures.
+const DEFINITION_OWNED_GATE_PHASES = new Set(["draft", "spec", "task-spec"]);
+
+function publicGateFailureCode(artifacts) {
+  return DEFINITION_OWNED_GATE_PHASES.has(artifacts.phase)
+    || artifacts.failureCode === "GATE_EXTERNAL_BLOCKED"
+    ? "STEP_EXTERNAL_BLOCKED"
+    : artifacts.failureCode;
+}
+
 export class RunGateCommand extends FlowCommand {
   constructor() {
     super({ requiresFlow: false });
@@ -4051,11 +4073,16 @@ export class RunGateCommand extends FlowCommand {
       return Envelope.fail(
         "run",
         "gate",
-        result.artifacts.failureCode,
+        // Definition-owned parent Gate failures are persisted external blocks,
+        // not phase transitions. Keep their producer-specific failureCode in
+        // artifacts, while exposing the uniform lifecycle error at the CLI
+        // boundary. Other Gate families retain their public error contract.
+        publicGateFailureCode(result.artifacts),
         result.artifacts.reasons?.map((reason) => reason.detail || reason) || "required gate evaluation failed",
         {
-          artifacts: result.artifacts,
-          ...(result.stepAttempt ? { stepAttempt: result.stepAttempt } : {}),
+          // Retain the durable observation payload for callers that need to
+          // show the blocker; the envelope only changes its lifecycle status.
+          ...result,
         },
       );
     }

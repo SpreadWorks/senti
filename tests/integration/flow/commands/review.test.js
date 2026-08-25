@@ -1985,7 +1985,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
       decisionPoints: ["Decide whether draft coverage is blocking"],
       resolvedByProjectRules: ["Use existing flow step lifecycle"],
       requiresUserJudgment: ["Confirm the user-visible behavior"],
-      deferredToSpec: ["Choose helper placement from existing code patterns"],
+      deferredToSpec: [{ boundary: "Helper placement", relevance: "Preserves reviewed behavior", owner: "spec" }],
     },
     questionLedger: { revision: 0, publication: "fixture", evidenceDigest: "a".repeat(64), questions: [
       {

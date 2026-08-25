@@ -145,13 +145,7 @@ const ROUTES = Object.freeze([
     phase: "draft",
     gateStepId: "draft-gate",
     targetStepId: "draft-refine",
-    resetStepIds: [
-      "draft-refine",
-      "draft-coverage-review",
-      "draft-coverage-triage",
-      "draft-coverage-repair",
-      "draft-gate",
-    ],
+    resetStepIds: ["draft-refine", "draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair", "draft-gate"],
   }),
   new PlanGateRepairRoute({
     phase: "spec",
@@ -171,8 +165,8 @@ const ROUTE_BY_PHASE = new Map(ROUTES.map((route) => [route.phase, route]));
 const ROUTE_BY_TARGET = new Map(ROUTES.map((route) => [route.targetStepId, route]));
 const ROUTE_BY_GATE = new Map(ROUTES.map((route) => [route.gateStepId, route]));
 const EVIDENCE_BY_PHASE = new Map([
-  ["draft", Object.freeze({ logicalKey: "draft.gate", failureCode: "GATE_REJECTED" })],
-  ["spec", Object.freeze({ logicalKey: "spec.gate", failureCode: "GATE_REJECTED" })],
+  ["draft", Object.freeze({ logicalKey: "draft.gate", failureCode: null })],
+  ["spec", Object.freeze({ logicalKey: "spec.gate", failureCode: null })],
   ["test", Object.freeze({ logicalKey: "scenario.validity", failureCode: "SCENARIO_VALIDITY_REJECTED" })],
 ]);
 
@@ -206,9 +200,11 @@ export function isPlanGateRepairEligibleFailure(state, route) {
   if (
     expected === undefined
     || failure?.category !== "semantic"
-    || failure.code !== expected.failureCode
+    || (expected.failureCode !== null && failure.code !== expected.failureCode)
   ) return false;
-  return state.failureDisposition().operation === "blocked";
+  // Definition owns whether this evidence may select repair.  The inspector
+  // only proves that the active failed Attempt has a current repair receipt.
+  return true;
 }
 
 function matchingCurrentGateResult({ state, route, gateResult, catalog, activities }) {

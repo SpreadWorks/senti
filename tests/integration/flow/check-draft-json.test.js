@@ -46,7 +46,7 @@ function buildValidDraft(overrides = {}) {
       decisionPoints: ["decision point covered by the spec"],
       resolvedByProjectRules: ["project rule decides this"],
       requiresUserJudgment: [],
-      deferredToSpec: ["detail can be finalized in spec"],
+      deferredToSpec: [{ boundary: "Implementation detail", relevance: "Does not alter approved scope", owner: "spec" }],
     },
     scopeVerification: { in: ["item A"], out: ["item B"] },
     impactOnExisting: ["existing feature X affected"],
@@ -91,6 +91,16 @@ describe("checkDraftJson — decisionMap validation", () => {
     assertHasIssue(buildValidDraft({
       decisionMap: { knownFacts: [""], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
     }), (issue) => /decisionMap\.knownFacts\[0\].*non-empty string/i.test(issue), "empty decisionMap entry");
+  });
+
+  it("accepts bounded Spec-owned delegation but rejects a free-form or unowned deferral", () => {
+    assert.deepEqual(checkDraftJson(buildValidDraft()), []);
+    assertHasIssue(buildValidDraft({
+      decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: ["finish this later"] },
+    }), (issue) => /deferredToSpec.*object/i.test(issue), "free-form deferredToSpec");
+    assertHasIssue(buildValidDraft({
+      decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [{ boundary: "detail", relevance: "scope", owner: "draft" }] },
+    }), (issue) => /owner: spec/i.test(issue), "Spec ownership");
   });
 
   it("flags unknown decisionMap fields", () => {

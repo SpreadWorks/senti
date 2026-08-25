@@ -681,6 +681,15 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  recordGateObservationDecision(input = {}) {
+    return this._store.recordGateObservationDecision({ ...input, specId: input.specId ?? this._boundSpecId });
+  }
+  retryGateTransition(input = {}) {
+    return this._store.retryGateTransition({ ...input, specId: input.specId ?? this._boundSpecId });
+  }
+  settleGateTransition(input = {}) {
+    return this._store.settleGateTransition({ ...input, specId: input.specId ?? this._boundSpecId });
+  }
   rewindTo(nodeId, opts) { return this._store.rewindTo(nodeId, withSpecIdDefault(opts, this._boundSpecId)); }
   rewindTestEvidence(input = {}) {
     return this._store.rewindTestEvidence({

@@ -44,7 +44,7 @@ const LIFECYCLE_STATES = new Set(["active", "parked", "finalized"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
 const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block", "step-definition", "test-chain-retry", "test-chain-repair"]);
-const RECORDING_FAILURE_POLICIES = new Set(["retry", "record"]);
+const RECORDING_FAILURE_POLICIES = new Set(["retry", "record", "step-definition"]);
 const ATTEMPT_TYPES = new Set([
   "flow_created",
   "task_added",
@@ -77,6 +77,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "recover_interrupted_finalize_sync",
   "start_attempt",
   "retry_attempt",
+  "retry_gate_attempt",
   "retry_recovery_attempt",
   "update_attempt",
   "rewind",
@@ -97,8 +98,9 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "recover_missing_producer_artifact",
   "accept_final_regression_failure",
   "defer_failed_review",
+  "defer_failed_gate",
 ]);
-const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review"]);
+const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
   "repair_implementation",
@@ -3707,6 +3709,17 @@ export class CurrentFlowState {
     return this.#replaceFailedAttemptForRetry({ attempt, kind });
   }
 
+  /** Gate retry is admitted by definition.js, not the generic failure policy. */
+  retryGateAttempt({ attempt }) {
+    this.#assertExecutionActive();
+    const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
+    if (leaf === null || !new Set(["draft-gate", "spec-gate"]).has(leaf.id)
+      || this.attempt?.failure?.category !== "semantic") {
+      throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires a failed semantic Gate Attempt");
+    }
+    return this.#replaceFailedAttemptForRetry({ attempt, kind: "semantic" });
+  }
+
   /** Replay the repair episode already admitted by the typed Step Definition. */
   retryFinalRegressionAttempt({ attempt }) {
     const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
@@ -4007,6 +4020,32 @@ export class CurrentFlowState {
         result: settled,
       })),
       this.definition,
+    );
+    return this.#replaceRoot(root, null, null);
+  }
+
+  /** Settle an exhausted Draft/Spec Gate only after its finding is persisted. */
+  deferFailedGate({ attempt, result }) {
+    this.#assertExecutionActive();
+    const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
+    if (leaf === null || !new Set(["draft-gate", "spec-gate"]).has(leaf.id)
+      || this.attempt?.failure?.category !== "semantic") {
+      throw new CurrentFlowStateInvariantError("Gate deferral requires a failed semantic Gate Attempt");
+    }
+    const settlementAttempt = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (settlementAttempt.nodeId !== leaf.id || settlementAttempt.sequence !== this.attempt.sequence + 1
+      || settlementAttempt.sequence !== leaf.attemptSequence + 1 || settlementAttempt.id === this.attempt.id
+      || settlementAttempt.failure !== null || settlementAttempt.consumption.semantic !== 0
+      || settlementAttempt.consumption.tooling !== 0) {
+      throw new CurrentFlowStateInvariantError("Gate deferral settlement Attempt identity is invalid");
+    }
+    this.#assertAttemptContractForLeaf(leaf, settlementAttempt);
+    const settled = result instanceof NodeResult ? result : new NodeResult(result);
+    if (settled.outcome !== "passed") throw new CurrentFlowStateInvariantError("Gate deferral requires a passed lifecycle result");
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, leaf.id, transitionNode(leaf, "done", this.definition, {
+        attemptSequence: settlementAttempt.sequence, result: settled,
+      })), this.definition,
     );
     return this.#replaceRoot(root, null, null);
   }
@@ -5122,7 +5161,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -5351,6 +5390,10 @@ export class ActivityTransition {
       }
       return state.deferFailedReview({ attempt: this.attempt, result: activity.result });
     }
+    if (this.operation === "defer_failed_gate") {
+      if (activity.result == null) throw new CurrentFlowStateInvariantError("defer_failed_gate Activity requires a result");
+      return state.deferFailedGate({ attempt: this.attempt, result: activity.result });
+    }
     if (["add_task", "add_approval_task"].includes(this.operation)) {
       if (target.id !== state.definition.dynamicTaskContainerId) {
         throw new CurrentFlowStateInvariantError("Task admission Activity must target the definition dynamic Task container");
@@ -5456,6 +5499,13 @@ export class ActivityTransition {
       }
       return state.retryExhaustedAttempt({ attempt: this.attempt });
     }
+    if (this.operation === "retry_gate_attempt") {
+      if (state.current == null || state.current.at(-1) !== targetId
+        || activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence) {
+        throw new CurrentFlowStateInvariantError("retry_gate_attempt Activity must identify the active Gate Attempt");
+      }
+      return state.retryGateAttempt({ attempt: this.attempt });
+    }
     if (this.operation === "retry_attempt") {
       if (state.current == null || state.current.at(-1) !== targetId) {
         throw new CurrentFlowStateInvariantError("retry_attempt Activity must target the active current leaf");
@@ -5554,6 +5604,7 @@ export class FlowActivity {
       add_approval_task: "task_added",
       start_attempt: "attempt_started",
       retry_attempt: "attempt_retried",
+      retry_gate_attempt: "attempt_retried",
       retry_recovery_attempt: "attempt_recovered",
       update_attempt: "attempt_updated",
       fail_attempt: "attempt_failed",
@@ -5595,6 +5646,7 @@ export class FlowActivity {
       continue_nonblocking: "nonblocking_recorded",
       accept_final_regression_failure: "failure_accepted",
       defer_failed_review: "failure_accepted",
+      defer_failed_gate: "failure_accepted",
       skip_finalize_downstream: "finalization_downstream_updated",
       reset_finalize_downstream: "finalization_downstream_updated",
       recover_interrupted_finalize_sync: "recovery",
@@ -5613,10 +5665,10 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure", "repair_scenario_validity"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
@@ -5645,7 +5697,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5835,7 +5887,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);

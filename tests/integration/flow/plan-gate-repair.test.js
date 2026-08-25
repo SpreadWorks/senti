@@ -10,9 +10,9 @@ import {
 import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
 
 const SOURCE = Object.freeze({
-  issueLogId: "draft-gate-blocking-evidence",
-  step: "draft-gate",
-  phase: "draft",
+  issueLogId: "scenario-validity-blocking-evidence",
+  step: "scenario-validity",
+  phase: "test",
   reason: "A retained behavior is absent.",
   observations: [{
     kind: "violation",
@@ -29,7 +29,7 @@ const SOURCE = Object.freeze({
 function record() {
   return PlanGateRepairRecord.create({
     state: { runId: "run-plan-repair", specId: "001-test", issue: 7 },
-    phase: "draft",
+    phase: "test",
     issueLogEntry: SOURCE,
     requestedAt: "2026-08-05T00:01:00.000Z",
   });
@@ -45,7 +45,7 @@ describe("canonical plan-gate repair values", () => {
   it("preserves a process observation without a file location", () => {
     const value = PlanGateRepairRecord.create({
       state: { runId: "run-plan-repair", specId: "001-test", issue: 7 },
-      phase: "draft",
+      phase: "test",
       issueLogEntry: {
         ...SOURCE,
         observations: [{ ...SOURCE.observations[0], where: null }],
@@ -58,17 +58,11 @@ describe("canonical plan-gate repair values", () => {
     assert.equal(PlanGateRepairRecord.from(value.toJSON()).observations[0].where, null);
   });
 
-  it("uses fixed definition-authorized rewind routes", () => {
-    assert.deepEqual(planGateRepairRouteForPhase("draft").resetStepIds, [
-      "draft-refine",
-      "draft-coverage-review",
-      "draft-coverage-triage",
-      "draft-coverage-repair",
-      "draft-gate",
-    ]);
+  it("exposes draft/spec repair metadata without making it a route authority", () => {
+    assert.equal(planGateRepairRouteForPhase("draft").targetStepId, "draft-refine");
     assert.equal(planGateRepairRouteForPhase("spec").targetStepId, "spec");
     assert.equal(planGateRepairRouteForPhase("test").targetStepId, "test");
-    assert.equal(planGateRepairRouteForTargetStep("draft-refine").phase, "draft");
+    assert.equal(planGateRepairRouteForTargetStep("draft-refine").gateStepId, "draft-gate");
     assert.equal(planGateRepairRouteForTargetStep("unknown"), null);
   });
 
@@ -97,7 +91,7 @@ describe("canonical plan-gate repair values", () => {
   it("fails closed when the source contains no blocking observation", () => {
     assert.throws(() => PlanGateRepairRecord.create({
       state: { runId: "run-plan-repair", specId: "001-test", issue: null },
-      phase: "draft",
+      phase: "test",
       issueLogEntry: { ...SOURCE, observations: [{ ...SOURCE.observations[0], severity: "advisory" }] },
     }), /requires blocking observations/);
   });

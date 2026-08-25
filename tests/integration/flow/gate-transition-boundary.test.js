@@ -119,14 +119,64 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(semantic.plan.incrementRetry, true);
     assert.equal(tooling.disposition.operation, "external-blocked");
     assert.equal(tooling.plan.incrementRetry, false);
+    assert.equal(GateFailureCategory.fromObservedGateResult({
+      result: "fail",
+      artifacts: { failureKind: "mechanical" },
+    }).category, "tooling");
   });
 
-  it("selects repair, defer, and blocked only after retry exhaustion", () => {
-    const exhausted = { result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 2, maximum: 2 }) };
+  it("settles retry exhaustion before another repair or evaluation", () => {
+    const exhausted = { result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 4, maximum: 4 }) };
     const binding = { attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" };
-    assert.equal(resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }) })).disposition.operation, "repair");
+    const repairedExhausted = resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }) }));
+    assert.equal(repairedExhausted.disposition.operation, "defer");
     assert.equal(resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "defer", ...binding }) })).disposition.operation, "defer");
-    assert.equal(resolveGateTransition(facts(exhausted)).disposition.operation, "blocked");
+    const deferred = resolveGateTransition(facts(exhausted));
+    assert.equal(deferred.disposition.operation, "defer");
+    assert.equal(deferred.plan.incrementRetry, false);
+    assert.equal(deferred.plan.updates[0].status, "in_progress");
+    assert.equal(resolveGateTransition(facts({
+      result: "fail",
+      failure: new GateFailureCategory({ category: "semantic" }),
+      retry: new GateRetryMetrics({ used: 3, maximum: 4 }),
+      recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }),
+    })).disposition.operation, "repair");
+  });
+
+  it("uses persisted Attempt consumption: four retries permit a fifth failed evaluation, never a sixth", () => {
+    const operations = [];
+    for (let consumption = 0; consumption <= 4; consumption += 1) {
+      const attempt = new GateAttemptIdentity({ id: `attempt-${consumption + 1}`, sequence: consumption + 1 });
+      const decision = resolveGateTransition(facts({
+        currentAttempt: attempt,
+        catalogPublication: new GateCatalogPublication({
+          attemptId: attempt.id, sequence: attempt.sequence, producerActivityId: "activity-spec-gate",
+          artifactId: `gate.result.${attempt.sequence}`, fingerprint: `revision-${attempt.sequence}`,
+        }),
+        result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
+        retry: new GateRetryMetrics({ used: consumption, maximum: 4 }),
+        lineage: new GateLineage({
+          sourceAttempt: attempt, canonicalAttempt: attempt,
+          sourceFingerprint: `revision-${attempt.sequence}`, canonicalFingerprint: `revision-${attempt.sequence}`,
+        }),
+      }));
+      operations.push(decision.disposition.operation);
+    }
+    assert.deepEqual(operations, ["retry", "retry", "retry", "retry", "defer"]);
+  });
+
+  it("keeps PASS next steps in the phase definition and never grants approval to Draft", () => {
+    const draft = resolveGateTransition(facts({ phase: "draft" }));
+    const spec = resolveGateTransition(facts({ phase: "spec" }));
+    assert.equal(draft.plan.phaseDefinition.nextStepId, "spec");
+    assert.equal(spec.plan.phaseDefinition.nextStepId, "approval");
+    for (const operation of ["retry", "repair", "defer", "external-blocked", "blocked"]) {
+      const decision = resolveGateTransition(facts({
+        phase: "draft", result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
+        retry: new GateRetryMetrics({ used: operation === "defer" ? 4 : 0, maximum: 4 }),
+      }));
+      if (decision.disposition.operation !== "pass") assert.notEqual(decision.advance?.operation, "advance");
+    }
   });
 
   it("represents recovery separately from pass and advance", () => {
@@ -235,6 +285,7 @@ describe("definition-owned Gate transition boundary", () => {
       phase: "spec",
       scope: "flow",
       stepId: "spec-gate",
+      actionId: decision.plan.action.identity.toJSON(),
       operation: "retry",
       reason: null,
       advance: false,
@@ -264,6 +315,22 @@ describe("definition-owned Gate transition boundary", () => {
     assert.doesNotMatch(application, /facts\.(?:result|failure|retry|recoveryEvidence)/);
     for (const source of legacyConsumers) {
       assert.doesNotMatch(source, /new Gate(?:TransitionDecision|StepUpdatePlan|TransitionDisposition)/);
+    }
+  });
+
+  it("keeps Action identity deterministic across reload and all dispositions", () => {
+    const cases = [
+      facts(),
+      facts({ result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 3, maximum: 4 }) }),
+      facts({ result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 4, maximum: 4 }) }),
+      facts({ result: "fail", failure: new GateFailureCategory({ category: "tooling", code: "PROTOCOL" }), retry: new GateRetryMetrics({ used: 0, maximum: 4 }) }),
+      facts({ result: "recovered", recoveryEvidence: new GateRecoveryEvidence({ kind: "recovered", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" }) }),
+    ];
+    for (const input of cases) {
+      const original = resolveGateTransition(input);
+      const reloaded = resolveGateTransition(reload(JSON.parse(JSON.stringify(input.toJSON()))));
+      assert.equal(original.plan.action.identity.matches(reloaded.plan.action.identity), true);
+      assert.equal(original.plan.action.identity.operation, original.disposition.operation);
     }
   });
 });

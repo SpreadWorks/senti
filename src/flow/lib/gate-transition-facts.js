@@ -9,6 +9,7 @@
 import { GateFailureCategory, GateTransitionFacts } from "./gate-transition.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { canonicalGateNodeId } from "./canonical-gate-artifacts.js";
+import { inspectCanonicalPlanGateRepair } from "./plan-gate-repair.js";
 
 function required(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -28,9 +29,27 @@ function scopeFor(phase, taskId) {
   return phase === "task-impl" && taskId !== null ? "task" : "flow";
 }
 
-function resultFailure(payload) {
+function resultFailure(payload, attempt) {
   if (payload?.result !== "fail") return null;
-  return new GateFailureCategory(payload?.artifacts?.gateTransitionFailureCategory).toJSON();
+  const artifactCategory = payload?.artifacts?.gateTransitionFailureCategory ?? null;
+  const attemptCategory = attempt?.failure === null || attempt?.failure === undefined
+    ? null
+    : { category: attempt.failure.category, code: attempt.failure.code };
+  // A Gate observation and its active Attempt are one canonical failure
+  // record. During post-publication admission the result supplies the fact;
+  // after failure recording the Attempt supplies the same fact. If both are
+  // present they must agree, so an old or rewritten artifact cannot change a
+  // semantic decision.
+  if (artifactCategory === null && attemptCategory === null) {
+    throw new Error("canonical failed Gate observation has no failure classification");
+  }
+  const artifact = artifactCategory === null ? null : new GateFailureCategory(artifactCategory);
+  const attemptFailure = attemptCategory === null ? null : new GateFailureCategory(attemptCategory);
+  if (artifact !== null && attemptFailure !== null
+    && (artifact.category !== attemptFailure.category || artifact.code !== attemptFailure.code)) {
+    throw new Error("canonical Gate result and current Attempt failure classification disagree");
+  }
+  return (artifact ?? attemptFailure).toJSON();
 }
 
 function currentGateActivity({ flowManager, state, nodeId, attempt }) {
@@ -97,15 +116,19 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     && publication.transition?.operation !== "confirm_attempt") {
     throw new Error("gate catalog publication has an invalid producer Activity");
   }
-  const failure = resultFailure(payload);
+  const failure = resultFailure(payload, attempt);
   let sourceFingerprint = resultSource.descriptor.hash;
   let sourceRevisionFingerprint = null;
   let canonicalRevisionFingerprint = null;
   const resultRevision = payload?.artifacts?.gateTransitionLineage;
   if (failure?.category === "semantic") {
     const source = flowManager.readProducerArtifact({
-      specId: state.specId, nodeId, logicalKey: keys.source, parameters: keys.parameters, optional: false,
+      specId: state.specId, nodeId, logicalKey: keys.source, parameters: keys.parameters, optional: true,
     });
+    // A source artifact is an additional semantic lineage witness when the
+    // producer published one. Its absence does not replace the current
+    // Attempt/result binding, which is already canonical and immutable.
+    if (source !== null) {
     const sourceActivity = activities.find((activity) => activity.id === source.descriptor.activityId) ?? null;
     if (sourceActivity === null) throw new Error("gate source publication is not owned by the current Attempt");
     const sourcePayload = JSON.parse(source.bytes.toString("utf8"));
@@ -122,10 +145,18 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     sourceFingerprint = source.descriptor.hash;
     sourceRevisionFingerprint = sourcePayload.lineage;
     canonicalRevisionFingerprint = resultRevision;
+    }
   }
   const contract = state.definition.contractForNode(state.findNode(nodeId));
   const failureCategory = failure?.category ?? "semantic";
-  const used = failureCategory === "semantic" ? attempt.consumption.semantic : attempt.consumption.tooling;
+  // Consumption is persisted on the Attempt that is being evaluated.  It
+  // counts retries that have already started; the failed observation itself
+  // must not be added a second time here.  Thus a limit of four permits the
+  // initial evaluation plus four replacement Attempts, and the fifth failed
+  // evaluation (consumption=4) is the one that settles.
+  const used = failureCategory === "semantic"
+    ? attempt.consumption.semantic
+    : attempt.consumption.tooling;
   const maximum = failureCategory === "semantic"
     ? contract.semanticRetryLimit
     : (contract.toolingRetryLimit ?? 0);
@@ -133,6 +164,12 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
   // failures are terminal at the common boundary; a zero tooling budget is
   // represented by one exhausted slot rather than an invented retry.
   const retry = { used, maximum: Math.max(1, maximum) };
+  // A repair receipt is observation evidence, never a route decision.  It is
+  // intentionally read from the same current Attempt and catalog lineage as
+  // the Gate result; Definition decides whether that evidence can be used.
+  const repairEvidence = payload.result === "fail" && failureCategory === "semantic"
+    ? inspectCanonicalPlanGateRepair({ flowManager, state })
+    : null;
   return new GateTransitionFacts({
     phase: persistedPhase,
     scope: scopeFor(persistedPhase, taskId),
@@ -159,6 +196,8 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     },
     recoveryEvidence: payload.result === "recovered"
       ? { kind: "recovered", attempt: { id: attempt.id, sequence: attempt.sequence }, fingerprint: resultSource.descriptor.hash }
+      : repairEvidence !== null
+        ? { kind: "repair", attempt: { id: attempt.id, sequence: attempt.sequence }, fingerprint: resultSource.descriptor.hash }
       : { kind: "none" },
   });
 }

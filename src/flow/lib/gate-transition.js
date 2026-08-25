@@ -86,9 +86,9 @@ export class GateFailureCategory {
     if (result?.result !== "fail") throw new Error("observed Gate failure requires a failed result");
     const artifacts = requireObject(result.artifacts, "observed Gate failure artifacts");
     const failureKind = requiredText(artifacts.failureKind, "observed Gate failure kind");
-    const category = ["ai_semantic_fail", "mechanical", "mechanical_guardrail_fail"].includes(failureKind)
-      ? "semantic"
-      : "tooling";
+    // Only a completed semantic judgment spends the semantic Gate budget.
+    // Structural, protocol, and mechanical observations are external stops.
+    const category = failureKind === "ai_semantic_fail" ? "semantic" : "tooling";
     return new GateFailureCategory({
       category,
       code: artifacts.failureCode ?? failureKind,
