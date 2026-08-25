@@ -32,6 +32,14 @@ function requireObject(value, field) {
   return value;
 }
 
+function taskGateStepId(taskId, role) {
+  return `${requiredText(taskId, "gate Task id")}-${role}`;
+}
+
+function taskGateBindingIsValid(taskId, stepId) {
+  return stepId === taskGateStepId(taskId, "gate");
+}
+
 /** The identity assigned by the canonical store to a producer Attempt. */
 export class GateAttemptIdentity {
   constructor({ id, sequence } = {}) {
@@ -235,6 +243,44 @@ export class GateTargetBinding {
   }
 }
 
+/**
+ * Task-only lifecycle facts already projected by the canonical state reader.
+ * Definition does not rediscover Task completion or the next Task from a
+ * caller cache: it receives the immutable selected successor with the gate
+ * observation and seals that selection into the action plan.
+ */
+export class GateTaskLifecycle {
+  constructor({ taskId, implStepId = null, reviewStepId = null, gateStepId = null, nextTaskId = null, integrationStepId } = {}) {
+    this.taskId = requiredText(taskId, "gate Task lifecycle taskId");
+    this.implStepId = implStepId === null ? taskGateStepId(this.taskId, "impl") : requiredText(implStepId, "gate Task lifecycle implStepId");
+    this.reviewStepId = reviewStepId === null ? taskGateStepId(this.taskId, "review") : requiredText(reviewStepId, "gate Task lifecycle reviewStepId");
+    this.gateStepId = gateStepId === null ? taskGateStepId(this.taskId, "gate") : requiredText(gateStepId, "gate Task lifecycle gateStepId");
+    if (this.implStepId !== taskGateStepId(this.taskId, "impl")
+      || this.reviewStepId !== taskGateStepId(this.taskId, "review")
+      || this.gateStepId !== taskGateStepId(this.taskId, "gate")) {
+      throw new Error("gate Task lifecycle Step identities must bind one Task");
+    }
+    this.nextTaskId = optionalText(nextTaskId, "gate Task lifecycle nextTaskId");
+    this.integrationStepId = requiredText(integrationStepId, "gate Task lifecycle integrationStepId");
+    Object.freeze(this);
+  }
+
+  get successorStepId() {
+    return this.nextTaskId === null ? this.integrationStepId : taskGateStepId(this.nextTaskId, "impl");
+  }
+
+  toJSON() {
+    return {
+      taskId: this.taskId,
+      implStepId: this.implStepId,
+      reviewStepId: this.reviewStepId,
+      gateStepId: this.gateStepId,
+      nextTaskId: this.nextTaskId,
+      integrationStepId: this.integrationStepId,
+    };
+  }
+}
+
 /** Complete input contract for a definition-owned Gate decision. */
 export class GateTransitionFacts {
   constructor({
@@ -249,6 +295,7 @@ export class GateTransitionFacts {
     retry,
     lineage,
     recoveryEvidence = {},
+    taskLifecycle = null,
   } = {}) {
     this.phase = requiredText(phase, "gate phase");
     if (!GATE_PHASES.has(this.phase)) throw new Error("gate phase is invalid");
@@ -271,6 +318,12 @@ export class GateTransitionFacts {
     this.recoveryEvidence = recoveryEvidence instanceof GateRecoveryEvidence
       ? recoveryEvidence
       : new GateRecoveryEvidence(recoveryEvidence);
+    this.taskLifecycle = taskLifecycle === null
+      ? null
+      : (taskLifecycle instanceof GateTaskLifecycle ? taskLifecycle : new GateTaskLifecycle(taskLifecycle));
+    if ((this.scope === "task") !== (this.taskLifecycle !== null)) {
+      throw new Error("gate Task lifecycle must exist exactly for task scope");
+    }
     if ((this.result === "recovered") !== (this.recoveryEvidence.kind === "recovered")) {
       throw new Error("recovered gate result requires matching recovery evidence");
     }
@@ -287,6 +340,12 @@ export class GateTransitionFacts {
       return "target_binding_mismatch";
     }
     if (this.producer.taskId !== this.target.taskId) return "target_task_mismatch";
+    if (this.scope === "task" && (!taskGateBindingIsValid(this.target.taskId, this.target.stepId)
+      || !taskGateBindingIsValid(this.producer.taskId, this.producer.stepId))) return "task_step_identity_mismatch";
+    if (this.taskLifecycle !== null && (
+      this.taskLifecycle.taskId !== this.target.taskId
+      || this.taskLifecycle.gateStepId !== this.target.stepId
+    )) return "task_lifecycle_mismatch";
     if (!this.currentAttempt.matches(this.target.attempt)) return "target_attempt_mismatch";
     if (this.producer.stepId !== this.target.stepId) return "producer_target_mismatch";
     if (this.producer.activityId !== this.catalogPublication.producerActivityId) {
@@ -314,6 +373,7 @@ export class GateTransitionFacts {
       currentAttempt: this.currentAttempt.toJSON(), catalogPublication: this.catalogPublication.toJSON(),
       result: this.result, failure: this.failure?.toJSON() ?? null, retry: this.retry.toJSON(),
       lineage: this.lineage.toJSON(), recoveryEvidence: this.recoveryEvidence.toJSON(),
+      taskLifecycle: this.taskLifecycle?.toJSON() ?? null,
     };
   }
 }

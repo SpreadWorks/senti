@@ -3,6 +3,10 @@ import crypto from "node:crypto";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { ReviewFindingCycle } from "./finding-disposition-policy.js";
+import {
+  CanonicalFlowArtifactBaseline,
+  CanonicalFlowArtifactWrite,
+} from "./current-flow-state.js";
 
 export const FLOW_FINDINGS_LOGICAL_KEY = "flow.findings";
 export const MAX_FLOW_FINDINGS = 200;
@@ -158,6 +162,66 @@ export class FlowFindingsArtifact {
   }
 }
 
+/** One catalog observation of flow.findings and its compare-and-swap token. */
+export class CanonicalFlowFindingsSnapshot {
+  constructor({ artifact, baseline } = {}) {
+    if (!(artifact instanceof FlowFindingsArtifact)) {
+      throw new Error("flow findings snapshot requires a FlowFindingsArtifact");
+    }
+    if (!(baseline instanceof CanonicalFlowArtifactBaseline)
+      || baseline.artifact.logicalKey !== FLOW_FINDINGS_LOGICAL_KEY) {
+      throw new Error("flow findings snapshot requires a flow.findings baseline");
+    }
+    this.artifact = artifact;
+    this.baseline = baseline;
+    Object.freeze(this);
+  }
+}
+
+/**
+ * An immutable deferred-findings update prepared from one canonical snapshot.
+ * The owner of the lifecycle Activity attaches its one artifact write to that
+ * Activity, so finding publication cannot commit ahead of settlement.
+ */
+export class DeferredFlowFindingsPublication {
+  constructor({ artifact, deferred, changed, baseline } = {}) {
+    if (!(artifact instanceof FlowFindingsArtifact)) {
+      throw new Error("deferred findings publication requires a FlowFindingsArtifact");
+    }
+    if (!Array.isArray(deferred) || deferred.some((entry) => !(entry instanceof FlowFinding))) {
+      throw new Error("deferred findings publication requires typed findings");
+    }
+    if (typeof changed !== "boolean") throw new Error("deferred findings publication changed must be boolean");
+    if (!(baseline instanceof CanonicalFlowArtifactBaseline)
+      || baseline.artifact.logicalKey !== FLOW_FINDINGS_LOGICAL_KEY) {
+      throw new Error("deferred findings publication requires a flow.findings baseline");
+    }
+    this.artifact = artifact;
+    this.deferred = Object.freeze([...deferred]);
+    this.changed = changed;
+    this.baseline = baseline;
+    Object.freeze(this);
+  }
+
+  artifactWrite() {
+    if (!this.changed) return null;
+    return new CanonicalFlowArtifactWrite({
+      logicalKey: FLOW_FINDINGS_LOGICAL_KEY,
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(this.artifact.toJSON(), null, 2)}\n`, "utf8"),
+    });
+  }
+
+  /** The sole catalog mutation permitted alongside a deferred lifecycle settlement. */
+  settlementArtifacts() {
+    const artifactWrite = this.artifactWrite();
+    return Object.freeze({
+      artifactWrites: Object.freeze(artifactWrite === null ? [] : [artifactWrite]),
+      artifactBaselines: Object.freeze([this.baseline]),
+    });
+  }
+}
+
 function canonicalFlowState(flowState) {
   if (flowState?.schemaRevision !== 3 || typeof flowState.specId !== "string" || flowState.specId === "") {
     throw new Error("flow findings require a Version-1 Flow state");
@@ -226,7 +290,7 @@ export class CanonicalFlowFindingsStore {
     Object.freeze(this);
   }
 
-  read({ filterCurrentRun = false } = {}) {
+  readSnapshot() {
     const resolved = this.flowManager.readArtifact({
       specId: this.flowState.specId,
       logicalKey: FLOW_FINDINGS_LOGICAL_KEY,
@@ -237,13 +301,25 @@ export class CanonicalFlowFindingsStore {
       resolved.bytes,
       "canonical flow findings",
     ));
+    return new CanonicalFlowFindingsSnapshot({
+      artifact,
+      baseline: new CanonicalFlowArtifactBaseline({
+        logicalKey: FLOW_FINDINGS_LOGICAL_KEY,
+        digest: resolved?.descriptor.hash ?? null,
+        byteLength: resolved?.descriptor.size ?? 0,
+      }),
+    });
+  }
+
+  read({ filterCurrentRun = false } = {}) {
+    const artifact = this.readSnapshot().artifact;
     if (!filterCurrentRun) return artifact;
     return new FlowFindingsArtifact({
       entries: artifact.entries.filter((entry) => this.cycle.matchesArtifact(entry)),
     });
   }
 
-  publish(artifact) {
+  publish(artifact, { artifactBaselines = undefined } = {}) {
     const normalized = artifact instanceof FlowFindingsArtifact ? artifact : new FlowFindingsArtifact(artifact);
     this.flowManager.publishArtifacts({
       specId: this.flowState.specId,
@@ -253,6 +329,7 @@ export class CanonicalFlowFindingsStore {
         mediaType: "application/json",
         bytes: Buffer.from(`${JSON.stringify(normalized.toJSON(), null, 2)}\n`, "utf8"),
       }],
+      ...(artifactBaselines === undefined ? {} : { artifactBaselines }),
     });
     return normalized;
   }
@@ -260,12 +337,14 @@ export class CanonicalFlowFindingsStore {
   sourceArtifact(sourceArtifact) {
     const logicalKey = sourceLogicalKey(sourceArtifact);
     const contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
-    const parameters = logicalKey === "task.review"
+    const taskArtifact = new Set(["task.review", "task.gate"]).has(logicalKey);
+    const parameters = taskArtifact
       ? { taskId: this.flowState.currentTaskId }
       : {};
-    const ownsTaskProducer = logicalKey === "task.review"
-      && this.nodeId === `${this.flowState.currentTaskId}-review`
-      && contract.ownership.producers.includes("task-review");
+    const taskRole = logicalKey === "task.review" ? "review" : logicalKey === "task.gate" ? "gate" : null;
+    const ownsTaskProducer = taskRole !== null
+      && this.nodeId === `${this.flowState.currentTaskId}-${taskRole}`
+      && contract.ownership.producers.includes(`task-${taskRole}`);
     const resolved = (contract.ownership.producers.includes(this.nodeId) || ownsTaskProducer)
       ? this.flowManager.readProducerArtifact({
         specId: this.flowState.specId,
@@ -316,10 +395,10 @@ function nextRound(existing) {
   return rounds.length === 0 ? 1 : Math.max(...rounds) + 1;
 }
 
-export function appendDeferredFlowFinding({
-  flowManager,
+function appendDeferredFindingToArtifact({
+  artifact,
+  cycle,
   flowState,
-  nodeId,
   sourceStep,
   sourceArtifact,
   sourceFindingId,
@@ -329,11 +408,8 @@ export function appendDeferredFlowFinding({
   round = null,
   finalDisposition = null,
 }) {
-  const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
-  const existing = store.read();
-  const planRewindAt = store.cycle.planRewindAt;
-  const source = store.sourceArtifact(sourceArtifact);
-  if (source === null) throw new Error(`canonical source artifact is absent: ${sourceArtifact}`);
+  const existing = artifact instanceof FlowFindingsArtifact ? artifact : new FlowFindingsArtifact(artifact);
+  const planRewindAt = cycle.planRewindAt;
   const normalizedFingerprint = requireFindingFingerprint(fingerprint);
   const runId = flowState?.runId == null ? null : requireString(flowState.runId, "flowState.runId");
   const existingIndex = existing.entries.findIndex((entry) => (
@@ -355,15 +431,21 @@ export function appendDeferredFlowFinding({
       finalDisposition: current.finalDisposition ?? finalDisposition,
       planRewindAt,
     });
-    if (JSON.stringify(entry.toJSON()) === JSON.stringify(current.toJSON())) return current;
-    const entries = existing.entries.map((item, index) => (index === existingIndex ? entry : item));
-    store.publish(new FlowFindingsArtifact({ entries }));
-    return entry;
+    if (JSON.stringify(entry.toJSON()) === JSON.stringify(current.toJSON())) {
+      return Object.freeze({ artifact: existing, entry, changed: false });
+    }
+    return Object.freeze({
+      artifact: new FlowFindingsArtifact({
+        entries: existing.entries.map((item, index) => (index === existingIndex ? entry : item)),
+      }),
+      entry,
+      changed: true,
+    });
   }
   const entry = new FlowFinding({
     findingId: nextFindingId(existing),
     sourceStep,
-    sourceArtifact: source.relativePath,
+    sourceArtifact,
     sourceFindingId,
     fingerprint: normalizedFingerprint,
     disposition: "deferred",
@@ -376,8 +458,46 @@ export function appendDeferredFlowFinding({
     finalDisposition,
     planRewindAt,
   });
-  store.publish(new FlowFindingsArtifact({ entries: [...existing.entries, entry] }));
-  return entry;
+  return Object.freeze({
+    artifact: new FlowFindingsArtifact({ entries: [...existing.entries, entry] }),
+    entry,
+    changed: true,
+  });
+}
+
+export function appendDeferredFlowFinding({
+  flowManager,
+  flowState,
+  nodeId,
+  sourceStep,
+  sourceArtifact,
+  sourceFindingId,
+  fingerprint,
+  rationale,
+  attempts,
+  round = null,
+  finalDisposition = null,
+}) {
+  const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
+  const snapshot = store.readSnapshot();
+  const existing = snapshot.artifact;
+  const source = store.sourceArtifact(sourceArtifact);
+  if (source === null) throw new Error(`canonical source artifact is absent: ${sourceArtifact}`);
+  const update = appendDeferredFindingToArtifact({
+    artifact: existing,
+    cycle: store.cycle,
+    flowState,
+    sourceStep,
+    sourceArtifact: source.relativePath,
+    sourceFindingId,
+    fingerprint,
+    rationale,
+    attempts,
+    round,
+    finalDisposition,
+  });
+  if (update.changed) store.publish(update.artifact, { artifactBaselines: [snapshot.baseline] });
+  return update.entry;
 }
 
 export function buildDeferredFindingsSummary({ flowManager, flowState, nodeId }) {
@@ -474,7 +594,7 @@ function sourceFindingRationale(finding) {
   ).trim();
 }
 
-export function deferExhaustedSemanticFindings({
+export function buildDeferredSemanticFindingsPublication({
   flowManager,
   flowState,
   nodeId,
@@ -495,23 +615,46 @@ export function deferExhaustedSemanticFindings({
     const fingerprint = sourceFindingFingerprint(sourceStep, finding);
     if (!byFingerprint.has(fingerprint)) byFingerprint.set(fingerprint, { finding, index });
   });
-  const deferred = [...byFingerprint].map(([fingerprint, { finding, index }]) => appendDeferredFlowFinding({
-    flowManager,
-    flowState,
-    nodeId,
-    sourceStep,
-    sourceArtifact: source.relativePath,
-    sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
-    fingerprint,
-    rationale: sourceFindingRationale(finding),
-    attempts,
-    round: attempts,
-    finalDisposition: "still_open",
-  }));
+  const snapshot = store.readSnapshot();
+  const existing = snapshot.artifact;
+  let nextArtifact = existing;
+  const deferred = [];
+  for (const [fingerprint, { finding, index }] of byFingerprint) {
+    const update = appendDeferredFindingToArtifact({
+      artifact: nextArtifact,
+      cycle: store.cycle,
+      flowState,
+      sourceStep,
+      sourceArtifact: source.relativePath,
+      sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
+      fingerprint,
+      rationale: sourceFindingRationale(finding),
+      attempts,
+      round: attempts,
+      finalDisposition: "still_open",
+    });
+    nextArtifact = update.artifact;
+    deferred.push(update.entry);
+  }
+  return new DeferredFlowFindingsPublication({
+    artifact: nextArtifact,
+    deferred,
+    changed: JSON.stringify(nextArtifact.toJSON()) !== JSON.stringify(existing.toJSON()),
+    baseline: snapshot.baseline,
+  });
+}
+
+export function deferExhaustedSemanticFindings(input = {}) {
+  const publication = buildDeferredSemanticFindingsPublication(input);
+  if (publication.changed) {
+    new CanonicalFlowFindingsStore(input).publish(publication.artifact, {
+      artifactBaselines: [publication.baseline],
+    });
+  }
   return {
     completed: true,
     blockedByRetryExhaustionOnly: false,
-    deferred,
+    deferred: publication.deferred,
   };
 }
 

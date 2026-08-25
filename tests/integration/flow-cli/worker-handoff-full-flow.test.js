@@ -330,13 +330,17 @@ describe("deterministic full Flow worker handoff", () => {
           return;
         }
         if (current === nodeId) {
-          const canonicalCommandResult = commandPublishedPrimaryArtifact.has(entry.stepId)
-            ? null
-            : canonicalFixtureProducerResult(active, nodeId, { flowManager, specId });
-          flowManager.updateStepStatus(
-            { stepId: nodeId, requestedStatus: "done" },
-            { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
-          );
+          if (entry.taskId !== null && entry.stepId === "task-gate") {
+            fixture.settle(nodeId);
+          } else {
+            const canonicalCommandResult = commandPublishedPrimaryArtifact.has(entry.stepId)
+              ? null
+              : canonicalFixtureProducerResult(active, nodeId, { flowManager, specId });
+            flowManager.updateStepStatus(
+              { stepId: nodeId, requestedStatus: "done" },
+              { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+            );
+          }
         } else {
           // Worker-handoff confirmation is itself the canonical Attempt
           // transition, so it has already completed this leaf before the

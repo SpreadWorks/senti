@@ -239,10 +239,10 @@ export class CanonicalFlowArtifactWrite {
 }
 
 /**
- * The catalog value observed for one artifact used by a worker before it
- * starts.  The Version Store compares it while holding the catalog
- * publication lock, so unrelated artifacts may change while actual inputs
- * and outputs retain compare-and-swap semantics.
+ * The catalog value observed for one artifact before a canonical transition
+ * is persisted. The Version Store compares it while holding the catalog
+ * publication lock, so unrelated artifacts may change while the observed
+ * artifact retains compare-and-swap semantics.
  */
 export class CanonicalFlowArtifactBaseline {
   constructor({ logicalKey, parameters = {}, digest = null, byteLength = 0 } = {}) {
@@ -251,7 +251,7 @@ export class CanonicalFlowArtifactBaseline {
     }
     this.artifact = resolvedArtifact(requireString(logicalKey, "canonical artifact baseline logicalKey"), parameters);
     if (["flow.state", "flow.activities", "artifact.catalog"].includes(this.artifact.logicalKey)) {
-      throw new CurrentFlowStateInvariantError("canonical Store authorities cannot be worker artifact baselines");
+      throw new CurrentFlowStateInvariantError("canonical Store authorities cannot be artifact baselines");
     }
     if (!this.artifact.contract.cataloged) {
       throw new CurrentFlowStateInvariantError("canonical artifact baseline must target cataloged storage");
@@ -286,7 +286,7 @@ export class CanonicalFlowArtifactBaseline {
         && actual.size === this.byteLength;
     if (!unchanged) {
       throw new CurrentFlowStateConflictError(
-        `canonical worker artifact changed after handoff capture: ${this.artifact.relativePath}`,
+        `canonical artifact changed after baseline capture: ${this.artifact.relativePath}`,
       );
     }
   }
@@ -3259,7 +3259,14 @@ function assertExecutionFrontier(leaves, currentPath, definition) {
     const approvalRecoveryTask = suffixStatus === "invalidated"
       && leaf.status === "pending"
       && definition.isDynamicTaskNode(leaf);
-    if (approvalRecoveryTask) continue;
+    // A sealed Task Gate repair resumes the Task impl leaf while its Review
+    // and Gate remain invalidated. Its later Task/Flow leaves stay pending;
+    // the journaled lifecycle effect is the authority for this mixed suffix.
+    const taskGateRepairSuffix = frontier.status === "in_progress"
+      && suffixStatus === "invalidated"
+      && leaf.status === "pending"
+      && definition.isDynamicTaskNode(leaves[frontier.index]);
+    if (approvalRecoveryTask || taskGateRepairSuffix) continue;
     if (!EXECUTABLE_NODE_STATUSES.has(suffixStatus) || leaf.status !== suffixStatus) {
       throw new CurrentFlowStateInvariantError("execution frontier must have one active leaf and a uniform pending or invalidated suffix");
     }
@@ -3713,7 +3720,9 @@ export class CurrentFlowState {
   retryGateAttempt({ attempt }) {
     this.#assertExecutionActive();
     const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
-    if (leaf === null || !new Set(["draft-gate", "spec-gate"]).has(leaf.id)
+    const task = this.current === null ? null : this.findNode(this.current.at(-2));
+    const taskGate = task instanceof TaskNode && leaf?.id === `${task.id}-gate`;
+    if (leaf === null || (!new Set(["draft-gate", "spec-gate"]).has(leaf.id) && !taskGate)
       || this.attempt?.failure?.category !== "semantic") {
       throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires a failed semantic Gate Attempt");
     }
@@ -3912,7 +3921,61 @@ export class CurrentFlowState {
     return this.#replaceRoot(root, producerPath, restored);
   }
 
-  confirmCurrentAttempt({ result, status = "done" }) {
+  #assertTaskGateLifecycle({ leafId, gateTaskLifecycle, operation }) {
+    const container = this.findNode(this.definition.dynamicTaskContainerId);
+    const tasks = container?.steps.filter((node) => node instanceof TaskNode) ?? [];
+    const taskIndex = tasks.findIndex((task) => task.steps.some((step) => step.id === leafId));
+    if (taskIndex < 0) {
+      if (gateTaskLifecycle !== null) {
+        throw new CurrentFlowStateInvariantError("non-Task Gate transition cannot carry a Task lifecycle effect");
+      }
+      return null;
+    }
+    const task = tasks[taskIndex];
+    const expectedStepIds = ["impl", "review", "gate"].map((role) => `${task.id}-${role}`);
+    if (leafId !== expectedStepIds[2]) {
+      if (gateTaskLifecycle !== null) {
+        throw new CurrentFlowStateInvariantError("Task lifecycle effects may target only a materialized Task Gate");
+      }
+      return null;
+    }
+    if (task.steps.length !== expectedStepIds.length
+      || task.steps.some((step, index) => step.id !== expectedStepIds[index])) {
+      throw new CurrentFlowStateInvariantError("Task Gate lifecycle requires its exact materialized Task Step identity");
+    }
+    if (gateTaskLifecycle === null || typeof gateTaskLifecycle !== "object"
+      || gateTaskLifecycle.operation !== operation
+      || gateTaskLifecycle.taskId !== task.id
+      || !Array.isArray(gateTaskLifecycle.resetStepIds)
+      || gateTaskLifecycle.resetStepIds.length !== 0) {
+      throw new CurrentFlowStateInvariantError("Task Gate transition requires its exact sealed lifecycle effect");
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const gateIndex = leaves.findIndex((candidate) => candidate.id === leafId);
+    const successorStepId = gateIndex < 0 ? null : leaves.slice(gateIndex + 1)
+      .find((candidate) => candidate.status === "pending" || candidate.status === "invalidated")?.id ?? null;
+    if (successorStepId === null) {
+      throw new CurrentFlowStateInvariantError("Task Gate lifecycle has no canonical executable successor");
+    }
+    if (gateTaskLifecycle.successorStepId !== successorStepId) {
+      throw new CurrentFlowStateInvariantError("Task Gate lifecycle successor does not match the persisted Task frontier");
+    }
+    return Object.freeze({ taskId: task.id, successorStepId });
+  }
+
+  #assertTaskGateSuccessor(next, lifecycle) {
+    if (lifecycle === null) return;
+    const task = next.findNode(lifecycle.taskId);
+    if (!(task instanceof TaskNode) || task.status !== "done") {
+      throw new CurrentFlowStateInvariantError("Task Gate lifecycle did not complete its Task atomically");
+    }
+    const successor = next.nextAction();
+    if (successor?.nodeId !== lifecycle.successorStepId) {
+      throw new CurrentFlowStateInvariantError("Task Gate lifecycle did not reach its sealed successor");
+    }
+  }
+
+  confirmCurrentAttempt({ result, status = "done", gateTaskLifecycle = null }) {
     this.#assertExecutionActive();
     if (this.current == null) throw new CurrentFlowStateInvariantError("confirmCurrentAttempt requires an active Attempt");
     if (this.attempt.failure !== null) {
@@ -3932,12 +3995,19 @@ export class CurrentFlowState {
       throw new CurrentFlowStateInvariantError("skipped confirmation requires a skipped result");
     }
     const leafId = this.current.at(-1);
+    const lifecycle = this.#assertTaskGateLifecycle({
+      leafId,
+      gateTaskLifecycle,
+      operation: "complete-and-advance",
+    });
     const leaf = this.findNode(leafId);
     const root = reconcileCompletedParents(
       replaceNode(this.root, leafId, transitionNode(leaf, status, this.definition, { result: confirmed })),
       this.definition,
     );
-    return this.#replaceRoot(root, null, null);
+    const next = this.#replaceRoot(root, null, null);
+    this.#assertTaskGateSuccessor(next, lifecycle);
+    return next;
   }
 
   completeAcceptanceDecisionNoOp({ result }) {
@@ -4024,11 +4094,16 @@ export class CurrentFlowState {
     return this.#replaceRoot(root, null, null);
   }
 
-  /** Settle an exhausted Draft/Spec Gate only after its finding is persisted. */
-  deferFailedGate({ attempt, result }) {
+  /** Settle an exhausted Gate with its finding in the same Store transaction. */
+  deferFailedGate({ attempt, result, gateTaskLifecycle = null }) {
     this.#assertExecutionActive();
     const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
-    if (leaf === null || !new Set(["draft-gate", "spec-gate"]).has(leaf.id)
+    const lifecycle = leaf === null ? null : this.#assertTaskGateLifecycle({
+      leafId: leaf.id,
+      gateTaskLifecycle,
+      operation: "defer-and-advance",
+    });
+    if (leaf === null || (!new Set(["draft-gate", "spec-gate"]).has(leaf.id) && lifecycle === null)
       || this.attempt?.failure?.category !== "semantic") {
       throw new CurrentFlowStateInvariantError("Gate deferral requires a failed semantic Gate Attempt");
     }
@@ -4047,7 +4122,9 @@ export class CurrentFlowState {
         attemptSequence: settlementAttempt.sequence, result: settled,
       })), this.definition,
     );
-    return this.#replaceRoot(root, null, null);
+    const next = this.#replaceRoot(root, null, null);
+    this.#assertTaskGateSuccessor(next, lifecycle);
+    return next;
   }
 
   /** Apply the route-specific skips authorized by an immutable advisory decision. */
@@ -4482,7 +4559,7 @@ export class CurrentFlowState {
    * mutable status patch.  It may leave an active gate only after the route
    * has recorded blocking evidence in the same Version Store operation.
    */
-  repairPlanGate({ path: currentPath, attempt }) {
+  repairPlanGate({ path: currentPath, attempt, taskLifecycle = null }) {
     this.#assertExecutionActive();
     const target = nodeAtPath(this.root, currentPath);
     const route = planGateRepairRouteForTargetStep(target.id);
@@ -4494,6 +4571,36 @@ export class CurrentFlowState {
     }
     if (!isPlanGateRepairEligibleFailure(this, route)) {
       throw new CurrentFlowStateInvariantError("plan gate repair requires its mapped blocked semantic gate failure");
+    }
+    if (route.phase === "task-impl") {
+      if (taskLifecycle === null || taskLifecycle.operation !== "repair-task-impl") {
+        throw new CurrentFlowStateInvariantError("Task Gate repair requires its sealed lifecycle effect");
+      }
+      const taskId = taskLifecycle.taskId;
+      if (taskLifecycle.successorStepId !== currentPath.at(-1)
+        || JSON.stringify(taskLifecycle.resetStepIds) !== JSON.stringify(route.resetStepIds)) {
+        throw new CurrentFlowStateInvariantError("Task Gate repair lifecycle effect does not match its sealed route");
+      }
+      const task = this.findNode(taskId);
+      if (!(task instanceof TaskNode) || !this.current.includes(taskId)) {
+        throw new CurrentFlowStateInvariantError("Task Gate repair requires the current materialized Task");
+      }
+      for (const stepId of taskLifecycle.resetStepIds) {
+        const node = this.findNode(stepId);
+        const expected = stepId === route.gateStepId ? "in_progress" : "done";
+        if (node?.status !== expected) {
+          throw new CurrentFlowStateInvariantError(`Task Gate repair requires ${stepId}=${expected}, got ${node?.status ?? "absent"}`);
+        }
+      }
+      let root = this.root;
+      for (const stepId of taskLifecycle.resetStepIds) {
+        const node = findNodeInRoot(root, stepId);
+        root = replaceNode(root, stepId, transitionNode(node, "invalidated", this.definition, { result: null }));
+      }
+      root = reconcileInvalidatedParents(root, this.definition);
+      return this.#activateAttemptFromRoot({
+        root, path: currentPath, attempt, allowedLeafStatuses: ["invalidated"], initial: true, operation: "repairTaskGate",
+      });
     }
     for (const stepId of route.resetStepIds) {
       const node = this.findNode(stepId);
@@ -4754,6 +4861,28 @@ export class CurrentFlowState {
       }
     }
     return this.#replaceRoot(root, currentPath, parsedAttempt);
+  }
+
+  /** Activate a replacement Attempt without persisting an invalidated intermediate frontier. */
+  #activateAttemptFromRoot({ root, path: currentPath, attempt, allowedLeafStatuses, initial, operation }) {
+    const leaf = nodeAtPath(root, currentPath);
+    this.assertTransitionHandler(leaf.id);
+    if (leaf.steps.length !== 0 || !allowedLeafStatuses.includes(leaf.status)) {
+      throw new CurrentFlowStateInvariantError(`${operation} may target only a ${allowedLeafStatuses.join(" or ")} leaf`);
+    }
+    const parsedAttempt = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    this.#assertAttemptForLeaf(leaf, parsedAttempt, { initial });
+    let activated = root;
+    for (const id of currentPath) {
+      const node = findNodeInRoot(activated, id);
+      if (node.status !== "in_progress" || (id === leaf.id && node.attemptSequence !== parsedAttempt.sequence)) {
+        activated = replaceNode(activated, id, transitionNode(node, "in_progress", this.definition, {
+          result: id === leaf.id ? null : node.result,
+          attemptSequence: id === leaf.id ? parsedAttempt.sequence : node.attemptSequence,
+        }));
+      }
+    }
+    return this.#replaceRoot(activated, currentPath, parsedAttempt);
   }
 
   #assertAttemptForLeaf(leaf, next, { initial = false, previous = null, kind = null } = {}) {
@@ -5154,13 +5283,51 @@ export class ActivityNonBlockingRecord {
   }
 }
 
+/** Immutable serialized Task Gate lifecycle carried by one journal Activity. */
+export class ActivityGateTaskLifecycle {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("activity Gate Task lifecycle is invalid");
+    requireExactFields(value, new Set(["operation", "taskId", "successorStepId", "resetStepIds"]), "activity.gateTaskLifecycle");
+    this.operation = requireString(value.operation, "activity Gate Task lifecycle operation");
+    if (!new Set(["complete-and-advance", "repair-task-impl", "defer-and-advance"]).has(this.operation)) {
+      throw new CurrentFlowStateInvariantError("activity Gate Task lifecycle operation is invalid");
+    }
+    this.taskId = requireString(value.taskId, "activity Gate Task lifecycle taskId");
+    this.successorStepId = requireString(value.successorStepId, "activity Gate Task lifecycle successor");
+    if (!Array.isArray(value.resetStepIds) || value.resetStepIds.some((stepId) => typeof stepId !== "string" || stepId === "")) {
+      throw new CurrentFlowStateInvariantError("activity Gate Task lifecycle reset Steps are invalid");
+    }
+    this.resetStepIds = Object.freeze([...value.resetStepIds]);
+    const expectedReset = [`${this.taskId}-impl`, `${this.taskId}-review`, `${this.taskId}-gate`];
+    if ((this.operation === "repair-task-impl" && JSON.stringify(this.resetStepIds) !== JSON.stringify(expectedReset))
+      || (this.operation !== "repair-task-impl" && this.resetStepIds.length !== 0)) {
+      throw new CurrentFlowStateInvariantError("activity Gate Task lifecycle reset Steps do not match its operation");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      operation: this.operation,
+      taskId: this.taskId,
+      successorStepId: this.successorStepId,
+      resetStepIds: [...this.resetStepIds],
+    };
+  }
+}
+
+const ACTIVITY_TRANSITION_FIELDS = new Set([
+  "operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval",
+  "nonblocking", "finalizeSteps", "gateTaskLifecycle",
+]);
+
 export class ActivityTransition {
   constructor(value) {
-    const normalized = isPlainObject(value) && !Object.hasOwn(value, "finalizeSteps")
-      ? { ...value, finalizeSteps: null }
+    const normalized = isPlainObject(value) && (!Object.hasOwn(value, "finalizeSteps") || !Object.hasOwn(value, "gateTaskLifecycle"))
+      ? { ...value, finalizeSteps: value.finalizeSteps ?? null, gateTaskLifecycle: value.gateTaskLifecycle ?? null }
       : value;
-    requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
-    const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
+    requireExactFields(normalized, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
+    const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle } = normalized;
     if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
@@ -5258,6 +5425,18 @@ export class ActivityTransition {
     } else {
       this.finalizeSteps = null;
     }
+    const lifecycle = gateTaskLifecycle === null ? null : new ActivityGateTaskLifecycle(gateTaskLifecycle);
+    const requiredTaskLifecycleOperation = operation === "plan_gate_repair"
+      ? "repair-task-impl"
+      : operation === "confirm_attempt"
+        ? "complete-and-advance"
+        : operation === "defer_failed_gate"
+          ? "defer-and-advance"
+          : null;
+    if (lifecycle !== null && lifecycle.operation !== requiredTaskLifecycleOperation) {
+      throw new CurrentFlowStateInvariantError("Activity Gate Task lifecycle effect does not match its transition operation");
+    }
+    this.gateTaskLifecycle = lifecycle;
     const attemptRequired = TRANSITION_ATTEMPT_OPERATIONS.has(operation);
     if (attemptRequired !== (this.attempt !== null)) {
       throw new CurrentFlowStateInvariantError(
@@ -5392,7 +5571,11 @@ export class ActivityTransition {
     }
     if (this.operation === "defer_failed_gate") {
       if (activity.result == null) throw new CurrentFlowStateInvariantError("defer_failed_gate Activity requires a result");
-      return state.deferFailedGate({ attempt: this.attempt, result: activity.result });
+      return state.deferFailedGate({
+        attempt: this.attempt,
+        result: activity.result,
+        gateTaskLifecycle: this.gateTaskLifecycle,
+      });
     }
     if (["add_task", "add_approval_task"].includes(this.operation)) {
       if (target.id !== state.definition.dynamicTaskContainerId) {
@@ -5486,7 +5669,7 @@ export class ActivityTransition {
         });
       }
       if (this.operation === "plan_gate_repair") {
-        return state.repairPlanGate({ path: currentPath, attempt: this.attempt });
+        return state.repairPlanGate({ path: currentPath, attempt: this.attempt, taskLifecycle: this.gateTaskLifecycle });
       }
       if (this.operation === "recover_missing_producer_artifact") {
         return state.recoverMissingProducerArtifact({ path: currentPath, attempt: this.attempt });
@@ -5558,7 +5741,11 @@ export class ActivityTransition {
     if (this.operation === "complete_acceptance_decision_noop") {
       return state.completeAcceptanceDecisionNoOp({ result: activity.result });
     }
-    return state.confirmCurrentAttempt({ result: activity.result, status: this.status });
+    return state.confirmCurrentAttempt({
+      result: activity.result,
+      status: this.status,
+      gateTaskLifecycle: this.gateTaskLifecycle?.toJSON() ?? null,
+    });
   }
 
   toJSON() {
@@ -5573,6 +5760,7 @@ export class ActivityTransition {
       approval: this.approval?.toJSON() ?? null,
       nonblocking: this.nonblocking?.toJSON() ?? null,
       finalizeSteps: this.finalizeSteps,
+      gateTaskLifecycle: this.gateTaskLifecycle?.toJSON() ?? null,
     };
   }
 }
@@ -5779,7 +5967,13 @@ export class FlowActivity {
     const serialized = value instanceof FlowActivity
       ? FlowActivity.prototype.toJSON.call(value)
       : value;
-    return new FlowActivity(serialized);
+    return FlowActivity.fromSerialized(serialized);
+  }
+
+  /** Parse the current durable Activity format without accepting omitted fields. */
+  static fromSerialized(value) {
+    requireExactFields(value?.transition, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
+    return new FlowActivity(value);
   }
 
   static flowCreated(state, createdAt, { artifactReferences = [] } = {}) {
@@ -5806,6 +6000,7 @@ export class FlowActivity {
         approval: null,
         nonblocking: null,
         finalizeSteps: null,
+        gateTaskLifecycle: null,
       },
       result: null,
       timing: { startedAt: timestamp, finishedAt: timestamp, durationMs: 0 },
@@ -6128,7 +6323,7 @@ export class FlowActivityJournal {
     }
     const lines = content.trimEnd().split("\n");
     const entries = lines.map((line, index) => {
-      try { return new FlowActivity(JSON.parse(line)); } catch (error) {
+      try { return FlowActivity.fromSerialized(JSON.parse(line)); } catch (error) {
         throw new CurrentFlowStateInvariantError(`invalid activities.jsonl line ${entryOffset + index + 1}: ${error.message}`);
       }
     });

@@ -6,9 +6,9 @@
  * definition.js.  Commands must not reconstruct any of these identities
  * from their invocation arguments or process-local state.
  */
-import { GateFailureCategory, GateTransitionFacts } from "./gate-transition.js";
+import { GateFailureCategory, GateTaskLifecycle, GateTransitionFacts } from "./gate-transition.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
-import { canonicalGateNodeId } from "./canonical-gate-artifacts.js";
+import { canonicalGateNodeId, canonicalGateRevision } from "./canonical-gate-artifacts.js";
 import { inspectCanonicalPlanGateRepair } from "./plan-gate-repair.js";
 
 function required(value, field) {
@@ -27,6 +27,47 @@ function gateKeys(phase, taskId) {
 
 function scopeFor(phase, taskId) {
   return phase === "task-impl" && taskId !== null ? "task" : "flow";
+}
+
+function taskLifecycleFor(state, taskId) {
+  if (taskId === null) return null;
+  const container = state.findNode(state.definition.dynamicTaskContainerId);
+  const tasks = container?.steps.filter((node) => node.kind === "task") ?? [];
+  const index = tasks.findIndex((task) => task.id === taskId);
+  const task = index < 0 ? null : tasks[index];
+  if (task === null) throw new Error("canonical Task Gate lifecycle Task is absent");
+  const expected = ["impl", "review", "gate"].map((role) => `${taskId}-${role}`);
+  if (!Array.isArray(task.steps) || task.steps.length !== expected.length
+    || task.steps.some((step, position) => step.id !== expected[position])) {
+    throw new Error("canonical Task Gate lifecycle materialized Task Step identity is invalid");
+  }
+  const nextTask = tasks.slice(index + 1).find((candidate) => (
+    candidate.status === "pending" || candidate.status === "invalidated"
+  )) ?? null;
+  const leaves = state.definition.orderedLeaves(state.root);
+  const gateIndex = leaves.findIndex((leaf) => leaf.id === expected[2]);
+  const successor = gateIndex < 0 ? null : leaves.slice(gateIndex + 1)
+    .find((leaf) => leaf.status === "pending" || leaf.status === "invalidated") ?? null;
+  if (successor === null) throw new Error("canonical Task Gate lifecycle has no executable successor");
+  const finalGateId = `${tasks.at(-1).id}-gate`;
+  const finalGateIndex = leaves.findIndex((leaf) => leaf.id === finalGateId);
+  const integration = finalGateIndex < 0 ? null : leaves.slice(finalGateIndex + 1)
+    .find((leaf) => leaf.status === "pending" || leaf.status === "invalidated") ?? null;
+  if (integration === null) throw new Error("canonical Task Gate lifecycle has no integration successor");
+  if (nextTask !== null && successor.id !== `${nextTask.id}-impl`) {
+    throw new Error("canonical Task Gate lifecycle next Task does not own its successor");
+  }
+  if (nextTask === null && successor.id !== integration.id) {
+    throw new Error("canonical final Task Gate lifecycle does not own the integration successor");
+  }
+  return new GateTaskLifecycle({
+    taskId,
+    implStepId: expected[0],
+    reviewStepId: expected[1],
+    gateStepId: expected[2],
+    nextTaskId: nextTask?.id ?? null,
+    integrationStepId: integration.id,
+  });
 }
 
 function resultFailure(payload, attempt) {
@@ -108,6 +149,19 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
   if (canonicalGateNodeId({ phase: persistedPhase, taskId }) !== nodeId) {
     throw new Error("canonical Gate result phase does not own the active gate node");
   }
+  const resultRevision = payload?.artifacts?.gateTransitionLineage;
+  if (taskId !== null) {
+    if (payload?.artifacts?.taskId !== taskId) {
+      throw new Error("canonical Task Gate result Task binding does not match the active Task");
+    }
+    if (payload?.artifacts?.gateTransitionAttemptId !== attempt.id
+      || payload?.artifacts?.gateTransitionAttemptSequence !== attempt.sequence) {
+      throw new Error("canonical Task Gate result Attempt binding does not match the active Attempt");
+    }
+    if (typeof resultRevision !== "string" || resultRevision !== canonicalGateRevision(state, nodeId)) {
+      throw new Error("canonical Task Gate result lineage binding is invalid");
+    }
+  }
   const activities = currentGateActivity({ flowManager, state, nodeId, attempt });
   const publication = activities.find((activity) => activity.id === resultSource.descriptor.activityId) ?? null;
   if (publication === null) throw new Error("gate catalog publication is not owned by the current Attempt");
@@ -120,20 +174,22 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
   let sourceFingerprint = resultSource.descriptor.hash;
   let sourceRevisionFingerprint = null;
   let canonicalRevisionFingerprint = null;
-  const resultRevision = payload?.artifacts?.gateTransitionLineage;
   if (failure?.category === "semantic") {
     const source = flowManager.readProducerArtifact({
       specId: state.specId, nodeId, logicalKey: keys.source, parameters: keys.parameters, optional: true,
     });
-    // A source artifact is an additional semantic lineage witness when the
-    // producer published one. Its absence does not replace the current
-    // Attempt/result binding, which is already canonical and immutable.
+    if (source === null && taskId !== null) {
+      throw new Error("canonical Task semantic Gate failure requires task.gate.source evidence");
+    }
     if (source !== null) {
     const sourceActivity = activities.find((activity) => activity.id === source.descriptor.activityId) ?? null;
     if (sourceActivity === null) throw new Error("gate source publication is not owned by the current Attempt");
     const sourcePayload = JSON.parse(source.bytes.toString("utf8"));
     if (sourcePayload?.phase !== persistedPhase || sourcePayload?.result !== "fail") {
       throw new Error("gate source artifact does not match the canonical Gate result");
+    }
+    if (taskId !== null && sourcePayload?.taskId !== taskId) {
+      throw new Error("Task Gate source artifact Task binding does not match the active Task");
     }
     if (JSON.stringify(sourcePayload.failureCategory) !== JSON.stringify(failure)) {
       throw new Error("gate source failure category does not match the canonical Gate result");
@@ -199,5 +255,6 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
       : repairEvidence !== null
         ? { kind: "repair", attempt: { id: attempt.id, sequence: attempt.sequence }, fingerprint: resultSource.descriptor.hash }
       : { kind: "none" },
+    taskLifecycle: taskLifecycleFor(state, taskId),
   });
 }

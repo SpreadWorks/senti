@@ -136,11 +136,27 @@ function startDescriptor(state, id, options = {}) {
   throw new Error(`cannot start an already-resumable action: ${descriptor.nodeId}`);
 }
 
+function fixtureTaskGateLifecycle(state, status) {
+  const leafId = state.current?.at(-1) ?? null;
+  const task = state.findNode(state.current?.at(-2));
+  if (status !== "done" || !(task instanceof TaskNode) || task.steps.at(-1)?.id !== leafId) return null;
+  const leaves = state.definition.orderedLeaves(state.root);
+  const successor = leaves.slice(leaves.findIndex((leaf) => leaf.id === leafId) + 1)
+    .find((leaf) => leaf.status === "pending" || leaf.status === "invalidated");
+  return {
+    operation: "complete-and-advance",
+    taskId: task.id,
+    successorStepId: successor.id,
+    resetStepIds: [],
+  };
+}
+
 function completeNext(state, id, { status = "done", summary = id, artifactRefs } = {}) {
   const active = startDescriptor(state, id);
   return active.confirmCurrentAttempt({
     status,
     result: status === "done" ? passedResult(summary, artifactRefs) : skippedResult(summary),
+    gateTaskLifecycle: fixtureTaskGateLifecycle(active, status),
   });
 }
 
@@ -1218,6 +1234,25 @@ describe("Current Flow state foundation", () => {
     assert.throws(
       () => new ActivityReferences({ evaluations: [], findings: [], repairs: [], artifacts: [evaluation] }),
       /activity reference must be an object/,
+    );
+  });
+
+  it("rejects serialized Activity transitions that omit the current Task Gate lifecycle field", () => {
+    const state = CurrentFlowState.create({ definition: definition() });
+    const currentPath = state.nextAction().path;
+    const serialized = flowActivity({
+      id: "missing-gate-task-lifecycle",
+      state,
+      currentPath,
+      confirmationOrder: 2,
+      operation: "start_attempt",
+      attempt: attemptFor(state, currentPath, "missing-gate-task-lifecycle-attempt"),
+    }).toJSON();
+    delete serialized.transition.gateTaskLifecycle;
+
+    assert.throws(
+      () => FlowActivity.fromSerialized(serialized),
+      /activity\.transition\.gateTaskLifecycle is required/,
     );
   });
 

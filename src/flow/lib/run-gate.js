@@ -1588,8 +1588,9 @@ const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 // consumed by the current persisted observation, not by this evaluator's
 // compatibility metric.  The remaining Gate phases still use their legacy
 // migration path until they are moved deliberately.
-function usesDefinitionOwnedGateBudget(phase) {
-  return phase === "draft" || phase === "spec";
+function usesDefinitionOwnedGateBudget(phase, ctx = null) {
+  return phase === "draft" || phase === "spec"
+    || (phase === "task-impl" && typeof ctx?.flowState?.currentTaskId === "string");
 }
 
 export function resolveRetryMax(retryContext = {}, phase) {
@@ -3619,20 +3620,28 @@ function buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, fullDiff) {
 const PASS_NEXT = {
   "draft": "spec",
   "spec": "approval",
-  "task-spec": "task-impl",
+  // task-spec remains flow-scoped; approval alone may materialize Tasks.
+  "task-spec": "approval",
+  // Materialized Task completion is selected only by definition.js.
   "task-impl": null,
   "integration": "retro",
 };
 const PASS_PRESCRIPTION = {
   ...PASS_NEXT,
-  "task-impl": "complete-task",
+  "task-impl": "Continue with the Definition-selected Gate action.",
 };
 const FAIL_NEXT = {
   "draft": "draft",
   "spec": "spec",
-  "task-spec": "task-spec",
-  "task-impl": "implement",
+  // Definition owns every post-observation Task disposition.
+  "task-spec": null,
+  "task-impl": null,
   "integration": "implement",
+};
+const FAIL_PRESCRIPTION = {
+  ...FAIL_NEXT,
+  "task-spec": "Return to the flow-level specification approval path.",
+  "task-impl": "Continue with the Definition-selected Gate action.",
 };
 
 // ---------------------------------------------------------------------------
@@ -3757,9 +3766,9 @@ function gateFail(level, phase, targetPath, evaluations, issues, recovery = null
   const nextAction = observations
     ? new NextAction({
         diagnosis: new Diagnosis({ summary: `${observations.length} structural issue(s).`, observations }),
-        prescription: FAIL_NEXT[phase],
+        prescription: FAIL_PRESCRIPTION[phase],
       }).toJSON()
-    : nextActionFromGateEvaluations(evaluations || [], FAIL_NEXT[phase]);
+    : nextActionFromGateEvaluations(evaluations || [], FAIL_PRESCRIPTION[phase]);
   return {
     result: "fail",
     changed: [],
@@ -3850,7 +3859,7 @@ export async function runGateFlow(args) {
     return gateFail(level, phase, targetPath, ownedEvaluations, []);
   }
 
-  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && !usesDefinitionOwnedGateBudget(phase)) {
+  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && !usesDefinitionOwnedGateBudget(phase, ctx)) {
     warnGateRetryBudget(ctx, phase);
     if (ctx.gitState) {
       const noProgressFail = checkNoProgressSinceLastFail({
@@ -4144,14 +4153,8 @@ export class RunGateCommand extends FlowCommand {
     if (state === null) throw new Error("canonical gate requires a loaded Version-1 Flow");
     const activeTaskId = ctx.flowState.currentTaskId ?? null;
     const nodeId = canonicalGateNodeId({ phase, taskId: activeTaskId });
-    const selected = state.nextAction();
     if (state.current?.at(-1) !== nodeId || state.attempt?.nodeId !== nodeId) {
       throw new Error(`canonical gate requires active ${nodeId}, found ${state.current?.at(-1) ?? "none"}`);
-    }
-    if (selected?.operation !== "resume" || selected.action?.action !== "run-gate") {
-      throw new Error(
-        `canonical gate admission rejected evaluation; definition selected ${selected?.operation ?? "no action"}`,
-      );
     }
     const existingFacts = readCurrentGateTransitionFacts({
       flowManager,
@@ -4161,7 +4164,13 @@ export class RunGateCommand extends FlowCommand {
     if (existingFacts !== null) {
       const decision = resolveGateTransition(existingFacts);
       throw new Error(
-        `canonical gate evaluation is not admitted after definition selected ${decision.disposition.operation}`,
+        `canonical gate admission rejected evaluation; definition selected ${decision.disposition.operation}`,
+      );
+    }
+    const selected = state.nextAction();
+    if (selected?.operation !== "resume" || selected.action?.action !== "run-gate") {
+      throw new Error(
+        `canonical gate admission rejected evaluation; state selected ${selected?.operation ?? "no action"}`,
       );
     }
     const inputs = new CanonicalGateInputStore({ flowManager, state: ctx.flowState, nodeId });
@@ -4596,8 +4605,11 @@ export class GateIssueLogEntry {
       ? result.artifacts.issues.join("; ")
       : observations.map((observation) => observation.observed).join("; ")
         || (result?.artifacts?.reasons || []).map((reason) => reason.detail || reason).join("; ");
+    const taskGateStepId = phase === "task-impl" && result?.artifacts?.taskId
+      ? `${result.artifacts.taskId}-gate`
+      : null;
     const entry = {
-      step: resolveGateStepId(phase),
+      step: taskGateStepId || resolveGateStepId(phase),
       level: result?.artifacts?.level,
       phase,
       reason: reasons || "gate FAIL (no details)",
@@ -4605,6 +4617,22 @@ export class GateIssueLogEntry {
       timestamp: new Date().toISOString(),
       passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
     };
+    if (taskGateStepId !== null) {
+      const facts = readCurrentGateTransitionFacts({
+        flowManager: ctx.flowManager,
+        flowState: ctx.flowManager.loadReadOnly(ctx.flowState.specId),
+        phase,
+      });
+      if (facts === null || facts.target.taskId !== result.artifacts.taskId) {
+        throw new Error("Task Gate issue-log entry requires current canonical Gate facts");
+      }
+      entry.taskId = facts.target.taskId;
+      entry.gateReceipt = {
+        attempt: facts.currentAttempt.toJSON(),
+        catalogFingerprint: facts.catalogPublication.fingerprint,
+        lineage: facts.lineage.toJSON(),
+      };
+    }
     if (gitState && RETRY_TRACKED_PHASES.includes(phase)) {
       entry.headSha = gitState.headSha;
       entry.worktreeHash = gitState.worktreeHash;

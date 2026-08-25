@@ -12,6 +12,9 @@ import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/cano
 import { attemptHistoryTargetForNode } from "../../../src/flow/lib/producer-artifact-readiness.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 import { FlowArtifactCatalog } from "../../../src/lib/flow-version.js";
+import { CanonicalGatePromotion } from "../../../src/flow/lib/canonical-gate-artifacts.js";
+import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
+import { resolveGateTransition } from "../../../src/flow/definition.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -357,6 +360,27 @@ export class CanonicalFlowFixture {
       }
     }
     const current = this.state();
+    const task = current.tasks.find((candidate) => candidate.steps.some((step) => step.id === nodeId)) ?? null;
+    if (status === "done" && task?.steps.at(-1)?.id === nodeId) {
+      const commandResult = new CanonicalGatePromotion({
+        state: this.flowManager.canonicalState(this.specId),
+        phase: "task-impl",
+        nodeId,
+        activeTaskId: task.id,
+      }).promote({ result: "pass", changed: [], artifacts: { evaluations: [], reasons: [] } });
+      this.flowManager.publishCurrentAttemptResult({ specId: this.specId, commandResult });
+      const flowState = this.state();
+      const gateTransitionDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+        flowManager: this.flowManager,
+        flowState,
+        phase: "task-impl",
+      }));
+      this.flowManager.updateStepStatus(
+        { stepId: nodeId, requestedStatus: status },
+        { specId: this.specId, gateTransitionDecision },
+      );
+      return this;
+    }
     const canonicalCommandResult = status === "done"
       ? canonicalFixtureProducerResult(current, nodeId, { flowManager: this.flowManager, specId: this.specId })
       : null;

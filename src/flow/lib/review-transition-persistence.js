@@ -8,7 +8,7 @@ import {
   resolveReviewTransition,
 } from "../definition.js";
 import {
-  deferExhaustedSemanticFindings,
+  buildDeferredSemanticFindingsPublication,
 } from "./flow-findings.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import {
@@ -68,7 +68,7 @@ export function settleDefinitionReviewTransition(ctx) {
   });
   if (selection.disposition?.operation !== "defer") return null;
   const { facts, disposition } = selection;
-  deferExhaustedSemanticFindings({
+  const findings = buildDeferredSemanticFindingsPublication({
     flowManager: ctx.flowManager,
     flowState,
     nodeId,
@@ -77,7 +77,14 @@ export function settleDefinitionReviewTransition(ctx) {
     attempts: disposition.attempts,
     fingerprints: new Set(disposition.sourceFingerprints),
   });
+  const findingWrite = findings.artifactWrite();
   if (taskId === null) {
+    ctx.flowManager.confirmCurrentAttempt({
+      specId: flowState.specId,
+      status: "done",
+      artifactWrites: findingWrite === null ? [] : [findingWrite],
+      artifactBaselines: [findings.baseline],
+    });
     applyLifecycleActions({
       setStepStatus(step, status) {
         const current = ctx.flowManager.loadReadOnly(flowState.specId);
@@ -92,12 +99,15 @@ export function settleDefinitionReviewTransition(ctx) {
       },
     }, resolveReviewDeferralLifecycle({ scope, stepId, disposition }));
   } else {
-    ctx.flowManager.deferFailedReview({ specId: flowState.specId });
+    ctx.flowManager.deferFailedReview({
+      specId: flowState.specId,
+      findingsPublication: findings,
+    });
   }
   return Object.freeze({
     stepId,
     phase: facts.phase,
-    findingCount: disposition.sourceFingerprints.length,
+    findingCount: findings.deferred.length,
     attempts: disposition.attempts,
   });
 }

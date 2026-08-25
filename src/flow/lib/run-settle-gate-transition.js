@@ -2,6 +2,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveGateTransition } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 
 /** Persist only the already Definition-selected exhausted Gate settlement. */
 export default class RunSettleGateTransitionCommand extends FlowCommand {
@@ -11,8 +12,11 @@ export default class RunSettleGateTransitionCommand extends FlowCommand {
     try {
       const state = ctx.flowManager.canonicalState(ctx.specId ?? ctx.flowState?.specId);
       const stepId = state?.current?.at(-1);
-      const phase = stepId === "draft-gate" ? "draft" : stepId === "spec-gate" ? "spec" : null;
-      if (phase === null) throw new Error("Definition does not select a settleable Draft or Spec Gate");
+      const taskStep = TaskStepIdentity.fromStateNode(ctx.flowManager.loadReadOnly(state.specId), stepId);
+      const phase = stepId === "draft-gate" ? "draft" : stepId === "spec-gate"
+        ? "spec"
+        : taskStep?.definitionId === "task-gate" ? "task-impl" : null;
+      if (phase === null) throw new Error("Definition does not select a settleable Gate");
       const facts = readCurrentGateTransitionFacts({
         flowManager: ctx.flowManager, flowState: ctx.flowManager.loadReadOnly(state.specId), phase,
       });

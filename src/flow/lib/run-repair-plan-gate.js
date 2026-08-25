@@ -47,7 +47,7 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
     }
     const { phase } = route;
     let decision = null;
-    if (phase === "draft" || phase === "spec") {
+    if (phase === "draft" || phase === "spec" || phase === "task-impl") {
       try {
         const facts = readCurrentGateTransitionFacts({
           flowManager: ctx.flowManager,

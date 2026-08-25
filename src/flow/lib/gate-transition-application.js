@@ -54,6 +54,12 @@ export function applyGateTransitionDecision(adapter, decision) {
     throw new Error("gate transition persistence adapter.applyStepUpdate is required");
   }
   for (const update of decision.plan.updates) adapter.applyStepUpdate(update, decision);
+  if (decision.plan.taskLifecycle !== null) {
+    if (typeof adapter.applyTaskLifecycle !== "function") {
+      throw new Error("gate Task lifecycle plan requires adapter.applyTaskLifecycle");
+    }
+    adapter.applyTaskLifecycle(decision.plan.taskLifecycle, decision);
+  }
   if (decision.plan.incrementRetry) {
     if (typeof adapter.incrementRetry !== "function") {
       throw new Error("gate transition retry plan requires adapter.incrementRetry");

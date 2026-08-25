@@ -21,6 +21,7 @@ import {
   containsRetryRecoveryArtifactWrite,
   RetryRecoveryArtifactPublication,
 } from "./retry-recovery.js";
+import { DeferredFlowFindingsPublication } from "./flow-findings.js";
 
 const TYPE_FOR_OPERATION = Object.freeze({
   add_task: "task_added",
@@ -391,7 +392,7 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, artifactBaselines, testSourceBaseline, sourceWorkerUpgrade = undefined, admission = undefined } = {}) {
+  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, artifactBaselines, testSourceBaseline, sourceWorkerUpgrade = undefined, admission = undefined, gateTaskLifecycle = null } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -413,6 +414,7 @@ export class CanonicalFlowRuntime {
       testSourceBaseline,
       sourceWorkerUpgrade,
       admission,
+      gateTaskLifecycle,
     });
   }
 
@@ -629,7 +631,7 @@ export class CanonicalFlowRuntime {
   }
 
   /** Atomically record guarded evidence and replace an active gate Attempt. */
-  planGateRepair({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, admission = undefined } = {}) {
+  planGateRepair({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, admission = undefined, gateTaskLifecycle = null } = {}) {
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -644,6 +646,7 @@ export class CanonicalFlowRuntime {
       references,
       artifactWrites,
       admission,
+      gateTaskLifecycle,
     });
   }
 
@@ -959,7 +962,15 @@ export class CanonicalFlowRuntime {
     });
   }
 
-  deferFailedReview({ specId, activityId, nodeId, attempt, result } = {}) {
+  deferFailedReview(input = {}) {
+    if (Object.hasOwn(input, "artifactWrites") || Object.hasOwn(input, "artifactBaselines")) {
+      throw new CurrentFlowStateInvariantError("canonical Review deferral accepts only a deferred flow.findings publication");
+    }
+    const { specId, activityId, nodeId, attempt, result, findingsPublication } = input;
+    if (!(findingsPublication instanceof DeferredFlowFindingsPublication)) {
+      throw new CurrentFlowStateInvariantError("canonical Review deferral requires a deferred flow.findings publication");
+    }
+    const { artifactWrites, artifactBaselines } = findingsPublication.settlementArtifacts();
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId,
@@ -967,14 +978,24 @@ export class CanonicalFlowRuntime {
       operation: "defer_failed_review",
       attempt: requiredAttempt(attempt, "Review deferral settlement"),
       result,
+      artifactWrites,
+      artifactBaselines,
     });
   }
 
-  deferFailedGate({ specId, activityId, nodeId, attempt, result, artifactWrites = undefined } = {}) {
+  deferFailedGate(input = {}) {
+    if (Object.hasOwn(input, "artifactWrites") || Object.hasOwn(input, "artifactBaselines")) {
+      throw new CurrentFlowStateInvariantError("canonical Gate settlement accepts only its deferred flow.findings publication");
+    }
+    const { specId, activityId, nodeId, attempt, result, findingsPublication, gateTaskLifecycle = null } = input;
+    if (!(findingsPublication instanceof DeferredFlowFindingsPublication)) {
+      throw new CurrentFlowStateInvariantError("canonical Gate settlement requires a deferred flow.findings publication");
+    }
+    const { artifactWrites, artifactBaselines } = findingsPublication.settlementArtifacts();
     const state = this.#state(specId);
     return this.#applyAttemptTransition(specId, state, {
       id: activityId, nodeId, operation: "defer_failed_gate",
-      attempt: requiredAttempt(attempt, "Gate deferral settlement"), result, artifactWrites,
+      attempt: requiredAttempt(attempt, "Gate deferral settlement"), result, artifactWrites, artifactBaselines, gateTaskLifecycle,
     });
   }
 
@@ -1089,6 +1110,7 @@ export class CanonicalFlowRuntime {
     nonblocking = null,
     admission = undefined,
     retryRecoveryPublication = undefined,
+    gateTaskLifecycle = null,
   }) {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
@@ -1124,6 +1146,7 @@ export class CanonicalFlowRuntime {
         attempt: transitionAttempt,
         status,
         nonblocking,
+        gateTaskLifecycle,
       },
     });
     const resolvedArtifactWrites = retryRecoveryPublication == null

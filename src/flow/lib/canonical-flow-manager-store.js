@@ -68,8 +68,12 @@ import {
   attachedCanonicalCommandResultPublications,
 } from "./canonical-command-result.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
-import { deferExhaustedSemanticFindings } from "./flow-findings.js";
+import {
+  buildDeferredSemanticFindingsPublication,
+  DeferredFlowFindingsPublication,
+} from "./flow-findings.js";
 import { IssueLogDocument } from "./issue-log-store.js";
 import { finalizationOutboxIdentity } from "./flow-outbox.js";
 import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
@@ -630,7 +634,9 @@ function commandContextAttempt(state, nodeId) {
 
 function gateRetryAttempt(state) {
   const nodeId = state.current?.at(-1);
-  if (!new Set(["draft-gate", "spec-gate"]).has(nodeId) || state.attempt === null) {
+  const parent = state.current === null ? null : state.findNode(state.current.at(-2));
+  const taskGate = parent instanceof TaskNode && nodeId === `${parent.id}-gate`;
+  if ((!new Set(["draft-gate", "spec-gate"]).has(nodeId) && !taskGate) || state.attempt === null) {
     throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires the active Gate Attempt");
   }
   const node = state.findNode(nodeId);
@@ -1205,6 +1211,13 @@ export class CanonicalFlowManagerStore {
     } else if (confirmingState.current.at(-1) !== nodeId) {
       throw new CurrentFlowStateInvariantError(`canonical transition does not own current node: ${nodeId}`);
     }
+    const gateTaskLifecycle = this.#taskGatePassLifecycle({
+      state: confirmingState,
+      nodeId,
+      status: requestedStatus,
+      decision: opts.gateTransitionDecision,
+      suppliedLifecycle: opts.gateTaskLifecycle,
+    });
     const artifactWrites = opts.canonicalCommandResult === undefined
       ? []
       : [
@@ -1222,6 +1235,7 @@ export class CanonicalFlowManagerStore {
       status: requestedStatus,
       result: resultFor(requestedStatus, nodeId),
       artifactWrites,
+      gateTaskLifecycle,
       ...(requestedStatus === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
     });
   }
@@ -1316,6 +1330,22 @@ export class CanonicalFlowManagerStore {
     return current;
   }
 
+  /** Task Gate completion has one admission path: the current Definition pass plan. */
+  #taskGatePassLifecycle({ state, nodeId, status, decision, suppliedLifecycle }) {
+    const parent = state.current === null ? null : state.findNode(state.current.at(-2));
+    const taskGate = parent instanceof TaskNode && nodeId === `${parent.id}-gate`;
+    if (!taskGate || status !== "done") return null;
+    if (suppliedLifecycle !== undefined) {
+      throw new CurrentFlowStateInvariantError("Task Gate completion accepts only its Definition-selected lifecycle effect");
+    }
+    const selected = this.#admitGateDecision(state, decision, "pass");
+    const lifecycle = selected.plan.taskLifecycle?.toJSON?.() ?? null;
+    if (lifecycle === null) {
+      throw new CurrentFlowStateInvariantError("Task Gate pass Definition plan requires a sealed lifecycle effect");
+    }
+    return lifecycle;
+  }
+
   retryGateTransition({ specId = null, decision } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
@@ -1352,23 +1382,29 @@ export class CanonicalFlowManagerStore {
     });
   }
 
-  settleGateTransition({ specId = null, decision } = {}) {
+  settleGateTransition(input = {}) {
+    if (Object.hasOwn(input, "artifactWrites") || Object.hasOwn(input, "artifactBaselines")) {
+      throw new CurrentFlowStateInvariantError("canonical Gate settlement accepts only its deferred flow.findings publication");
+    }
+    const { specId = null, decision } = input;
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
     const current = this.#admitGateDecision(state, decision, "defer");
-    const findingOutcome = deferExhaustedSemanticFindings({
+    const findings = buildDeferredSemanticFindingsPublication({
       flowManager: this, flowState: this.loadReadOnly(resolved), nodeId: state.current.at(-1),
       sourceStep: state.current.at(-1), sourceArtifact: current.facts.catalogPublication.artifactId,
       attempts: current.facts.retry.used + 1,
     });
-    if (findingOutcome.deferred.length === 0) {
+    if (findings.deferred.length === 0) {
       throw new CurrentFlowStateInvariantError("Gate settlement requires at least one canonical deferred finding");
     }
     return this.runtime.deferFailedGate({
       specId: resolved, activityId: activityId("gate-failure-deferred"), nodeId: state.current.at(-1),
       attempt: commandContextAttempt(state, state.current.at(-1)),
       result: { outcome: "passed", summary: "Gate findings deferred after semantic retry exhaustion", confirmedAt: new Date().toISOString(), artifactRefs: [] },
+      findingsPublication: findings,
+      gateTaskLifecycle: current.plan.taskLifecycle?.toJSON?.() ?? null,
     });
   }
 
@@ -1383,8 +1419,20 @@ export class CanonicalFlowManagerStore {
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const repair = PlanGateRepairRecord.from(record);
     const state = this.runtime.load(resolved);
-    if (new Set(["draft-gate", "spec-gate"]).has(state.current?.at(-1))) {
+    const activeTaskGate = TaskStepIdentity.fromStateNode(
+      this.loadReadOnly(resolved), state.current?.at(-1),
+    )?.definitionId === "task-gate";
+    if (new Set(["draft-gate", "spec-gate"]).has(state.current?.at(-1)) || activeTaskGate) {
       this.#admitGateDecision(state, decision, "repair");
+    }
+    if (repair.phase === "task-impl") {
+      const effect = decision?.plan?.taskLifecycle ?? null;
+      if (effect?.operation !== "repair-task-impl"
+        || effect.taskId !== repair.route.gateStepId.slice(0, -"-gate".length)
+        || effect.successorStepId !== repair.targetStepId
+        || JSON.stringify(effect.resetStepIds) !== JSON.stringify(repair.route.resetStepIds)) {
+        throw new CurrentFlowStateInvariantError("Task Gate repair record does not match the sealed Definition lifecycle plan");
+      }
     }
     repair.assertFlow(state);
     if (state.current?.at(-1) !== repair.route.gateStepId) {
@@ -1416,6 +1464,7 @@ export class CanonicalFlowManagerStore {
         route: "repair-plan-gate",
         targetNodeId: target,
       }),
+      gateTaskLifecycle: decision?.plan?.taskLifecycle?.toJSON?.() ?? null,
     });
   }
 
@@ -2307,13 +2356,20 @@ export class CanonicalFlowManagerStore {
    * and replaces the catalog descriptors.  It deliberately accepts no
    * mutable flow-state callback.
    */
-  confirmCurrentAttempt({ specId = null, status = "done", result = null, references = undefined, specRecord = undefined, artifactWrites = [], artifactRemovals = undefined, artifactBaselines = undefined, testSourceBaseline = undefined } = {}) {
+  confirmCurrentAttempt({ specId = null, status = "done", result = null, references = undefined, specRecord = undefined, artifactWrites = [], artifactRemovals = undefined, artifactBaselines = undefined, testSourceBaseline = undefined, gateTransitionDecision = null, gateTaskLifecycle = undefined } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
     if (state.current === null) throw new CurrentFlowStateInvariantError("canonical completion requires an active Attempt");
     const nodeId = state.current.at(-1);
     const confirmation = result ?? resultFor(status, nodeId);
+    const sealedTaskLifecycle = this.#taskGatePassLifecycle({
+      state,
+      nodeId,
+      status,
+      decision: gateTransitionDecision,
+      suppliedLifecycle: gateTaskLifecycle,
+    });
     return this.runtime.confirmAttempt({
       specId: resolved,
       activityId: activityId("attempt-confirmed"),
@@ -2325,6 +2381,7 @@ export class CanonicalFlowManagerStore {
       artifactRemovals,
       artifactBaselines,
       testSourceBaseline,
+      gateTaskLifecycle: sealedTaskLifecycle,
       ...(status === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
     });
   }
@@ -2715,7 +2772,14 @@ export class CanonicalFlowManagerStore {
     });
   }
 
-  deferFailedReview({ specId = null } = {}) {
+  deferFailedReview(input = {}) {
+    if (Object.hasOwn(input, "artifactWrites") || Object.hasOwn(input, "artifactBaselines")) {
+      throw new CurrentFlowStateInvariantError("canonical Review deferral accepts only a deferred flow.findings publication");
+    }
+    const { specId = null, findingsPublication } = input;
+    if (!(findingsPublication instanceof DeferredFlowFindingsPublication)) {
+      throw new CurrentFlowStateInvariantError("canonical Review deferral requires a deferred flow.findings publication");
+    }
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
@@ -2735,6 +2799,7 @@ export class CanonicalFlowManagerStore {
         confirmedAt: new Date().toISOString(),
         artifactRefs: [],
       },
+      findingsPublication,
     });
   }
 

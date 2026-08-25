@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { CanonicalGateInputStore } from "./canonical-gate-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
 import { canonicalRepairAttemptOwner } from "./repair-attempt-lineage.js";
@@ -140,6 +141,21 @@ export class PlanGateRepairRoute {
   }
 }
 
+function taskRoute(taskId) {
+  return new PlanGateRepairRoute({
+    phase: "task-impl",
+    gateStepId: `${taskId}-gate`,
+    targetStepId: `${taskId}-impl`,
+    resetStepIds: [`${taskId}-impl`, `${taskId}-review`, `${taskId}-gate`],
+  });
+}
+
+function taskIdForMaterializedStep(stepId, role) {
+  if (typeof stepId !== "string" || !stepId.endsWith(`-${role}`)) return null;
+  const taskId = stepId.slice(0, -(`-${role}`.length));
+  return taskId === "" || taskId === "impl" ? null : taskId;
+}
+
 const ROUTES = Object.freeze([
   new PlanGateRepairRoute({
     phase: "draft",
@@ -167,6 +183,7 @@ const ROUTE_BY_GATE = new Map(ROUTES.map((route) => [route.gateStepId, route]));
 const EVIDENCE_BY_PHASE = new Map([
   ["draft", Object.freeze({ logicalKey: "draft.gate", failureCode: null })],
   ["spec", Object.freeze({ logicalKey: "spec.gate", failureCode: null })],
+  ["task-impl", Object.freeze({ logicalKey: "task.gate", failureCode: null })],
   ["test", Object.freeze({ logicalKey: "scenario.validity", failureCode: "SCENARIO_VALIDITY_REJECTED" })],
 ]);
 
@@ -175,12 +192,14 @@ export function planGateRepairRouteForPhase(phase) {
 }
 
 export function planGateRepairRouteForTargetStep(stepId) {
-  return ROUTE_BY_TARGET.get(stepId) || null;
+  const taskId = taskIdForMaterializedStep(stepId, "impl");
+  return ROUTE_BY_TARGET.get(stepId) || (taskId === null ? null : taskRoute(taskId));
 }
 
 /** Resolve repair eligibility from the active producer gate, never a target worker. */
 export function planGateRepairRouteForGateStep(stepId) {
-  return ROUTE_BY_GATE.get(stepId) || null;
+  const taskId = taskIdForMaterializedStep(stepId, "gate");
+  return ROUTE_BY_GATE.get(stepId) || (taskId === null ? null : taskRoute(taskId));
 }
 
 function planGateRepairResultLogicalKey(route) {
@@ -209,8 +228,19 @@ export function isPlanGateRepairEligibleFailure(state, route) {
 
 function matchingCurrentGateResult({ state, route, gateResult, catalog, activities }) {
   const logicalKey = planGateRepairResultLogicalKey(route);
-  const descriptor = catalog.artifacts.find((artifact) => artifact.logicalKey === logicalKey && artifact.memberId === null);
-  if (descriptor === undefined) return false;
+  if (gateResult === null || gateResult.descriptor === undefined || gateResult.relativePath === undefined) return false;
+  const descriptor = catalog.artifacts.find((artifact) => (
+    artifact.relativePath === gateResult.relativePath
+    && artifact.logicalKey === logicalKey
+    && artifact.hash === gateResult.descriptor.hash
+    && artifact.activityId === gateResult.descriptor.activityId
+  )) ?? null;
+  if (descriptor === null) return false;
+  if (route.phase === "task-impl") {
+    const taskId = route.gateStepId.slice(0, -"-gate".length);
+    const expected = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, { taskId });
+    if (descriptor.relativePath !== expected.relativePath) return false;
+  }
   const published = activities.find((activity) => activity.id === descriptor.activityId) ?? null;
   const failed = activities.find((activity) => (
     activity.transition.operation === "fail_attempt"
@@ -220,8 +250,7 @@ function matchingCurrentGateResult({ state, route, gateResult, catalog, activiti
     && activity.failure?.category === state.attempt.failure.category
     && activity.failure?.code === state.attempt.failure.code
   )) ?? null;
-  return gateResult !== null
-    && gateResult.attempt === state.attempt.sequence
+  return gateResult.attempt === state.attempt.sequence
     && published !== null
     && published.nodeId === route.gateStepId
     && published.attemptId === state.attempt.id
@@ -230,12 +259,24 @@ function matchingCurrentGateResult({ state, route, gateResult, catalog, activiti
     && published.confirmationOrder <= failed.confirmationOrder;
 }
 
-function matchingGateIssueLogEntry(entry, route, payload) {
+function matchingGateIssueLogEntry(entry, route, gateResult) {
+  const payload = gateResult.payload;
   const observations = payload?.artifacts?.nextAction?.diagnosis?.observations ?? [];
+  const taskId = route.phase === "task-impl" ? route.gateStepId.slice(0, -"-gate".length) : null;
+  const receipt = entry?.gateReceipt;
+  const taskReceiptMatches = taskId === null || (
+    entry.taskId === taskId
+    && entry.step === route.gateStepId
+    && receipt?.attempt?.id === payload?.artifacts?.gateTransitionAttemptId
+    && receipt?.attempt?.sequence === payload?.artifacts?.gateTransitionAttemptSequence
+    && receipt?.lineage?.canonicalRevisionFingerprint === payload?.artifacts?.gateTransitionLineage
+    && receipt?.catalogFingerprint === gateResult.descriptor?.hash
+  );
   return typeof entry?.issueLogId === "string"
     && entry.issueLogId !== ""
     && entry.step === route.gateStepId
     && entry.phase === route.phase
+    && taskReceiptMatches
     && entry.trigger === "gate post hook (auto)"
     && stableStringify(entry.observations ?? []) === stableStringify(observations)
     && entry.observations?.some((observation) => observation?.severity === "blocking") === true;
@@ -304,7 +345,7 @@ function latestPlanGateRepairIssueLogEntry({ state, issueLog, gateResult, catalo
   return [...issueLog.entries].reverse().find((entry) => (
     route.phase === "test"
       ? matchingScenarioIssueLogEntry(entry, route, gateResult.payload)
-      : matchingGateIssueLogEntry(entry, route, gateResult.payload)
+      : matchingGateIssueLogEntry(entry, route, gateResult)
   )) ?? null;
 }
 
@@ -339,6 +380,7 @@ class CanonicalPlanGateRepairEvidence {
       state,
       phase: this.route.phase,
       issueLogEntry: this.source,
+      route: this.route,
     });
   }
 }
@@ -358,7 +400,10 @@ export function inspectCanonicalPlanGateRepair({ flowManager, state } = {}) {
   const source = latestPlanGateRepairIssueLogEntry({
     state,
     issueLog,
-    gateResult: inputs.activeAttemptResult(planGateRepairResultLogicalKey(route), { optional: true }),
+    gateResult: inputs.activeAttemptResult(planGateRepairResultLogicalKey(route), {
+      parameters: route.phase === "task-impl" ? { taskId: route.gateStepId.slice(0, -"-gate".length) } : {},
+      optional: true,
+    }),
     catalog,
     activities,
   });
@@ -381,9 +426,11 @@ export class PlanGateRepairRecord {
       throw new Error("plan gate repair issue must be a positive integer or null");
     }
     this.phase = requiredString(input.phase, "plan gate repair phase", 100);
-    this.route = planGateRepairRouteForPhase(this.phase);
-    if (!this.route) throw new Error(`unsupported plan gate repair phase: ${this.phase}`);
     this.targetStepId = requiredString(input.targetStepId, "plan gate repair targetStepId", 100);
+    this.route = this.phase === "task-impl"
+      ? planGateRepairRouteForTargetStep(this.targetStepId)
+      : planGateRepairRouteForPhase(this.phase);
+    if (!this.route) throw new Error(`unsupported plan gate repair phase: ${this.phase}`);
     if (this.targetStepId !== this.route.targetStepId) {
       throw new Error("plan gate repair target does not match its phase");
     }
@@ -411,9 +458,9 @@ export class PlanGateRepairRecord {
     Object.freeze(this);
   }
 
-  static create({ state, phase, issueLogEntry, requestedAt = new Date().toISOString() }) {
-    const route = planGateRepairRouteForPhase(phase);
-    if (!route) throw new Error(`unsupported plan gate repair phase: ${phase}`);
+  static create({ state, phase, issueLogEntry, route = null, requestedAt = new Date().toISOString() }) {
+    const selectedRoute = route || planGateRepairRouteForPhase(phase);
+    if (!selectedRoute) throw new Error(`unsupported plan gate repair phase: ${phase}`);
     const observations = (issueLogEntry?.observations || [])
       .filter((observation) => observation?.severity === "blocking");
     return new PlanGateRepairRecord({
@@ -422,7 +469,7 @@ export class PlanGateRepairRecord {
       specId: state?.specId,
       issue: state?.issue ?? null,
       phase,
-      targetStepId: route.targetStepId,
+      targetStepId: selectedRoute.targetStepId,
       sourceIssueLogId: issueLogEntry?.issueLogId,
       sourceEntryDigest: digest(issueLogEntry),
       observations,
@@ -498,7 +545,7 @@ export class PlanGateRepairRecord {
    * later visit to the same Step.
    */
   static resolveCanonical({ state, targetStepId, activities, issueLog }) {
-    if (!ROUTE_BY_TARGET.has(targetStepId) || state?.current?.at(-1) !== targetStepId || state?.attempt == null) {
+    if (planGateRepairRouteForTargetStep(targetStepId) === null || state?.current?.at(-1) !== targetStepId || state?.attempt == null) {
       return null;
     }
     if (!Array.isArray(activities)) throw new Error("canonical plan gate repair requires an Activity ledger");
@@ -594,7 +641,7 @@ export class PlanGateRepairRecord {
  * directly.
  */
 export function canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId } = {}) {
-  if (state?.schemaRevision !== 3 || !ROUTE_BY_TARGET.has(targetStepId)) return null;
+  if (state?.schemaRevision !== 3 || planGateRepairRouteForTargetStep(targetStepId) === null) return null;
   if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.activityLedger !== "function") {
     throw new Error("canonical plan gate repair requires the Version Store catalog and Activity readers");
   }

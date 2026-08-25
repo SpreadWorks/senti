@@ -14,6 +14,7 @@ import {
   GateTargetBinding,
   GateTransitionDecision,
   GateStepUpdate,
+  buildCurrentFlowDefinition,
   resolveGateTransition,
 } from "../../../src/flow/definition.js";
 import {
@@ -74,6 +75,9 @@ function facts(overrides = {}) {
       canonicalFingerprint: "revision-7",
     }),
     recoveryEvidence: new GateRecoveryEvidence(),
+    taskLifecycle: scope === "task"
+      ? { taskId, nextTaskId: null, integrationStepId: "test-execute" }
+      : null,
     ...overrides,
   });
 }
@@ -179,6 +183,48 @@ describe("definition-owned Gate transition boundary", () => {
     }
   });
 
+  it("seals materialized Task lifecycle successors and repair resets into the Action plan", () => {
+    const task = facts({
+      phase: "task-impl",
+      scope: "task",
+      producer: {
+        runId: "run-7", specId: "007-gate-transition", activityId: "activity-spec-gate",
+        phase: "task-impl", scope: "task", taskId: "T-1", stepId: "T-1-gate",
+      },
+      target: { runId: "run-7", specId: "007-gate-transition", taskId: "T-1", stepId: "T-1-gate", attempt: { id: "attempt-7", sequence: 7 } },
+      taskLifecycle: { taskId: "T-1", nextTaskId: "T-2", integrationStepId: "test-execute" },
+    });
+    const passed = resolveGateTransition(task);
+    assert.equal(passed.plan.action.identity.taskId, "T-1");
+    assert.deepEqual(passed.plan.taskLifecycle.toJSON(), {
+      operation: "complete-and-advance", taskId: "T-1", successorStepId: "T-2-impl", resetStepIds: [],
+    });
+    const repair = resolveGateTransition(facts({
+      ...task.toJSON(), result: "fail", failure: { category: "semantic", code: "GATE_REJECTED" },
+      retry: { used: 0, maximum: 4 },
+      recoveryEvidence: { kind: "repair", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" },
+    }));
+    assert.deepEqual(repair.plan.taskLifecycle.toJSON(), {
+      operation: "repair-task-impl", taskId: "T-1", successorStepId: "T-1-impl",
+      resetStepIds: ["T-1-impl", "T-1-review", "T-1-gate"],
+    });
+    const finalTask = resolveGateTransition(facts({
+      ...task.toJSON(), result: "fail", failure: { category: "semantic", code: "GATE_REJECTED" },
+      retry: { used: 4, maximum: 4 },
+      taskLifecycle: { taskId: "T-1", nextTaskId: null, integrationStepId: "test-execute" },
+    }));
+    assert.deepEqual(finalTask.plan.taskLifecycle.toJSON(), {
+      operation: "defer-and-advance", taskId: "T-1", successorStepId: "test-execute", resetStepIds: [],
+    });
+  });
+
+  it("keeps task-spec on the approval route and out of materialized Task Steps", () => {
+    const decision = resolveGateTransition(facts({ phase: "task-spec", result: "pass" }));
+    assert.equal(decision.plan.phaseDefinition.nextStepId, "approval");
+    const definition = buildCurrentFlowDefinition();
+    assert.deepEqual(definition.taskTemplate.steps.map((step) => step.id), ["task-impl", "task-review", "task-gate"]);
+  });
+
   it("represents recovery separately from pass and advance", () => {
     const binding = { attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" };
     const decision = resolveGateTransition(facts({
@@ -244,6 +290,22 @@ describe("definition-owned Gate transition boundary", () => {
       },
     }));
     assert.equal(staleCatalogFingerprint.disposition.reason, "catalog_lineage_mismatch");
+
+    const taskStepMismatch = resolveGateTransition(facts({
+      phase: "task-impl",
+      scope: "task",
+      producer: {
+        runId: "run-7", specId: "007-gate-transition", activityId: "activity-task-gate",
+        phase: "task-impl", scope: "task", taskId: "T-1", stepId: "T-2-gate",
+      },
+      target: {
+        runId: "run-7", specId: "007-gate-transition", taskId: "T-1", stepId: "T-2-gate",
+        attempt: { id: "attempt-7", sequence: 7 },
+      },
+      taskLifecycle: { taskId: "T-1", nextTaskId: "T-2", integrationStepId: "test-execute" },
+    }));
+    assert.equal(taskStepMismatch.disposition.operation, "blocked");
+    assert.equal(taskStepMismatch.disposition.reason, "task_step_identity_mismatch");
   });
 
   it("rejects incomplete retry, recovery, ownership, and target facts at the boundary", () => {
@@ -316,6 +378,9 @@ describe("definition-owned Gate transition boundary", () => {
     for (const source of legacyConsumers) {
       assert.doesNotMatch(source, /new Gate(?:TransitionDecision|StepUpdatePlan|TransitionDisposition)/);
     }
+    const gateRunner = legacyConsumers[0];
+    assert.doesNotMatch(gateRunner, /"task-spec": "task-impl"/);
+    assert.doesNotMatch(gateRunner, /"task-impl": "complete-task"|"task-impl": "implement"/);
   });
 
   it("keeps Action identity deterministic across reload and all dispositions", () => {

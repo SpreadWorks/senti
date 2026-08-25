@@ -57,6 +57,7 @@ function activity({
   status = null,
   activityResult = null,
   failure = null,
+  gateTaskLifecycle = null,
 }) {
   const node = state.findNode(currentPath.at(-1));
   const effectiveAttempt = operation === "retry_attempt" ? state.attempt : activityAttempt ?? state.attempt;
@@ -89,6 +90,7 @@ function activity({
       outbox: null,
       approval: null,
       nonblocking: null,
+      gateTaskLifecycle,
     }),
     result: activityResult,
     timing: null,
@@ -126,7 +128,7 @@ describe("Current Flow state filesystem lifecycle", () => {
       state = new CurrentFlowStateStore({ directory, definition }).load();
       order += 1;
     };
-    const completeDescriptor = (label, { status = "done", activityResult = result(label) } = {}) => {
+    const completeDescriptor = (label, { status = "done", activityResult = result(label), gateTaskLifecycle = null } = {}) => {
       const descriptor = state.nextAction();
       assert.equal(descriptor.operation, "start", `expected normal start for ${descriptor.nodeId}`);
       const currentPath = descriptor.path;
@@ -146,6 +148,7 @@ describe("Current Flow state filesystem lifecycle", () => {
         operation: "confirm_attempt",
         status,
         activityResult,
+        gateTaskLifecycle,
       }));
     };
     const advanceUntil = (nodeId, label) => {
@@ -279,7 +282,12 @@ describe("Current Flow state filesystem lifecycle", () => {
     }));
     assert.equal(state.nextAction().nodeId, "task-a-gate");
     const gatePath = state.nextAction().path;
-    completeDescriptor("task-a-gate");
+    completeDescriptor("task-a-gate", { gateTaskLifecycle: {
+      operation: "complete-and-advance",
+      taskId: "task-a",
+      successorStepId: "task-b-impl",
+      resetStepIds: [],
+    } });
     assert.equal(state.findNode("task-a").status, "done");
     assert.equal(state.nextAction().nodeId, "task-b-impl");
 
@@ -336,6 +344,12 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "confirm_attempt",
       status: "done",
       activityResult: result("task-a-gate-recovered"),
+      gateTaskLifecycle: {
+        operation: "complete-and-advance",
+        taskId: "task-a",
+        successorStepId: "task-b-impl",
+        resetStepIds: [],
+      },
     }));
     assert.equal(state.nextAction().operation, "recover");
     assert.equal(state.nextAction().nodeId, "task-b-impl");
@@ -474,6 +488,12 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "confirm_attempt",
       status: "done",
       activityResult: result("task-b-gate"),
+      gateTaskLifecycle: {
+        operation: "complete-and-advance",
+        taskId: "task-b",
+        successorStepId: "test-execute",
+        resetStepIds: [],
+      },
     }));
     assert.equal(state.nextAction().nodeId, "test-execute");
 

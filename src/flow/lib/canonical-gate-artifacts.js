@@ -87,7 +87,7 @@ function sourcePayload(result, phase, activeTaskId, lineage) {
   });
 }
 
-function gateRevision(state, nodeId) {
+export function canonicalGateRevision(state, nodeId) {
   const attempt = state.attempt;
   if (attempt == null || attempt.nodeId !== nodeId) {
     throw new Error("canonical Gate lineage requires the active producer Attempt");
@@ -180,7 +180,12 @@ export class CanonicalGateInputStore {
     });
     if (resolved === null) return null;
     const history = CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey, bytes: resolved.bytes });
-    return Object.freeze({ attempt: history.current.attempt, payload: history.current.payload });
+    return Object.freeze({
+      attempt: history.current.attempt,
+      payload: history.current.payload,
+      descriptor: resolved.descriptor,
+      relativePath: resolved.relativePath,
+    });
   }
 }
 
@@ -214,8 +219,10 @@ export class CanonicalGatePromotion {
         .fromObservedGateResult(result)
         .toJSON();
     }
-    const lineage = gateRevision(this.state, this.nodeId);
+    const lineage = canonicalGateRevision(this.state, this.nodeId);
     result.artifacts.gateTransitionLineage = lineage;
+    result.artifacts.gateTransitionAttemptId = this.state.attempt.id;
+    result.artifacts.gateTransitionAttemptSequence = this.state.attempt.sequence;
     attachCanonicalCommandResultArtifact(result, new CanonicalCommandResultArtifact({
       logicalKey: this.keys.result,
       payload: result,

@@ -410,8 +410,12 @@ async function applyTestChainTransition(ctx, result, stepId) {
   return decision;
 }
 
-function isDefinitionOwnedPlanGate(phase) {
-  return phase === "draft" || phase === "spec";
+function isDefinitionOwnedPlanGate(phase, ctx = null, result = null) {
+  if (phase === "draft" || phase === "spec") return true;
+  if (phase !== "task-impl") return false;
+  if (typeof result?.artifacts?.taskId === "string" && result.artifacts.taskId !== "") return true;
+  const activeNode = ctx?.flowState ? findActiveNode(ctx.flowState) : null;
+  return TaskStepIdentity.fromStateNode(ctx?.flowState, activeNode?.stepId)?.definitionId === "task-gate";
 }
 
 /**
@@ -420,7 +424,7 @@ function isDefinitionOwnedPlanGate(phase) {
  */
 function resolvePersistedPlanGateDecision(ctx, result) {
   const phase = result?.artifacts?.phase || ctx.phase;
-  if (!isDefinitionOwnedPlanGate(phase)) return null;
+  if (!isDefinitionOwnedPlanGate(phase, ctx, result)) return null;
   const facts = readCurrentGateTransitionFacts({
     flowManager: ctx.flowManager,
     flowState: ctx.flowState,
@@ -558,11 +562,14 @@ class RegistryLifecycleAdapter {
       );
       return;
     }
+    const gateTransitionDecision = step === this.gateStepId && status === "done"
+      ? this.ctx.gateTransitionDecision ?? null
+      : null;
     tryUpdateStepStatus(
       { ...this.ctx, phase: this.phase },
       step,
       settledStatus,
-      this.mutationOpts(step),
+      this.mutationOpts(step, { gateTransitionDecision }),
       {
         action,
         plan: this.plan,
@@ -1503,13 +1510,13 @@ export const FLOW_COMMANDS = {
           )
         ) return;
         const phase = result?.artifacts?.phase || ctx.phase;
-        if (result?.result === "recovered" && isDefinitionOwnedPlanGate(phase)) {
-          throw new Error("Draft and Spec Gate recovery results are not an executable route; publish a current Gate evaluation instead");
+        if (result?.result === "recovered" && isDefinitionOwnedPlanGate(phase, ctx, result)) {
+          throw new Error("Definition-owned Gate recovery results are not an executable route; publish a current Gate evaluation instead");
         }
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
         const canonicalResult = attachedCanonicalCommandResultArtifact(result) !== null;
         const specId = ctx.specId ?? ctx.flowState.specId;
-        if (canonicalResult && isDefinitionOwnedPlanGate(phase)) {
+        if (canonicalResult && isDefinitionOwnedPlanGate(phase, ctx, result)) {
           // Publication precedes classification.  Definition therefore sees
           // the exact current catalog result, including its Attempt binding,
           // before the persistence adapter chooses whether the Attempt is

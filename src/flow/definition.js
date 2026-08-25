@@ -45,6 +45,7 @@ import {
   GateRetryMetrics,
   GateProducerOwnership,
   GateTargetBinding,
+  GateTaskLifecycle,
   GateTransitionFacts,
 } from "./lib/gate-transition.js";
 import {
@@ -85,6 +86,7 @@ export {
   GateRetryMetrics,
   GateProducerOwnership,
   GateTargetBinding,
+  GateTaskLifecycle,
   GateTransitionFacts,
   NonGateAttemptIdentity,
   NonGateCatalogPublication,
@@ -242,6 +244,33 @@ export class GateStepUpdate {
   toJSON() { return { stepId: this.stepId, status: this.status }; }
 }
 
+/** A sealed Task lifecycle consequence; adapters may apply but never select it. */
+export class GateTaskLifecycleEffect {
+  constructor({ operation, taskId, successorStepId, resetStepIds = [] } = {}) {
+    this.operation = requireString(operation, "gate Task lifecycle operation");
+    if (!new Set(["complete-and-advance", "repair-task-impl", "defer-and-advance"]).has(this.operation)) {
+      throw new Error("gate Task lifecycle operation is invalid");
+    }
+    this.taskId = requireString(taskId, "gate Task lifecycle taskId");
+    this.successorStepId = requireString(successorStepId, "gate Task lifecycle successorStepId");
+    if (!Array.isArray(resetStepIds) || resetStepIds.some((stepId) => typeof stepId !== "string" || stepId === "")) {
+      throw new Error("gate Task lifecycle reset Step ids are invalid");
+    }
+    this.resetStepIds = Object.freeze([...resetStepIds]);
+    if (this.operation === "repair-task-impl" && JSON.stringify(this.resetStepIds) !== JSON.stringify([
+      `${this.taskId}-impl`, `${this.taskId}-review`, `${this.taskId}-gate`,
+    ])) throw new Error("gate Task repair lifecycle must reset only its materialized Task Steps");
+    if (this.operation !== "repair-task-impl" && this.resetStepIds.length !== 0) {
+      throw new Error("non-repair Task lifecycle must not reset Task Steps");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { operation: this.operation, taskId: this.taskId, successorStepId: this.successorStepId, resetStepIds: [...this.resetStepIds] };
+  }
+}
+
 /** Static phase ownership, including the only Definition-authorized PASS route. */
 export class GatePhaseDefinition {
   constructor({ phase, nextStepId } = {}) {
@@ -255,7 +284,10 @@ export class GatePhaseDefinition {
 const GATE_PHASE_DEFINITIONS = new Map([
   ["draft", new GatePhaseDefinition({ phase: "draft", nextStepId: "spec" })],
   ["spec", new GatePhaseDefinition({ phase: "spec", nextStepId: "approval" })],
-  ["task-spec", new GatePhaseDefinition({ phase: "task-spec", nextStepId: "task-impl" })],
+  // task-spec is a flow-level validation command. It cannot materialize or
+  // enter a Task lifecycle; only the existing spec approval route may admit
+  // Task impl/review/gate leaves.
+  ["task-spec", new GatePhaseDefinition({ phase: "task-spec", nextStepId: "approval" })],
   ["task-impl", new GatePhaseDefinition({ phase: "task-impl", nextStepId: "integration" })],
   ["integration", new GatePhaseDefinition({ phase: "integration", nextStepId: "report" })],
 ]);
@@ -267,7 +299,7 @@ function gatePhaseDefinition(phase) {
 }
 
 export class GateStepUpdatePlan {
-  constructor(token, { action, phaseDefinition, updates, incrementRetry = false } = {}) {
+  constructor(token, { action, phaseDefinition, updates, taskLifecycle = null, incrementRetry = false } = {}) {
     if (token !== GATE_TRANSITION_TOKEN) {
       throw new Error("Gate step update plans are created only by the definition resolver");
     }
@@ -277,9 +309,13 @@ export class GateStepUpdatePlan {
       throw new Error("gate step update plan requires typed updates");
     }
     if (typeof incrementRetry !== "boolean") throw new Error("gate step update incrementRetry must be boolean");
+    if (taskLifecycle !== null && !(taskLifecycle instanceof GateTaskLifecycleEffect)) {
+      throw new Error("gate step update plan requires typed Task lifecycle effect");
+    }
     this.action = action;
     this.phaseDefinition = phaseDefinition;
     this.updates = Object.freeze([...updates]);
+    this.taskLifecycle = taskLifecycle;
     this.incrementRetry = incrementRetry;
     Object.freeze(this);
   }
@@ -289,6 +325,7 @@ export class GateStepUpdatePlan {
       action: this.action.toJSON(),
       phaseDefinition: this.phaseDefinition.toJSON(),
       updates: this.updates.map((entry) => entry.toJSON()),
+      taskLifecycle: this.taskLifecycle?.toJSON() ?? null,
       incrementRetry: this.incrementRetry,
     };
   }
@@ -296,10 +333,11 @@ export class GateStepUpdatePlan {
 
 /** Stable, persisted-fact-only identity for a Definition-selected Gate route. */
 export class GateActionIdentity {
-  constructor(token, { runId, specId, stepId, attempt, catalogFingerprint, factsFingerprint, selectedFingerprint, operation } = {}) {
+  constructor(token, { runId, specId, taskId = null, stepId, attempt, catalogFingerprint, factsFingerprint, selectedFingerprint, operation } = {}) {
     if (token !== GATE_TRANSITION_TOKEN) throw new Error("Gate Action identities are created only by the definition resolver");
     this.runId = requireString(runId, "gate Action runId");
     this.specId = requireString(specId, "gate Action specId");
+    this.taskId = taskId == null ? null : requireString(taskId, "gate Action taskId");
     this.stepId = requireString(stepId, "gate Action stepId");
     this.attempt = attempt instanceof GateAttemptIdentity ? attempt : new GateAttemptIdentity(attempt);
     this.catalogFingerprint = requireString(catalogFingerprint, "gate Action catalog fingerprint");
@@ -314,6 +352,7 @@ export class GateActionIdentity {
     return other instanceof GateActionIdentity
       && this.runId === other.runId
       && this.specId === other.specId
+      && this.taskId === other.taskId
       && this.stepId === other.stepId
       && this.attempt.matches(other.attempt)
       && this.catalogFingerprint === other.catalogFingerprint
@@ -324,7 +363,7 @@ export class GateActionIdentity {
 
   toJSON() {
     return {
-      runId: this.runId, specId: this.specId, stepId: this.stepId, attempt: this.attempt.toJSON(),
+      runId: this.runId, specId: this.specId, ...(this.taskId === null ? {} : { taskId: this.taskId }), stepId: this.stepId, attempt: this.attempt.toJSON(),
       catalogFingerprint: this.catalogFingerprint, factsFingerprint: this.factsFingerprint,
       selectedFingerprint: this.selectedFingerprint, operation: this.operation,
     };
@@ -382,15 +421,33 @@ function stableGateJson(value) {
   return JSON.stringify(value);
 }
 
+function taskLifecycleEffect(facts, disposition) {
+  if (facts.taskLifecycle === null) return null;
+  const lifecycle = facts.taskLifecycle;
+  if (disposition.operation === "pass") return new GateTaskLifecycleEffect({
+    operation: "complete-and-advance", taskId: lifecycle.taskId, successorStepId: lifecycle.successorStepId,
+  });
+  if (disposition.operation === "defer") return new GateTaskLifecycleEffect({
+    operation: "defer-and-advance", taskId: lifecycle.taskId, successorStepId: lifecycle.successorStepId,
+  });
+  if (disposition.operation === "repair") return new GateTaskLifecycleEffect({
+    operation: "repair-task-impl", taskId: lifecycle.taskId, successorStepId: lifecycle.implStepId,
+    resetStepIds: [lifecycle.implStepId, lifecycle.reviewStepId, lifecycle.gateStepId],
+  });
+  return null;
+}
+
 function gatePlan(facts, disposition, { status = "in_progress", incrementRetry = false } = {}) {
   const phaseDefinition = gatePhaseDefinition(facts.phase);
   const updates = [new GateStepUpdate({ stepId: facts.target.stepId, status })];
+  const lifecycle = taskLifecycleEffect(facts, disposition);
   const selectedFingerprint = createHash("sha256").update(stableGateJson({
-    disposition: disposition.toJSON(), phaseDefinition: phaseDefinition.toJSON(), updates: updates.map((entry) => entry.toJSON()), incrementRetry,
+    disposition: disposition.toJSON(), phaseDefinition: phaseDefinition.toJSON(), updates: updates.map((entry) => entry.toJSON()), taskLifecycle: lifecycle?.toJSON() ?? null, incrementRetry,
   })).digest("hex");
   const identity = new GateActionIdentity(GATE_TRANSITION_TOKEN, {
     runId: facts.producer.runId,
     specId: facts.producer.specId,
+    taskId: facts.target.taskId,
     stepId: facts.target.stepId,
     attempt: facts.currentAttempt,
     catalogFingerprint: facts.catalogPublication.fingerprint,
@@ -399,7 +456,7 @@ function gatePlan(facts, disposition, { status = "in_progress", incrementRetry =
     operation: disposition.operation,
   });
   return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
-    action: new GateTransitionAction(GATE_TRANSITION_TOKEN, { identity }), phaseDefinition, updates, incrementRetry,
+    action: new GateTransitionAction(GATE_TRANSITION_TOKEN, { identity }), phaseDefinition, updates, taskLifecycle: lifecycle, incrementRetry,
   });
 }
 

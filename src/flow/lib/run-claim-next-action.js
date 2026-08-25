@@ -9,6 +9,7 @@ import { beginFinalRegressionRepairTransition } from "./final-regression-transit
 import GetNextActionCommand from "./get-next-action.js";
 import { resolveGateTransition } from "../definition.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 
 /**
  * The only generic claim boundary for an ordinary Definition-selected worker
@@ -30,9 +31,12 @@ export default class RunClaimNextActionCommand extends FlowCommand {
       }
       const next = typed?.nextAction() ?? null;
       const projection = await new GetNextActionCommand().execute(ctx);
+      const activeTaskStep = TaskStepIdentity.fromStateNode(ctx.flowState, typed?.current?.at(-1));
       const gatePhase = typed?.current?.at(-1) === "draft-gate"
         ? "draft"
-        : typed?.current?.at(-1) === "spec-gate" ? "spec" : null;
+        : typed?.current?.at(-1) === "spec-gate"
+          ? "spec"
+          : activeTaskStep?.definitionId === "task-gate" ? "task-impl" : null;
       if (gatePhase !== null && projection?.directive?.actionId === "CLAIM_GATE_RETRY") {
         const facts = readCurrentGateTransitionFacts({ flowManager: ctx.flowManager, flowState: ctx.flowState, phase: gatePhase });
         if (facts === null) throw new Error("current Gate retry observation is unavailable");

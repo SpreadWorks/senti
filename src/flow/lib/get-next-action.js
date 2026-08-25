@@ -266,12 +266,14 @@ function canonicalTestReviewRepairFact(ctx, state, target) {
   }
 }
 
-/** Draft/spec Gate routing is projected only from its canonical typed facts. */
+/** Definition-owned Gate routing is projected only from its canonical typed facts. */
 function definitionOwnedGateSelection(ctx, state, target) {
   const phase = target.stepId === "draft-gate"
     ? "draft"
     : target.stepId === "spec-gate"
       ? "spec"
+      : target.scope === "task" && target.stepId === "task-gate"
+        ? "task-impl"
       : null;
   if (phase === null) return null;
   return resolveGateNextAction({
