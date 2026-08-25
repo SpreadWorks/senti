@@ -130,6 +130,76 @@ describe("ProducerArtifactReadiness", () => {
     });
   });
 
+  it("admits a deferred integration failure only through its exact adjacent settlement Activity", () => {
+    const readiness = producerArtifactReadiness({ producerNodeId: "impl-gate", consumerNodeId: "retro" });
+    const integrationState = {
+      current: null,
+      attempt: null,
+      findNode: (nodeId) => nodeId === "impl-gate"
+        ? { id: nodeId, status: "done", attemptSequence: 6 }
+        : null,
+    };
+    const deferredFailure = {
+      id: "failed-integration-5",
+      nodeId: "impl-gate",
+      attemptId: "integration-attempt-5",
+      sequence: 5,
+      transition: { operation: "fail_attempt" },
+      result: { outcome: "failed" },
+    };
+    const settlement = {
+      id: "deferred-integration-6",
+      nodeId: "impl-gate",
+      attemptId: "integration-attempt-5",
+      sequence: 5,
+      transition: {
+        operation: "defer_failed_gate",
+        attempt: { id: "integration-settlement-6", nodeId: "impl-gate", sequence: 6 },
+      },
+      result: { outcome: "passed" },
+    };
+    const catalog = {
+      artifacts: [{
+        logicalKey: "impl.gate",
+        relativePath: "steps/impl/gate/result.json",
+        activityId: deferredFailure.id,
+      }],
+    };
+    readiness.assert({ state: integrationState, catalog, activities: [deferredFailure, settlement] });
+    assert.throws(
+      () => readiness.assert({ state: integrationState, catalog, activities: [deferredFailure] }),
+      /producer Attempt introduction|confirmed producer Activity/,
+    );
+    assert.throws(
+      () => readiness.assert({
+        state: integrationState,
+        catalog,
+        activities: [
+          deferredFailure,
+          { ...settlement, transition: { ...settlement.transition, attempt: {
+            ...settlement.transition.attempt,
+            nodeId: "retro",
+          } } },
+        ],
+      }),
+      /producer Attempt introduction|confirmed producer Activity/,
+    );
+    const olderFailure = {
+      ...deferredFailure,
+      id: "failed-integration-4",
+      attemptId: "integration-attempt-4",
+      sequence: 4,
+    };
+    assert.throws(
+      () => readiness.assert({
+        state: integrationState,
+        catalog: { artifacts: [{ ...catalog.artifacts[0], activityId: olderFailure.id }] },
+        activities: [olderFailure, deferredFailure, settlement],
+      }),
+      (error) => error?.code === "CANONICAL_PRODUCER_ARTIFACT_NOT_READY",
+    );
+  });
+
   it("rejects a retained prior-attempt result when the current producer Attempt is artifactless", () => {
     const readiness = producerArtifactReadiness({ producerNodeId: "spec-review", consumerNodeId: "spec-triage" });
     assert.throws(

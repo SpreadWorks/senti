@@ -36,6 +36,8 @@ export default class RunClaimNextActionCommand extends FlowCommand {
         ? "draft"
         : typed?.current?.at(-1) === "spec-gate"
           ? "spec"
+          : typed?.current?.at(-1) === "impl-gate"
+            ? "integration"
           : activeTaskStep?.definitionId === "task-gate" ? "task-impl" : null;
       if (gatePhase !== null && projection?.directive?.actionId === "CLAIM_GATE_RETRY") {
         const facts = readCurrentGateTransitionFacts({ flowManager: ctx.flowManager, flowState: ctx.flowState, phase: gatePhase });

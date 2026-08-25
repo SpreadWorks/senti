@@ -8,6 +8,7 @@ import {
   GateCatalogPublication,
   GateLineage,
   GateRecoveryEvidence,
+  GateReviewFindingReadiness,
   GateRetryMetrics,
   GateFailureCategory,
   GateProducerOwnership,
@@ -75,6 +76,12 @@ function facts(overrides = {}) {
       canonicalFingerprint: "revision-7",
     }),
     recoveryEvidence: new GateRecoveryEvidence(),
+    reviewReadiness: phase === "integration"
+      ? new GateReviewFindingReadiness({
+        status: "ready", findingFingerprints: [], reviewFingerprints: ["impl-review-7"],
+        decisionFingerprint: "review-decision-7",
+      })
+      : null,
     taskLifecycle: scope === "task"
       ? { taskId, nextTaskId: null, integrationStepId: "test-execute" }
       : null,
@@ -127,6 +134,70 @@ describe("definition-owned Gate transition boundary", () => {
       result: "fail",
       artifacts: { failureKind: "mechanical" },
     }).category, "tooling");
+  });
+
+  it("makes every integration outcome and handoff a Definition plan", () => {
+    const semantic = resolveGateTransition(facts({
+      phase: "integration", result: "fail",
+      failure: new GateFailureCategory({ category: "semantic", code: "GATE_REJECTED" }),
+      retry: new GateRetryMetrics({ used: 0, maximum: 2 }),
+    }));
+    const tooling = resolveGateTransition(facts({
+      phase: "integration", result: "fail",
+      failure: new GateFailureCategory({ category: "tooling", code: "PROTOCOL" }),
+      retry: new GateRetryMetrics({ used: 0, maximum: 2 }),
+    }));
+    const exhausted = resolveGateTransition(facts({
+      phase: "integration", result: "fail",
+      failure: new GateFailureCategory({ category: "semantic", code: "GATE_REJECTED" }),
+      retry: new GateRetryMetrics({ used: 2, maximum: 2 }),
+    }));
+    const nonblocking = resolveGateTransition(facts({
+      phase: "integration", result: "fail", nonblocking: true,
+      failure: new GateFailureCategory({ category: "semantic", code: "GATE_REJECTED" }),
+      retry: new GateRetryMetrics({ used: 0, maximum: 2 }),
+    }));
+    const recovered = resolveGateTransition(facts({
+      phase: "integration", result: "recovered",
+      recoveryEvidence: new GateRecoveryEvidence({
+        kind: "recovered", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7",
+      }),
+    }));
+
+    assert.equal(resolveGateTransition(facts({ phase: "integration" })).plan.phaseDefinition.nextStepId, "retro");
+    assert.equal(semantic.disposition.operation, "retry");
+    assert.equal(semantic.plan.incrementRetry, true);
+    assert.equal(tooling.disposition.operation, "external-blocked");
+    assert.equal(tooling.plan.incrementRetry, false);
+    assert.equal(exhausted.disposition.operation, "defer");
+    assert.equal(nonblocking.disposition.operation, "nonblocking");
+    assert.deepEqual(nonblocking.plan.nonblockingHandoff.toJSON(), {
+      sourceStepId: "impl-gate", targetStepId: "retro",
+    });
+    assert.equal(recovered.disposition.operation, "recovery");
+    assert.deepEqual(recovered.plan.recoveryEffect.toJSON(), {
+      operation: "rewind-test-evidence", sourceStepId: "impl-gate", targetStepId: "test-execute",
+    });
+    for (const decision of [semantic, tooling, exhausted, nonblocking, recovered]) {
+      const reloaded = resolveGateTransition(reload(JSON.parse(JSON.stringify(decision.facts.toJSON()))));
+      assert.deepEqual(reloaded.plan.toJSON(), decision.plan.toJSON());
+      assert.equal(reloaded.plan.action.identity.matches(decision.plan.action.identity), true);
+    }
+  });
+
+  it("blocks a nominal integration PASS when typed review readiness retains a finding", () => {
+    const blocked = resolveGateTransition(facts({
+      phase: "integration",
+      reviewReadiness: new GateReviewFindingReadiness({
+        status: "blocking", findingFingerprints: ["finding-7"], reviewFingerprints: ["impl-review-7"],
+        triageFingerprint: "triage-7", repairFingerprint: "repair-7", decisionFingerprint: "review-decision-7",
+      }),
+    }));
+    assert.equal(blocked.disposition.operation, "blocked");
+    assert.equal(blocked.disposition.reason, "unresolved_review_findings");
+    const reloaded = resolveGateTransition(reload(JSON.parse(JSON.stringify(blocked.facts.toJSON()))));
+    assert.deepEqual(reloaded.plan.toJSON(), blocked.plan.toJSON());
+    assert.equal(reloaded.plan.action.identity.matches(blocked.plan.action.identity), true);
   });
 
   it("settles retry exhaustion before another repair or evaluation", () => {
@@ -381,6 +452,9 @@ describe("definition-owned Gate transition boundary", () => {
     const gateRunner = legacyConsumers[0];
     assert.doesNotMatch(gateRunner, /"task-spec": "task-impl"/);
     assert.doesNotMatch(gateRunner, /"task-impl": "complete-task"|"task-impl": "implement"/);
+    assert.doesNotMatch(gateRunner, /(?:PASS|FAIL)_(?:NEXT|PRESCRIPTION)/);
+    assert.doesNotMatch(gateRunner, /"integration": "(?:retro|implement)"/);
+    assert.doesNotMatch(gateRunner, /recoverFromCurrentAuthority/);
   });
 
   it("keeps Action identity deterministic across reload and all dispositions", () => {

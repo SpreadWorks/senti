@@ -219,18 +219,48 @@ export class ProducerArtifactReadiness {
         throw this.#missing(`catalog lacks ${handoff.logicalKey}`);
       }
       expectedAttemptId ??= producerAttemptId(state, activities, producer);
+      const deferredIntegrationSettlement = producer.id === "impl-gate"
+        && producer.status === "done"
+        && (activities.find((activity) => (
+          activity.nodeId === producer.id
+          && activity.transition.operation === "defer_failed_gate"
+          && activity.sequence === producer.attemptSequence - 1
+          && typeof activity.attemptId === "string"
+          && activity.transition.attempt?.nodeId === producer.id
+          && typeof activity.transition.attempt?.id === "string"
+          && activity.transition.attempt?.id !== activity.attemptId
+          && activity.transition.attempt?.sequence === producer.attemptSequence
+          && activity.result?.outcome === "passed"
+        )) ?? null);
       const confirmation = activities.find((activity) => (
         activity.id === descriptor.activityId
         && activity.nodeId === this.producerNodeId
-        && activity.sequence === producer.attemptSequence
-        && activity.attemptId === expectedAttemptId
         && (
-          (activity.transition.operation === "confirm_attempt" && activity.result?.outcome === "passed")
+          (activity.sequence === producer.attemptSequence
+            && activity.attemptId === expectedAttemptId
+            && (
+              (activity.transition.operation === "confirm_attempt" && activity.result?.outcome === "passed")
           // A semantic command may publish its typed producer result while
           // retaining the Attempt for a definition-owned failure route. The
-          // publication Activity is itself confirmed in the append-only
-          // ledger and is the descriptor's exact producer association.
-          || activity.transition.operation === "publish_artifacts"
+          // failed producer Activity is the descriptor's exact association.
+              || (activity.transition.operation === "fail_attempt"
+                && activity.result?.outcome === "failed"
+                && producer.status === "in_progress")
+          // An explicit publication can likewise retain the active Attempt
+          // for a Definition-owned route.
+              || activity.transition.operation === "publish_artifacts"
+            ))
+          // Integration exhaustion introduces a settlement Attempt that
+          // records flow.findings. Its immutable failed Gate artifact stays
+          // on the immediately preceding producer Attempt, and only that
+          // exact deferred settlement may advance retro.
+          || (
+            deferredIntegrationSettlement !== null
+            && activity.transition.operation === "fail_attempt"
+            && activity.result?.outcome === "failed"
+            && activity.sequence === deferredIntegrationSettlement.sequence
+            && activity.attemptId === deferredIntegrationSettlement.attemptId
+          )
         )
       )) ?? null;
       if (confirmation === null) {

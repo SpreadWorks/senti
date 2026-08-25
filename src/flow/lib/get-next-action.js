@@ -274,6 +274,8 @@ function definitionOwnedGateSelection(ctx, state, target) {
       ? "spec"
       : target.scope === "task" && target.stepId === "task-gate"
         ? "task-impl"
+      : target.scope === "flow" && target.stepId === "impl-gate"
+        ? "integration"
       : null;
   if (phase === null) return null;
   return resolveGateNextAction({
@@ -308,6 +310,21 @@ function definitionOwnedGateDirective(selection, { state, binding }) {
       nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
       instruction: "Apply the current Definition-selected, evidence-bound Gate repair.",
       reason: "The current repair receipt is bound to this Gate Attempt.",
+    });
+  }
+  if (operation === "nonblocking") {
+    const handoff = selection.decision.plan.nonblockingHandoff;
+    if (handoff === null) {
+      return new BlockedDirective({
+        code: "GATE_NONBLOCKING_HANDOFF_UNAVAILABLE",
+        reason: "Definition selected an advisory Gate result without an acceptance-backed handoff.",
+        resumeInstruction: "Refresh the canonical Gate observation; do not rerun the Gate directly.",
+      });
+    }
+    return new BlockedDirective({
+      code: "GATE_NONBLOCKING_DECISION_REQUIRED",
+      reason: `Definition selected the ${handoff.sourceStepId} advisory handoff to ${handoff.targetStepId}.`,
+      resumeInstruction: "Record the evidence-bound nonblocking repair, retry, or continue decision; do not rerun the observed Gate directly.",
     });
   }
   if (operation === "retry") return new ExecuteCommandDirective({

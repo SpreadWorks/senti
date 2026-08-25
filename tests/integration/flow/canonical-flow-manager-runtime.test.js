@@ -49,6 +49,7 @@ import {
 import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
 import RunSettleFailureCommand from "../../../src/flow/lib/run-settle-failure.js";
 import RunSettleReviewTransitionCommand from "../../../src/flow/lib/run-settle-review-transition.js";
+import RunSettleGateTransitionCommand from "../../../src/flow/lib/run-settle-gate-transition.js";
 import RunRepairTestReviewCommand from "../../../src/flow/lib/run-repair-test-review.js";
 import RunScenarioValidityCommand from "../../../src/flow/lib/run-scenario-validity.js";
 import RunTestExecuteCommand from "../../../src/flow/lib/run-test-execute.js";
@@ -99,6 +100,7 @@ import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint
 import { decisionContextForActiveFlow } from "../../../src/flow/lib/nonblocking.js";
 import { readCurrentTestChainTransitionFacts } from "../../../src/flow/lib/test-chain-transition-facts.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { ReviewFindingFingerprint } from "../../../src/flow/lib/finding-disposition-policy.js";
 
 const roots = [];
 
@@ -236,6 +238,33 @@ function publishAttemptArtifact(manager, specId, nodeId, logicalKey, payload) {
       bytes: attemptHistoryBytes(nodeId, logicalKey, payload, attempt),
     }],
   });
+}
+
+function integrationGateFixture(suffix) {
+  const repository = root();
+  const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+  const specId = `001-integration-gate-${suffix}`;
+  const created = manager.createFresh(request(specId));
+  manager.addActiveFlow(created.specId, "direct");
+  advanceTo(manager, created.specId, "impl-gate", {
+    onActive(stepId) {
+      if (stepId !== "impl-review") return;
+      publishAttemptArtifact(manager, created.specId, "impl-review", "impl.review", {
+        version: 1,
+        phase: "impl",
+        generatedAt: "2026-01-02T03:04:05.000Z",
+        runId: manager.load(created.specId).runId,
+        taskId: null,
+        planRewindAt: null,
+        verdict: "PASS",
+        summary: { blocking: 0, nonBlocking: 0, total: 0 },
+        blockingFindings: [],
+        nonBlockingImprovements: [],
+        repairFingerprint: "a".repeat(64),
+      });
+    },
+  });
+  return { manager, repository, specId: created.specId };
 }
 
 function canonicalIdentity(state) {
@@ -1269,6 +1298,113 @@ describe("FlowManager canonical Version-1 runtime", () => {
       assert.equal(activity.transition.attempt.nodeId, scenario.target);
       assert.notEqual(activity.attemptId, activity.transition.attempt.id);
     }
+  });
+
+  it("binds repaired implementation findings to their triage Activity before integration readiness", () => {
+    const repository = root();
+    const specId = "001-integration-repaired-readiness";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId));
+    manager.addActiveFlow(created.specId, "direct");
+    const rawFinding = {
+      findingKey: "repair-me", title: "Repair me", failureMode: "required_behavior", file: "src/example.js",
+      requirementId: "R1", guardrailId: null, issue: "Required behavior is absent.", suggestion: "Implement it.",
+      disposition: "must-fix", rationale: "The accepted requirement is mandatory.",
+    };
+    const fingerprint = ReviewFindingFingerprint.fromFinding({
+      ...rawFinding, scope: "flow", phase: "impl-review", taskId: null, category: rawFinding.failureMode,
+    }).value;
+    const review = (findings) => ({
+      version: 1, phase: "impl", generatedAt: "2026-01-02T03:04:05.000Z", runId: manager.load(specId).runId,
+      taskId: null, planRewindAt: null, verdict: findings.length === 0 ? "PASS" : "REJECTED",
+      summary: { blocking: findings.length, nonBlocking: 0, total: findings.length },
+      blockingFindings: findings, nonBlockingImprovements: [], repairFingerprint: "a".repeat(64),
+    });
+    const publishReReview = () => {
+      const history = JSON.parse(manager.readArtifact({
+        specId, logicalKey: "impl.review", consumerNodeId: "impl-triage",
+      }).bytes.toString("utf8"));
+      history.attempts.push({
+        attempt: manager.canonicalState(specId).attempt.sequence,
+        nodeId: "impl-review",
+        outcome: "completed",
+        result: { result: "ok" },
+        artifact: { logicalKey: "impl.review", payload: review([]) },
+      });
+      manager.publishArtifacts({
+        specId,
+        nodeId: "impl-review",
+        artifactWrites: [{
+          logicalKey: "impl.review",
+          mediaType: "application/json",
+          bytes: Buffer.from(`${JSON.stringify(history, null, 2)}\n`, "utf8"),
+        }],
+      });
+    };
+    const finding = { ...rawFinding, findingId: fingerprint, fingerprint };
+    advanceTo(manager, specId, "impl-triage", {
+      onActive(stepId) {
+        if (stepId === "impl-review") publishAttemptArtifact(manager, specId, "impl-review", "impl.review", review([finding]));
+      },
+    });
+    manager.confirmSourceWorkerHandoff({
+      specId,
+      effect: new SourceWorkerEffect({
+        version: 1, stepId: "impl-triage", completionStatus: "done", requirements: [], files: [], issues: [], overview: null, repair: null,
+        triage: { dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
+      }),
+      handoffDigest: "a".repeat(64),
+      result: { outcome: "passed", summary: "triage", confirmedAt: "2026-08-18T00:00:00.000Z", artifactRefs: [] },
+    });
+    manager.confirmSourceWorkerHandoff({
+      specId,
+      effect: new SourceWorkerEffect({
+        version: 1, stepId: "impl-repair", completionStatus: "done", requirements: [], files: [], issues: [], overview: null, triage: null,
+        repair: { appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
+      }),
+      handoffDigest: "b".repeat(64),
+      result: { outcome: "passed", summary: "repair", confirmedAt: "2026-08-18T00:01:00.000Z", artifactRefs: [] },
+    });
+    const repairedLeaves = leaves(manager.load(specId).steps);
+    const testExecuteIndex = repairedLeaves.findIndex((entry) => entry.id === "test-execute");
+    const implGateIndex = repairedLeaves.findIndex((entry) => entry.id === "impl-gate");
+    for (const entry of repairedLeaves.slice(testExecuteIndex, implGateIndex)) {
+      if (manager.load(specId).currentNodeId !== entry.id) {
+        manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" }, { specId });
+      }
+      if (entry.id === "impl-review") publishReReview();
+      confirmFixtureStep(manager, entry.id, { specId });
+    }
+    manager.updateStepStatus({ stepId: "impl-gate", requestedStatus: "in_progress" }, { specId });
+    const result = new CanonicalGatePromotion({ state: manager.canonicalState(specId), phase: "integration", nodeId: "impl-gate" })
+      .promote({ result: "pass", artifacts: {} });
+    manager.publishCurrentAttemptResult({ specId, commandResult: result });
+    const facts = readCurrentGateTransitionFacts({ flowManager: manager, flowState: manager.load(specId), phase: "integration" });
+    const decision = resolveGateTransition(facts);
+    assert.equal(facts.reviewReadiness.status, "ready");
+    assert.equal(decision.disposition.operation, "pass");
+    const triage = manager.artifactCatalog(specId).artifacts.find((entry) => entry.logicalKey === "impl.triage");
+    const repair = manager.artifactCatalog(specId).artifacts.find((entry) => entry.logicalKey === "impl.repair");
+    const reviewArtifact = manager.artifactCatalog(specId).artifacts.find((entry) => entry.logicalKey === "impl.review");
+    const ledger = manager.activityLedger(specId);
+    const triageActivity = ledger.find((entry) => entry.id === triage.activityId);
+    const repairActivity = ledger.find((entry) => entry.id === repair.activityId);
+    const reviewActivity = ledger.find((entry) => entry.id === reviewArtifact.activityId);
+    const rejectedReviewActivity = ledger.find((entry) => (
+      entry.nodeId === "impl-review" && entry.confirmationOrder < triageActivity.confirmationOrder
+    ));
+    assert.ok(rejectedReviewActivity);
+    assert.equal(rejectedReviewActivity.nodeId, "impl-review");
+    assert.equal(triageActivity.nodeId, "impl-triage");
+    assert.equal(repairActivity.nodeId, "impl-repair");
+    assert.equal(reviewActivity.nodeId, "impl-review");
+    assert.ok(rejectedReviewActivity.confirmationOrder < triageActivity.confirmationOrder);
+    assert.ok(triageActivity.confirmationOrder < repairActivity.confirmationOrder);
+    assert.ok(repairActivity.confirmationOrder < reviewActivity.confirmationOrder);
+    const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const restored = resolveGateTransition(readCurrentGateTransitionFacts({ flowManager: reloaded, flowState: reloaded.load(specId), phase: "integration" }));
+    assert.deepEqual(restored.plan.toJSON(), decision.plan.toJSON());
+    assert.equal(restored.plan.action.identity.matches(decision.plan.action.identity), true);
   });
 
   it("records an explicit acceptance-risk decision without overwriting review evidence", async () => {
@@ -5464,6 +5600,200 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(resolveGateTransition(facts).disposition.operation, "recovery");
     assert.deepEqual(reloadedFacts.toJSON(), facts.toJSON());
     assert.equal(manager.canonicalState(created.specId).current.at(-1), "draft-gate");
+  });
+
+  it("proves integration Gate reader bindings and Definition plans survive reload", () => {
+    const integration = (suffix) => integrationGateFixture(`reader-${suffix}`);
+    const promote = (manager, specId, input) => new CanonicalGatePromotion({
+      state: manager.canonicalState(specId), phase: "integration", nodeId: "impl-gate",
+    }).promote(input);
+
+    const passing = integration("pass");
+    const passResult = promote(passing.manager, passing.specId, { result: "pass", artifacts: {} });
+    passing.manager.publishCurrentAttemptResult({ specId: passing.specId, commandResult: passResult });
+    const passFacts = readCurrentGateTransitionFacts({
+      flowManager: passing.manager, flowState: passing.manager.load(passing.specId), phase: "integration",
+    });
+    const passDecision = resolveGateTransition(passFacts);
+    assert.equal(passDecision.disposition.operation, "pass");
+    assert.equal(passDecision.plan.phaseDefinition.nextStepId, "retro");
+    const reloadedManager = new FlowManager({ root: passing.repository, mainRoot: passing.repository, inWorktree: false });
+    const reloadedDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: reloadedManager, flowState: reloadedManager.load(passing.specId), phase: "integration",
+    }));
+    assert.deepEqual(reloadedDecision.plan.toJSON(), passDecision.plan.toJSON());
+    assert.equal(reloadedDecision.plan.action.identity.matches(passDecision.plan.action.identity), true);
+
+    const semantic = integration("semantic");
+    const semanticResult = promote(semantic.manager, semantic.specId, {
+      result: "fail", artifacts: { failureKind: "ai_semantic_fail", failureCode: "INTEGRATION_REJECTED" },
+    });
+    semantic.manager.failCurrentAttempt({
+      specId: semantic.specId,
+      failure: { category: "semantic", code: "INTEGRATION_REJECTED", message: "fixture", retryable: true, retryKind: "semantic" },
+      commandResult: semanticResult,
+    });
+    assert.equal(resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: semantic.manager, flowState: semantic.manager.load(semantic.specId), phase: "integration",
+    })).disposition.operation, "retry");
+
+    const tooling = integration("tooling");
+    const toolingResult = promote(tooling.manager, tooling.specId, {
+      result: "fail", artifacts: { failureKind: "protocol_failure", failureCode: "INTEGRATION_PROTOCOL" },
+    });
+    tooling.manager.failCurrentAttempt({
+      specId: tooling.specId,
+      failure: { category: "tooling", code: "INTEGRATION_PROTOCOL", message: "fixture", retryable: false, retryKind: null },
+      commandResult: toolingResult,
+    });
+    assert.equal(resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: tooling.manager, flowState: tooling.manager.load(tooling.specId), phase: "integration",
+    })).disposition.operation, "external-blocked");
+
+    for (const [suffix, field, value, pattern] of [
+      ["stale-attempt", "gateTransitionAttemptId", "old-attempt", /Attempt binding/],
+      ["stale-lineage", "gateTransitionLineage", "f".repeat(64), /lineage binding/],
+    ]) {
+      const stale = integration(suffix);
+      const state = stale.manager.canonicalState(stale.specId);
+      const artifacts = {
+        phase: "integration",
+        gateTransitionAttemptId: state.attempt.id,
+        gateTransitionAttemptSequence: state.attempt.sequence,
+        gateTransitionLineage: canonicalGateRevision(state, "impl-gate"),
+        [field]: value,
+      };
+      const result = attachCanonicalCommandResultArtifact({ result: "pass", artifacts }, {
+        logicalKey: "impl.gate", payload: { result: "pass", artifacts },
+      });
+      stale.manager.publishCurrentAttemptResult({ specId: stale.specId, commandResult: result });
+      assert.throws(() => readCurrentGateTransitionFacts({
+        flowManager: stale.manager, flowState: stale.manager.load(stale.specId), phase: "integration",
+      }), pattern);
+    }
+  });
+
+  it("admits only the current recovered integration Gate decision for test evidence rewind", () => {
+    const fixture = integrationGateFixture("recovery-admission");
+    const recovered = new CanonicalGatePromotion({
+      state: fixture.manager.canonicalState(fixture.specId), phase: "integration", nodeId: "impl-gate",
+    }).promote({
+      result: "recovered",
+      artifacts: {
+        evidenceRefresh: {
+          recovered: true,
+          previousFingerprint: "b".repeat(64),
+          currentFingerprint: "a".repeat(64),
+          invalidatedArtifacts: ["test.execute", "test.result.review"],
+        },
+      },
+    });
+    fixture.manager.publishCurrentAttemptResult({ specId: fixture.specId, commandResult: recovered });
+    const decision = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: fixture.manager, flowState: fixture.manager.load(fixture.specId), phase: "integration",
+    }));
+    assert.equal(decision.disposition.operation, "recovery");
+
+    const passing = integrationGateFixture("recovery-pass-decision");
+    const passResult = new CanonicalGatePromotion({
+      state: passing.manager.canonicalState(passing.specId), phase: "integration", nodeId: "impl-gate",
+    }).promote({ result: "pass", artifacts: {} });
+    passing.manager.publishCurrentAttemptResult({ specId: passing.specId, commandResult: passResult });
+    const passDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: passing.manager, flowState: passing.manager.load(passing.specId), phase: "integration",
+    }));
+    assert.throws(
+      () => fixture.manager.rewindTestEvidence({ specId: fixture.specId, decision: passDecision }),
+      /recovery|decision|stale/i,
+    );
+
+    const stale = integrationGateFixture("recovery-stale-decision");
+    const staleResult = new CanonicalGatePromotion({
+      state: stale.manager.canonicalState(stale.specId), phase: "integration", nodeId: "impl-gate",
+    }).promote({ result: "recovered", artifacts: { evidenceRefresh: { recovered: true } } });
+    stale.manager.publishCurrentAttemptResult({ specId: stale.specId, commandResult: staleResult });
+    const staleDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: stale.manager, flowState: stale.manager.load(stale.specId), phase: "integration",
+    }));
+    assert.throws(
+      () => fixture.manager.rewindTestEvidence({ specId: fixture.specId, decision: staleDecision }),
+      /current|stale|identity/i,
+    );
+
+    fixture.manager.rewindTestEvidence({ specId: fixture.specId, decision });
+    const state = fixture.manager.load(fixture.specId);
+    assert.equal(state.currentNodeId, "test-execute");
+    assert.equal(findStepById(state.steps, "impl-gate").status, "invalidated");
+  });
+
+  it("settles exhausted integration semantic failures and preserves the acceptance route", async () => {
+    const fixture = integrationGateFixture("settlement");
+    const observation = {
+      kind: "violation", failureMode: "required_behavior", requirementRef: "R-1",
+      where: { file: "src/example.js", locator: "implementation" }, observed: "The required behavior remains absent.",
+      severity: "blocking", refs: ["R-1"],
+    };
+    let exhausted = null;
+    for (let evaluation = 1; evaluation <= 5; evaluation += 1) {
+      const commandResult = new CanonicalGatePromotion({
+        state: fixture.manager.canonicalState(fixture.specId), phase: "integration", nodeId: "impl-gate",
+      }).promote({
+        result: "fail",
+        artifacts: {
+          failureKind: "ai_semantic_fail",
+          failureCode: "INTEGRATION_REJECTED",
+          nextAction: { diagnosis: { observations: [observation] } },
+        },
+      });
+      fixture.manager.failCurrentAttempt({
+        specId: fixture.specId,
+        failure: {
+          category: "semantic", code: "INTEGRATION_REJECTED", message: "fixture",
+          retryable: evaluation < 5, retryKind: evaluation < 5 ? "semantic" : null,
+        },
+        commandResult,
+      });
+      const decision = resolveGateTransition(readCurrentGateTransitionFacts({
+        flowManager: fixture.manager, flowState: fixture.manager.load(fixture.specId), phase: "integration",
+      }));
+      if (evaluation < 5) {
+        assert.equal(decision.disposition.operation, "retry");
+        fixture.manager.retryGateTransition({ specId: fixture.specId, decision });
+      } else {
+        exhausted = decision;
+      }
+    }
+    assert.equal(exhausted.disposition.operation, "defer");
+    const context = {
+      root: fixture.repository, mainRoot: fixture.repository, executionRoot: fixture.repository,
+      specId: fixture.specId, flowManager: fixture.manager, flowState: fixture.manager.load(fixture.specId),
+    };
+    const settled = new RunSettleGateTransitionCommand().execute(context);
+    assert.equal(settled.ok, true, JSON.stringify(settled));
+    const state = fixture.manager.load(fixture.specId);
+    assert.equal(findStepById(state.steps, "impl-gate").status, "done");
+    assert.equal(findStepById(state.steps, "retro").status, "pending");
+    assert.equal(findStepById(state.steps, "acceptance-review").status, "pending");
+    const findings = fixture.manager.readArtifact({
+      specId: fixture.specId, logicalKey: "flow.findings", consumerNodeId: "acceptance-review",
+    });
+    assert.ok(findings);
+    assert.equal(fixture.manager.activityLedger(fixture.specId).at(-1).transition.operation, "defer_failed_gate");
+    assert.equal(new RunSettleGateTransitionCommand().execute(context).ok, false, "settlement cannot repeat");
+    assert.throws(
+      () => fixture.manager.retryGateTransition({ specId: fixture.specId, decision: exhausted }),
+      /current|stale|defer/i,
+    );
+    const retro = await new GetNextActionCommand().execute({
+      ...context, flowState: fixture.manager.load(fixture.specId),
+    });
+    assert.equal(retro.step, "retro");
+    fixture.manager.updateStepStatus({ stepId: "retro", requestedStatus: "in_progress" }, { specId: fixture.specId });
+    confirmFixtureStep(fixture.manager, "retro", { specId: fixture.specId });
+    const acceptance = await new GetNextActionCommand().execute({
+      ...context, flowState: fixture.manager.load(fixture.specId),
+    });
+    assert.equal(acceptance.step, "acceptance-review");
   });
 
   it("settles the fifth persisted Draft Gate semantic failure, records findings, and rejects a sixth retry", async () => {

@@ -411,7 +411,7 @@ async function applyTestChainTransition(ctx, result, stepId) {
 }
 
 function isDefinitionOwnedPlanGate(phase, ctx = null, result = null) {
-  if (phase === "draft" || phase === "spec") return true;
+  if (phase === "draft" || phase === "spec" || phase === "integration") return true;
   if (phase !== "task-impl") return false;
   if (typeof result?.artifacts?.taskId === "string" && result.artifacts.taskId !== "") return true;
   const activeNode = ctx?.flowState ? findActiveNode(ctx.flowState) : null;
@@ -1502,17 +1502,15 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       async post(ctx, result) {
         if (!ctx.flowState) return;
+        const phase = result?.artifacts?.phase || ctx.phase;
         if (
           ctx.terminalGateRevalidation === true
           || (
             result?.result === "recovered"
             && result?.artifacts?.evidenceRefresh?.recovered === true
+            && !isDefinitionOwnedPlanGate(phase, ctx, result)
           )
         ) return;
-        const phase = result?.artifacts?.phase || ctx.phase;
-        if (result?.result === "recovered" && isDefinitionOwnedPlanGate(phase, ctx, result)) {
-          throw new Error("Definition-owned Gate recovery results are not an executable route; publish a current Gate evaluation instead");
-        }
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
         const canonicalResult = attachedCanonicalCommandResultArtifact(result) !== null;
         const specId = ctx.specId ?? ctx.flowState.specId;
@@ -1524,6 +1522,18 @@ export const FLOW_COMMANDS = {
           ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
           ctx.flowState = ctx.flowManager.loadReadOnly(specId);
           ctx.gateTransitionDecision = resolvePersistedPlanGateDecision(ctx, result);
+          if (result?.result === "recovered") {
+            const recovery = ctx.gateTransitionDecision.plan.recoveryEffect;
+            if (recovery === null) {
+              throw new Error("Definition-owned Gate recovery has no sealed recovery effect");
+            }
+            if (recovery.operation !== "rewind-test-evidence") {
+              throw new Error("Definition-owned Gate recovery operation is unsupported");
+            }
+            ctx.flowManager.rewindTestEvidence({ specId, decision: ctx.gateTransitionDecision });
+            ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+            return;
+          }
           if (result?.result !== "pass") {
             ctx.flowManager.recordGateObservationDecision({
               specId,
@@ -1569,6 +1579,13 @@ export const FLOW_COMMANDS = {
       },
       async nonblockingPost(ctx, result) {
         const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
+        const handoff = ctx.gateTransitionDecision?.plan.nonblockingHandoff ?? null;
+        if (phase === "integration") {
+          if (handoff === null) return;
+          const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+          recordEligibleNonblockingAttempt(ctx, handoff.sourceStepId, result);
+          return;
+        }
         const active = findActiveNode(ctx.flowState || {});
         const taskStep = TaskStepIdentity.fromStateNode(ctx.flowState, active?.stepId);
         const stepId = taskStep?.definitionId === "task-gate"
@@ -1577,9 +1594,7 @@ export const FLOW_COMMANDS = {
             ? "draft-gate"
             : phase === "spec"
               ? "spec-gate"
-              : phase === "integration"
-                ? "impl-gate"
-                : null;
+              : null;
         if (!stepId || !nonblockingRouteFor(stepId)) return;
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
         recordEligibleNonblockingAttempt(ctx, stepId, result);

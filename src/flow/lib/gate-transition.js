@@ -179,6 +179,50 @@ export class GateRecoveryEvidence {
   toJSON() { return { kind: this.kind, attempt: this.attempt?.toJSON() ?? null, fingerprint: this.fingerprint }; }
 }
 
+/**
+ * Canonical review/triage/repair readiness bound to an integration Gate.
+ * The reader supplies it; Definition only consumes its explicit passability.
+ */
+export class GateReviewFindingReadiness {
+  constructor({
+    status, findingFingerprints = [], reviewFingerprints = [],
+    triageFingerprint = null, repairFingerprint = null, decisionFingerprint,
+  } = {}) {
+    this.status = requiredText(status, "gate review finding readiness status");
+    if (!new Set(["ready", "blocking"]).has(this.status)) {
+      throw new Error("gate review finding readiness status is invalid");
+    }
+    if (!Array.isArray(findingFingerprints) || findingFingerprints.some((value) => typeof value !== "string" || value === "")) {
+      throw new Error("gate review finding readiness finding fingerprints are invalid");
+    }
+    if (!Array.isArray(reviewFingerprints) || reviewFingerprints.some((value) => typeof value !== "string" || value === "")) {
+      throw new Error("gate review finding readiness review fingerprints are invalid");
+    }
+    this.findingFingerprints = Object.freeze([...findingFingerprints].sort());
+    this.reviewFingerprints = Object.freeze([...reviewFingerprints]);
+    this.triageFingerprint = optionalText(triageFingerprint, "gate review finding readiness triage fingerprint");
+    this.repairFingerprint = optionalText(repairFingerprint, "gate review finding readiness repair fingerprint");
+    this.decisionFingerprint = requiredText(decisionFingerprint, "gate review finding readiness decision fingerprint");
+    if ((this.status === "ready") !== (this.findingFingerprints.length === 0)) {
+      throw new Error("gate review finding readiness status does not match unresolved findings");
+    }
+    Object.freeze(this);
+  }
+
+  get allowsPass() { return this.status === "ready"; }
+
+  toJSON() {
+    return {
+      status: this.status,
+      findingFingerprints: [...this.findingFingerprints],
+      reviewFingerprints: [...this.reviewFingerprints],
+      triageFingerprint: this.triageFingerprint,
+      repairFingerprint: this.repairFingerprint,
+      decisionFingerprint: this.decisionFingerprint,
+    };
+  }
+}
+
 /** Reset-aware retry facts are computed by the state reader, never by commands. */
 export class GateRetryMetrics {
   constructor({ used = 0, maximum } = {}) {
@@ -295,6 +339,8 @@ export class GateTransitionFacts {
     retry,
     lineage,
     recoveryEvidence = {},
+    nonblocking = false,
+    reviewReadiness = null,
     taskLifecycle = null,
   } = {}) {
     this.phase = requiredText(phase, "gate phase");
@@ -318,6 +364,14 @@ export class GateTransitionFacts {
     this.recoveryEvidence = recoveryEvidence instanceof GateRecoveryEvidence
       ? recoveryEvidence
       : new GateRecoveryEvidence(recoveryEvidence);
+    if (typeof nonblocking !== "boolean") throw new Error("gate nonblocking fact must be boolean");
+    this.nonblocking = nonblocking;
+    this.reviewReadiness = reviewReadiness === null
+      ? null
+      : (reviewReadiness instanceof GateReviewFindingReadiness ? reviewReadiness : new GateReviewFindingReadiness(reviewReadiness));
+    if ((this.phase === "integration") !== (this.reviewReadiness !== null)) {
+      throw new Error("integration Gate requires exactly one review finding readiness fact");
+    }
     this.taskLifecycle = taskLifecycle === null
       ? null
       : (taskLifecycle instanceof GateTaskLifecycle ? taskLifecycle : new GateTaskLifecycle(taskLifecycle));
@@ -373,6 +427,8 @@ export class GateTransitionFacts {
       currentAttempt: this.currentAttempt.toJSON(), catalogPublication: this.catalogPublication.toJSON(),
       result: this.result, failure: this.failure?.toJSON() ?? null, retry: this.retry.toJSON(),
       lineage: this.lineage.toJSON(), recoveryEvidence: this.recoveryEvidence.toJSON(),
+      nonblocking: this.nonblocking,
+      reviewReadiness: this.reviewReadiness?.toJSON() ?? null,
       taskLifecycle: this.taskLifecycle?.toJSON() ?? null,
     };
   }

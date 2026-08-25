@@ -636,7 +636,7 @@ function gateRetryAttempt(state) {
   const nodeId = state.current?.at(-1);
   const parent = state.current === null ? null : state.findNode(state.current.at(-2));
   const taskGate = parent instanceof TaskNode && nodeId === `${parent.id}-gate`;
-  if ((!new Set(["draft-gate", "spec-gate"]).has(nodeId) && !taskGate) || state.attempt === null) {
+  if ((!new Set(["draft-gate", "spec-gate", "impl-gate"]).has(nodeId) && !taskGate) || state.attempt === null) {
     throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires the active Gate Attempt");
   }
   const node = state.findNode(nodeId);
@@ -1218,6 +1218,12 @@ export class CanonicalFlowManagerStore {
       decision: opts.gateTransitionDecision,
       suppliedLifecycle: opts.gateTaskLifecycle,
     });
+    this.#integrationGatePassAdmission({
+      state: confirmingState,
+      nodeId,
+      status: requestedStatus,
+      decision: opts.gateTransitionDecision,
+    });
     const artifactWrites = opts.canonicalCommandResult === undefined
       ? []
       : [
@@ -1344,6 +1350,12 @@ export class CanonicalFlowManagerStore {
       throw new CurrentFlowStateInvariantError("Task Gate pass Definition plan requires a sealed lifecycle effect");
     }
     return lifecycle;
+  }
+
+  /** The flow-level integration Gate is completed only by its PASS decision. */
+  #integrationGatePassAdmission({ state, nodeId, status, decision }) {
+    if (nodeId !== "impl-gate" || status !== "done") return;
+    this.#admitGateDecision(state, decision, "pass");
   }
 
   retryGateTransition({ specId = null, decision } = {}) {
@@ -1558,12 +1570,24 @@ export class CanonicalFlowManagerStore {
    * Canonical stale-test-evidence recovery.  The source and target are fixed
    * by the Flow definition, so this is not a generic lifecycle mutation API.
    */
-  rewindTestEvidence({ specId = null } = {}) {
+  rewindTestEvidence({ specId = null, decision = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
-    if (!new Set(["impl-gate", "retro"]).has(state.current?.at(-1))) {
+    const sourceStepId = state.current?.at(-1) ?? null;
+    if (!new Set(["impl-gate", "retro"]).has(sourceStepId)) {
       throw new CurrentFlowStateInvariantError("canonical test evidence rewind requires active impl-gate or retro");
+    }
+    if (sourceStepId === "impl-gate") {
+      const selected = this.#admitGateDecision(state, decision, "recovery");
+      const effect = selected.plan.recoveryEffect;
+      if (effect?.operation !== "rewind-test-evidence"
+        || effect.sourceStepId !== sourceStepId
+        || effect.targetStepId !== "test-execute") {
+        throw new CurrentFlowStateInvariantError("integration test evidence rewind requires its sealed Definition recovery effect");
+      }
+    } else if (decision !== null) {
+      throw new CurrentFlowStateInvariantError("retro test evidence rewind does not accept an integration Gate decision");
     }
     return this.runtime.rewindTestEvidence({
       specId: resolved,
@@ -2369,6 +2393,12 @@ export class CanonicalFlowManagerStore {
       status,
       decision: gateTransitionDecision,
       suppliedLifecycle: gateTaskLifecycle,
+    });
+    this.#integrationGatePassAdmission({
+      state,
+      nodeId,
+      status,
+      decision: gateTransitionDecision,
     });
     return this.runtime.confirmAttempt({
       specId: resolved,

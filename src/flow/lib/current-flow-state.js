@@ -3722,7 +3722,7 @@ export class CurrentFlowState {
     const leaf = this.current === null ? null : nodeAtPath(this.root, this.current);
     const task = this.current === null ? null : this.findNode(this.current.at(-2));
     const taskGate = task instanceof TaskNode && leaf?.id === `${task.id}-gate`;
-    if (leaf === null || (!new Set(["draft-gate", "spec-gate"]).has(leaf.id) && !taskGate)
+    if (leaf === null || (!new Set(["draft-gate", "spec-gate", "impl-gate"]).has(leaf.id) && !taskGate)
       || this.attempt?.failure?.category !== "semantic") {
       throw new CurrentFlowStateInvariantError("definition-owned Gate retry requires a failed semantic Gate Attempt");
     }
@@ -4103,7 +4103,7 @@ export class CurrentFlowState {
       gateTaskLifecycle,
       operation: "defer-and-advance",
     });
-    if (leaf === null || (!new Set(["draft-gate", "spec-gate"]).has(leaf.id) && lifecycle === null)
+    if (leaf === null || (!new Set(["draft-gate", "spec-gate", "impl-gate"]).has(leaf.id) && lifecycle === null)
       || this.attempt?.failure?.category !== "semantic") {
       throw new CurrentFlowStateInvariantError("Gate deferral requires a failed semantic Gate Attempt");
     }

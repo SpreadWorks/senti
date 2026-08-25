@@ -60,6 +60,18 @@ export function applyGateTransitionDecision(adapter, decision) {
     }
     adapter.applyTaskLifecycle(decision.plan.taskLifecycle, decision);
   }
+  if (decision.plan.recoveryEffect !== null) {
+    if (typeof adapter.applyRecoveryEffect !== "function") {
+      throw new Error("gate recovery plan requires adapter.applyRecoveryEffect");
+    }
+    adapter.applyRecoveryEffect(decision.plan.recoveryEffect, decision);
+  }
+  if (decision.plan.nonblockingHandoff !== null) {
+    if (typeof adapter.applyNonblockingHandoff !== "function") {
+      throw new Error("gate nonblocking plan requires adapter.applyNonblockingHandoff");
+    }
+    adapter.applyNonblockingHandoff(decision.plan.nonblockingHandoff, decision);
+  }
   if (decision.plan.incrementRetry) {
     if (typeof adapter.incrementRetry !== "function") {
       throw new Error("gate transition retry plan requires adapter.incrementRetry");

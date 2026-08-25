@@ -10,6 +10,7 @@ import { GateFailureCategory, GateTaskLifecycle, GateTransitionFacts } from "./g
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { canonicalGateNodeId, canonicalGateRevision } from "./canonical-gate-artifacts.js";
 import { inspectCanonicalPlanGateRepair } from "./plan-gate-repair.js";
+import { evaluateReviewFindingGateReadiness } from "./review-finding-gate-readiness.js";
 
 function required(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -70,6 +71,117 @@ function taskLifecycleFor(state, taskId) {
   });
 }
 
+function optionalConsumerDocument({ flowManager, state, logicalKey, activities }) {
+  const source = flowManager.readArtifact({
+    specId: state.specId, logicalKey, consumerNodeId: "impl-gate", optional: true,
+  });
+  if (source === null) return null;
+  let value;
+  try {
+    value = JSON.parse(source.bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`canonical ${logicalKey} artifact must be JSON: ${error.message}`);
+  }
+  const activity = source.descriptor.activityId === null
+    ? null
+    : activities.find((entry) => entry.id === source.descriptor.activityId) ?? null;
+  if (activity === null) throw new Error(`canonical ${logicalKey} artifact lacks its catalog Activity lineage`);
+  return Object.freeze({ value, fingerprint: source.descriptor.hash, activity });
+}
+
+function reviewFindingMap(artifacts) {
+  const entries = new Map();
+  for (const artifact of artifacts) {
+    for (const finding of artifact.blockingFindings || []) {
+      if (typeof finding?.findingKey === "string" && typeof finding?.findingId === "string") {
+        entries.set(finding.findingKey, finding.findingId);
+      }
+    }
+  }
+  return entries;
+}
+
+function sameMembers(left, right) {
+  return left.size === right.size && [...left].every((value) => right.has(value));
+}
+
+/** Read review, triage and repair lineage once, before Definition classifies integration. */
+function integrationReviewReadiness({ flowManager, state }) {
+  const activities = flowManager.activityLedger(state.specId);
+  const reviewSource = flowManager.readArtifact({
+    specId: state.specId, logicalKey: "impl.review", consumerNodeId: "impl-gate", optional: true,
+  });
+  if (reviewSource === null) throw new Error("integration Gate requires canonical impl.review evidence");
+  const reviewActivity = reviewSource.descriptor.activityId === null
+    ? null
+    : activities.find((entry) => entry.id === reviewSource.descriptor.activityId) ?? null;
+  if (reviewActivity === null || reviewActivity.nodeId !== "impl-review") {
+    throw new Error("integration Gate review artifact lacks canonical impl-review publication lineage");
+  }
+  const history = CanonicalCommandAttemptArtifactHistory.fromBytes({
+    logicalKey: "impl.review", bytes: reviewSource.bytes,
+  });
+  const reviewArtifacts = history.attempts.map((entry) => entry.payload);
+  const currentFindings = reviewFindingMap([history.current.payload]);
+  const historicalFindings = reviewFindingMap(reviewArtifacts);
+  const triage = optionalConsumerDocument({ flowManager, state, logicalKey: "impl.triage", activities });
+  const repair = optionalConsumerDocument({ flowManager, state, logicalKey: "impl.repair", activities });
+  const triageCurrent = triage !== null && triage.activity.nodeId === "impl-triage"
+    && triage.activity.confirmationOrder > reviewActivity.confirmationOrder;
+  const dispositions = triage?.value?.dispositions || [];
+  if (!Array.isArray(dispositions)) throw new Error("canonical impl.triage dispositions must be an array");
+  const staleTriageKeys = dispositions.map((entry) => entry?.findingKey)
+    .filter((key) => typeof key === "string" && currentFindings.has(key));
+  if (!triageCurrent && staleTriageKeys.length > 0) {
+    throw new Error("canonical impl.triage lineage is stale for the current review finding identity");
+  }
+  const triageItems = triageCurrent
+    ? dispositions.filter((entry) => entry?.disposition === "reject" && currentFindings.has(entry.findingKey))
+      .map((entry) => ({ findingId: currentFindings.get(entry.findingKey), decision: "reject" }))
+    : [];
+  const applied = new Set(triageCurrent
+    ? dispositions.filter((entry) => entry?.disposition === "apply" && currentFindings.has(entry.findingKey))
+      .map((entry) => entry.findingKey)
+    : []);
+  const repairCurrent = repair !== null && triageCurrent
+    && repair.activity.nodeId === "impl-repair"
+    && repair.activity.confirmationOrder > triage.activity.confirmationOrder;
+  const repairHistorical = repair !== null && triage !== null && currentFindings.size === 0
+    && triage.activity.nodeId === "impl-triage"
+    && repair.activity.nodeId === "impl-repair"
+    && triage.activity.confirmationOrder < repair.activity.confirmationOrder
+    && repair.activity.confirmationOrder < reviewActivity.confirmationOrder;
+  const repaired = new Set(repair?.value?.appliedFindingKeys || []);
+  if (repair !== null && !Array.isArray(repair?.value?.appliedFindingKeys)) {
+    throw new Error("canonical impl.repair applied finding keys must be an array");
+  }
+  const historicalApplied = new Set((triage?.value?.dispositions || [])
+    .filter((entry) => entry?.disposition === "apply")
+    .map((entry) => entry.findingKey));
+  if ((repairCurrent && !sameMembers(applied, repaired))
+    || (repairHistorical && !sameMembers(historicalApplied, repaired))) {
+    throw new Error("canonical impl.repair findings must exactly match the preceding impl.triage apply set");
+  }
+  const resolvedFindingIds = (repairCurrent || repairHistorical)
+    ? [...repaired].map((key) => currentFindings.get(key) ?? historicalFindings.get(key)).filter(Boolean)
+    : [];
+  return evaluateReviewFindingGateReadiness({
+    reviewArtifacts,
+    phase: "integration",
+    runId: state.runId,
+    triage: { items: triageItems },
+    repairLedger: null,
+    reviewFingerprints: history.attempts.map((entry) => `${reviewSource.descriptor.hash}:${entry.attempt}`),
+    triageFingerprint: triage?.fingerprint ?? null,
+    repairFingerprint: repair?.fingerprint ?? null,
+    resolvedFindingIds,
+    // impl.review attempts are ordered canonical publications. A changed
+    // repair fingerprint is the authoritative current-review boundary; an
+    // unchanged fingerprint deliberately retains prior unresolved findings.
+    supersedesHistory: true,
+  }).toJSON();
+}
+
 function resultFailure(payload, attempt) {
   if (payload?.result !== "fail") return null;
   const artifactCategory = payload?.artifacts?.gateTransitionFailureCategory ?? null;
@@ -114,6 +226,7 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
   if (!flowManager || typeof flowManager.canonicalState !== "function"
     || typeof flowManager.loadReadOnly !== "function"
     || typeof flowManager.readProducerArtifact !== "function"
+    || typeof flowManager.readArtifact !== "function"
     || typeof flowManager.activityLedger !== "function") {
     throw new Error("canonical Gate transition facts require FlowManager catalog APIs");
   }
@@ -150,16 +263,17 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     throw new Error("canonical Gate result phase does not own the active gate node");
   }
   const resultRevision = payload?.artifacts?.gateTransitionLineage;
-  if (taskId !== null) {
-    if (payload?.artifacts?.taskId !== taskId) {
+  const requiresTransitionBinding = taskId !== null || persistedPhase === "integration";
+  if (requiresTransitionBinding) {
+    if (taskId !== null && payload?.artifacts?.taskId !== taskId) {
       throw new Error("canonical Task Gate result Task binding does not match the active Task");
     }
     if (payload?.artifacts?.gateTransitionAttemptId !== attempt.id
       || payload?.artifacts?.gateTransitionAttemptSequence !== attempt.sequence) {
-      throw new Error("canonical Task Gate result Attempt binding does not match the active Attempt");
+      throw new Error("canonical Gate result Attempt binding does not match the active Attempt");
     }
     if (typeof resultRevision !== "string" || resultRevision !== canonicalGateRevision(state, nodeId)) {
-      throw new Error("canonical Task Gate result lineage binding is invalid");
+      throw new Error("canonical Gate result lineage binding is invalid");
     }
   }
   const activities = currentGateActivity({ flowManager, state, nodeId, attempt });
@@ -178,8 +292,8 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     const source = flowManager.readProducerArtifact({
       specId: state.specId, nodeId, logicalKey: keys.source, parameters: keys.parameters, optional: true,
     });
-    if (source === null && taskId !== null) {
-      throw new Error("canonical Task semantic Gate failure requires task.gate.source evidence");
+    if (source === null && (taskId !== null || persistedPhase === "integration")) {
+      throw new Error("canonical semantic Gate failure requires source evidence");
     }
     if (source !== null) {
     const sourceActivity = activities.find((activity) => activity.id === source.descriptor.activityId) ?? null;
@@ -255,6 +369,10 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
       : repairEvidence !== null
         ? { kind: "repair", attempt: { id: attempt.id, sequence: attempt.sequence }, fingerprint: resultSource.descriptor.hash }
       : { kind: "none" },
+    nonblocking: state.policy?.nonblocking?.enabled === true,
+    reviewReadiness: persistedPhase === "integration"
+      ? integrationReviewReadiness({ flowManager, state })
+      : null,
     taskLifecycle: taskLifecycleFor(state, taskId),
   });
 }

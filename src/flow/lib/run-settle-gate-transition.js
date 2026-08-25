@@ -15,6 +15,7 @@ export default class RunSettleGateTransitionCommand extends FlowCommand {
       const taskStep = TaskStepIdentity.fromStateNode(ctx.flowManager.loadReadOnly(state.specId), stepId);
       const phase = stepId === "draft-gate" ? "draft" : stepId === "spec-gate"
         ? "spec"
+        : stepId === "impl-gate" ? "integration"
         : taskStep?.definitionId === "task-gate" ? "task-impl" : null;
       if (phase === null) throw new Error("Definition does not select a settleable Gate");
       const facts = readCurrentGateTransitionFacts({

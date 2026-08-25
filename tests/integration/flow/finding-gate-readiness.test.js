@@ -83,6 +83,20 @@ describe("cataloged review finding gate readiness", () => {
     assert.equal(result.decision.allowsPass(), true);
   });
 
+  it("resolves only the exact repaired finding identity", () => {
+    const repaired = finding({ key: "repaired-key" });
+    const replacement = finding({ key: "replacement-key" });
+    const result = evaluateReviewFindingGateReadiness({
+      reviewArtifacts: [artifact({ blockingFindings: [repaired, replacement] })],
+      phase: "integration",
+      issueLog: { entries: [] },
+      runId: "run-current",
+      resolvedFindingIds: [repaired.findingId],
+    });
+    assert.equal(result.decision.allowsPass(), false);
+    assert.match(result.decision.issues[0], /missing matching repair evidence/);
+  });
+
   it("retains an unresolved historical obligation when the latest review passes", () => {
     const result = evaluateReviewFindingGateReadiness({
       reviewArtifacts: [
@@ -111,6 +125,39 @@ describe("cataloged review finding gate readiness", () => {
     });
 
     assert.equal(result.decision.allowsPass(), true);
+  });
+
+  it("supersedes each repaired review generation when the final review has a new fingerprint", () => {
+    const result = evaluateReviewFindingGateReadiness({
+      reviewArtifacts: [
+        artifact({ blockingFindings: [finding({ key: "A" })], repairFingerprint: "a".repeat(64) }),
+        artifact({ blockingFindings: [finding({ key: "B" })], repairFingerprint: "b".repeat(64) }),
+        artifact({ repairFingerprint: "c".repeat(64) }),
+      ],
+      phase: "integration",
+      issueLog: { entries: [] },
+      runId: "run-current",
+      supersedesHistory: true,
+    });
+
+    assert.equal(result.artifact.verdict, "PASS");
+    assert.equal(result.decision.allowsPass(), true);
+  });
+
+  it("retains an unresolved finding when the final PASS has the same fingerprint", () => {
+    const result = evaluateReviewFindingGateReadiness({
+      reviewArtifacts: [
+        artifact({ blockingFindings: [finding({ key: "same-generation" })], repairFingerprint: "a".repeat(64) }),
+        artifact({ repairFingerprint: "a".repeat(64) }),
+      ],
+      phase: "integration",
+      issueLog: { entries: [] },
+      runId: "run-current",
+      supersedesHistory: true,
+    });
+
+    assert.equal(result.artifact.verdict, "PASS");
+    assert.equal(result.decision.allowsPass(), false);
   });
 
   it("ignores artifacts from an earlier run while preserving ordered history", () => {
