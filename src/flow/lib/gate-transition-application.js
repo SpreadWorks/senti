@@ -6,6 +6,7 @@
  * failure, retry, or recovery facts to choose another route.
  */
 import {
+  GatePublicOutcomeProjection,
   GateTransitionDecision,
   resolveGateTransition,
 } from "../definition.js";
@@ -26,6 +27,10 @@ export class GateTransitionActionProjection {
     this.operation = decision.disposition.operation;
     this.reason = decision.disposition.reason;
     this.advance = decision.advance?.operation === "advance";
+    // The directive projection must not reopen the Decision to recover
+    // route-specific details.  Keep the Definition-selected handoff with the
+    // Action so consumers can render it without policy interpretation.
+    this.nonblockingHandoff = decision.plan.nonblockingHandoff;
     Object.freeze(this);
   }
 
@@ -38,6 +43,7 @@ export class GateTransitionActionProjection {
       operation: this.operation,
       reason: this.reason,
       advance: this.advance,
+      nonblockingHandoff: this.nonblockingHandoff?.toJSON() ?? null,
     };
   }
 }
@@ -72,11 +78,11 @@ export function applyGateTransitionDecision(adapter, decision) {
     }
     adapter.applyNonblockingHandoff(decision.plan.nonblockingHandoff, decision);
   }
-  if (decision.plan.incrementRetry) {
-    if (typeof adapter.incrementRetry !== "function") {
-      throw new Error("gate transition retry plan requires adapter.incrementRetry");
+  if (decision.plan.retryMetric !== null) {
+    if (typeof adapter.applyRetryMetric !== "function") {
+      throw new Error("gate transition retry plan requires adapter.applyRetryMetric");
     }
-    adapter.incrementRetry(decision.facts.phase, decision);
+    adapter.applyRetryMetric(decision.plan.retryMetric, decision);
   }
 }
 
@@ -95,6 +101,18 @@ export function admitGateTransition({ facts, decision } = {}) {
 /** Project a selected decision without interpreting Gate semantics. */
 export function projectGateTransitionDecision(decision) {
   return new GateTransitionActionProjection(PROJECTION_TOKEN, decision);
+}
+
+/** Apply a Definition-owned compatibility projection without exposing it as routing input. */
+export function applyGatePublicOutcomeProjection(commandResult, projection) {
+  if (commandResult === null || typeof commandResult !== "object" || Array.isArray(commandResult)) {
+    throw new Error("Gate public outcome projection requires a command result");
+  }
+  if (!(projection instanceof GatePublicOutcomeProjection)) {
+    throw new Error("Gate public outcome projection must be Definition-owned");
+  }
+  if (projection.nextStepId !== null) commandResult.next = projection.nextStepId;
+  return commandResult;
 }
 
 /** Shared canonical read → Definition → projection boundary for Gate readers. */

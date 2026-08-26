@@ -15,7 +15,14 @@ import {
   GateTargetBinding,
   GateTransitionDecision,
   GateStepUpdate,
+  AppendIssueLog,
+  IncrementMetric,
+  ExecuteSideEffects,
+  SetStepStatus,
   buildCurrentFlowDefinition,
+  projectGatePublicOutcome,
+  resolveLifecycle,
+  resolveLifecyclePlan,
   resolveGateTransition,
 } from "../../../src/flow/definition.js";
 import {
@@ -116,6 +123,7 @@ describe("definition-owned Gate transition boundary", () => {
   });
 
   it("separates semantic retry from tooling failure", () => {
+    const passed = resolveGateTransition(facts());
     const semantic = resolveGateTransition(facts({
       result: "fail",
       failure: new GateFailureCategory({ category: "semantic" }),
@@ -127,13 +135,39 @@ describe("definition-owned Gate transition boundary", () => {
       retry: new GateRetryMetrics({ used: 0, maximum: 1 }),
     }));
     assert.equal(semantic.disposition.operation, "retry");
-    assert.equal(semantic.plan.incrementRetry, true);
+    assert.deepEqual(passed.plan.retryMetric.toJSON(), { operation: "reset", phase: "spec" });
+    assert.equal(semantic.plan.retryMetric.operation, "increment");
     assert.equal(tooling.disposition.operation, "external-blocked");
-    assert.equal(tooling.plan.incrementRetry, false);
+    assert.equal(tooling.plan.retryMetric, null);
     assert.equal(GateFailureCategory.fromObservedGateResult({
       result: "fail",
       artifacts: { failureKind: "mechanical" },
     }).category, "tooling");
+  });
+
+  it("projects public Gate failures from the sealed Definition decision", () => {
+    const draftTooling = resolveGateTransition(facts({
+      phase: "draft", result: "fail",
+      failure: new GateFailureCategory({ category: "tooling", code: "PROTOCOL" }),
+    }));
+    const integrationTooling = resolveGateTransition(facts({
+      phase: "integration", result: "fail",
+      failure: new GateFailureCategory({ category: "tooling", code: "PROTOCOL" }),
+    }));
+    const retry = resolveGateTransition(facts({
+      result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
+    }));
+
+    assert.equal(projectGatePublicOutcome(draftTooling).failureCode, "STEP_EXTERNAL_BLOCKED");
+    assert.equal(projectGatePublicOutcome(integrationTooling).failureCode, "PROTOCOL");
+    assert.equal(projectGatePublicOutcome(retry).failed, false);
+    const recovered = resolveGateTransition(facts({
+      phase: "integration", result: "recovered",
+      recoveryEvidence: new GateRecoveryEvidence({
+        kind: "recovered", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7",
+      }),
+    }));
+    assert.equal(projectGatePublicOutcome(recovered).nextStepId, "test-execute");
   });
 
   it("makes every integration outcome and handoff a Definition plan", () => {
@@ -166,9 +200,9 @@ describe("definition-owned Gate transition boundary", () => {
 
     assert.equal(resolveGateTransition(facts({ phase: "integration" })).plan.phaseDefinition.nextStepId, "retro");
     assert.equal(semantic.disposition.operation, "retry");
-    assert.equal(semantic.plan.incrementRetry, true);
+    assert.equal(semantic.plan.retryMetric.operation, "increment");
     assert.equal(tooling.disposition.operation, "external-blocked");
-    assert.equal(tooling.plan.incrementRetry, false);
+    assert.equal(tooling.plan.retryMetric, null);
     assert.equal(exhausted.disposition.operation, "defer");
     assert.equal(nonblocking.disposition.operation, "nonblocking");
     assert.deepEqual(nonblocking.plan.nonblockingHandoff.toJSON(), {
@@ -200,6 +234,39 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(reloaded.plan.action.identity.matches(blocked.plan.action.identity), true);
   });
 
+  it("projects Gate issue-log and retry mutations from the typed decision", () => {
+    const retryDecision = resolveGateTransition(facts({
+      result: "fail",
+      failure: new GateFailureCategory({ category: "semantic", code: "GATE_REJECTED" }),
+      retry: new GateRetryMetrics({ used: 0, maximum: 2 }),
+    }));
+    const retryActions = resolveLifecyclePlan({
+      event: "gate:post",
+      currentStepId: "spec-gate",
+      phase: "spec",
+      gateTransitionDecision: retryDecision,
+      // Once admitted, lifecycle planning must not reinterpret compatibility
+      // result fields to select a different transition.
+      result: { result: "pass", artifacts: { phase: "spec" } },
+    }).actions;
+    assert.equal(retryActions.some((action) => action instanceof AppendIssueLog), true);
+    assert.equal(retryActions.some((action) => action instanceof IncrementMetric), true);
+
+    const exhaustedDecision = resolveGateTransition(facts({
+      result: "fail",
+      failure: new GateFailureCategory({ category: "semantic", code: "GATE_REJECTED" }),
+      retry: new GateRetryMetrics({ used: 2, maximum: 2 }),
+    }));
+    const exhaustedActions = resolveLifecyclePlan({
+      event: "gate:post",
+      currentStepId: "spec-gate",
+      phase: "spec",
+      gateTransitionDecision: exhaustedDecision,
+    }).actions;
+    assert.equal(exhaustedActions.some((action) => action instanceof AppendIssueLog), true);
+    assert.equal(exhaustedActions.some((action) => action instanceof IncrementMetric), false);
+  });
+
   it("settles retry exhaustion before another repair or evaluation", () => {
     const exhausted = { result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 4, maximum: 4 }) };
     const binding = { attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" };
@@ -208,7 +275,7 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "defer", ...binding }) })).disposition.operation, "defer");
     const deferred = resolveGateTransition(facts(exhausted));
     assert.equal(deferred.disposition.operation, "defer");
-    assert.equal(deferred.plan.incrementRetry, false);
+    assert.equal(deferred.plan.retryMetric, null);
     assert.equal(deferred.plan.updates[0].status, "in_progress");
     assert.equal(resolveGateTransition(facts({
       result: "fail",
@@ -406,11 +473,18 @@ describe("definition-owned Gate transition boundary", () => {
     const calls = [];
     applyGateTransitionDecision({
       applyStepUpdate(update, selected) { calls.push([update, selected]); },
-      incrementRetry(phase, selected) { calls.push([phase, selected]); },
+      applyRetryMetric(effect, selected) { calls.push([effect, selected]); },
     }, decision);
     assert.equal(calls[0][0] instanceof GateStepUpdate, true);
     assert.equal(calls[0][0].status, "in_progress");
-    assert.equal(calls[1][0], "spec");
+    assert.equal(calls[1][0].operation, "increment");
+    assert.equal(calls[1][0].phase, "spec");
+    const passCalls = [];
+    applyGateTransitionDecision({
+      applyStepUpdate() {},
+      applyRetryMetric(effect, selected) { passCalls.push([effect, selected]); },
+    }, resolveGateTransition(facts()));
+    assert.equal(passCalls[0][0].operation, "reset");
     assert.equal(admitGateTransition({ facts: decision.facts, decision }).disposition.operation, "retry");
     const projection = projectGateTransitionDecision(decision);
     assert.equal(projection instanceof GateTransitionActionProjection, true);
@@ -422,6 +496,7 @@ describe("definition-owned Gate transition boundary", () => {
       operation: "retry",
       reason: null,
       advance: false,
+      nonblockingHandoff: null,
     });
 
     const changed = facts({
@@ -431,6 +506,30 @@ describe("definition-owned Gate transition boundary", () => {
     assert.throws(() => admitGateTransition({ facts: changed, decision }), /admission rejected/);
     assert.throws(() => applyGateTransitionDecision({}, decision), /applyStepUpdate/);
     assert.throws(() => new GateTransitionDecision({}), /created only by definition/);
+  });
+
+  it("requires a sealed Decision for Gate post lifecycle and preserves its action ordering", () => {
+    assert.throws(() => resolveLifecycle({
+      event: "gate:post",
+      currentStepId: "spec-gate",
+      phase: "spec",
+      result: { result: "pass", artifacts: { phase: "spec" } },
+    }), /requires a Definition-selected GateTransitionDecision/);
+
+    const decision = resolveGateTransition(facts());
+    const actions = resolveLifecycle({
+      event: "gate:post",
+      currentStepId: "spec-gate",
+      gateTransitionDecision: decision,
+    });
+    const doneIndex = actions.findIndex((action) => (
+      action instanceof SetStepStatus
+        && action.step === "spec-gate"
+        && action.status === "done"
+    ));
+    const effectIndex = actions.findIndex((action) => action instanceof ExecuteSideEffects);
+    assert.ok(doneIndex >= 0);
+    assert.ok(effectIndex > doneIndex);
   });
 
   it("keeps decision construction and policy branches out of consumers", () => {
@@ -455,6 +554,12 @@ describe("definition-owned Gate transition boundary", () => {
     assert.doesNotMatch(gateRunner, /(?:PASS|FAIL)_(?:NEXT|PRESCRIPTION)/);
     assert.doesNotMatch(gateRunner, /"integration": "(?:retro|implement)"/);
     assert.doesNotMatch(gateRunner, /recoverFromCurrentAuthority/);
+    assert.doesNotMatch(gateRunner, /checkRetryBelowMax|checkNoProgressSinceLastFail|assertNoRepeatedFail|buildGateRetryExhaustedEnvelope|inspectDurableGateSemanticDeferral|gateExternalBlock|recordGateOutcome/);
+    assert.doesNotMatch(gateRunner, /result\?\.next|result\.next/);
+    assert.doesNotMatch(legacyConsumers[1], /isDefinitionOwnedPlanGate/);
+    assert.doesNotMatch(legacyConsumers[2], /artifacts\?\.nextAction.*(?:retry|defer|repair)|artifacts\.nextAction.*(?:retry|defer|repair)/);
+    assert.doesNotMatch(legacyConsumers[2], /selection\.decision/);
+    assert.doesNotMatch(gateRunner, /InferredGateTransition|GateMutationOwner|createLifecycleStepTransition/);
   });
 
   it("keeps Action identity deterministic across reload and all dispositions", () => {

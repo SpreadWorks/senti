@@ -45,7 +45,7 @@ function runBlockedGate(tmp, args) {
   const envelope = JSON.parse(result.stdout);
   assert.equal(envelope.ok, false);
   assert.ok(envelope.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
-  assert.equal(envelope.data.stepAttempt.outcome.kind, "external-blocked");
+  assert.equal(envelope.data.artifacts.gateTransitionFailureCategory.category, "tooling");
   assert.equal(findInProgressLeaf(makeFlowManager(tmp).load().steps).id, "spec-gate");
   return envelope;
 }

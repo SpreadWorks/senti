@@ -5,7 +5,6 @@ import { describe, it } from "node:test";
 import {
   BeginOutboxEffect,
   CompleteOutboxEffect,
-  ExecuteSideEffects,
   FailOutboxEffect,
   SetStepStatus,
   buildInitialNestedSteps,
@@ -222,19 +221,13 @@ describe("resumable finalization outbox", () => {
     assert.equal(actions[0].status, "done");
   });
 
-  it("marks the gate done before running gate side effects", () => {
-    const actions = resolveLifecycle({
+  it("rejects raw Gate post results without a Definition Decision", () => {
+    assert.throws(() => resolveLifecycle({
       event: "gate:post",
       currentStepId: "impl-gate",
       phase: "integration",
       result: { result: "pass", artifacts: { phase: "integration" } },
-    });
-    const effectIndex = actions.findIndex((action) => action instanceof ExecuteSideEffects);
-    const doneIndex = actions.findIndex((action) => (
-      action instanceof SetStepStatus && action.step === "impl-gate" && action.status === "done"
-    ));
-    assert.ok(effectIndex >= 0);
-    assert.ok(effectIndex > doneIndex);
+    }), /requires a Definition-selected GateTransitionDecision/);
   });
 
   for (const command of ["finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"]) {

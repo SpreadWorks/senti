@@ -46,10 +46,7 @@ import {
   VALID_LEVEL_PHASE_COMBINATIONS,
 } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
-import {
-  appendCanonicalIssueLogEntry,
-  loadCanonicalIssueLog,
-} from "./set-issue-log.js";
+import { appendCanonicalIssueLogEntry } from "./set-issue-log.js";
 import {
   resolveGatePhaseFromState,
   resolveGateStepId,
@@ -81,17 +78,7 @@ import {
   completeDraftArtifactChange,
   completeSpecArtifactChange,
 } from "./artifact-completion.js";
-import {
-  DecisionOutcome,
-  DeferOutcome,
-  ExternalBlockedOutcome,
-  RetryOutcome,
-  nextStepAttemptNumber,
-  recordStepAttempt,
-} from "./step-outcome.js";
 export { evaluateReviewFindingGateReadiness } from "./review-finding-gate-readiness.js";
-import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
-import { GateMutationOwner } from "./gate-mutation-owner.js";
 import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch, StaleTestEvidenceRefreshResult } from "./stale-test-evidence-refresh.js";
 import { buildRepairFingerprint } from "./repair-fingerprint.js";
@@ -1571,32 +1558,12 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 }
 
 // ---------------------------------------------------------------------------
-// Retry counter & escalation (spec 201, P2-R1〜P2-R4)
+// Read-only Gate observation support
 // ---------------------------------------------------------------------------
 
-import { projectGateResultOutcome, resolveGateTransition, resolveMaxAttempts } from "../definition.js";
+import { projectGateResultOutcome, resolveGateTransition } from "../definition.js";
 
-const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl"]);
-const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
-const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
-
-// Draft/spec have a canonical Gate-facts reducer.  Their semantic budget is
-// consumed by the current persisted observation, not by this evaluator's
-// compatibility metric.  The remaining Gate phases still use their legacy
-// migration path until they are moved deliberately.
-function usesDefinitionOwnedGateBudget(phase, ctx = null) {
-  return phase === "draft" || phase === "spec"
-    || phase === "integration"
-    || (phase === "task-impl" && typeof ctx?.flowState?.currentTaskId === "string");
-}
-
-export function resolveRetryMax(retryContext = {}, phase) {
-  const flowState = retryContext.flowState || retryContext;
-  const stepId = new GateMutationOwner({ flowState, phase }).stepId;
-  const scope = retryContext.scope
-    || (flowState?.currentTaskId != null ? "task" : "flow");
-  return resolveMaxAttempts({ scope, stepId, context: flowState }) ?? 5;
-}
+const GATE_OBSERVATION_PHASES = VALID_GATE_PHASES;
 
 /**
  * Replay a reset-aware `gateRetry` counter for the given phase against the
@@ -1619,199 +1586,6 @@ export function countGateRetry(entries, phase) {
   return count;
 }
 
-function readGateRetryCount(state, phase) {
-  return countGateRetry(state?.metrics, phase);
-}
-
-
-// Set of step ids that represent gate evaluations. After the phase-prefix
-// rename every gate step ends in "-gate" (spec-gate, draft-gate, impl-gate,
-// task-gate). The explicit set keeps retry-history matching scoped to gates.
-const GATE_STEP_IDS = new Set(["spec-gate", "draft-gate", "impl-gate", "task-gate"]);
-const GATE_ESCALATION_TRIGGER = "gate onError hook (auto)";
-
-function isRetryHistoryGateEntry(entry, phase) {
-  if (!GATE_STEP_IDS.has(String(entry.step || ""))) return false;
-  if (entry.phase !== phase) return false;
-  if (entry.trigger === GATE_ESCALATION_TRIGGER) return false;
-  return true;
-}
-
-function formatRetryHistory(entries, limit, phase) {
-  const gateEntries = (entries || [])
-    .filter((e) => isRetryHistoryGateEntry(e, phase))
-    .slice(-limit);
-  if (gateEntries.length === 0) return "";
-  return gateEntries
-    .map((e, i) => `  attempt ${i + 1}: ${e.reason}`)
-    .join("\n");
-}
-
-export function warnGateRetryBudget(ctx, phase) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
-  const used = readGateRetryCount(ctx.flowState, phase);
-  const max = resolveRetryMax(ctx, phase);
-  const remaining = Math.max(0, max - used);
-  process.stderr.write(
-    `[sennel] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
-  );
-}
-
-export function buildGateRetryExhaustedEnvelope({ phase, attempts, max, reason }) {
-  const messages = [
-    `gate retry limit exhausted: ${attempts}/${max} FAIL attempts recorded for phase "${phase}".`,
-    reason || "Stop the automatic retry loop and return control to the user.",
-  ];
-  return Envelope.fail(
-    "run",
-    "gate",
-    "ESCALATE_RETRY_EXHAUSTED",
-    messages,
-    { phase, attempts, max },
-  );
-}
-
-export class DurableGateSemanticDeferralInspection {
-  constructor({ phase, sourceArtifact = null, deferAllowed = false, reason = "catalog_result_required" } = {}) {
-    this.phase = phase;
-    this.sourceArtifact = sourceArtifact;
-    this.deferAllowed = deferAllowed;
-    this.reason = reason;
-    Object.freeze(this);
-  }
-}
-
-export function inspectDurableGateSemanticDeferral({ phase } = {}) {
-  return new DurableGateSemanticDeferralInspection({ phase });
-}
-
-function gateExternalBlock(reason, details = {}) {
-  const recoveryHint = details.recoveryHint
-    || `Resolve ${reason.replaceAll("_", " ")} and retry the guarded gate action.`;
-  return new ExternalBlockedOutcome({
-    reason,
-    resumeInstruction: recoveryHint,
-    failureCode: details.failureCode || "GATE_EXTERNAL_BLOCKED",
-    retryable: details.retryable === true,
-    recoveryHint,
-    recoveryCommand: details.recoveryCommand || null,
-  });
-}
-
-function gateRetryAction(phase) {
-  return `run-gate-${phase}`;
-}
-
-function gateExternalBlockForResult(result) {
-  const artifacts = result?.artifacts || {};
-  return gateExternalBlock(artifacts.failureKind || "gate_failure", {
-    failureCode: artifacts.failureCode,
-    retryable: artifacts.retryable,
-    recoveryHint: artifacts.recoveryHint,
-    recoveryCommand: artifacts.recoveryCommand,
-  });
-}
-
-function recordGateOutcome(ctx, result, phase, attempt, outcome) {
-  // Retry classification is also a pure command-planning API.  Only an
-  // actual dispatched Flow carries the Store boundary that may persist its
-  // outcome; callers without it still receive the identical decision.
-  if (!ctx?.flowManager) return null;
-  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-  return recordStepAttempt(ctx, {
-    stepId: owner.stepId,
-    attempt: Math.max(1, attempt),
-    outcome,
-    result,
-    routeOptions: owner.routeOptions(),
-  });
-}
-
-function recordRequiredGateFailureOutcome(ctx, result, phase) {
-  if (
-    result?.result !== "fail"
-    || typeof result?.artifacts?.failureCode !== "string"
-    || !ctx?.flowState
-    // Integration's canonical observation is always classified and applied
-    // by its Definition plan in the registry post boundary.
-    || phase === "integration"
-  ) return result;
-  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-  const attempt = recordGateOutcome(
-    ctx,
-    result,
-    phase,
-    nextStepAttemptNumber(ctx.flowState, owner.stepId),
-    gateExternalBlockForResult(result),
-  );
-  // recordStepAttempt decorates the existing command result in place. Keep
-  // that exact object so its non-enumerable canonical publication attachment
-  // reaches the registry confirmation transaction.
-  const recorded = result;
-  // Required external failures are returned as Envelope.fail, so the normal
-  // registry post hook does not own their persistence. Publish the producer
-  // attempt now while leaving the active gate Attempt open for recovery.
-  ctx.flowManager.publishCurrentAttemptResult({
-    specId: ctx.flowState.specId,
-    commandResult: recorded,
-  });
-  // A required gate failure is converted to Envelope.fail by RunGateCommand.run,
-  // so the dispatcher intentionally skips the ordinary post hook. Persist the
-  // issue-log diagnosis here beside the durable StepAttempt instead.
-  appendIssueLogFromGateResult(ctx, recorded);
-  return recorded;
-}
-
-function recordGateDeferral(ctx, result, phase, attempts) {
-  const outcome = new DeferOutcome({
-    nextAction: "refresh-next-action",
-    findingCount: result.artifacts.findingCount,
-  });
-  recordGateOutcome(ctx, result, phase, attempts, outcome);
-  return result;
-}
-
-
-/**
- * Returns a failure Envelope when the retry budget for the given phase is
- * exhausted, or null when the command is still allowed to proceed. Callers
- * return the envelope verbatim to short-circuit the command with ok:false.
- * (Spec 213: "judgment-result" exhaustion must not throw.)
- */
-export function checkRetryBelowMax(ctx, phase) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
-  const count = readGateRetryCount(ctx.flowState, phase);
-  const max = resolveRetryMax(ctx, phase);
-  if (count < max) return null;
-  const issueLog = ctx.issueLog ?? (ctx.flowManager
-    ? loadCanonicalIssueLog(
-      ctx.flowManager,
-      ctx.flowState,
-      { consumerNodeId: ctx.flowState.currentNodeId },
-    )
-    : null);
-  const history = formatRetryHistory(issueLog?.entries, max, phase);
-  const messages = [
-    `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
-    `Counter breakdown: AI-FAIL=${count}`,
-    "Previous FAIL reasons:",
-    history || "  (no issue-log entries found)",
-    "",
-    "Resume after resolving the external blocker or recording changed retry evidence.",
-  ];
-  appendGateEscalationIssueLog(ctx, phase, messages);
-  const envelope = Envelope.fail(
-    "run",
-    "gate",
-    "ESCALATE_RETRY_EXHAUSTED",
-    messages,
-    { phase, attempts: count, max },
-  );
-  const outcome = gateExternalBlock("cataloged_gate_result_required");
-  const attempt = recordGateOutcome(ctx, null, phase, count, outcome);
-  if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
-  return envelope;
-}
 
 export class GateOutputAttemptEvidence {
   constructor(input = {}) {
@@ -2001,82 +1775,6 @@ async function evaluateImplRequirementsWithRetry({
   return { evaluations };
 }
 
-/**
- * spec 216: record a gate escalation (retry exhausted / no-progress) in
- * issue-log before its caller returns an `Envelope.fail`. The dispatcher's
- * success path treats an ok:false envelope as `skipPost=true` and never
- * invokes `onError`, so without this call the escalation would not be
- * logged — asymmetric with the throw-based `ESCALATE_REPEATED_FAIL` path.
- *
- * `flowState.metrics` is not touched, so `gateRetry` remains un-incremented.
- *
- * Skipped when no spec is available (unit-level callers without flow state).
- */
-function appendGateEscalationIssueLog(ctx, phase, messages) {
-  // Pure retry classification callers have no persistence boundary.  A real
-  // command always carries the bound FlowManager and records this fact below.
-  if (!ctx?.flowManager || !ctx?.flowState?.specId) return;
-  const entry = {
-    step: resolveGateStepId(phase),
-    phase,
-    reason: messages.join("\n"),
-    trigger: "gate retry recovery baseline",
-    timestamp: new Date().toISOString(),
-    recoveryBaseline: {
-      kind: "gate",
-      phase,
-      trigger: GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED,
-    },
-  };
-  appendCanonicalIssueLogEntry(ctx.flowManager, ctx.flowState, entry);
-}
-
-/**
- * Post-hook: update `state.metrics[phase].gateRetry`.
- *   - PASS → reset to 0
- *   - AI semantic FAIL → increment by 1
- *   - structural/mechanical/schema/protocol FAIL → no retry mutation
- * No-op for non-tracked phases (draft / spec / task-spec).
- */
-export function updateGateRetryCounter(ctx, result) {
-  const phase = result?.artifacts?.phase || ctx?.phase;
-  if (phase === "integration") return;
-  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-  const stepId = owner.stepId;
-  if (!RETRY_TRACKED_PHASES.includes(phase)) {
-    const outcome = result?.result === "pass"
-      ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
-      : gateExternalBlockForResult(result);
-    recordGateOutcome(ctx, result, phase, nextStepAttemptNumber(ctx?.flowState, stepId), outcome);
-    return;
-  }
-  const mgr = ctx.flowManager;
-  if (!mgr) return;
-  const attemptsBefore = readGateRetryCount(ctx.flowState, phase);
-  if (result?.result === "pass") {
-    mgr.appendMetric({ phase, counter: "gateRetry", delta: 0, reset: true }, owner.routeOptions());
-    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, new DecisionOutcome({
-      decision: "PASS",
-      nextAction: result?.next || "refresh-next-action",
-    }));
-  } else if (result?.artifacts?.failureKind === "ai_semantic_fail") {
-    mgr.appendMetric({ phase, counter: "gateRetry", delta: 1 }, owner.routeOptions());
-    const attempts = attemptsBefore + 1;
-    const max = resolveRetryMax(ctx, phase);
-    if (attempts >= max) {
-      const outcome = gateExternalBlock("cataloged_gate_result_required");
-      recordGateOutcome(ctx, result, phase, attempts, outcome);
-      return;
-    }
-    recordGateOutcome(ctx, result, phase, attempts, new RetryOutcome({ nextAction: gateRetryAction(phase) }));
-  } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
-    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
-  } else {
-    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
-  }
-}
-
-
 // ---------------------------------------------------------------------------
 // No-progress-since-last-fail guard (spec 210)
 // ---------------------------------------------------------------------------
@@ -2182,122 +1880,8 @@ export function computeGateEvidenceState({
 }
 
 /**
- * Return the most recent same-phase FAIL entry that carries state identifiers,
- * or null. Shared scan used by {@link findPreviousFailState} and the rejection
- * error message.
- */
-function findPreviousFailEntry(issueLog, phase) {
-  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
-  for (let i = entries.length - 1; i >= 0; i--) {
-    const e = entries[i];
-    if (e.phase !== phase) continue;
-    if (typeof e.headSha !== "string" || typeof e.worktreeHash !== "string") continue;
-    return e;
-  }
-  return null;
-}
-
-
-/**
- * Return the state identifiers of the most recent same-phase FAIL entry that
- * should still be considered active, or null when no such reference exists.
- *
- * A PASS resets the guard via metrics (spec 209 reset entry), so we skip the
- * scan entirely when `countGateRetry` reports zero. Legacy FAIL entries that
- * pre-date this guard are also treated as "no reference" because they lack
- * the state identifiers needed to compare (REQ-7).
- */
-export function findPreviousFailState({ flowState, issueLog, phase }) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
-  if (countGateRetry(flowState?.metrics, phase) === 0) return null;
-  const entry = findPreviousFailEntry(issueLog, phase);
-  return entry ? { headSha: entry.headSha, worktreeHash: entry.worktreeHash } : null;
-}
-
-/**
- * Returns a failure Envelope with `code="NO_PROGRESS_SINCE_LAST_FAIL"` when the
- * current working-tree state matches the last recorded FAIL for the same
- * phase. Returns null when the command is allowed to proceed. The caller runs
- * this before invoking the AI agent so no retry budget is consumed (registry's
- * post-hook — which increments gateRetry — only runs on a successful ok:true
- * command return).
- */
-export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState, ctx }) {
-  const prev = findPreviousFailState({ flowState, issueLog, phase });
-  if (!prev) return null;
-  if (prev.headSha !== currentState.headSha) return null;
-  if (prev.worktreeHash !== currentState.worktreeHash) return null;
-
-  const prevEntry = findPreviousFailEntry(issueLog, phase);
-  const prevReason = prevEntry?.reason || null;
-  const messages = [
-    `impl-gate re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
-    "Previous FAIL reason:",
-    `  ${prevReason || "(no reason recorded)"}`,
-    "",
-    "Modify the spec or implementation before retrying.",
-  ];
-  process.stderr.write(
-    `[sennel] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
-  );
-  appendGateEscalationIssueLog(ctx, phase, messages);
-  return Envelope.fail(
-    "run",
-    "gate",
-    "NO_PROGRESS_SINCE_LAST_FAIL",
-    messages,
-    { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } },
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Repeated-similar-FAIL escalation guard (spec 253; supersedes spec 212's
-// byte-equal comparison with word-set Jaccard similarity)
-// ---------------------------------------------------------------------------
-
-const STOPWORDS = new Set([
-  "a", "an", "the", "and", "or", "but", "of", "in", "on", "at", "to", "for",
-  "by", "with", "from", "is", "are", "was", "were", "be", "been", "being",
-  "it", "this", "that", "these", "those", "as", "if", "than",
-]);
-
-const JACCARD_THRESHOLD = 0.5;
-
-/**
- * Tokenize and filter a reason string into a word set for Jaccard
- * comparison. ASCII-only: non-word non-space non-hyphen characters are
- * replaced with whitespace, so CJK and other non-ASCII text degrades to
- * an English-keyword view. Hyphen is preserved inside tokens (e.g.
- * "REQ-7" stays a single token). Tokens of length < 2 and pure
- * punctuation tokens are dropped, then Tier-1 STOPWORDS are removed.
- */
-export function normalize(text) {
-  if (text == null) return new Set();
-  const replaced = String(text).toLowerCase().replace(/[^\w\s-]/g, " ");
-  const tokens = replaced
-    .split(/\s+/)
-    .filter((t) => t.length >= 2 && /\w/.test(t) && !STOPWORDS.has(t));
-  return new Set(tokens);
-}
-
-/**
- * Jaccard similarity of two word sets: |A ∩ B| / |A ∪ B|. Returns 0 when
- * either set is empty (intentional deviation from the issue's pseudocode
- * `union==0 ? 1`: empty reasons are AI-anomaly signals, not "same
- * complaint" — escalating on empty-vs-empty would be a false positive).
- */
-export function jaccard(a, b) {
-  if (a.size === 0 || b.size === 0) return 0;
-  let inter = 0;
-  for (const x of a) if (b.has(x)) inter++;
-  const union = a.size + b.size - inter;
-  return union === 0 ? 0 : inter / union;
-}
-
-/**
  * Extract FAIL-only evaluations as `{ guardrail_id, reason }` pairs for
- * persistence in issue-log and for similarity comparison. PASS / SKIP are
- * dropped.
+ * persistence in issue-log. PASS / SKIP are dropped.
  */
 export function buildFailedEvaluations(evaluations) {
   if (!Array.isArray(evaluations)) return [];
@@ -2306,126 +1890,11 @@ export function buildFailedEvaluations(evaluations) {
     .map((e) => ({ guardrail_id: e.guardrail_id, reason: String(e.reason ?? "") }));
 }
 
-/**
- * Return all prior same-phase FAIL entries' `failedEvaluations` flattened
- * in chronological (oldest-first) order. Returns an empty array when no
- * prior matching entries exist. Legacy entries without `failedEvaluations`
- * are skipped so pre-212 issue-logs cannot cause false matches.
- */
-export function findPreviousFailedEvaluations({ issueLog, phase }) {
-  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
-  const flat = [];
-  for (const e of entries) {
-    if (!e || e.phase !== phase) continue;
-    if (!Array.isArray(e.failedEvaluations) || e.failedEvaluations.length === 0) continue;
-    for (const fe of e.failedEvaluations) flat.push(fe);
-  }
-  return flat;
-}
-
-function normalizeObservationFailurePairs(observations) {
-  if (!Array.isArray(observations)) return [];
-  return observations
-    .map((entry) => entry instanceof Observation ? entry : Observation.fromJSON(entry))
-    .filter((entry) => entry.severity === "blocking")
-    .map((entry) => ({
-      requirementRef: entry.requirementRef,
-      observed: entry.observed,
-    }));
-}
-
 function observationsFromGateEvaluations(evaluations) {
   if (!Array.isArray(evaluations)) return [];
   return evaluations.flatMap((entry) => (
     Array.isArray(entry?.observations) ? entry.observations : []
   ));
-}
-
-function priorGateObservations(issueLog, phase) {
-  return (issueLog?.entries || [])
-    .filter((entry) => entry?.phase === phase)
-    .flatMap((entry) => Array.isArray(entry.observations) ? entry.observations : []);
-}
-
-/**
- * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any
- * current FAIL has Jaccard similarity ≥ JACCARD_THRESHOLD against at
- * least one same-`guardrail_id` prior FAIL in the same phase. Per current
- * FAIL we report only the single most-similar prior; ties are broken by
- * scan order (oldest entry wins). The caller runs this after AI
- * evaluation but before the gateFail return, so the registry's POST-hook
- * (which increments `gateRetry`) never fires — retry budget is preserved.
- */
-export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations, priorObservations, currentObservations }) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
-  const currentObservationPairs = normalizeObservationFailurePairs(currentObservations);
-  if (currentObservationPairs.length > 0) {
-    const priorPairs = normalizeObservationFailurePairs(priorObservations);
-    const matched = [];
-    for (const current of currentObservationPairs) {
-      const currSet = normalize(current.observed);
-      for (const prior of priorPairs) {
-        if (prior.requirementRef !== current.requirementRef) continue;
-        if (jaccard(currSet, normalize(prior.observed)) >= JACCARD_THRESHOLD) {
-          matched.push({
-            requirementRef: current.requirementRef,
-            currentObserved: current.observed,
-            priorObserved: prior.observed,
-          });
-          break;
-        }
-      }
-    }
-    if (matched.length === 0) return;
-    const err = new Error(`impl-gate escalation: repeated similar Observation FAIL detected for phase "${phase}".`);
-    err.code = "ESCALATE_REPEATED_FAIL";
-    err.data = { phase, matched };
-    throw err;
-  }
-  const current = buildFailedEvaluations(currentEvaluations);
-  if (current.length === 0) return;
-  const previous = findPreviousFailedEvaluations({ issueLog, phase });
-  if (previous.length === 0) return;
-
-  const matched = [];
-  for (const c of current) {
-    const currSet = normalize(c.reason);
-    let bestSim = -1;
-    let bestPrior = null;
-    for (const p of previous) {
-      if (p.guardrail_id !== c.guardrail_id) continue;
-      const sim = jaccard(currSet, normalize(p.reason));
-      if (sim > bestSim) {
-        bestSim = sim;
-        bestPrior = p;
-      }
-    }
-    if (bestPrior !== null && bestSim >= JACCARD_THRESHOLD) {
-      matched.push({
-        guardrail_id: c.guardrail_id,
-        currentReason: c.reason,
-        priorReason: bestPrior.reason,
-        similarity: bestSim,
-      });
-    }
-  }
-  if (matched.length === 0) return;
-
-  const detail = matched
-    .map((m) => `  ${m.guardrail_id} (jaccard=${m.similarity.toFixed(2)}): ${m.currentReason} ↔ ${m.priorReason}`)
-    .join("\n");
-  const msg = [
-    `impl-gate escalation: repeated similar FAIL detected for phase "${phase}".`,
-    "Matching (guardrail, similar prior reason) pairs:",
-    detail,
-    "",
-    "The AI has failed on a semantically similar requirement to a previous attempt.",
-    "Fix the spec wording or implementation so the failure mode changes, then retry.",
-  ].join("\n");
-  const err = new Error(msg);
-  err.code = "ESCALATE_REPEATED_FAIL";
-  err.data = { phase, matched };
-  throw err;
 }
 
 // ---------------------------------------------------------------------------
@@ -3495,7 +2964,7 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- Deferred full-project regression evidence is valid at this integration gate: final-regression, not this gate, owns the default full project test command. Do not fail solely because that deferred evidence does not yet contain a passing full regression result.",
     "- Treat [TEST:<id>] and [TEST-REVIEW] entries as validated execution evidence. When [REGRESSION] records full-regression-deferred, full-project execution belongs exclusively to final-regression and its absence is not a FAIL at this gate.",
     "- Respect later-step ownership. When a requirement explicitly assigns its observable output to a later normal Flow step, evaluate whether the mapped implementation preserves and correctly configures that step. Do not require the later step's output before that step has run.",
-    "- Preserve typed retry behavior: semantic findings may defer to flow-findings, while structural, tooling, no-progress, failed-test, or missing-repair failures must remain blocking. An explicit structural assertion of ESCALATE_RETRY_EXHAUSTED with no flow-findings artifact is required behavior, not a weakened semantic deferral assertion.",
+    "- Preserve typed retry behavior: Definition owns semantic retry exhaustion and deferred findings, while structural, tooling, failed-test, or missing-repair failures remain blocking.",
     ...(sameSpecContractContext ? [
       "- Assess preservation against the explicit same-spec current contract, not legacy behavior that it replaces, retires, or invalidates.",
       "- Explicit same-spec replacement, retirement, or invalidation statements override legacy preservation obligations; otherwise preserve existing behavior.",
@@ -3790,28 +3259,12 @@ export async function runGateFlow(args) {
     return gateFail(level, phase, targetPath, ownedEvaluations, []);
   }
 
-  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && !usesDefinitionOwnedGateBudget(phase, ctx)) {
-    warnGateRetryBudget(ctx, phase);
-    if (ctx.gitState) {
-      const noProgressFail = checkNoProgressSinceLastFail({
-        flowState: ctx.flowState,
-        issueLog: ctx.issueLog,
-        phase,
-        currentState: ctx.gitState,
-        ctx,
-      });
-      if (noProgressFail) return noProgressFail;
-    }
-    const retryFail = checkRetryBelowMax(ctx, phase);
-    if (retryFail) return retryFail;
-  }
-
   if (skipGuardrail) {
     return gatePass(level, phase, targetPath, ownedEvaluations);
   }
 
   let previouslyPassedIds;
-  if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
+  if (ctx && GATE_OBSERVATION_PHASES.includes(phase)) {
     const prevEntry = findPreviousPassedGuardrails({ flowState: ctx.flowState, issueLog: ctx.issueLog, phase });
     if (prevEntry) {
       previouslyPassedIds = prevEntry.passedGuardrails;
@@ -3840,7 +3293,7 @@ export async function runGateFlow(args) {
 
   let evaluations = [...ownedEvaluations, ...result.evaluations];
 
-  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && ctx.gitState) {
+  if (ctx && GATE_OBSERVATION_PHASES.includes(phase) && ctx.gitState) {
     const prevEntry = findPreviousPassedGuardrails({ flowState: ctx.flowState, issueLog: ctx.issueLog, phase });
     evaluations = applyFlipOverride({
       evaluations,
@@ -3851,18 +3304,7 @@ export async function runGateFlow(args) {
   }
 
   const passed = evaluations.every((e) => e.result === "pass" || e.result === "skip");
-  if (!passed) {
-    if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
-      assertNoRepeatedFail({
-        issueLog: ctx.issueLog,
-        phase,
-        currentEvaluations: evaluations,
-        priorObservations: priorGateObservations(ctx.issueLog, phase),
-        currentObservations: observationsFromGateEvaluations(evaluations),
-      });
-    }
-    return gateFail(level, phase, targetPath, evaluations, []);
-  }
+  if (!passed) return gateFail(level, phase, targetPath, evaluations, []);
   return gatePass(level, phase, targetPath, evaluations);
 }
 
@@ -3870,123 +3312,11 @@ export async function runGateFlow(args) {
 // Command
 // ---------------------------------------------------------------------------
 
-export class InferredGateTransition {
-  #committed = false;
-  #runId;
-  #specId;
-  #expectedStepStatuses;
-
-  constructor({ flowState, resolution, owner } = {}) {
-    if (!flowState || typeof flowState !== "object" || Array.isArray(flowState)) {
-      throw new Error("flowState must be an object");
-    }
-    if (!resolution || typeof resolution !== "object" || Array.isArray(resolution)) {
-      throw new Error("resolution must be an object");
-    }
-    const phase = typeof resolution.phase === "string" ? resolution.phase.trim() : "";
-    if (!phase) throw new Error("resolution phase must be a non-empty string");
-    if (!Array.isArray(resolution.staleSteps)) {
-      throw new Error("resolution staleSteps must be an array");
-    }
-    const staleStepIds = resolution.staleSteps.map((stepId) => {
-      if (typeof stepId !== "string" || stepId.trim() === "") {
-        throw new Error("stale step ids must be non-empty strings");
-      }
-      return stepId.trim();
-    });
-    if (new Set(staleStepIds).size !== staleStepIds.length) {
-      throw new Error("stale step ids must be unique");
-    }
-    if (!(owner instanceof GateMutationOwner)) {
-      throw new Error("owner must be a GateMutationOwner");
-    }
-    if (owner.flowState !== flowState) {
-      throw new Error("owner flowState identity must match the transition flowState");
-    }
-    if (owner.phase !== phase) {
-      throw new Error("owner phase must match the inferred phase");
-    }
-    const runId = typeof flowState.runId === "string" ? flowState.runId.trim() : "";
-    const specId = typeof flowState.specId === "string" ? flowState.specId.trim() : "";
-    if (!runId || !specId) {
-      throw new Error("pre-transition flowState identity requires runId and specId");
-    }
-
-    this.phase = phase;
-    this.staleStepIds = Object.freeze(staleStepIds);
-    this.owner = owner;
-    this.#runId = runId;
-    this.#specId = specId;
-    this.#expectedStepStatuses = owner.captureTransitionStatuses({ flowState, staleStepIds });
-    Object.freeze(this);
-  }
-
-  commit(flowManager) {
-    if (this.#committed) return [];
-    if (typeof flowManager?.load !== "function" || typeof flowManager?.updateStepStatuses !== "function") {
-      throw new Error("flowManager load and updateStepStatuses are required");
-    }
-    const current = flowManager.load();
-    if (current?.runId !== this.#runId || current?.specId !== this.#specId) {
-      throw new Error("pre-transition flowState identity changed before commit");
-    }
-    this.owner.assertTransitionStatuses({
-      flowState: current,
-      expectedStatuses: this.#expectedStepStatuses,
-    });
-
-    const transitions = this.staleStepIds.map((stepId) => {
-      const transition = createLifecycleStepTransition({
-        flowState: current,
-        stepId,
-        status: "done",
-        event: "gate:phase-inference",
-        taskId: null,
-      });
-      if (!transition) throw new Error(`stale recovery transition was not created: ${stepId}`);
-      return transition;
-    });
-    const selectedTransition = this.owner.createTransition({
-      status: "in_progress",
-      event: "gate:phase-inference",
-    });
-    if (selectedTransition) {
-      throw new Error("selected gate owner unexpectedly requires a state transition");
-    }
-    if (transitions.length > 0) {
-      flowManager.updateStepStatuses(transitions, {
-        specId: getSpecName(current),
-        taskId: null,
-      });
-    }
-    this.#committed = true;
-    return transitions;
-  }
-}
-
-function completedSemanticGateResult(result) {
-  if (result?.result === "pass") return true;
-  return result?.result === "fail" && result?.artifacts?.failureKind === "ai_semantic_fail";
-}
-
 export function resolveEffectiveGatePhase(ctx, inferredResolution = null) {
   const explicit = typeof ctx?.phase === "string" ? ctx.phase.trim() : "";
   const phase = explicit || (inferredResolution ?? resolveGatePhaseFromState(ctx?.flowState))?.phase || null;
   if (phase) ctx.phase = phase;
   return phase;
-}
-
-// Parent Draft/Spec Gate failures are represented by Definition facts and
-// therefore expose the common lifecycle block at the public boundary.  Task
-// specification evaluation is produced by the same Spec Gate Attempt. Other
-// gates retain their producer-specific public failures.
-const DEFINITION_OWNED_GATE_PHASES = new Set(["draft", "spec", "task-spec"]);
-
-function publicGateFailureCode(artifacts) {
-  return DEFINITION_OWNED_GATE_PHASES.has(artifacts.phase)
-    || artifacts.failureCode === "GATE_EXTERNAL_BLOCKED"
-    ? "STEP_EXTERNAL_BLOCKED"
-    : artifacts.failureCode;
 }
 
 export class RunGateCommand extends FlowCommand {
@@ -4009,25 +3339,6 @@ export class RunGateCommand extends FlowCommand {
       return Envelope.fail("run", "gate", error.code, error.message);
     }
     const result = await super.run(container, input);
-    if (result?.result === "fail"
-      && result.artifacts?.phase !== "integration"
-      && typeof result.artifacts?.failureCode === "string") {
-      return Envelope.fail(
-        "run",
-        "gate",
-        // Definition-owned parent Gate failures are persisted external blocks,
-        // not phase transitions. Keep their producer-specific failureCode in
-        // artifacts, while exposing the uniform lifecycle error at the CLI
-        // boundary. Other Gate families retain their public error contract.
-        publicGateFailureCode(result.artifacts),
-        result.artifacts.reasons?.map((reason) => reason.detail || reason) || "required gate evaluation failed",
-        {
-          // Retain the durable observation payload for callers that need to
-          // show the blocker; the envelope only changes its lifecycle status.
-          ...result,
-        },
-      );
-    }
     return result;
   }
 
@@ -4069,7 +3380,7 @@ export class RunGateCommand extends FlowCommand {
       skipGuardrail: ctx.skipGuardrail === true,
       executionRoot,
     });
-    return recordRequiredGateFailureOutcome(ctx, result, phase);
+    return result;
   }
 
   /**
@@ -4353,20 +3664,6 @@ export class RunGateCommand extends FlowCommand {
     if (requirements.length === 0) {
       return gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]);
     }
-    if (!usesDefinitionOwnedGateBudget(phase, ctx)) {
-      const noProgressFail = checkNoProgressSinceLastFail({
-        flowState: state,
-        issueLog: ctx.issueLog,
-        phase,
-        currentState: gitState,
-        ctx,
-      });
-      if (noProgressFail) return noProgressFail;
-      warnGateRetryBudget(ctx, phase);
-      const retryFail = checkRetryBelowMax(ctx, phase);
-      if (retryFail) return retryFail;
-    }
-
     const agent = container.get("agent");
     const agentResolutionFailure = requiredGateAgentResolutionFailure(agent);
     if (agentResolutionFailure) {
@@ -4444,15 +3741,6 @@ export class RunGateCommand extends FlowCommand {
       );
     }
     if (!reqEvaluations.every((entry) => entry.result === "pass" || entry.result === "skip")) {
-      if (!usesDefinitionOwnedGateBudget(phase, ctx)) {
-        assertNoRepeatedFail({
-          issueLog: ctx.issueLog,
-          phase,
-          currentEvaluations: reqEvaluations,
-          priorObservations: priorGateObservations(ctx.issueLog, phase),
-          currentObservations: observationsFromGateEvaluations(reqEvaluations),
-        });
-      }
       return gateFail(level, phase, specPath, reqEvaluations, []);
     }
     const fileMapWarnings = this.reconcileCanonicalFileMapWarnings({
@@ -4473,18 +3761,7 @@ export class RunGateCommand extends FlowCommand {
     if (!grResult) return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
     if (grResult.failureCode) return gateRequiredEvaluationFail(level, phase, specPath, grResult);
     const combined = [...reqEvaluations, ...grResult.evaluations];
-    if (!grResult.passed) {
-      if (!usesDefinitionOwnedGateBudget(phase, ctx)) {
-        assertNoRepeatedFail({
-          issueLog: ctx.issueLog,
-          phase,
-          currentEvaluations: combined,
-          priorObservations: priorGateObservations(ctx.issueLog, phase),
-          currentObservations: observationsFromGateEvaluations(combined),
-        });
-      }
-      return gateFail(level, phase, specPath, combined, []);
-    }
+    if (!grResult.passed) return gateFail(level, phase, specPath, combined, []);
     return gatePass(level, phase, specPath, combined, fileMapWarnings);
   }
 
@@ -4533,7 +3810,7 @@ export class GateIssueLogEntry {
     const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
     const needsProgressIdentity = result.result === "fail"
       && (result?.artifacts?.failureKind === "ai_semantic_fail" || observations.length > 0);
-    const gitState = ctx.gitState || (needsProgressIdentity && RETRY_TRACKED_PHASES.includes(phase)
+    const gitState = ctx.gitState || (needsProgressIdentity && GATE_OBSERVATION_PHASES.includes(phase)
       ? computeGateEvidenceState({
           executionRoot: ctx.executionRoot || ctx.root,
           flowManager: ctx.flowManager,
@@ -4573,7 +3850,7 @@ export class GateIssueLogEntry {
         lineage: facts.lineage.toJSON(),
       };
     }
-    if (gitState && RETRY_TRACKED_PHASES.includes(phase)) {
+    if (gitState && GATE_OBSERVATION_PHASES.includes(phase)) {
       entry.headSha = gitState.headSha;
       entry.worktreeHash = gitState.worktreeHash;
     }

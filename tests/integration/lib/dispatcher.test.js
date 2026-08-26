@@ -989,6 +989,23 @@ describe("dispatcher (unified runner)", () => {
       assert.equal(lastExitCode, 0, "successful envelope run exits 0");
     });
 
+    it("envelope mode: a post hook may replace only the public Envelope", async () => {
+      const entry = makeEntry({
+        mode: "envelope",
+        executeImpl: () => ({ source: "command-result" }),
+        post: (_ctx, result) => {
+          assert.deepEqual(result, { source: "command-result" });
+          return Envelope.fail("test", "demo", "POST_PROJECTION", "projected after persistence", result);
+        },
+      });
+      const { stdout, lastExitCode } = await runDispatch({ entry, captureStdout: true });
+      const parsed = JSON.parse(stdout);
+      assert.equal(parsed.ok, false);
+      assert.equal(parsed.errors[0].code, "POST_PROJECTION");
+      assert.deepEqual(parsed.data, { source: "command-result" });
+      assert.equal(lastExitCode, 1);
+    });
+
     it("raw mode without post hook and successful command does not set exit code to 1", async () => {
       const entry = makeEntry({ mode: "raw" });
       const { exitCodes } = await runDispatch({ entry });

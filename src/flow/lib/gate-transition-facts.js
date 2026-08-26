@@ -256,9 +256,6 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     throw new Error("canonical Gate result is invalid");
   }
   const persistedPhase = required(payload?.artifacts?.phase, "canonical Gate result phase");
-  if ((persistedPhase === "task-impl") !== (taskId !== null)) {
-    throw new Error("canonical Gate result phase does not match its persisted Task scope");
-  }
   if (canonicalGateNodeId({ phase: persistedPhase, taskId }) !== nodeId) {
     throw new Error("canonical Gate result phase does not own the active gate node");
   }

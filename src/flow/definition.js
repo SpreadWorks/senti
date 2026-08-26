@@ -249,6 +249,22 @@ export class GateStepUpdate {
   toJSON() { return { stepId: this.stepId, status: this.status }; }
 }
 
+/** Definition-owned durable Gate retry metric mutation. */
+export class GateRetryMetricEffect {
+  constructor({ operation, phase } = {}) {
+    this.operation = requireString(operation, "gate retry metric operation");
+    this.phase = requireString(phase, "gate retry metric phase");
+    if (!["increment", "reset"].includes(this.operation)) {
+      throw new Error("gate retry metric operation is invalid");
+    }
+    if (!GATE_PHASE_DEFINITIONS.has(this.phase)) {
+      throw new Error("gate retry metric phase is invalid");
+    }
+    Object.freeze(this);
+  }
+  toJSON() { return { operation: this.operation, phase: this.phase }; }
+}
+
 /** A sealed Task lifecycle consequence; adapters may apply but never select it. */
 export class GateTaskLifecycleEffect {
   constructor({ operation, taskId, successorStepId, resetStepIds = [] } = {}) {
@@ -353,7 +369,7 @@ export class GateNonblockingHandoff {
 }
 
 export class GateStepUpdatePlan {
-  constructor(token, { action, phaseDefinition, updates, taskLifecycle = null, recoveryEffect = null, nonblockingHandoff = null, incrementRetry = false } = {}) {
+  constructor(token, { action, phaseDefinition, updates, taskLifecycle = null, recoveryEffect = null, nonblockingHandoff = null, retryMetric = null } = {}) {
     if (token !== GATE_TRANSITION_TOKEN) {
       throw new Error("Gate step update plans are created only by the definition resolver");
     }
@@ -362,7 +378,7 @@ export class GateStepUpdatePlan {
     if (!Array.isArray(updates) || updates.some((entry) => !(entry instanceof GateStepUpdate))) {
       throw new Error("gate step update plan requires typed updates");
     }
-    if (typeof incrementRetry !== "boolean") throw new Error("gate step update incrementRetry must be boolean");
+    if (retryMetric !== null && !(retryMetric instanceof GateRetryMetricEffect)) throw new Error("gate step update retry metric must be typed");
     if (taskLifecycle !== null && !(taskLifecycle instanceof GateTaskLifecycleEffect)) {
       throw new Error("gate step update plan requires typed Task lifecycle effect");
     }
@@ -378,7 +394,7 @@ export class GateStepUpdatePlan {
     this.taskLifecycle = taskLifecycle;
     this.recoveryEffect = recoveryEffect;
     this.nonblockingHandoff = nonblockingHandoff;
-    this.incrementRetry = incrementRetry;
+    this.retryMetric = retryMetric;
     Object.freeze(this);
   }
 
@@ -390,7 +406,7 @@ export class GateStepUpdatePlan {
       taskLifecycle: this.taskLifecycle?.toJSON() ?? null,
       recoveryEffect: this.recoveryEffect?.toJSON() ?? null,
       nonblockingHandoff: this.nonblockingHandoff?.toJSON() ?? null,
-      incrementRetry: this.incrementRetry,
+      retryMetric: this.retryMetric?.toJSON() ?? null,
     };
   }
 }
@@ -477,6 +493,41 @@ export class GateTransitionDecision {
   }
 }
 
+/** Public command outcome derived from a sealed Gate decision, not runner policy. */
+export class GatePublicOutcomeProjection {
+  constructor({ failureCode = null, nextStepId = null } = {}) {
+    this.failureCode = failureCode == null ? null : requireString(failureCode, "gate public failure code");
+    this.nextStepId = nextStepId == null ? null : requireString(nextStepId, "gate public next Step");
+    Object.freeze(this);
+  }
+  get failed() { return this.failureCode !== null; }
+  toJSON() {
+    return {
+      failed: this.failed,
+      failureCode: this.failureCode,
+      nextStepId: this.nextStepId,
+    };
+  }
+}
+
+export function projectGatePublicOutcome(decision) {
+  if (!(decision instanceof GateTransitionDecision)) throw new Error("gate public projection requires a definition decision");
+  const recovery = decision.plan.recoveryEffect;
+  if (recovery !== null) {
+    return new GatePublicOutcomeProjection({ nextStepId: recovery.targetStepId });
+  }
+  if (!["external-blocked", "blocked"].includes(decision.disposition.operation)) {
+    return new GatePublicOutcomeProjection();
+  }
+  const phase = decision.facts.phase;
+  const sourceCode = decision.facts.failure?.code ?? "GATE_EXTERNAL_BLOCKED";
+  return new GatePublicOutcomeProjection({
+    failureCode: ["draft", "spec", "task-spec"].includes(phase) || sourceCode === "GATE_EXTERNAL_BLOCKED"
+      ? "STEP_EXTERNAL_BLOCKED"
+      : sourceCode,
+  });
+}
+
 function stableGateJson(value) {
   if (Array.isArray(value)) return `[${value.map((entry) => stableGateJson(entry)).join(",")}]`;
   if (value !== null && typeof value === "object") {
@@ -501,13 +552,13 @@ function taskLifecycleEffect(facts, disposition) {
   return null;
 }
 
-function gatePlan(facts, disposition, { status = "in_progress", updates = null, recoveryEffect = null, nonblockingHandoff = null, incrementRetry = false } = {}) {
+function gatePlan(facts, disposition, { status = "in_progress", updates = null, recoveryEffect = null, nonblockingHandoff = null, retryMetric = null } = {}) {
   const phaseDefinition = gatePhaseDefinition(facts.phase);
   const selectedUpdates = updates ?? [new GateStepUpdate({ stepId: facts.target.stepId, status })];
   const lifecycle = taskLifecycleEffect(facts, disposition);
   const selectedFingerprint = createHash("sha256").update(stableGateJson({
     disposition: disposition.toJSON(), phaseDefinition: phaseDefinition.toJSON(), updates: selectedUpdates.map((entry) => entry.toJSON()), taskLifecycle: lifecycle?.toJSON() ?? null,
-    recoveryEffect: recoveryEffect?.toJSON() ?? null, nonblockingHandoff: nonblockingHandoff?.toJSON() ?? null, incrementRetry,
+    recoveryEffect: recoveryEffect?.toJSON() ?? null, nonblockingHandoff: nonblockingHandoff?.toJSON() ?? null, retryMetric: retryMetric?.toJSON() ?? null,
   })).digest("hex");
   const identity = new GateActionIdentity(GATE_TRANSITION_TOKEN, {
     runId: facts.producer.runId,
@@ -522,7 +573,7 @@ function gatePlan(facts, disposition, { status = "in_progress", updates = null, 
   });
   return new GateStepUpdatePlan(GATE_TRANSITION_TOKEN, {
     action: new GateTransitionAction(GATE_TRANSITION_TOKEN, { identity }), phaseDefinition, updates: selectedUpdates, taskLifecycle: lifecycle,
-    recoveryEffect, nonblockingHandoff, incrementRetry,
+    recoveryEffect, nonblockingHandoff, retryMetric,
   });
 }
 
@@ -556,6 +607,7 @@ export function resolveGateTransition(facts) {
   if (facts.result === "pass") {
     return gateDecision(facts, new GatePassDisposition(GATE_TRANSITION_TOKEN), {
       advance: new GateAdvanceDisposition(GATE_TRANSITION_TOKEN), status: "done",
+      retryMetric: new GateRetryMetricEffect({ operation: "reset", phase: facts.phase }),
     });
   }
   if (facts.result === "recovered" || facts.recoveryEvidence.kind === "recovered") {
@@ -586,15 +638,17 @@ export function resolveGateTransition(facts) {
     return gateDecision(facts, new GateRepairDisposition(GATE_TRANSITION_TOKEN));
   }
   if (!facts.retry.exhausted) {
-    return gateDecision(facts, new GateRetryDisposition(GATE_TRANSITION_TOKEN), { incrementRetry: true });
+    return gateDecision(facts, new GateRetryDisposition(GATE_TRANSITION_TOKEN), {
+      retryMetric: new GateRetryMetricEffect({ operation: "increment", phase: facts.phase }),
+    });
   }
   // The failed Attempt remains current until the canonical settlement command
   // records its finding.  `defer` therefore has no premature status advance.
   return gateDecision(facts, new GateDeferDisposition(GATE_TRANSITION_TOKEN));
 }
 
-// Non-Gate transition policy is intentionally independent from the temporary
-// Gate migration path above.  A Step contributes typed evidence, while this
+// Non-Gate transition policy is intentionally independent from the Gate
+// transition policy above.  A Step contributes typed evidence, while this
 // reducer alone selects the disposition, plan and stable Action identity.
 /**
  * Finalization recovery is deliberately a Definition decision, not an
@@ -2263,39 +2317,36 @@ function resolveReviewLifecycle(input) {
 }
 
 function resolveGateLifecycle(input) {
-  if (input.gateTransitionDecision instanceof GateTransitionDecision) {
-    const decision = input.gateTransitionDecision;
-    const actions = decision.plan.updates.map((update) => new SetStepStatus({
-      step: update.stepId,
-      status: update.status,
-    }));
-    if (decision.disposition.operation === "pass") actions.push(new ExecuteSideEffects());
-    if (decision.facts.result === "fail") actions.push(new AppendIssueLog({ source: "gate-result" }));
-    return actions;
-  }
-  const phase = input.result?.artifacts?.phase || input.phase;
-  const active = findActiveNode(input.flowState || {});
-  const taskStep = TaskStepIdentity.fromStateNode(input.flowState, active?.stepId);
-  const step = phase === "task-impl" && taskStep?.definitionId === "task-gate"
-    ? taskStep.nodeId
-    : gateStepIdForPhase(phase);
   if (input.event === "gate:pre") {
+    const active = findActiveNode(input.flowState || {});
+    const taskStep = TaskStepIdentity.fromStateNode(input.flowState, active?.stepId);
+    const step = input.phase === "task-impl" && taskStep?.definitionId === "task-gate"
+      ? taskStep.nodeId
+      : gateStepIdForPhase(input.phase);
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
-  if (input.result?.artifacts?.deferred === true) return [];
-  if (input.flowState?.policy?.nonblocking?.enabled === true && input.result?.result !== "pass" && nonblockingRouteFor(step)) {
-    return [];
+
+  // Gate execution errors are observations, not a second transition policy.
+  // A post lifecycle must receive the sealed Decision made after the canonical
+  // result was published; every other event leaves state untouched here.
+  if (input.event !== "gate:post") return [];
+  if (!(input.gateTransitionDecision instanceof GateTransitionDecision)) {
+    throw new Error("gate post lifecycle requires a Definition-selected GateTransitionDecision");
   }
-  const actions = [];
-  if (input.result?.result === "pass") {
-    actions.push(new SetStepStatus({ step, status: "done" }));
-    actions.push(new IncrementMetric({ phase, counter: "gateRetry" }));
-    actions.push(new ExecuteSideEffects());
-  } else {
-    actions.push(new SetStepStatus({ step, status: "in_progress" }));
-    actions.push(new IncrementMetric({ phase, counter: "gateRetry" }));
-    actions.push(new AppendIssueLog({ source: "gate-result" }));
+
+  const decision = input.gateTransitionDecision;
+  const actions = decision.plan.updates.map((update) => new SetStepStatus({
+    step: update.stepId,
+    status: update.status,
+  }));
+  if (decision.plan.retryMetric !== null) {
+    actions.push(new IncrementMetric({
+      phase: decision.plan.retryMetric.phase,
+      counter: "gateRetry",
+    }));
   }
+  if (decision.disposition.operation === "pass") actions.push(new ExecuteSideEffects());
+  if (decision.facts.result === "fail") actions.push(new AppendIssueLog({ source: "gate-result" }));
   return actions;
 }
 

@@ -99,7 +99,7 @@ describe("requirement gate context", () => {
 
     assert.match(context.toPromptText(), /\[TEST:R1\].*node --test/);
     assert.match(context.toPromptText(), /\[REGRESSION\].*final-regression/);
-    assert.match(prompt.systemPrompt, /ESCALATE_RETRY_EXHAUSTED.*flow-findings/i);
+    assert.match(prompt.systemPrompt, /Definition owns semantic retry exhaustion.*deferred findings/i);
     assert.match(prompt.systemPrompt, /full-regression-deferred.*final-regression/i);
   });
 

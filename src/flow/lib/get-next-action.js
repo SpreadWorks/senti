@@ -85,7 +85,10 @@ import {
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { resolveNonGateNextAction } from "./non-gate-transition-application.js";
 import { hasCurrentTestChainPublication, readCurrentTestChainTransitionFacts } from "./test-chain-transition-facts.js";
-import { resolveGateNextAction } from "./gate-transition-application.js";
+import {
+  GateTransitionActionProjection,
+  resolveGateNextAction,
+} from "./gate-transition-application.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
@@ -287,18 +290,22 @@ function definitionOwnedGateSelection(ctx, state, target) {
 
 function definitionOwnedGateDirective(selection, { state, binding }) {
   if (selection === null) return null;
-  const operation = selection.decision.disposition.operation;
+  const action = selection.action;
+  if (!(action instanceof GateTransitionActionProjection)) {
+    throw new Error("Gate next-action requires a Definition Action projection");
+  }
+  const { operation, reason, phase, nonblockingHandoff } = action;
   if (operation === "external-blocked") {
     return new BlockedDirective({
       code: "GATE_EXTERNAL_BLOCKED",
-      reason: selection.decision.disposition.reason || "Definition classified the current Gate observation as tooling failure.",
+      reason: reason || "Definition classified the current Gate observation as tooling failure.",
       resumeInstruction: "Resolve the tooling failure and publish a fresh current Gate observation; do not consume semantic retry.",
     });
   }
   if (operation === "blocked") {
     return new BlockedDirective({
       code: "GATE_EVIDENCE_BLOCKED",
-      reason: selection.decision.disposition.reason || "Definition rejected the current Gate evidence.",
+      reason: reason || "Definition rejected the current Gate evidence.",
       resumeInstruction: "Restore a current, catalog-bound Gate observation before continuing.",
     });
   }
@@ -306,15 +313,14 @@ function definitionOwnedGateDirective(selection, { state, binding }) {
     return new RepairEvidenceDirective({
       actionId: "REPAIR_PLAN_GATE_EVIDENCE",
       evidenceKind: "gate",
-      phase: selection.decision.facts.phase,
+      phase,
       nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
       instruction: "Apply the current Definition-selected, evidence-bound Gate repair.",
       reason: "The current repair receipt is bound to this Gate Attempt.",
     });
   }
   if (operation === "nonblocking") {
-    const handoff = selection.decision.plan.nonblockingHandoff;
-    if (handoff === null) {
+    if (nonblockingHandoff === null) {
       return new BlockedDirective({
         code: "GATE_NONBLOCKING_HANDOFF_UNAVAILABLE",
         reason: "Definition selected an advisory Gate result without an acceptance-backed handoff.",
@@ -323,7 +329,7 @@ function definitionOwnedGateDirective(selection, { state, binding }) {
     }
     return new BlockedDirective({
       code: "GATE_NONBLOCKING_DECISION_REQUIRED",
-      reason: `Definition selected the ${handoff.sourceStepId} advisory handoff to ${handoff.targetStepId}.`,
+      reason: `Definition selected the ${nonblockingHandoff.sourceStepId} advisory handoff to ${nonblockingHandoff.targetStepId}.`,
       resumeInstruction: "Record the evidence-bound nonblocking repair, retry, or continue decision; do not rerun the observed Gate directly.",
     });
   }

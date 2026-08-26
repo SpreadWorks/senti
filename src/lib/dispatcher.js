@@ -634,6 +634,8 @@ export async function dispatch({
 
   // 8a. Success path
   if (!caught) {
+    // Keep the command result available to lifecycle settlement and runtime
+    // metadata even when a post hook replaces only the public Envelope.
     let envelope;
     if (mode === "envelope") {
       // Commands may return an Envelope directly (e.g. Envelope.fail for
@@ -678,7 +680,8 @@ export async function dispatch({
     }
     if (entry.post && !skipPost) {
       try {
-        await entry.post(hookCtx, result);
+        const postResult = await entry.post(hookCtx, result);
+        if (postResult instanceof Envelope && mode === "envelope") envelope = postResult;
       } catch (postErr) {
         postFailed = true;
         recordDefinitionLifecycleToolingFailure(

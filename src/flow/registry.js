@@ -9,6 +9,7 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
+import { Envelope } from "../lib/flow-envelope.js";
 import { hasExplicitOption } from "../lib/flow-options.js";
 import fs from "fs";
 import path from "path";
@@ -25,6 +26,8 @@ import {
   resolveLifecyclePlan,
   resolveRuntimeStep,
   resolveGateTransition,
+  GateTransitionDecision,
+  projectGatePublicOutcome,
   resolveNonGateTransition,
   NonGateRecordNonblockingAction,
   scenarioValidityTransitionDefinition,
@@ -34,6 +37,7 @@ import {
   taskIdForResolvedStep,
 } from "./definition.js";
 import { readCurrentGateTransitionFacts } from "./lib/gate-transition-facts.js";
+import { applyGatePublicOutcomeProjection } from "./lib/gate-transition-application.js";
 import { findStepById, flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import { discoverFlowCommandHooks, runFlowCommandHooks } from "../lib/plugin-registry.js";
@@ -410,21 +414,12 @@ async function applyTestChainTransition(ctx, result, stepId) {
   return decision;
 }
 
-function isDefinitionOwnedPlanGate(phase, ctx = null, result = null) {
-  if (phase === "draft" || phase === "spec" || phase === "integration") return true;
-  if (phase !== "task-impl") return false;
-  if (typeof result?.artifacts?.taskId === "string" && result.artifacts.taskId !== "") return true;
-  const activeNode = ctx?.flowState ? findActiveNode(ctx.flowState) : null;
-  return TaskStepIdentity.fromStateNode(ctx?.flowState, activeNode?.stepId)?.definitionId === "task-gate";
-}
-
 /**
  * The registry persists the observation, then asks Definition for its one
  * Gate plan.  It intentionally has no phase route table or retry arithmetic.
  */
 function resolvePersistedPlanGateDecision(ctx, result) {
   const phase = result?.artifacts?.phase || ctx.phase;
-  if (!isDefinitionOwnedPlanGate(phase, ctx, result)) return null;
   const facts = readCurrentGateTransitionFacts({
     flowManager: ctx.flowManager,
     flowState: ctx.flowState,
@@ -501,7 +496,10 @@ class RegistryLifecycleAdapter {
     this.ctx = ctx;
     this.result = result;
     this.err = err;
-    this.phase = result?.artifacts?.phase || ctx.phase;
+    // Post-Gate persistence is driven by the sealed Definition Decision.
+    // The runner's artifact phase remains an observation input only for
+    // pre-lifecycle and non-Gate command handling.
+    this.phase = ctx.gateTransitionDecision?.facts.phase || result?.artifacts?.phase || ctx.phase;
     const activeNode = this.ctx.flowState ? findActiveNode(this.ctx.flowState) : null;
     const activeTaskStep = TaskStepIdentity.fromStateNode(this.ctx.flowState, activeNode?.stepId);
     this.gateStepId = this.phase === "task-impl"
@@ -611,8 +609,17 @@ class RegistryLifecycleAdapter {
       return;
     }
     if (counter === "gateRetry") {
-      const gateMod = await import("./lib/run-gate.js");
-      gateMod.updateGateRetryCounter(this.ctx, this.result);
+      const decision = this.ctx.gateTransitionDecision;
+      const effect = decision?.plan.retryMetric;
+      if (effect === null || effect === undefined || effect.phase !== phase) {
+        throw new Error("gate retry metric requires the Definition-selected Gate retry plan");
+      }
+      this.ctx.flowManager.appendMetric({
+        phase,
+        counter: "gateRetry",
+        delta: effect.operation === "increment" ? 1 : 0,
+        ...(effect.operation === "reset" ? { reset: true } : {}),
+      }, this.mutationOpts(this.gateStepId));
     }
   }
 
@@ -1505,16 +1512,12 @@ export const FLOW_COMMANDS = {
         const phase = result?.artifacts?.phase || ctx.phase;
         if (
           ctx.terminalGateRevalidation === true
-          || (
-            result?.result === "recovered"
-            && result?.artifacts?.evidenceRefresh?.recovered === true
-            && !isDefinitionOwnedPlanGate(phase, ctx, result)
-          )
         ) return;
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
         const canonicalResult = attachedCanonicalCommandResultArtifact(result) !== null;
         const specId = ctx.specId ?? ctx.flowState.specId;
-        if (canonicalResult && isDefinitionOwnedPlanGate(phase, ctx, result)) {
+        let recoveryEffect = null;
+        if (canonicalResult) {
           // Publication precedes classification.  Definition therefore sees
           // the exact current catalog result, including its Attempt binding,
           // before the persistence adapter chooses whether the Attempt is
@@ -1522,19 +1525,13 @@ export const FLOW_COMMANDS = {
           ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
           ctx.flowState = ctx.flowManager.loadReadOnly(specId);
           ctx.gateTransitionDecision = resolvePersistedPlanGateDecision(ctx, result);
-          if (result?.result === "recovered") {
-            const recovery = ctx.gateTransitionDecision.plan.recoveryEffect;
-            if (recovery === null) {
-              throw new Error("Definition-owned Gate recovery has no sealed recovery effect");
-            }
-            if (recovery.operation !== "rewind-test-evidence") {
+          recoveryEffect = ctx.gateTransitionDecision.plan.recoveryEffect;
+          if (recoveryEffect !== null) {
+            if (recoveryEffect.operation !== "rewind-test-evidence") {
               throw new Error("Definition-owned Gate recovery operation is unsupported");
             }
-            ctx.flowManager.rewindTestEvidence({ specId, decision: ctx.gateTransitionDecision });
-            ctx.flowState = ctx.flowManager.loadReadOnly(specId);
-            return;
           }
-          if (result?.result !== "pass") {
+          if (ctx.gateTransitionDecision.facts.result === "fail") {
             ctx.flowManager.recordGateObservationDecision({
               specId,
               decision: ctx.gateTransitionDecision,
@@ -1546,58 +1543,40 @@ export const FLOW_COMMANDS = {
             ctx.gateTransitionDecision = resolvePersistedPlanGateDecision(ctx, result);
           }
           ctx.flowState = ctx.flowManager.loadReadOnly(specId);
-        } else if (result?.result !== "pass" && canonicalResult) {
-          if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
-            ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
-          } else {
-            ctx.flowManager.failCurrentAttempt({
-              specId,
-              failure: {
-                category: "semantic",
-                code: "GATE_REJECTED",
-                message: "Gate rejected the current Attempt.",
-                retryable: true,
-                retryKind: "semantic",
-              },
-              result: {
-                outcome: "failed",
-                summary: "Gate rejected the current Attempt.",
-                confirmedAt: new Date().toISOString(),
-                artifactRefs: [],
-              },
-              commandResult: result,
-            });
-          }
-          ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+        }
+        if (!(ctx.gateTransitionDecision instanceof GateTransitionDecision)) {
+          throw new Error("gate post requires a canonical Definition-selected GateTransitionDecision");
         }
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:post",
           command: "run-gate",
           phase,
-          gateTransitionDecision: ctx.gateTransitionDecision ?? null,
+          gateTransitionDecision: ctx.gateTransitionDecision,
         }, result);
+        // Recovery is a sealed Definition effect, but it must run after the
+        // selected lifecycle updates.  Rewinding earlier would let an
+        // in-progress Gate update reactivate the obsolete impl-gate step.
+        if (recoveryEffect !== null) {
+          ctx.flowManager.rewindTestEvidence({ specId, decision: ctx.gateTransitionDecision });
+          ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+        }
+        const projection = projectGatePublicOutcome(ctx.gateTransitionDecision);
+        // `next` is retained only as a legacy command-output projection.  Its
+        // value comes from the already selected Definition recovery effect;
+        // neither this hook nor any subsequent transition reader treats it as
+        // authority for routing.
+        applyGatePublicOutcomeProjection(result, projection);
+        if (projection?.failed) {
+          return Envelope.fail("run", "gate", projection.failureCode,
+            result.artifacts?.reasons?.map((reason) => reason.detail || reason) || "required gate evaluation failed",
+            { ...result });
+        }
       },
       async nonblockingPost(ctx, result) {
-        const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
         const handoff = ctx.gateTransitionDecision?.plan.nonblockingHandoff ?? null;
-        if (phase === "integration") {
-          if (handoff === null) return;
-          const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-          recordEligibleNonblockingAttempt(ctx, handoff.sourceStepId, result);
-          return;
-        }
-        const active = findActiveNode(ctx.flowState || {});
-        const taskStep = TaskStepIdentity.fromStateNode(ctx.flowState, active?.stepId);
-        const stepId = taskStep?.definitionId === "task-gate"
-          ? "task-gate"
-          : phase === "draft"
-            ? "draft-gate"
-            : phase === "spec"
-              ? "spec-gate"
-              : null;
-        if (!stepId || !nonblockingRouteFor(stepId)) return;
+        if (handoff === null) return;
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, stepId, result);
+        recordEligibleNonblockingAttempt(ctx, handoff.sourceStepId, result);
       },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
