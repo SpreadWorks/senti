@@ -37,6 +37,7 @@ import { canonicalTestReviewRepairForTarget } from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
 import {
   CanonicalWorkerArtifactAddress,
+  CanonicalSpecTestTopology,
   CanonicalWorkerTestTree,
   mediaTypeForPath,
 } from "./canonical-worker-artifacts.js";
@@ -1872,6 +1873,13 @@ export class WorkerArtifactHandoffRequest {
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
+      ...(this.stepId === "test" && {
+        specTestTopology: CanonicalSpecTestTopology.fromWorkerTestTree({
+          flowManager: this.flowManager,
+          specId: this.specId,
+          repositoryRoot: this.mainRoot,
+        }).toJSON(),
+      }),
       effectContract: this.sourceEffectContract(),
       sealCommand: "sennel flow run seal-handoff",
       completionOwner: "parent-dispatcher",

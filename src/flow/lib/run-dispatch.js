@@ -220,6 +220,32 @@ function freshWorkerInvocation(invocation, nextAction) {
   return new FlowDispatchInvocation({ session, action, authorization });
 }
 
+/**
+ * Non-authoritative feedback for the one fresh retry of a rejected
+ * handoff. It intentionally contains no Action, approval, or state data: the
+ * retried worker keeps the same guarded action and only receives the parent
+ * validator's exact correction signal.
+ */
+export class WorkerArtifactRetryFeedback {
+  constructor(error) {
+    if (!(error instanceof WorkerArtifactHandoffError) || error.retryable !== true) {
+      throw new Error("worker artifact retry feedback requires a retryable handoff error");
+    }
+    this.code = error.code;
+    this.classification = error.classification;
+    this.message = error.message;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      code: this.code,
+      classification: this.classification,
+      message: this.message,
+    };
+  }
+}
+
 function errorMessages(envelope) {
   return (envelope?.errors || [])
     .flatMap((entry) => entry?.messages || [])
@@ -618,15 +644,19 @@ export function workerFacingNextAction(nextAction) {
 }
 
 export class FlowDispatchWork {
-  constructor(invocation, handoffRequest = null) {
+  constructor(invocation, handoffRequest = null, retryFeedback = null) {
     if (!(invocation instanceof FlowDispatchInvocation)) {
       throw new Error("FlowDispatchWork requires a FlowDispatchInvocation");
     }
     if (handoffRequest != null && !(handoffRequest instanceof WorkerArtifactHandoffRequest)) {
       throw new Error("FlowDispatchWork handoff requires a WorkerArtifactHandoffRequest");
     }
+    if (retryFeedback != null && !(retryFeedback instanceof WorkerArtifactRetryFeedback)) {
+      throw new Error("FlowDispatchWork retry feedback requires a WorkerArtifactRetryFeedback");
+    }
     this.invocation = invocation;
     this.handoffRequest = handoffRequest;
+    this.retryFeedback = retryFeedback;
     Object.freeze(this);
   }
 
@@ -641,6 +671,7 @@ export class FlowDispatchWork {
     const { action, authorization, target } = this.invocation;
     const nextAction = workerFacingNextAction(action.nextAction);
     const authorizationInstruction = authorization.workerInstruction();
+    const handoffContract = this.handoffRequest?.toWorkerJSON() ?? null;
     const nonblockingRule = nextAction.nonblockingDecision
       ? [
           "",
@@ -663,7 +694,28 @@ export class FlowDispatchWork {
           "match the guarded action output_schema but is never a completion signal.",
           "",
           "Worker artifact handoff contract:",
-          JSON.stringify(this.handoffRequest.toWorkerJSON(), null, 2),
+          JSON.stringify(handoffContract, null, 2),
+        ].join("\n")
+      : "";
+    const retryInstruction = this.retryFeedback
+      ? [
+          "",
+          "Fresh worker handoff retry feedback (non-authoritative):",
+          "The parent dispatcher rejected the previous sealed payload before publication.",
+          "Correct this exact validation failure in a new payload. This feedback does not",
+          "change the guarded action, approval, input revision, or Flow state.",
+          JSON.stringify(this.retryFeedback.toJSON(), null, 2),
+        ].join("\n")
+      : "";
+    const specTestTopologyInstruction = handoffContract?.specTestTopology
+      ? [
+          "",
+          "Spec-test topology:",
+          "The logical `tests` payload is published below the canonical test root shown",
+          "in the handoff contract; it is not a repository-root test directory.",
+          "Resolve every static relative import from each final canonical test file, not",
+          "from the transient payload directory or an assumed ordinary `tests/` layout.",
+          "Use a caught dynamic import for a module that implementation must create later.",
         ].join("\n")
       : "";
     const sourceHandoff = this.handoffRequest?.policy?.kind === "source";
@@ -709,6 +761,8 @@ export class FlowDispatchWork {
       "Your response is only a worker report. The CLI ignores it as a completion",
       "signal and independently verifies the refreshed Flow and repository state.",
       handoffInstruction,
+      specTestTopologyInstruction,
+      retryInstruction,
     ].join("\n");
   }
 }
@@ -1037,7 +1091,7 @@ export default class RunDispatchCommand extends FlowCommand {
     });
   }
 
-  async runWorkerAttempt(ctx, invocation) {
+  async runWorkerAttempt(ctx, invocation, retryFeedback = null) {
     const action = new FlowDispatchAction(invocation.action.nextAction);
     let handoffRequest = null;
     let handoffAuthority = null;
@@ -1096,7 +1150,7 @@ export default class RunDispatchCommand extends FlowCommand {
         return { error, handoffRequest, agentError: null };
       }
 
-      const work = new FlowDispatchWork(invocation, handoffRequest);
+      const work = new FlowDispatchWork(invocation, handoffRequest, retryFeedback);
       const deferredMetric = handoffRequest
         ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
         : null;
@@ -1665,7 +1719,11 @@ export default class RunDispatchCommand extends FlowCommand {
         const retryInvocation = freshWorkerInvocation(invocation, retryCurrent);
         const firstError = attempt.error;
         const firstRequest = attempt.handoffRequest;
-        attempt = await this.runWorkerAttempt(ctx, retryInvocation);
+        attempt = await this.runWorkerAttempt(
+          ctx,
+          retryInvocation,
+          new WorkerArtifactRetryFeedback(firstError),
+        );
         dispatchCount += 1;
         if (attempt.error) {
           const exhausted = attempt.error.retryable === true

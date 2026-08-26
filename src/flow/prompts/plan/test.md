@@ -29,7 +29,8 @@
    - **Validation contract** (enforced by parent handoff reconciliation before publication and completion): the handoff is rejected with `FLOW_ARTIFACT_HANDOFF_INVALID` if any of the following violations are found in the declared test payload tree:
      - missing header / unknown R-ID / malformed header / duplicate IDs / multiple headers in one file / `testable: false` ID in header / `# spec:` in `.js` / `.mjs` / `.ts` / header declares R-N without an `R-N:` test name in the same file / `R-N:` test name without a corresponding header declaration / a testable requirement uncovered by all headers.
      - a static relative import resolves to no pre-implementation module in the execution checkout or the declared spec-test payload.
-     - Read the returned validation message, fix the payload, and dispatch the guarded action again.
+     - The parent CLI validates the sealed payload before publication. If it starts one fresh retry, it provides the prior validation diagnostic as non-authoritative retry feedback. Correct that diagnostic in the new payload without changing the guarded action or Flow state.
+     - The handoff's logical `tests` payload is published at the canonical test root in its contract, not at a repository-root `tests/` directory. Resolve static relative imports from each final canonical test file. For modules implementation must add later, use a caught dynamic import and assert the requirement failure instead.
    - **If no test environment**:
      - This escape path is only valid when **every** requirement has `testable: false` (e.g., docs-only or prompt-only specs). Otherwise spec-local tests with headers are required by the test-step gate.
      - When valid, AI performs spec-implementation alignment check after coding by comparing spec Requirements against actual code changes.

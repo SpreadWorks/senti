@@ -306,6 +306,54 @@ export class CanonicalWorkerTestTree {
   }
 }
 
+/**
+ * The execution-facing location of a worker-owned spec test tree.
+ *
+ * The worker protocol calls this tree `tests`, while the Version Store
+ * publishes it below the Spec's canonical artifact root.  Keep that
+ * distinction in one typed value so prompt generation does not infer the
+ * final import base from a transient handoff directory.
+ */
+export class CanonicalSpecTestTopology {
+  constructor({ repositoryRoot, canonicalTestRoot } = {}) {
+    if (typeof repositoryRoot !== "string" || !path.isAbsolute(repositoryRoot)) {
+      throw new Error("canonical spec test topology requires an absolute repository root");
+    }
+    if (typeof canonicalTestRoot !== "string" || !path.isAbsolute(canonicalTestRoot)) {
+      throw new Error("canonical spec test topology requires an absolute canonical test root");
+    }
+    this.repositoryRoot = path.resolve(repositoryRoot);
+    const relativeTestRoot = path.relative(this.repositoryRoot, path.resolve(canonicalTestRoot));
+    if (
+      relativeTestRoot === ""
+      || path.isAbsolute(relativeTestRoot)
+      || relativeTestRoot === ".."
+      || relativeTestRoot.startsWith(`..${path.sep}`)
+    ) {
+      throw new Error("canonical spec test root must be contained by its repository root");
+    }
+    this.canonicalTestRoot = relativeTestRoot.split(path.sep).join("/");
+    Object.freeze(this);
+  }
+
+  static fromWorkerTestTree({ flowManager, specId, repositoryRoot } = {}) {
+    return new CanonicalSpecTestTopology({
+      repositoryRoot,
+      canonicalTestRoot: path.join(
+        CanonicalWorkerTestTree.artifactRoot({ flowManager, specId }),
+        "tests",
+      ),
+    });
+  }
+
+  toJSON() {
+    return {
+      canonicalTestRoot: this.canonicalTestRoot,
+      staticRelativeImportBase: "each canonical test file",
+    };
+  }
+}
+
 export function mediaTypeForPath(relativePath) {
   const target = requiredPath(relativePath, "worker artifact media path");
   if (target.endsWith(".json")) return "application/json";

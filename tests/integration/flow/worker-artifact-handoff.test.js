@@ -2539,6 +2539,104 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("retries a spec-test handoff with the canonical topology and exact validation feedback", async () => {
+    const value = fixture("test", { specRecord: validSpec() });
+    try {
+      const canonicalSourcePath = path.join(value.mainRoot, "src", "existing.js");
+      const executionSourcePath = path.join(value.executionRoot, "src", "existing.js");
+      fs.mkdirSync(path.dirname(canonicalSourcePath), { recursive: true });
+      fs.mkdirSync(path.dirname(executionSourcePath), { recursive: true });
+      fs.writeFileSync(canonicalSourcePath, "export default true;\n");
+      fs.writeFileSync(executionSourcePath, "export default true;\n");
+      const canonicalTestRoot = path.join(canonicalSpecDir(value), "artifacts", "tests");
+      const canonicalImport = path.relative(canonicalTestRoot, canonicalSourcePath).split(path.sep).join("/");
+      const ordinaryTestImport = "../../src/existing.js";
+      const requests = [];
+      let firstPayload = null;
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "test").status === "done"
+              ? completedWorkerAction()
+              : draftWorkerAction("test");
+          },
+        },
+        agent: {
+          async call(prompt, options) {
+            calls += 1;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            requests.push(request);
+            const testPath = path.join(
+              request.payloads.find((entry) => entry.logicalName === "spec-tests").payloadPath,
+              "topology.test.js",
+            );
+            if (calls === 1) {
+              assert.match(prompt, /Spec-test topology:/);
+              assert.ok(prompt.includes(`"canonicalTestRoot": ${JSON.stringify(path.relative(value.mainRoot, canonicalTestRoot).split(path.sep).join("/"))}`));
+              assert.doesNotMatch(prompt, /Fresh worker handoff retry feedback/);
+              fs.writeFileSync(testPath, [
+                "// spec: R1",
+                "import test from 'node:test';",
+                `import value from '${ordinaryTestImport}';`,
+                "test('R1: uses an existing module', () => value);",
+                "",
+              ].join("\n"));
+              firstPayload = fs.readFileSync(testPath);
+            } else {
+              assert.match(prompt, /Fresh worker handoff retry feedback \(non-authoritative\):/);
+              assert.match(prompt, /FLOW_ARTIFACT_HANDOFF_INVALID/);
+              assert.match(prompt, /statically imports missing pre-implementation module/);
+              fs.writeFileSync(testPath, [
+                "// spec: R1",
+                "import test from 'node:test';",
+                `import value from '${canonicalImport}';`,
+                "test('R1: uses an existing module', () => value);",
+                "",
+              ].join("\n"));
+            }
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 2);
+      assert.equal(calls, 2);
+      assert.equal(requests[0].actionDigest, requests[1].actionDigest);
+      assert.equal(requests[0].inputRevision, requests[1].inputRevision);
+      assert.notEqual(requests[0].dispatchInvocationId, requests[1].dispatchInvocationId);
+      assert.deepEqual(
+        fs.readFileSync(path.join(requests[0].payloads[0].payloadPath, "topology.test.js")),
+        firstPayload,
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "done");
+      assert.equal(
+        value.flowManager.artifactCatalog(value.specId)
+          .resolve("artifacts/tests/topology.test.js").logicalKey,
+        "tests.source",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("passes the guarded output schema and schema guidance to the spec artifact worker", async () => {
     const value = fixture("spec", {
       beforeActivate(candidate) {
