@@ -19,8 +19,9 @@ import GetArtifactCommand, {
   ArtifactViewRequest,
 } from "../../../src/flow/lib/get-artifact.js";
 import {
-  canonicalFixtureProducerResult,
+  canonicalImplReviewArtifact,
   CanonicalFlowFixture,
+  confirmCanonicalFixtureStep,
   FreshFlowFixture,
   makeFlowManager,
 } from "../../support/infrastructure/flow-setup.js";
@@ -84,16 +85,7 @@ function finalizeFixture(flowManager, created) {
 function finalizeMigratedVersion(flowManager, specId) {
   for (const step of flattenSteps(flowManager.loadReadOnly(specId).steps)) {
     if (["done", "skipped"].includes(step.status)) continue;
-    flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId });
-    const canonicalCommandResult = canonicalFixtureProducerResult(
-      flowManager.loadReadOnly(specId),
-      step.id,
-      { flowManager, specId },
-    );
-    flowManager.updateStepStatus(
-      { stepId: step.id, requestedStatus: "done" },
-      { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
-    );
+    confirmCanonicalFixtureStep(flowManager, specId, step.id);
   }
   flowManager.finalizeFlow(specId);
 }
@@ -241,20 +233,27 @@ function acceptanceFixture(directory, { specId } = {}) {
   }).create().registerActive();
   created.activate("impl-review");
   const repairFingerprint = "a".repeat(64);
-  const sourceFinding = {
-    findingId: "source-F1",
+  const implReview = canonicalImplReviewArtifact(created.state(), { blockingFindings: [{
+    findingKey: "source-F1",
+    title: "Cataloged acceptance source",
+    failureMode: "unresolved_acceptance_source",
+    file: null,
     issue: "An original cataloged finding remains visible.",
     detail: "This detail comes from the authoritative implementation-review attempt.",
     suggestion: "Resolve the source finding before a later review.",
     requirementId: "R1",
-  };
+    guardrailId: null,
+    disposition: "informational",
+    rationale: "The cataloged acceptance source remains unresolved.",
+  }] });
+  const sourceFinding = implReview.blockingFindings[0];
   const deferred = {
     findingId: "F1",
     sourceStep: "impl-review",
     sourceArtifact: "steps/impl/review/result.json",
-    sourceFindingId: "source-F1",
+    sourceFindingId: sourceFinding.findingId,
     finalDisposition: "still_open",
-    evidenceRefs: ["steps/impl/review/result.json#source-F1"],
+    evidenceRefs: [`steps/impl/review/result.json#${sourceFinding.findingId}`],
   };
   const state = created.state();
   flowManager.publishArtifacts({
@@ -264,7 +263,7 @@ function acceptanceFixture(directory, { specId } = {}) {
       {
         logicalKey: "impl.review",
         mediaType: "application/json",
-        bytes: attemptHistory("impl.review", { blockingFindings: [sourceFinding] }),
+        bytes: attemptHistory("impl.review", implReview),
       },
       {
         logicalKey: "flow.findings",
@@ -561,7 +560,7 @@ describe("flow get artifact", () => {
     const { flowManager, created, repairFingerprint } = acceptance;
     const undecidedContainer = commandContainer(directory, flowManager).container;
     const undecided = await new GetArtifactCommand().run(undecidedContainer, input({ logicalKey: "acceptance.review" }));
-    assert.equal(undecided.ok, true);
+    assert.equal(undecided.ok, true, JSON.stringify(undecided));
     assert.match(undecided.data.markdown, /Undecided/);
 
     publishAcceptanceDecision({ flowManager, created, repairFingerprint });

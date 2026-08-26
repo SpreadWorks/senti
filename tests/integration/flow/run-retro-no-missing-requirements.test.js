@@ -219,7 +219,7 @@ describe("R5: retro consumes canonical test Attempt results (spec 251)", () => {
     const recoveredState = flowManager.loadReadOnly(specId);
 
     assert.equal(result.result, "recovered");
-    assert.equal(result.next, "test-execute");
+    assert.equal(result.artifacts.evidenceRefresh.activeStep, "test-execute");
     assert.equal(result.artifacts.evidenceRefresh.recovered, true);
     assert.equal(result.artifacts.evidenceRefresh.previousFingerprint, previousFingerprint);
     assert.equal(result.artifacts.evidenceRefresh.currentFingerprint, currentFingerprint);

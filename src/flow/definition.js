@@ -292,35 +292,32 @@ export class GateTaskLifecycleEffect {
   }
 }
 
-/** Static phase ownership, including the only Definition-authorized PASS route. */
+/** Static report wording; transition routes are selected by Gate decisions. */
 export class GatePhaseDefinition {
-  constructor({ phase, nextStepId, failedNextStepId = null, passPrescription = null, failurePrescription = null } = {}) {
+  constructor({ phase, passPrescription, failurePrescription } = {}) {
     this.phase = requireString(phase, "gate phase definition phase");
-    this.nextStepId = requireString(nextStepId, "gate phase definition nextStepId");
-    this.failedNextStepId = failedNextStepId == null ? null : requireString(failedNextStepId, "gate phase definition failed nextStepId");
-    this.passPrescription = passPrescription == null ? this.nextStepId : requireString(passPrescription, "gate phase definition pass prescription");
-    this.failurePrescription = failurePrescription == null
-      ? (this.failedNextStepId ?? "Continue with the Definition-selected Gate action.")
-      : requireString(failurePrescription, "gate phase definition failure prescription");
+    this.passPrescription = requireString(passPrescription, "gate phase definition pass prescription");
+    this.failurePrescription = requireString(failurePrescription, "gate phase definition failure prescription");
     Object.freeze(this);
   }
   toJSON() {
     return {
-      phase: this.phase, nextStepId: this.nextStepId, failedNextStepId: this.failedNextStepId,
-      passPrescription: this.passPrescription, failurePrescription: this.failurePrescription,
+      phase: this.phase,
+      passPrescription: this.passPrescription,
+      failurePrescription: this.failurePrescription,
     };
   }
 }
 
 const GATE_PHASE_DEFINITIONS = new Map([
-  ["draft", new GatePhaseDefinition({ phase: "draft", nextStepId: "spec", failedNextStepId: "draft" })],
-  ["spec", new GatePhaseDefinition({ phase: "spec", nextStepId: "approval", failedNextStepId: "spec" })],
+  ["draft", new GatePhaseDefinition({ phase: "draft", passPrescription: "Continue with the Definition-selected Gate action.", failurePrescription: "Repair the draft evidence selected by Definition." })],
+  ["spec", new GatePhaseDefinition({ phase: "spec", passPrescription: "Continue with the Definition-selected Gate action.", failurePrescription: "Repair the specification evidence selected by Definition." })],
   // task-spec is a flow-level validation command. It cannot materialize or
   // enter a Task lifecycle; only the existing spec approval route may admit
   // Task impl/review/gate leaves.
-  ["task-spec", new GatePhaseDefinition({ phase: "task-spec", nextStepId: "approval", failurePrescription: "Return to the flow-level specification approval path." })],
-  ["task-impl", new GatePhaseDefinition({ phase: "task-impl", nextStepId: "integration", passPrescription: "Continue with the Definition-selected Gate action." })],
-  ["integration", new GatePhaseDefinition({ phase: "integration", nextStepId: "retro" })],
+  ["task-spec", new GatePhaseDefinition({ phase: "task-spec", passPrescription: "Continue with the Definition-selected Gate action.", failurePrescription: "Return to the flow-level specification approval path." })],
+  ["task-impl", new GatePhaseDefinition({ phase: "task-impl", passPrescription: "Continue with the Definition-selected Gate action.", failurePrescription: "Repair the Task implementation selected by Definition." })],
+  ["integration", new GatePhaseDefinition({ phase: "integration", passPrescription: "Continue with the Definition-selected Gate action.", failurePrescription: "Repair the integration evidence selected by Definition." })],
 ]);
 
 function gatePhaseDefinition(phase) {
@@ -329,14 +326,11 @@ function gatePhaseDefinition(phase) {
   return definition;
 }
 
-/** A compatibility projection only; route selection remains a Gate decision. */
-export function projectGateResultOutcome(phase, result) {
-  if (result !== "pass" && result !== "fail") throw new Error("gate result projection requires pass or fail");
+/** Return diagnostic wording only; callers receive no route identifier. */
+export function gateReportPrescription(phase, result) {
+  if (result !== "pass" && result !== "fail") throw new Error("gate report prescription requires pass or fail");
   const definition = gatePhaseDefinition(phase);
-  return Object.freeze({
-    nextStepId: result === "pass" ? definition.nextStepId : definition.failedNextStepId,
-    prescription: result === "pass" ? definition.passPrescription : definition.failurePrescription,
-  });
+  return result === "pass" ? definition.passPrescription : definition.failurePrescription;
 }
 
 /** A sealed Definition-owned recovery route, never a runner-selected rewind. */
@@ -1393,6 +1387,174 @@ export function resolveNonGateTransition(facts, stepDefinition) {
   return selectedDecision(new NonGateBlockedDisposition(NON_GATE_TRANSITION_TOKEN, selection.reason || "blocked"));
 }
 
+function requireDigest(value, field) {
+  const digest = requireString(value, field);
+  if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error(`${field} must be a SHA-256 digest`);
+  return digest;
+}
+
+/** One immutable catalog input consumed by the retro stale-evidence route. */
+export class RetroStaleEvidencePublication {
+  constructor({ logicalKey, relativePath, hash, activityId } = {}) {
+    this.logicalKey = requireString(logicalKey, "retro stale evidence logicalKey");
+    if (!new Set(["test.execute", "test.result.review"]).has(this.logicalKey)) {
+      throw new Error("retro stale evidence logicalKey is invalid");
+    }
+    this.relativePath = requireString(relativePath, "retro stale evidence relativePath");
+    this.hash = requireDigest(hash, "retro stale evidence hash");
+    this.activityId = requireString(activityId, "retro stale evidence activityId");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      logicalKey: this.logicalKey,
+      relativePath: this.relativePath,
+      hash: this.hash,
+      activityId: this.activityId,
+    };
+  }
+}
+
+/** Canonical facts for the fixed retro -> test-execute stale-evidence recovery. */
+export class RetroStaleEvidenceRecoveryFacts {
+  constructor({ runId, specId, stepId, attemptId, sequence, snapshotRevision, publications, artifactNames, previousFingerprint, currentFingerprint } = {}) {
+    this.runId = requireString(runId, "retro stale evidence runId");
+    this.specId = requireString(specId, "retro stale evidence specId");
+    this.stepId = requireString(stepId, "retro stale evidence stepId");
+    if (this.stepId !== "retro") throw new Error("retro stale evidence facts require the retro Step");
+    this.attemptId = requireString(attemptId, "retro stale evidence Attempt id");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("retro stale evidence Attempt sequence is invalid");
+    this.sequence = sequence;
+    this.snapshotRevision = requireString(snapshotRevision, "retro stale evidence snapshot revision");
+    if (!Array.isArray(publications) || publications.length !== 2) {
+      throw new Error("retro stale evidence facts require exactly two catalog publications");
+    }
+    this.publications = Object.freeze(publications.map((entry) => (
+      entry instanceof RetroStaleEvidencePublication ? entry : new RetroStaleEvidencePublication(entry)
+    )).sort((left, right) => left.logicalKey.localeCompare(right.logicalKey)));
+    if (new Set(this.publications.map((entry) => entry.logicalKey)).size !== this.publications.length) {
+      throw new Error("retro stale evidence catalog publications must be unique");
+    }
+    if (!Array.isArray(artifactNames) || artifactNames.length === 0
+      || artifactNames.some((entry) => typeof entry !== "string" || entry === "")) {
+      throw new Error("retro stale evidence artifact names are required");
+    }
+    this.artifactNames = Object.freeze([...new Set(artifactNames)].sort());
+    this.previousFingerprint = requireDigest(previousFingerprint, "retro stale evidence previous fingerprint");
+    this.currentFingerprint = requireDigest(currentFingerprint, "retro stale evidence current fingerprint");
+    if (this.previousFingerprint === this.currentFingerprint) {
+      throw new Error("retro stale evidence recovery requires mismatched fingerprints");
+    }
+    this.catalogFingerprint = createHash("sha256").update(stableJson(this.publications.map((entry) => entry.toJSON()))).digest("hex");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      specId: this.specId,
+      stepId: this.stepId,
+      attemptId: this.attemptId,
+      sequence: this.sequence,
+      snapshotRevision: this.snapshotRevision,
+      publications: this.publications.map((entry) => entry.toJSON()),
+      artifactNames: [...this.artifactNames],
+      previousFingerprint: this.previousFingerprint,
+      currentFingerprint: this.currentFingerprint,
+      catalogFingerprint: this.catalogFingerprint,
+    };
+  }
+}
+
+export class RetroStaleEvidenceRecoveryEffect {
+  constructor({ operation = "rewind-test-evidence", sourceStepId = "retro", targetStepId = "test-execute" } = {}) {
+    this.operation = requireString(operation, "retro stale evidence recovery operation");
+    this.sourceStepId = requireString(sourceStepId, "retro stale evidence recovery source Step");
+    this.targetStepId = requireString(targetStepId, "retro stale evidence recovery target Step");
+    if (this.operation !== "rewind-test-evidence" || this.sourceStepId !== "retro" || this.targetStepId !== "test-execute") {
+      throw new Error("retro stale evidence recovery effect is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return { operation: this.operation, sourceStepId: this.sourceStepId, targetStepId: this.targetStepId }; }
+}
+
+export class RetroStaleEvidenceRecoveryActionIdentity {
+  constructor(token, { facts, effect } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(facts instanceof RetroStaleEvidenceRecoveryFacts)
+      || !(effect instanceof RetroStaleEvidenceRecoveryEffect)) {
+      throw new Error("retro stale evidence recovery Action identity requires Definition facts and effect");
+    }
+    this.runId = facts.runId;
+    this.specId = facts.specId;
+    this.stepId = facts.stepId;
+    this.attemptId = facts.attemptId;
+    this.sequence = facts.sequence;
+    this.snapshotRevision = facts.snapshotRevision;
+    this.catalogFingerprint = facts.catalogFingerprint;
+    this.factsFingerprint = createHash("sha256").update(stableJson(facts.toJSON())).digest("hex");
+    this.selectedFingerprint = createHash("sha256").update(stableJson(effect.toJSON())).digest("hex");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      runId: this.runId,
+      specId: this.specId,
+      stepId: this.stepId,
+      attemptId: this.attemptId,
+      sequence: this.sequence,
+      snapshotRevision: this.snapshotRevision,
+      catalogFingerprint: this.catalogFingerprint,
+      factsFingerprint: this.factsFingerprint,
+      selectedFingerprint: this.selectedFingerprint,
+    };
+  }
+}
+
+export class RetroStaleEvidenceRecoveryPlan {
+  constructor(token, { facts, effect } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(facts instanceof RetroStaleEvidenceRecoveryFacts)
+      || !(effect instanceof RetroStaleEvidenceRecoveryEffect)) {
+      throw new Error("retro stale evidence recovery plan requires Definition facts and effect");
+    }
+    this.effect = effect;
+    this.action = new RetroStaleEvidenceRecoveryActionIdentity(token, { facts, effect });
+    Object.freeze(this);
+  }
+
+  toJSON() { return { effect: this.effect.toJSON(), action: this.action.toJSON() }; }
+}
+
+/** Sealed non-Gate recovery plan: retro only reports stale facts; Definition selects the rewind. */
+export class RetroStaleEvidenceRecoveryDecision {
+  constructor(token, { facts, plan } = {}) {
+    if (token !== NON_GATE_TRANSITION_TOKEN || !(facts instanceof RetroStaleEvidenceRecoveryFacts)
+      || !(plan instanceof RetroStaleEvidenceRecoveryPlan)) {
+      throw new Error("retro stale evidence recovery decision requires a Definition plan");
+    }
+    this.facts = facts;
+    this.plan = plan;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { facts: this.facts.toJSON(), plan: this.plan.toJSON() }; }
+}
+
+/** The sole selector for stale retro evidence; execution code cannot choose a rewind route. */
+export function resolveRetroStaleEvidenceRecovery(facts) {
+  if (!(facts instanceof RetroStaleEvidenceRecoveryFacts)) {
+    throw new Error("resolveRetroStaleEvidenceRecovery requires typed retro stale evidence facts");
+  }
+  const effect = new RetroStaleEvidenceRecoveryEffect();
+  return new RetroStaleEvidenceRecoveryDecision(NON_GATE_TRANSITION_TOKEN, {
+    facts,
+    plan: new RetroStaleEvidenceRecoveryPlan(NON_GATE_TRANSITION_TOKEN, { facts, effect }),
+  });
+}
+
 // Approval and acceptance are deliberately not expressed as generic worker
 // completion.  Their evidence is either a cataloged Spec publication or a
 // canonical review/decision artifact, and their next route must remain owned
@@ -1851,16 +2013,6 @@ export class AppendIssueLog {
 
   apply(adapter) {
     return adapter.appendIssueLog(this.source);
-  }
-}
-
-export class ExecuteSideEffects {
-  constructor() {
-    Object.freeze(this);
-  }
-
-  apply(adapter) {
-    return adapter.executeSideEffects();
   }
 }
 
@@ -2345,7 +2497,6 @@ function resolveGateLifecycle(input) {
       counter: "gateRetry",
     }));
   }
-  if (decision.disposition.operation === "pass") actions.push(new ExecuteSideEffects());
   if (decision.facts.result === "fail") actions.push(new AppendIssueLog({ source: "gate-result" }));
   return actions;
 }
@@ -2982,7 +3133,6 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
-        sideEffects: [],
         gatePhase: ["integration", "task-impl"],
         failurePolicy: "block",
         definitionLifecycleOwned: true,
@@ -3149,7 +3299,6 @@ const TASK_DEFINITION = Object.freeze([
     contextKinds: ["task_spec", "guardrail"],
     outputSchemaRef: "next-action/gate.schema.json",
     maxAttempts: 5,
-    sideEffects: ["mergeOverview"],
     failurePolicy: "block",
     definitionLifecycleOwned: true,
     executionCommand: new FlowExecutionCommand("gate"),

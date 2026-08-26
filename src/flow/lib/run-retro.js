@@ -11,12 +11,13 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateTestExecuteResultV2, validateTestResultReview } from "./test-artifacts.js";
 import { buildRepairFingerprint } from "./repair-fingerprint.js";
-import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import {
   CanonicalTestArtifactStore,
   isCanonicalFlowState,
 } from "./canonical-test-artifacts.js";
 import { attachCanonicalCommandResultPublications } from "./canonical-command-result.js";
+import { resolveRetroStaleEvidenceRecovery } from "../definition.js";
+import { readCurrentRetroStaleEvidenceRecoveryFacts } from "./retro-stale-evidence-transition-facts.js";
 
 function aggregate(requirements, summary) {
   const summaryById = new Map();
@@ -105,30 +106,31 @@ function executeCanonicalRetro(ctx) {
     artifactRoot: ctx.root,
     specPath: store.location.relativeSpecFile,
   });
-  const staleEvidence = StaleTestEvidenceMismatch.detect({
-    artifacts: new Map([
-      ["test-execute-result.json", result],
-      ["test-result-review.json", review],
-    ]),
+  const staleFacts = readCurrentRetroStaleEvidenceRecoveryFacts({
+    flowManager: ctx.flowManager,
+    specId: ctx.flowState.specId,
     currentFingerprint: currentFingerprint.hash,
   });
-  if (staleEvidence !== null) {
-    ctx.flowManager.rewindTestEvidence({ specId: ctx.flowState.specId });
+  if (staleFacts !== null) {
+    const decision = resolveRetroStaleEvidenceRecovery(staleFacts);
+    ctx.flowManager.applyRetroStaleEvidenceRecoveryDecision({
+      specId: ctx.flowState.specId,
+      decision,
+    });
     return {
       result: "recovered",
       changed: [],
       artifacts: {
-        staleArtifacts: [...staleEvidence.artifactNames],
+        staleArtifacts: [...staleFacts.artifactNames],
         evidenceRefresh: {
           recovered: true,
-          previousFingerprint: staleEvidence.previousFingerprint,
-          currentFingerprint: staleEvidence.currentFingerprint,
+          previousFingerprint: staleFacts.previousFingerprint,
+          currentFingerprint: staleFacts.currentFingerprint,
           invalidatedArtifacts: [],
           invalidations: [],
           activeStep: "test-execute",
         },
       },
-      next: "test-execute",
     };
   }
   if (review.verdict !== "pass") {

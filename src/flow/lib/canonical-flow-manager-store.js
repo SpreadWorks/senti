@@ -20,6 +20,7 @@ import {
   NonGateRecordNonblockingAction,
   NonGateSetStepStatusAction,
   NonGateTransitionDecision,
+  RetroStaleEvidenceRecoveryDecision,
   GateTransitionDecision,
   resolveGateTransition,
   resolveNonGateTransition,
@@ -79,6 +80,7 @@ import { finalizationOutboxIdentity } from "./flow-outbox.js";
 import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
 import { CanonicalScenarioValidityRepairEvidence } from "./scenario-validity-repair-evidence.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
+import { buildRepairFingerprint } from "./repair-fingerprint.js";
 import { sameNonGateTransitionDecision } from "./non-gate-transition-application.js";
 import { readTestChainTransitionFactsFromSnapshot, TestChainTransitionSnapshot } from "./test-chain-transition-facts.js";
 import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
@@ -86,6 +88,7 @@ import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
 import {
@@ -551,6 +554,32 @@ function resultFor(status, nodeId) {
     confirmedAt: new Date().toISOString(),
     artifactRefs: [],
   };
+}
+
+/**
+ * Project the one Gate failure outcome that the process boundary must expose.
+ * The canonical failure is already persisted by failCurrentAttempt; this
+ * record is only the typed command-result view consumed by the dispatcher.
+ */
+function gateExternalBlockedStepAttempt(state, decision) {
+  if (decision.disposition.operation !== "external-blocked") return null;
+  const nodeId = state.current?.at(-1);
+  const attempt = state.attempt;
+  if (nodeId === undefined || attempt === null) return null;
+  const task = state.findNode(state.current.at(-2));
+  const failureCode = decision.facts.failure?.code || "GATE_EXTERNAL_BLOCKED";
+  return new StepAttempt({
+    runId: state.runId,
+    taskId: task instanceof TaskNode ? task.id : null,
+    stepId: nodeId,
+    attempt: attempt.sequence,
+    outcome: new ExternalBlockedOutcome({
+      reason: decision.disposition.reason || failureCode,
+      resumeInstruction: "Resolve the Gate provider failure and publish a fresh current Gate observation.",
+      failureCode,
+      retryable: false,
+    }),
+  });
 }
 
 function commandResultPayload(value, nodeId, artifactLogicalKey) {
@@ -1378,7 +1407,7 @@ export class CanonicalFlowManagerStore {
       throw new CurrentFlowStateInvariantError("Gate observation recording requires a failed Gate result");
     }
     const failure = current.facts.failure;
-    return this.failCurrentAttempt({
+    this.failCurrentAttempt({
       specId: resolved,
       failure: {
         category: failure.category,
@@ -1392,6 +1421,11 @@ export class CanonicalFlowManagerStore {
         confirmedAt: new Date().toISOString(), artifactRefs: [],
       },
     });
+    // The failure above is the sole canonical state mutation. Return a typed
+    // process-boundary view without recording another observation or
+    // inventing a route from command output.
+    const failedState = this.runtime.load(resolved);
+    return gateExternalBlockedStepAttempt(failedState, current);
   }
 
   settleGateTransition(input = {}) {
@@ -1575,23 +1609,73 @@ export class CanonicalFlowManagerStore {
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     const state = this.runtime.load(resolved);
     const sourceStepId = state.current?.at(-1) ?? null;
-    if (!new Set(["impl-gate", "retro"]).has(sourceStepId)) {
-      throw new CurrentFlowStateInvariantError("canonical test evidence rewind requires active impl-gate or retro");
+    if (sourceStepId !== "impl-gate") {
+      throw new CurrentFlowStateInvariantError("canonical test evidence rewind requires the active integration Gate");
     }
-    if (sourceStepId === "impl-gate") {
-      const selected = this.#admitGateDecision(state, decision, "recovery");
-      const effect = selected.plan.recoveryEffect;
-      if (effect?.operation !== "rewind-test-evidence"
-        || effect.sourceStepId !== sourceStepId
-        || effect.targetStepId !== "test-execute") {
-        throw new CurrentFlowStateInvariantError("integration test evidence rewind requires its sealed Definition recovery effect");
-      }
-    } else if (decision !== null) {
-      throw new CurrentFlowStateInvariantError("retro test evidence rewind does not accept an integration Gate decision");
+    const selected = this.#admitGateDecision(state, decision, "recovery");
+    const effect = selected.plan.recoveryEffect;
+    if (effect?.operation !== "rewind-test-evidence"
+      || effect.sourceStepId !== sourceStepId
+      || effect.targetStepId !== "test-execute") {
+      throw new CurrentFlowStateInvariantError("integration test evidence rewind requires its sealed Definition recovery effect");
     }
     return this.runtime.rewindTestEvidence({
       specId: resolved,
       activityId: activityId("test-evidence-rewound"),
+      attempt: commandContextAttempt(state, "test-execute"),
+    });
+  }
+
+  /** Apply only the Definition-sealed stale-evidence recovery selected for retro. */
+  applyRetroStaleEvidenceRecoveryDecision({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(decision instanceof RetroStaleEvidenceRecoveryDecision)) {
+      throw new CurrentFlowStateInvariantError("retro stale evidence recovery requires a typed Definition decision");
+    }
+    const snapshot = this.transitionSnapshot(resolved);
+    const state = snapshot?.state ?? null;
+    const { facts, plan } = decision;
+    const identity = plan.action;
+    if (state === null
+      || state.current?.at(-1) !== "retro"
+      || facts.specId !== resolved
+      || facts.runId !== state.runId
+      || facts.snapshotRevision !== snapshot.revision
+      || facts.attemptId !== state.attempt?.id
+      || facts.sequence !== state.attempt?.sequence
+      || identity.specId !== resolved
+      || identity.runId !== state.runId
+      || identity.stepId !== "retro"
+      || identity.attemptId !== state.attempt?.id
+      || identity.sequence !== state.attempt?.sequence
+      || identity.snapshotRevision !== snapshot.revision
+      || identity.catalogFingerprint !== facts.catalogFingerprint
+      || plan.effect.operation !== "rewind-test-evidence"
+      || plan.effect.sourceStepId !== "retro"
+      || plan.effect.targetStepId !== "test-execute") {
+      throw new CurrentFlowStateInvariantError("retro stale evidence recovery decision is stale or targets another Attempt");
+    }
+    const currentFingerprint = buildRepairFingerprint({
+      root: this.root,
+      artifactRoot: this.root,
+      specPath: this.location(resolved).relativeSpecFile,
+    });
+    if (currentFingerprint.hash !== facts.currentFingerprint) {
+      throw new CurrentFlowStateConflictError("retro stale evidence recovery repository fingerprint changed before apply");
+    }
+    for (const publication of facts.publications) {
+      const current = snapshot.catalog.find((entry) => entry.logicalKey === publication.logicalKey) ?? null;
+      if (current === null
+        || current.relativePath !== publication.relativePath
+        || current.hash !== publication.hash
+        || current.activityId !== publication.activityId) {
+        throw new CurrentFlowStateConflictError("retro stale evidence recovery catalog evidence changed before apply");
+      }
+    }
+    return this.runtime.rewindTestEvidence({
+      specId: resolved,
+      activityId: activityId("retro-stale-test-evidence-rewound"),
       attempt: commandContextAttempt(state, "test-execute"),
     });
   }

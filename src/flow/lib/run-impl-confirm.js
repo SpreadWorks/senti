@@ -68,16 +68,6 @@ export class RunImplConfirmCommand extends FlowCommand {
       files = getChangedFiles(executionRoot, state.baseBranch);
     }
 
-    // Determine next step
-    let next;
-    if (allDone) {
-      next = "test-execute";
-    } else if (noRequirements) {
-      next = "test-execute";
-    } else {
-      next = "fix";
-    }
-
     return {
       result: allDone || noRequirements ? "ready" : "incomplete",
       changed: [],
@@ -90,7 +80,6 @@ export class RunImplConfirmCommand extends FlowCommand {
         baseBranch: state.baseBranch,
         featureBranch: state.featureBranch,
       },
-      next,
     };
   }
 }

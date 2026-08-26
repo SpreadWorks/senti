@@ -17,7 +17,6 @@ import {
   GateStepUpdate,
   AppendIssueLog,
   IncrementMetric,
-  ExecuteSideEffects,
   SetStepStatus,
   buildCurrentFlowDefinition,
   projectGatePublicOutcome,
@@ -198,7 +197,10 @@ describe("definition-owned Gate transition boundary", () => {
       }),
     }));
 
-    assert.equal(resolveGateTransition(facts({ phase: "integration" })).plan.phaseDefinition.nextStepId, "retro");
+    assert.equal(Object.hasOwn(
+      resolveGateTransition(facts({ phase: "integration" })).plan.phaseDefinition,
+      "nextStepId",
+    ), false);
     assert.equal(semantic.disposition.operation, "retry");
     assert.equal(semantic.plan.retryMetric.operation, "increment");
     assert.equal(tooling.disposition.operation, "external-blocked");
@@ -307,11 +309,13 @@ describe("definition-owned Gate transition boundary", () => {
     assert.deepEqual(operations, ["retry", "retry", "retry", "retry", "defer"]);
   });
 
-  it("keeps PASS next steps in the phase definition and never grants approval to Draft", () => {
+  it("keeps report wording route-free and never grants approval to Draft", () => {
     const draft = resolveGateTransition(facts({ phase: "draft" }));
     const spec = resolveGateTransition(facts({ phase: "spec" }));
-    assert.equal(draft.plan.phaseDefinition.nextStepId, "spec");
-    assert.equal(spec.plan.phaseDefinition.nextStepId, "approval");
+    assert.equal(Object.hasOwn(draft.plan.phaseDefinition, "nextStepId"), false);
+    assert.equal(Object.hasOwn(spec.plan.phaseDefinition, "nextStepId"), false);
+    assert.equal(draft.advance.operation, "advance");
+    assert.equal(spec.advance.operation, "advance");
     for (const operation of ["retry", "repair", "defer", "external-blocked", "blocked"]) {
       const decision = resolveGateTransition(facts({
         phase: "draft", result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
@@ -356,9 +360,10 @@ describe("definition-owned Gate transition boundary", () => {
     });
   });
 
-  it("keeps task-spec on the approval route and out of materialized Task Steps", () => {
+  it("keeps task-spec as a flow advance and out of materialized Task Steps", () => {
     const decision = resolveGateTransition(facts({ phase: "task-spec", result: "pass" }));
-    assert.equal(decision.plan.phaseDefinition.nextStepId, "approval");
+    assert.equal(decision.advance.operation, "advance");
+    assert.equal(Object.hasOwn(decision.plan.phaseDefinition, "nextStepId"), false);
     const definition = buildCurrentFlowDefinition();
     assert.deepEqual(definition.taskTemplate.steps.map((step) => step.id), ["task-impl", "task-review", "task-gate"]);
   });
@@ -508,7 +513,7 @@ describe("definition-owned Gate transition boundary", () => {
     assert.throws(() => new GateTransitionDecision({}), /created only by definition/);
   });
 
-  it("requires a sealed Decision for Gate post lifecycle and preserves its action ordering", () => {
+  it("requires a sealed Decision and limits Gate post lifecycle to decision-owned actions", () => {
     assert.throws(() => resolveLifecycle({
       event: "gate:post",
       currentStepId: "spec-gate",
@@ -527,9 +532,9 @@ describe("definition-owned Gate transition boundary", () => {
         && action.step === "spec-gate"
         && action.status === "done"
     ));
-    const effectIndex = actions.findIndex((action) => action instanceof ExecuteSideEffects);
     assert.ok(doneIndex >= 0);
-    assert.ok(effectIndex > doneIndex);
+    assert.equal(actions.length, 2);
+    assert.equal(actions[1] instanceof IncrementMetric, true);
   });
 
   it("keeps decision construction and policy branches out of consumers", () => {

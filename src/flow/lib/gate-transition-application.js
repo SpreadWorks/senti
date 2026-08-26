@@ -103,7 +103,7 @@ export function projectGateTransitionDecision(decision) {
   return new GateTransitionActionProjection(PROJECTION_TOKEN, decision);
 }
 
-/** Apply a Definition-owned compatibility projection without exposing it as routing input. */
+/** Apply a Definition-owned public recovery projection without exposing routing authority. */
 export function applyGatePublicOutcomeProjection(commandResult, projection) {
   if (commandResult === null || typeof commandResult !== "object" || Array.isArray(commandResult)) {
     throw new Error("Gate public outcome projection requires a command result");

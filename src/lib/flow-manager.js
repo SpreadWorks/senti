@@ -697,6 +697,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  applyRetroStaleEvidenceRecoveryDecision(input = {}) {
+    return this._store.applyRetroStaleEvidenceRecoveryDecision({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   repairTestReview(input = {}) {
     return this._store.repairTestReview({
       ...input,

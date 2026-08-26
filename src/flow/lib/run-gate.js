@@ -50,7 +50,6 @@ import { appendCanonicalIssueLogEntry } from "./set-issue-log.js";
 import {
   resolveGatePhaseFromState,
   resolveGateStepId,
-  resolveScopedGateStepId,
 } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract.js";
@@ -123,35 +122,6 @@ export async function completeGateArtifactBeforeSemanticEvaluation({
   }
   return evaluateSemanticGuardrail(completed);
 }
-
-/**
- * Execute gate PASS side effects driven by definition's sideEffects attribute.
- * Looks up sideEffects from the definition for the given phase, then dispatches.
- * Called from registry.js gate post hook when result is "pass".
- *
- * @param {object} ctx - flow command context with flowManager
- * @param {string} phase - gate phase (e.g. "task-impl", "draft")
- */
-export async function executeGateSideEffects(ctx, phase, {
-  stepId: explicitStepId = null,
-  taskId = null,
-} = {}) {
-  const { deriveNextAction } = await import("../definition.js");
-  const fm = ctx.flowManager;
-  const invocationState = ctx.flowState || (
-    ctx.specId ? fm.loadReadOnly(ctx.specId) : fm.load()
-  );
-  const stepId = explicitStepId || resolveScopedGateStepId(invocationState, phase);
-  const scope = stepId === "task-gate" ? "task" : "flow";
-  const derived = deriveNextAction({ scope, stepId, context: invocationState });
-  const sideEffects = derived?.sideEffects;
-  if (!sideEffects || sideEffects.length === 0) return;
-
-  // Task overview is published by the active task-impl Activity. No gate
-  // post-effect is permitted to recreate a source-era writer.
-  void sideEffects;
-}
-
 
 // ---------------------------------------------------------------------------
 // Level / phase validation
@@ -1377,7 +1347,6 @@ export function buildGateResultArtifact({
       evaluations: evaluations || [],
       nextAction: report.nextAction,
     },
-    next: projectGateResultOutcome(phase, verdict).nextStepId,
   };
 }
 
@@ -1561,7 +1530,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 // Read-only Gate observation support
 // ---------------------------------------------------------------------------
 
-import { projectGateResultOutcome, resolveGateTransition } from "../definition.js";
+import { gateReportPrescription, resolveGateTransition } from "../definition.js";
 
 const GATE_OBSERVATION_PHASES = VALID_GATE_PHASES;
 
@@ -3100,14 +3069,13 @@ function nextActionFromGateEvaluations(evaluations, prescription) {
 }
 
 function gatePass(level, phase, targetPath, evaluations, warnings) {
-  const projection = projectGateResultOutcome(phase, "pass");
   const artifacts = {
     target: targetPath,
     level,
     phase,
     evaluations: evaluations || [],
     reasons: reasonsFromEvaluations(evaluations),
-    nextAction: nextActionFromGateEvaluations(evaluations || [], projection.prescription),
+    nextAction: nextActionFromGateEvaluations(evaluations || [], gateReportPrescription(phase, "pass")),
   };
   if (Array.isArray(warnings) && warnings.length > 0) {
     artifacts.warnings = warnings;
@@ -3116,41 +3084,10 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
     result: "pass",
     changed: [],
     artifacts,
-    next: projection.nextStepId,
   };
 }
 
-export class GateFailureRecovery {
-  constructor({ failureCode, recoveryCommand, recoveryHint }) {
-    for (const [field, value] of Object.entries({ failureCode, recoveryCommand, recoveryHint })) {
-      if (typeof value !== "string" || value.trim() === "") {
-        throw new Error(`gate failure recovery ${field} must be a non-empty string`);
-      }
-      this[field] = value.trim();
-    }
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return {
-      failureCode: this.failureCode,
-      recoveryCommand: this.recoveryCommand,
-      recoveryHint: this.recoveryHint,
-    };
-  }
-}
-
-const DRAFT_GATE_REOPEN_RECOVERY = new GateFailureRecovery({
-  failureCode: "DRAFT_GATE_REOPEN_REQUIRED",
-  recoveryCommand: "sennel flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
-  recoveryHint: "Run the supplied reopen-draft command to invalidate obsolete draft review evidence, then continue the normal Flow.",
-});
-
-function gateFail(level, phase, targetPath, evaluations, issues, recovery = null) {
-  const projection = projectGateResultOutcome(phase, "fail");
-  if (recovery != null && !(recovery instanceof GateFailureRecovery)) {
-    throw new Error("gate failure recovery must be a GateFailureRecovery");
-  }
+function gateFail(level, phase, targetPath, evaluations, issues) {
   const failedSemanticEvaluations = Array.isArray(evaluations)
     && evaluations.some((entry) => entry?.result === "fail" && entry?.authority !== "mechanical");
   const failedMechanicalEvaluations = Array.isArray(evaluations)
@@ -3166,9 +3103,9 @@ function gateFail(level, phase, targetPath, evaluations, issues, recovery = null
   const nextAction = observations
     ? new NextAction({
         diagnosis: new Diagnosis({ summary: `${observations.length} structural issue(s).`, observations }),
-        prescription: projection.prescription,
+        prescription: gateReportPrescription(phase, "fail"),
       }).toJSON()
-    : nextActionFromGateEvaluations(evaluations || [], projection.prescription);
+    : nextActionFromGateEvaluations(evaluations || [], gateReportPrescription(phase, "fail"));
   return {
     result: "fail",
     changed: [],
@@ -3185,10 +3122,8 @@ function gateFail(level, phase, targetPath, evaluations, issues, recovery = null
           ? "mechanical_guardrail_fail"
           : "mechanical",
       ...(!failedSemanticEvaluations ? { failureCode: "GATE_EXTERNAL_BLOCKED" } : {}),
-      ...(recovery ? recovery.toJSON() : {}),
       nextAction,
     },
-    next: projection.nextStepId,
   };
 }
 
@@ -3225,14 +3160,13 @@ function gateRequiredEvaluationFail(level, phase, targetPath, result) {
  * @param {boolean} args.skipGuardrail
  * @param {Object} [args.ctx] - optional context for retry guards (spec 228)
  * @param {Object} [args.guardrailPromptOptions] - optional guardrail prompt context
- * @param {GateFailureRecovery} [args.structuralRecovery] - recovery for structural text-check failures
  */
 export async function runGateFlow(args) {
   const {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
     ctx, guardrailPromptOptions = {}, checkGuardrailFn = checkGuardrail,
-    authoritativeEvaluations = [], structuralRecovery = null,
+    authoritativeEvaluations = [],
   } = args;
   const artifactRoot = args.artifactRoot || root;
   const priorMemoryMarkdown = "";
@@ -3251,7 +3185,7 @@ export async function runGateFlow(args) {
 
   const issues = textCheck();
   if (issues.length > 0) {
-    return gateFail(level, phase, targetPath, [], issues, structuralRecovery);
+    return gateFail(level, phase, targetPath, [], issues);
   }
 
   const ownedEvaluations = authoritativeEvaluations.map((evaluation) => ({ ...evaluation }));
@@ -3635,7 +3569,6 @@ export class RunGateCommand extends FlowCommand {
               staleArtifacts: [...staleEvidence.artifactNames],
               evidenceRefresh: evidenceRefresh.toJSON(),
             },
-            next: null,
           };
         }
       } catch (error) {

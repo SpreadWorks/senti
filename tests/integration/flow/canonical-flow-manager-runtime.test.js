@@ -37,7 +37,7 @@ import { attachedCanonicalReviewWorkUnit } from "../../../src/flow/lib/canonical
 import SetReviewEvidenceCommand from "../../../src/flow/lib/set-review-evidence.js";
 import RunRecoverReviewPassCommand from "../../../src/flow/lib/run-recover-review-pass.js";
 import RunUpdateOverviewCommand from "../../../src/flow/lib/run-update-overview.js";
-import RunGateCommand, { appendIssueLogFromGateResult, executeGateSideEffects } from "../../../src/flow/lib/run-gate.js";
+import RunGateCommand, { appendIssueLogFromGateResult } from "../../../src/flow/lib/run-gate.js";
 import { CanonicalGatePromotion, canonicalGateRevision } from "../../../src/flow/lib/canonical-gate-artifacts.js";
 import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
 import {
@@ -86,6 +86,7 @@ import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js
 import { validWorkerHandoffSpec } from "../../support/infrastructure/worker-artifact.js";
 import {
   canonicalFixtureProducerResult,
+  confirmCanonicalFixtureStep,
   FlowAtStepFixture,
   TaskLifecycleFixture,
 } from "../../support/infrastructure/flow-setup.js";
@@ -201,15 +202,7 @@ function confirmFixtureStep(manager, stepId, opts = {}) {
   if (Object.hasOwn(opts, "canonicalCommandResult")) {
     return manager.updateStepStatus({ stepId, requestedStatus: "done" }, opts);
   }
-  const state = manager.canonicalState(opts.specId);
-  const canonicalCommandResult = canonicalFixtureProducerResult(state, stepId, {
-    flowManager: manager,
-    specId: opts.specId,
-  });
-  return manager.updateStepStatus(
-    { stepId, requestedStatus: "done" },
-    canonicalCommandResult === null ? opts : { ...opts, canonicalCommandResult },
-  );
+  return confirmCanonicalFixtureStep(manager, opts.specId, stepId);
 }
 
 function attemptHistoryBytes(nodeId, logicalKey, payload, attempt = 1) {
@@ -435,9 +428,16 @@ function acceptanceInputWrites(manager, specId) {
       nonBlockingImprovements: [],
       canonicalEvidence: { phase: "impl", disposition: "PASS", findings: [] },
     })],
-    ["impl-gate", () => publishAttemptArtifact(manager, specId, "impl-gate", "impl.gate", {
-      result: "pass",
-      artifacts: { phase: "integration", issues: [], evaluations: [], observations: [] },
+    ["impl-gate", () => manager.publishCurrentAttemptResult({
+      specId,
+      commandResult: new CanonicalGatePromotion({
+        state: manager.canonicalState(specId),
+        phase: "integration",
+        nodeId: "impl-gate",
+      }).promote({
+        result: "pass",
+        artifacts: { issues: [], evaluations: [], observations: [] },
+      }),
     })],
     ["retro", () => manager.publishArtifacts({
       specId,
@@ -4961,15 +4961,6 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
 
     const location = manager.specLocation(created.specId);
-    const before = fs.readFileSync(location.activitiesFile, "utf8");
-    await executeGateSideEffects({
-      root: repository,
-      flowManager: manager,
-      flowState: manager.load(created.specId),
-      specId: created.specId,
-    }, "task-impl", { stepId: "T-1-gate", taskId: "T-1" });
-
-    assert.equal(fs.readFileSync(location.activitiesFile, "utf8"), before);
     assert.equal(fs.existsSync(path.join(location.directory, "spec.md")), false);
     assert.equal(fs.existsSync(path.join(repository, "specs", created.specId, "spec.json")), false);
   });
@@ -5616,7 +5607,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
     const passDecision = resolveGateTransition(passFacts);
     assert.equal(passDecision.disposition.operation, "pass");
-    assert.equal(passDecision.plan.phaseDefinition.nextStepId, "retro");
+    assert.equal(Object.hasOwn(passDecision.plan.phaseDefinition, "nextStepId"), false);
+    assert.equal(passDecision.advance.operation, "advance");
     const reloadedManager = new FlowManager({ root: passing.repository, mainRoot: passing.repository, inWorktree: false });
     const reloadedDecision = resolveGateTransition(readCurrentGateTransitionFacts({
       flowManager: reloadedManager, flowState: reloadedManager.load(passing.specId), phase: "integration",

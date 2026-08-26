@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  StaleTestEvidenceMismatch,
-  StaleTestEvidenceRefresh,
-} from "../../../src/flow/lib/stale-test-evidence-refresh.js";
+import { StaleTestEvidenceMismatch } from "../../../src/flow/lib/stale-test-evidence-refresh.js";
 
 const PREVIOUS = "a".repeat(64);
 const CURRENT = "b".repeat(64);
@@ -40,50 +37,5 @@ describe("canonical stale test evidence refresh", () => {
       ]),
       currentFingerprint: CURRENT,
     }), /inconsistent repair fingerprints/);
-  });
-
-  it("requires the canonical Version Store for recovery", () => {
-    const refresh = new StaleTestEvidenceRefresh({
-      previousFingerprint: PREVIOUS,
-      currentFingerprint: CURRENT,
-    });
-
-    assert.throws(() => refresh.recover({
-      state: { specId: "demo" },
-      flowManager: {},
-      reason: "stale evidence",
-    }), /canonical Version Store/);
-  });
-
-  it("delegates recovery to the typed rewind operation without mutating artifact files", () => {
-    const calls = [];
-    const mismatch = new StaleTestEvidenceMismatch({
-      previousFingerprint: PREVIOUS,
-      currentFingerprint: CURRENT,
-      artifactNames: ["test.execute", "test.result.review"],
-    });
-
-    const result = mismatch.recover({
-      state: { schemaRevision: 3, specId: "demo" },
-      flowManager: {
-        rewindTestEvidence(input) { calls.push(input); },
-      },
-      reason: "post-gate implementation changed",
-      sourceStep: "retro",
-    });
-
-    assert.deepEqual(calls, [{
-      specId: "demo",
-      reason: "post-gate implementation changed",
-      sourceStep: "retro",
-    }]);
-    assert.deepEqual(result.toJSON(), {
-      recovered: true,
-      previousFingerprint: PREVIOUS,
-      currentFingerprint: CURRENT,
-      invalidatedArtifacts: ["test.execute", "test.result.review"],
-      invalidations: [],
-      activeStep: "test-execute",
-    });
   });
 });

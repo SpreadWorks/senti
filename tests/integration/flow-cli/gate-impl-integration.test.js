@@ -249,7 +249,17 @@ function setupFixture(tmp, {
     request: "Verify implementation gate behavior.",
     execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
     specRecord: { ...specJson, tasks: [] },
-  }).create().registerActive();
+  }).create();
+  const gateTask = specJson.tasks?.[0] ?? {
+    id: "T-1",
+    title: "Integration Gate fixture task",
+    goal: "Exercise the canonical Task Gate boundary.",
+    acceptance: [],
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  };
+  fixture.addTask(gateTask).registerActive();
 
   if (integrationTrustRequirementIds) {
     publishIntegrationDesignArtifacts(fixture, flowManager, SPEC_ID, integrationTrustRequirementIds);
@@ -263,9 +273,36 @@ function setupFixture(tmp, {
   }
   fixture.settle("implement");
 
-  if (integrationTrustRequirementIds) {
-    publishIntegrationExecutionArtifacts(fixture, flowManager, SPEC_ID, integrationTrustRequirementIds);
+  fixture.activate(`${gateTask.id}-impl`, { settlePredecessors: false });
+  fixture.settle(`${gateTask.id}-impl`);
+  fixture.activate(`${gateTask.id}-review`, { settlePredecessors: false });
+  fixture.settle(`${gateTask.id}-review`);
+  fixture.activate(`${gateTask.id}-gate`, { settlePredecessors: false });
+
+  if (!integrationTrustRequirementIds) {
+    for (let i = 0; i < (gateRetry || 0); i++) {
+      flowManager.incrementMetric("task-impl", "gateRetry", { specId: SPEC_ID });
+    }
+
+    if (seedIssueLog) {
+      for (const n of [1, 2, 3]) {
+        flowManager.appendIssueLog({
+          specId: SPEC_ID,
+          idempotencyKey: `gate-seed-${n}`,
+          entry: {
+            step: `${gateTask.id}-gate`,
+            phase: "task-impl",
+            reason: `seeded FAIL reason ${n}`,
+          },
+        });
+      }
+    }
+    return { stubPath, flowManager, location: fixture.location() };
   }
+
+  fixture.settle(`${gateTask.id}-gate`);
+
+  publishIntegrationExecutionArtifacts(fixture, flowManager, SPEC_ID, integrationTrustRequirementIds);
 
   fixture.activate("impl-review");
   publishAttemptArtifact(flowManager, SPEC_ID, "impl-review", "impl.review", {
@@ -278,24 +315,6 @@ function setupFixture(tmp, {
     canonicalEvidence: { phase: "impl", disposition: "PASS", findings: [] },
   });
   fixture.settle("impl-review").activate("impl-gate");
-
-  for (let i = 0; i < (gateRetry || 0); i++) {
-    flowManager.incrementMetric("task-impl", "gateRetry", { specId: SPEC_ID });
-  }
-
-  if (seedIssueLog) {
-    for (const n of [1, 2, 3]) {
-      flowManager.appendIssueLog({
-        specId: SPEC_ID,
-        idempotencyKey: `gate-seed-${n}`,
-        entry: {
-        step: "task-gate",
-        phase: "task-impl",
-        reason: `seeded FAIL reason ${n}`,
-        },
-      });
-    }
-  }
 
   return { stubPath, flowManager, location: fixture.location() };
 }
@@ -368,7 +387,7 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(env.data.result, "pass", "gate should PASS despite test file edits");
   });
 
-  it("R3: retry counter at limit → non-zero exit with retry history output", () => {
+  it("R3: display retry history cannot exhaust a fresh canonical Attempt", () => {
     tmp = createTmpDir();
     setupFixture(tmp, {
       initialTest: BASE_TEST,
@@ -378,11 +397,10 @@ describe("gate-impl integration (spec 202)", () => {
     });
 
     const res = runGate(tmp);
-    assert.notEqual(res.status, 0, `expected non-zero exit, got ${res.status}`);
-    const out = (res.stdout || "") + (res.stderr || "");
-    assert.match(out, /gate retry limit exhausted/, "expected retry limit message");
-    assert.match(out, /attempt 1/, "expected retry history attempt listing");
-    assert.match(out, /seeded FAIL reason/, "expected seeded reasons in history");
+    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.data.result, "pass");
+    assert.equal(readCounter(tmp), 0, "PASS resets the display metric without granting it route authority");
   });
 
   it("R4a: gate PASS resets counter to 0", () => {
@@ -449,6 +467,7 @@ describe("gate-impl integration (spec 202)", () => {
       specJson,
       fileMap: { R1: ["tests/dummy.test.js"] },
       capturePromptPath: capturePath,
+      integrationTrustRequirementIds: ["R1"],
       stubResponse: JSON.stringify({
         evaluations: [{
           guardrail_id: "R1",
@@ -458,7 +477,7 @@ describe("gate-impl integration (spec 202)", () => {
       }),
     });
 
-    const res = runGate(tmp);
+    const res = runGate(tmp, [], "integration");
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.data.result, "pass");
@@ -509,16 +528,17 @@ describe("gate-impl integration (spec 202)", () => {
     });
   }
 
-  it("R6-312: task-impl rejects specs with no usable spec.json requirement IDs", () => {
+  it("R6-312: integration rejects specs with no usable spec.json requirement IDs", () => {
     tmp = createTmpDir();
     setupFixture(tmp, {
       initialTest: BASE_TEST,
       modifiedTest: BASE_TEST + "// no usable ids\n",
       specJson: { ...minimalSpecJson(), requirements: [{ id: "   ", desc: "no usable id" }] },
+      integrationTrustRequirementIds: ["REQ-FALLBACK"],
       stubResponse: buildPassResponseJson("REQ-FALLBACK"),
     });
 
-    const res = runGate(tmp);
+    const res = runGate(tmp, [], "integration");
     assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, false);

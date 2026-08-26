@@ -648,15 +648,6 @@ class RegistryLifecycleAdapter {
     }
   }
 
-  async executeSideEffects() {
-    const gateMod = await import("./lib/run-gate.js");
-    const phase = this.result?.artifacts?.phase || this.ctx.phase;
-    await gateMod.executeGateSideEffects(this.ctx, phase, {
-      stepId: this.gateStepId,
-      taskId: this.gateTaskId,
-    });
-  }
-
   outboxStore() {
     return this.finalizeStateOwner().outbox();
   }
@@ -1449,23 +1440,6 @@ export const FLOW_COMMANDS = {
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
-    "rewind-test-evidence": {
-      helpKey: "flow.run.rewind-test-evidence",
-      command: () => import("./lib/run-rewind-test-evidence.js"),
-      args: {
-        flags: FLOW_TARGET_GUARD_FLAGS,
-        options: FLOW_RUN_OPTIONS,
-      },
-      help: [
-        `Usage: sennel flow run rewind-test-evidence [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
-        "",
-        "Recover a flow-level impl-gate blocked only by stale test evidence after a materialized implementation repair; exact runId, spec, and Issue identity guards are required, with no step, fingerprint, or allowlist input.",
-        "",
-        "Options:",
-        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
-        ...FLOW_TARGET_GUARD_HELP_LINES,
-      ].join("\n"),
-    },
     gate: {
       helpKey: "flow.run.gate",
       failureOwnership: DefinitionFailureOwnership.commandPrimaryWithDispatcherFallback(),
@@ -1532,10 +1506,11 @@ export const FLOW_COMMANDS = {
             }
           }
           if (ctx.gateTransitionDecision.facts.result === "fail") {
-            ctx.flowManager.recordGateObservationDecision({
+            const stepAttempt = ctx.flowManager.recordGateObservationDecision({
               specId,
               decision: ctx.gateTransitionDecision,
             });
+            if (stepAttempt !== null) result.stepAttempt = stepAttempt.toJSON();
             // Failure recording changes only the persisted observation
             // envelope. Re-read it so repair evidence is visible to the
             // Definition reducer; registry still chooses no route.

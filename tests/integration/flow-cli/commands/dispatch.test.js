@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { createTmpDir, removeTmpDir } from "../../../support/builders/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../../support/infrastructure/git-repo.js";
 import {
+  canonicalImplReviewArtifact,
   CanonicalFlowFixture,
   draftDocumentWithPendingQuestions,
   FlowAtStepFixture,
@@ -230,20 +231,27 @@ function acceptanceDecisionScenario(root) {
     },
   }).create().registerActive();
   const repairFingerprint = "a".repeat(64);
-  const sourceFinding = {
-    findingId: "source-F1",
+  const implReview = canonicalImplReviewArtifact(created.state(), { blockingFindings: [{
+    findingKey: "source-F1",
+    title: "Cataloged acceptance source",
+    failureMode: "unresolved_acceptance_source",
+    file: null,
     issue: "An original cataloged finding remains visible.",
     detail: "This detail comes from the authoritative implementation-review attempt.",
     suggestion: "Resolve the source finding before a later review.",
     requirementId: "R1",
-  };
+    guardrailId: null,
+    disposition: "informational",
+    rationale: "The cataloged acceptance source remains unresolved.",
+  }] });
+  const sourceFinding = implReview.blockingFindings[0];
   const deferred = {
     findingId: "F1",
     sourceStep: "impl-review",
     sourceArtifact: "steps/impl/review/result.json",
-    sourceFindingId: "source-F1",
+    sourceFindingId: sourceFinding.findingId,
     finalDisposition: "still_open",
-    evidenceRefs: ["steps/impl/review/result.json#source-F1"],
+    evidenceRefs: [`steps/impl/review/result.json#${sourceFinding.findingId}`],
   };
   created.activate("impl-review");
   manager.publishArtifacts({
@@ -253,7 +261,7 @@ function acceptanceDecisionScenario(root) {
       {
         logicalKey: "impl.review",
         mediaType: "application/json",
-        bytes: attemptHistory("impl.review", { blockingFindings: [sourceFinding] }),
+        bytes: attemptHistory("impl.review", implReview),
       },
       {
         logicalKey: "flow.findings",
@@ -586,7 +594,7 @@ function assertReadOnlyDecisionViewLifecycle({
   });
 
   const fullResult = invokeViewChoice(root, full);
-  assert.equal(fullResult.status, 0, fullResult.stderr);
+  assert.equal(fullResult.status, 0, fullResult.stderr || fullResult.stdout);
   assert.equal(typeof fullResult.envelope.data.markdown, "string");
   const afterFull = decisionSnapshot(location);
   const fullViews = viewSnapshot(location);

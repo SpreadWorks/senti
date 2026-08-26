@@ -21,7 +21,12 @@ import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
-import { canonicalFixtureProducerResult, CanonicalFlowFixture } from "../../support/infrastructure/flow-setup.js";
+import {
+  canonicalFixtureProducerResult,
+  canonicalImplReviewArtifact,
+  CanonicalFlowFixture,
+  confirmCanonicalFixtureStep,
+} from "../../support/infrastructure/flow-setup.js";
 import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { validWorkerHandoffSpec, workerArtifactJson } from "../../support/infrastructure/worker-artifact.js";
@@ -212,9 +217,27 @@ function commandArtifacts(stepId, flowManager, specId, implReviewRuns, histories
     }, histories);
   }
   if (stepId === "impl-review") {
-    publishAttemptArtifact(flowManager, specId, stepId, "impl.review", implReviewRuns === 1
-      ? { phase: "impl", verdict: "REJECTED", blockingFindings: [{ findingKey: "F1" }], nonBlockingImprovements: [] }
-      : { phase: "impl", verdict: "PASS", blockingFindings: [], nonBlockingImprovements: [] }, histories);
+    const finding = {
+      findingKey: "F1",
+      title: "Repair the implementation",
+      failureMode: "missing_requirement_behavior",
+      file: "src/implementation.js",
+      requirementId: "R1",
+      guardrailId: null,
+      issue: "The first implementation review requires the deterministic repair.",
+      suggestion: "Apply the cataloged implementation repair.",
+      disposition: "must-fix",
+      rationale: "R1 requires the repaired implementation behavior.",
+    };
+    const findings = implReviewRuns === 1
+      ? [finding]
+      : [];
+    publishAttemptArtifact(flowManager, specId, stepId, "impl.review", canonicalImplReviewArtifact(
+      flowManager.load(),
+      {
+      blockingFindings: findings,
+      },
+    ), histories);
   }
 }
 
@@ -330,8 +353,8 @@ describe("deterministic full Flow worker handoff", () => {
           return;
         }
         if (current === nodeId) {
-          if (entry.taskId !== null && entry.stepId === "task-gate") {
-            fixture.settle(nodeId);
+          if (entry.stepId === "task-gate" || entry.stepId === "impl-gate") {
+            confirmCanonicalFixtureStep(flowManager, specId, nodeId);
           } else {
             const canonicalCommandResult = commandPublishedPrimaryArtifact.has(entry.stepId)
               ? null

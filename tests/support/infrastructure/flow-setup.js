@@ -15,6 +15,7 @@ import { FlowArtifactCatalog } from "../../../src/lib/flow-version.js";
 import { CanonicalGatePromotion } from "../../../src/flow/lib/canonical-gate-artifacts.js";
 import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
 import { resolveGateTransition } from "../../../src/flow/definition.js";
+import { ReviewFindingFingerprint } from "../../../src/flow/lib/finding-disposition-policy.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -33,6 +34,107 @@ export function makeContainer(root, options = {}) {
 /** Convenience accessor used by tests: returns the per-test container's flowManager. */
 export function makeFlowManager(root, options = {}) {
   return makeContainer(root, options).get("flowManager");
+}
+
+export function canonicalImplReviewFinding(input) {
+  const identity = {
+    ...input,
+    scope: "flow",
+    phase: "impl-review",
+    taskId: null,
+    category: input.failureMode,
+  };
+  delete identity.findingId;
+  delete identity.fingerprint;
+  const fingerprint = ReviewFindingFingerprint.fromFinding(identity).value;
+  return Object.freeze({ ...input, findingId: fingerprint, fingerprint });
+}
+
+export function canonicalImplReviewArtifact(flowState, {
+  blockingFindings = [],
+  nonBlockingImprovements = [],
+  repairFingerprint = "a".repeat(64),
+  generatedAt = "2026-08-14T00:00:00.000Z",
+} = {}) {
+  const canonicalBlocking = blockingFindings.map(canonicalImplReviewFinding);
+  const canonicalAdvisory = nonBlockingImprovements.map(canonicalImplReviewFinding);
+  return Object.freeze({
+    version: 1,
+    phase: "impl",
+    generatedAt,
+    runId: flowState.runId,
+    taskId: null,
+    planRewindAt: null,
+    verdict: canonicalBlocking.length > 0 ? "REJECTED" : canonicalAdvisory.length > 0 ? "ADVISORY" : "PASS",
+    summary: {
+      blocking: canonicalBlocking.length,
+      nonBlocking: canonicalAdvisory.length,
+      total: canonicalBlocking.length + canonicalAdvisory.length,
+    },
+    blockingFindings: canonicalBlocking,
+    nonBlockingImprovements: canonicalAdvisory,
+    repairFingerprint,
+  });
+}
+
+/**
+ * Confirm an active fixture Attempt through the same typed boundary used by
+ * its production owner. Gate leaves publish canonical evidence and obtain a
+ * Definition decision; ordinary producer leaves attach their canonical
+ * command result to the status update.
+ */
+export function confirmCanonicalFixtureStep(flowManager, specId, nodeId, status = "done") {
+  let current = flowManager.loadReadOnly(specId);
+  const resolvedSpecId = current.specId;
+  const node = flattenSteps(current.steps).find((entry) => entry.id === nodeId) ?? null;
+  if (node === null) throw new Error(`canonical fixture node is absent: ${nodeId}`);
+  if (["done", "skipped"].includes(node.status)) return current;
+  if (current.currentNodeId !== nodeId) {
+    flowManager.updateStepStatus(
+      { stepId: nodeId, requestedStatus: "in_progress" },
+      { specId: resolvedSpecId },
+    );
+    current = flowManager.loadReadOnly(resolvedSpecId);
+  }
+  const task = current.tasks.find((candidate) => (
+    candidate.steps.some((step) => step.id === nodeId)
+  )) ?? null;
+  const gatePhase = status === "done"
+    ? (task?.steps.at(-1)?.id === nodeId ? "task-impl" : nodeId === "impl-gate" ? "integration" : null)
+    : null;
+  if (gatePhase !== null) {
+    let facts = readCurrentGateTransitionFacts({
+      flowManager,
+      flowState: current,
+      phase: gatePhase,
+    });
+    if (facts === null) {
+      const commandResult = new CanonicalGatePromotion({
+        state: flowManager.canonicalState(resolvedSpecId),
+        phase: gatePhase,
+        nodeId,
+        ...(task === null ? {} : { activeTaskId: task.id }),
+      }).promote({ result: "pass", changed: [], artifacts: { evaluations: [], reasons: [] } });
+      flowManager.publishCurrentAttemptResult({ specId: resolvedSpecId, commandResult });
+      facts = readCurrentGateTransitionFacts({
+        flowManager,
+        flowState: flowManager.loadReadOnly(resolvedSpecId),
+        phase: gatePhase,
+      });
+    }
+    const gateTransitionDecision = resolveGateTransition(facts);
+    return flowManager.updateStepStatus(
+      { stepId: nodeId, requestedStatus: status },
+      { specId: resolvedSpecId, gateTransitionDecision },
+    );
+  }
+  const canonicalCommandResult = status === "done"
+    ? canonicalFixtureProducerResult(current, nodeId, { flowManager, specId: resolvedSpecId })
+    : null;
+  return flowManager.updateStepStatus(
+    { stepId: nodeId, requestedStatus: status },
+    { specId: resolvedSpecId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
+  );
 }
 
 export function draftDocumentWithPendingQuestions({
@@ -373,52 +475,7 @@ export class CanonicalFlowFixture {
         this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId: this.specId });
       }
     }
-    const current = this.state();
-    const task = current.tasks.find((candidate) => candidate.steps.some((step) => step.id === nodeId)) ?? null;
-    if (status === "done" && task?.steps.at(-1)?.id === nodeId) {
-      const commandResult = new CanonicalGatePromotion({
-        state: this.flowManager.canonicalState(this.specId),
-        phase: "task-impl",
-        nodeId,
-        activeTaskId: task.id,
-      }).promote({ result: "pass", changed: [], artifacts: { evaluations: [], reasons: [] } });
-      this.flowManager.publishCurrentAttemptResult({ specId: this.specId, commandResult });
-      const flowState = this.state();
-      const gateTransitionDecision = resolveGateTransition(readCurrentGateTransitionFacts({
-        flowManager: this.flowManager,
-        flowState,
-        phase: "task-impl",
-      }));
-      this.flowManager.updateStepStatus(
-        { stepId: nodeId, requestedStatus: status },
-        { specId: this.specId, gateTransitionDecision },
-      );
-      return this;
-    }
-    if (status === "done" && nodeId === "impl-gate") {
-      const commandResult = new CanonicalGatePromotion({
-        state: this.flowManager.canonicalState(this.specId), phase: "integration", nodeId,
-      }).promote({ result: "pass", changed: [], artifacts: { evaluations: [], reasons: [] } });
-      this.flowManager.publishCurrentAttemptResult({ specId: this.specId, commandResult });
-      const gateTransitionDecision = resolveGateTransition(readCurrentGateTransitionFacts({
-        flowManager: this.flowManager, flowState: this.state(), phase: "integration",
-      }));
-      this.flowManager.updateStepStatus(
-        { stepId: nodeId, requestedStatus: status },
-        { specId: this.specId, gateTransitionDecision },
-      );
-      return this;
-    }
-    const canonicalCommandResult = status === "done"
-      ? canonicalFixtureProducerResult(current, nodeId, { flowManager: this.flowManager, specId: this.specId })
-      : null;
-    this.flowManager.updateStepStatus(
-      { stepId: nodeId, requestedStatus: status },
-      {
-        specId: this.specId,
-        ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }),
-      },
-    );
+    confirmCanonicalFixtureStep(this.flowManager, this.specId, nodeId, status);
     return this;
   }
 

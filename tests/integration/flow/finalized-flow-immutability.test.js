@@ -15,7 +15,7 @@ import {
 } from "../../../src/flow/lib/current-flow-state.js";
 import {
   CanonicalFlowFixture,
-  canonicalFixtureProducerResult,
+  confirmCanonicalFixtureStep,
   makeFlowManager,
 } from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
@@ -63,15 +63,7 @@ function scenarioValidityArtifact(location) {
 }
 
 function confirmFixtureStep(manager, specId, stepId) {
-  const canonicalCommandResult = canonicalFixtureProducerResult(
-    manager.canonicalState(specId),
-    stepId,
-    { flowManager: manager, specId },
-  );
-  return manager.updateStepStatus(
-    { stepId, requestedStatus: "done" },
-    { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
-  );
+  return confirmCanonicalFixtureStep(manager, specId, stepId);
 }
 
 function finalizedFixture() {
