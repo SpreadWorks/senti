@@ -595,6 +595,82 @@ describe("flow get next-action", () => {
     assert.deepEqual(fs.readFileSync(canonicalFlowFile(scenario)), persisted);
   });
 
+  it("claims a pending approval before exposing its semantic approval boundary", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp).beforeFlowStep("approval");
+    const manager = managerFor(scenario);
+    const before = fs.readFileSync(canonicalFlowFile(scenario));
+    const activityCount = manager.activityLedger(SPEC_ID).length;
+
+    const first = runCli(tmp, ["flow", "get", "next-action"]);
+    const repeated = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(first.exitCode, 0);
+    assert.equal(first.envelope.data.step, "approval");
+    assert.equal(first.envelope.data.requires_approval, false);
+    assert.equal(first.envelope.data.auto_approval_choice_id, undefined);
+    assert.equal(first.envelope.data.directive.actionId, "CLAIM_NEXT_ACTION");
+    assert.equal(first.envelope.data.directive.actionPrompt, undefined);
+    assert.equal(stateFor(scenario).currentNodeId, null);
+    assert.equal(manager.activityLedger(SPEC_ID).length, activityCount);
+    assert.deepEqual(fs.readFileSync(canonicalFlowFile(scenario)), before);
+    assert.equal(repeated.exitCode, 0);
+    assert.equal(repeated.envelope.data.directive.actionId, "CLAIM_NEXT_ACTION");
+
+    const claimed = runCli(tmp, ["flow", "run", "claim-next-action"]);
+    const active = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(claimed.exitCode, 0);
+    assert.equal(stateFor(scenario).currentNodeId, "approval");
+    assert.equal(manager.activityLedger(SPEC_ID).length, activityCount + 1);
+    assert.equal(active.exitCode, 0);
+    assert.equal(active.envelope.data.requires_approval, true);
+    assert.equal(active.envelope.data.directive.kind, "execute_step");
+    assert.equal(active.envelope.data.directive.requiresUserAction, true);
+  });
+
+  it("resolves auto approval only after claiming the pending approval Attempt", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp, { autoApprove: true }).beforeFlowStep("approval");
+
+    const pending = runCli(tmp, ["flow", "get", "next-action"]);
+    assert.equal(pending.exitCode, 0);
+    assert.equal(pending.envelope.data.requires_approval, false);
+    assert.equal(pending.envelope.data.auto_approval_choice_id, undefined);
+    assert.equal(pending.envelope.data.directive.actionId, "CLAIM_NEXT_ACTION");
+    assert.equal(stateFor(scenario).currentNodeId, null);
+
+    const claimed = runCli(tmp, ["flow", "run", "claim-next-action"]);
+    const active = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(claimed.exitCode, 0);
+    assert.equal(stateFor(scenario).currentNodeId, "approval");
+    assert.equal(active.exitCode, 0);
+    assert.equal(active.envelope.data.requires_approval, false);
+    assert.equal(active.envelope.data.auto_approval_choice_id, undefined);
+    assert.equal(active.envelope.data.directive.kind, "execute_step");
+    assert.equal(active.envelope.data.directive.requiresUserAction, false);
+  });
+
+  it("does not attach finalize confirmation to its pending claim", () => {
+    tmp = createTmpDir();
+    const scenario = createScenario(tmp).beforeFlowStep("finalize-commit");
+
+    const pending = runCli(tmp, ["flow", "get", "next-action"]);
+    assert.equal(pending.exitCode, 0);
+    assert.equal(pending.envelope.data.step, "finalize-commit");
+    assert.equal(pending.envelope.data.requires_approval, false);
+    assert.equal(pending.envelope.data.directive.actionId, "CLAIM_NEXT_ACTION");
+
+    const claimed = runCli(tmp, ["flow", "run", "claim-next-action"]);
+    const active = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(claimed.exitCode, 0);
+    assert.equal(active.exitCode, 0);
+    assert.equal(active.envelope.data.requires_approval, true);
+    assert.equal(active.envelope.data.directive.kind, "execute_step");
+  });
+
   it("does not treat Activity metrics as a mutable Task gate-attempt cache", () => {
     tmp = createTmpDir();
     const scenario = createScenario(tmp, { tasks: [taskDocument("T-1")] })

@@ -1000,6 +1000,10 @@ export default class RunDispatchCommand extends FlowCommand {
       throw new Error("approval continuation requires the canonical parent Store operation");
     }
     const state = ctx.flowManager.canonicalState(ctx.specId);
+    // A pending approval projection is dispatcher-owned claim work, not a
+    // semantic approval boundary. Do not create route facts until the Store
+    // has materialized the active Attempt that those facts are bound to.
+    if (state.current?.at(-1) !== "approval" || state.attempt === null) return null;
     const spec = ctx.flowManager.readArtifact({
       specId: ctx.specId,
       logicalKey: "spec.record",

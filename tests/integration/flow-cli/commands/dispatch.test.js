@@ -25,6 +25,8 @@ import {
   FlowDispatchSession,
   FlowDispatchTarget,
 } from "../../../../src/flow/lib/dispatch-invocation.js";
+import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
+import RunRepairPlanGateCommand from "../../../../src/flow/lib/run-repair-plan-gate.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -32,21 +34,24 @@ class DispatchFlowScenario {
   constructor(root, {
     step = "draft",
     autoApprove = false,
+    pending = false,
     specId = "001-dispatch",
     runId = "run-dispatch",
   } = {}) {
     this.root = root;
     this.manager = makeFlowManager(root);
-    this.fixture = new FlowAtStepFixture({
+    const fixtureInput = {
       flowManager: this.manager,
       specId,
       runId,
       request: "Verify canonical dispatch boundaries.",
       execution: { mode: "direct" },
       autoApprove,
-      targetStep: step,
       specRecord: { goal: "Dispatch fixture", requirements: [] },
-    }).create();
+    };
+    this.fixture = pending
+      ? new CanonicalFlowFixture(fixtureInput).create().registerActive().settleBefore(step)
+      : new FlowAtStepFixture({ ...fixtureInput, targetStep: step }).create();
     this.state = this.fixture.state();
   }
 
@@ -917,6 +922,148 @@ describe("flow dispatch CLI", () => {
       assert.match(choice.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
       assert.doesNotMatch(choice.nextAction, /--approve/);
     }
+    assert.equal(fs.existsSync(worker.count), false);
+  });
+
+  it("claims a pending approval before issuing one active approval token", () => {
+    root = createTmpDir("sennel-flow-dispatch-pending-approval-");
+    const worker = installWorker(root, { captureInput: true, failAfterCapture: true });
+    const scenario = new DispatchFlowScenario(root, { step: "approval", pending: true });
+    const location = scenario.fixture.location();
+    const before = decisionSnapshot(location);
+
+    const rejectedPreclaimToken = invoke(scenario, ["--approve", "a".repeat(64)]);
+    assert.notEqual(rejectedPreclaimToken.status, 0);
+    assert.equal(rejectedPreclaimToken.envelope.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
+    assert.deepEqual(decisionSnapshot(location), before);
+
+    const boundary = invoke(scenario);
+
+    assert.equal(boundary.status, 0, boundary.stderr);
+    assert.equal(boundary.envelope.data.dispatch.boundary, "approval_required");
+    assert.equal(boundary.envelope.data.dispatch.dispatchCount, 1);
+    assert.match(boundary.envelope.data.dispatch.approvalToken, /^[a-f0-9]{64}$/);
+    assert.equal(scenario.manager.canonicalState(scenario.state.specId).current.at(-1), "approval");
+    assert.equal(decisionSnapshot(location).approvalReceipts.length, 0);
+    assert.equal(fs.existsSync(worker.count), false);
+    assert.notDeepEqual(decisionSnapshot(location).flowState, before.flowState);
+
+    const resumed = approveApprovalBoundary(root, boundary);
+
+    assert.notEqual(resumed.status, 0, "the capture worker deliberately fails after approval continuation");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.deepEqual(
+      decisionSnapshot(location).approvalReceipts.map((receipt) => receipt.approvalToken),
+      [boundary.envelope.data.dispatch.approvalToken],
+    );
+    assert.equal(scenario.manager.canonicalState(scenario.state.specId).current.at(-1), "test");
+  });
+
+  it("claims a pending auto approval before applying its active route facts", () => {
+    root = createTmpDir("sennel-flow-dispatch-pending-auto-approval-");
+    const worker = installWorker(root, { captureInput: true, failAfterCapture: true });
+    const scenario = new DispatchFlowScenario(root, {
+      step: "approval",
+      pending: true,
+      autoApprove: true,
+    });
+
+    const result = invoke(scenario);
+
+    assert.notEqual(result.status, 0, "the capture worker deliberately fails after auto approval continuation");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(scenario.manager.canonicalState(scenario.state.specId).current.at(-1), "test");
+    assert.deepEqual(decisionSnapshot(scenario.fixture.location()).approvalReceipts, []);
+  });
+
+  it("recovers an approval invalidated by plan-gate repair before issuing its token", () => {
+    root = createTmpDir("sennel-flow-dispatch-invalidated-approval-");
+    const worker = installWorker(root);
+    const manager = makeFlowManager(root);
+    const specId = "001-invalidated-approval";
+    const fixture = new CanonicalFlowFixture({
+      flowManager: manager,
+      specId,
+      runId: "run-invalidated-approval",
+      request: "Recover a plan-gate-invalidated approval through dispatch.",
+      execution: { mode: "direct" },
+      specRecord: { goal: "Plan-gate recovery fixture", requirements: [] },
+    }).create().registerActive().activate("spec-gate");
+    const source = {
+      issueLogId: "spec-gate-blocking-evidence",
+      step: "spec-gate",
+      phase: "spec",
+      reason: "The spec gate found a blocking requirement omission.",
+      trigger: "gate post hook (auto)",
+      observations: [{
+        kind: "violation",
+        failureMode: "guardrail-violation",
+        requirementRef: "R-1",
+        where: { file: "spec.json", locator: "requirements[0]" },
+        observed: "The required behavior is absent from the specification.",
+        severity: "blocking",
+        refs: ["R-1"],
+      }],
+      timestamp: "2026-08-13T00:00:00.000Z",
+    };
+    const gateResult = attachCanonicalCommandResultArtifact({
+      result: "fail",
+      artifacts: {
+        phase: "spec",
+        nextAction: { diagnosis: { observations: source.observations } },
+      },
+    }, {
+      logicalKey: "spec.gate",
+      payload: {
+        result: "fail",
+        artifacts: {
+          phase: "spec",
+          nextAction: { diagnosis: { observations: source.observations } },
+        },
+      },
+    });
+    manager.failCurrentAttempt({
+      specId,
+      failure: {
+        category: "semantic",
+        code: "GATE_REJECTED",
+        message: "The spec gate has blocking evidence.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+      commandResult: gateResult,
+    });
+    manager.appendIssueLog({ specId, entry: source, idempotencyKey: source.issueLogId });
+    const repaired = new RunRepairPlanGateCommand().execute({
+      root,
+      mainRoot: root,
+      executionRoot: root,
+      specId,
+      flowManager: manager,
+      flowState: manager.load(specId),
+    });
+    assert.equal(repaired.ok, true, JSON.stringify(repaired));
+
+    for (const stepId of ["spec", "spec-review", "spec-triage", "spec-repair", "spec-gate"]) {
+      fixture.settle(stepId);
+    }
+    const recovered = manager.canonicalState(specId);
+    assert.equal(recovered.current, null);
+    assert.equal(recovered.findNode("approval").status, "invalidated");
+
+    const result = invokeCli(root, [
+      SENNEL,
+      "flow", "run", "dispatch",
+      "--expect-run-id", "run-invalidated-approval",
+      "--expect-spec", specId,
+    ]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.envelope.data.dispatch.boundary, "approval_required");
+    assert.equal(result.envelope.data.dispatch.dispatchCount, 1);
+    assert.match(result.envelope.data.dispatch.approvalToken, /^[a-f0-9]{64}$/);
+    assert.equal(manager.canonicalState(specId).current.at(-1), "approval");
+    assert.equal(decisionSnapshot(fixture.location()).approvalReceipts.length, 0);
     assert.equal(fs.existsSync(worker.count), false);
   });
 

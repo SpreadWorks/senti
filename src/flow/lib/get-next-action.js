@@ -16,7 +16,6 @@ import {
   AwaitAcceptanceDecision,
   AwaitApproval,
   ConfirmAndAdvance,
-  DefinitionRouteTarget,
   deriveNextAction,
   resolveDefinitionRoute,
   resolveDraftTransition,
@@ -535,7 +534,7 @@ function draftQuestionDirective(disposition) {
  * intentionally issued only by the dispatcher boundary.
  */
 function approvalDecisionDirective({ root, state, binding, target, config, action, plan }) {
-  if (target.scope !== "flow" || target.stepId !== "approval" || (plan !== null && !(plan instanceof AwaitApproval))) return null;
+  if (target.scope !== "flow" || target.stepId !== "approval" || !(plan instanceof AwaitApproval)) return null;
   return new ExecuteStepDirective({
     action,
     actionPrompt: new ApprovalDecisionPrompt({ root, config })
@@ -590,23 +589,18 @@ function acceptanceDecisionDirective({ root, state, binding, target, config, pla
 
 function definitionRoutePlanForNextAction(ctx, state, typedState, target) {
   if (target.scope !== "flow") return null;
-  // A pending leaf has no Attempt yet.  It is only a normal start projection;
-  // canonical route facts begin once the Version Store materializes it.
+  // A pending leaf has no Attempt yet. Canonical route facts and semantic
+  // approval boundaries begin only after the Store materializes that Attempt.
   const active = typedState.current?.at(-1) === target.nodeId && typedState.attempt !== null;
+  if (!active) return null;
   if (target.stepId === "approval") {
     const spec = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "spec.record", consumerNodeId: "approval" });
-    const node = typedState.findNode(target.nodeId);
     return resolveDefinitionRoute(approvalRouteFacts({
       state: typedState,
       specDescriptor: spec.descriptor,
       spec: JSON.parse(spec.bytes.toString("utf8")),
-      targetBinding: active ? null : new DefinitionRouteTarget({
-        runId: typedState.runId, specId: typedState.specId, stepId: "approval",
-        attemptId: `pending-${target.nodeId}`, sequence: node.attemptSequence + 1,
-      }),
     }));
   }
-  if (!active) return null;
   if (target.stepId === "acceptance-decision") {
     const review = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "acceptance.review", consumerNodeId: "acceptance-decision" });
     const spec = ctx.flowManager.readArtifact({ specId: state.specId, logicalKey: "spec.record", consumerNodeId: "acceptance-decision" });
@@ -622,11 +616,16 @@ function definitionRoutePlanForNextAction(ctx, state, typedState, target) {
 }
 
 /** Pure compatibility projection for Definition-owned approval routes. */
-export function projectApprovalRequirements({ plan, requiresApproval, autoApproveChoiceId = null } = {}) {
-  const confirming = plan instanceof ConfirmAndAdvance;
+export function projectApprovalRequirements({
+  plan,
+  requiresApproval,
+  autoApproveChoiceId = null,
+  claimRequired = false,
+} = {}) {
+  const approvalNotRequired = plan instanceof ConfirmAndAdvance || claimRequired === true;
   return Object.freeze({
-    requiresApproval: confirming ? false : requiresApproval === true,
-    autoApproveChoiceId: confirming ? null : autoApproveChoiceId,
+    requiresApproval: approvalNotRequired ? false : requiresApproval === true,
+    autoApproveChoiceId: approvalNotRequired ? null : autoApproveChoiceId,
   });
 }
 
@@ -740,8 +739,9 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     planGateRepairReason: planGateRepair?.reason ?? null,
   }).resolve();
   const selectedDirective = userDecisionDirective ?? draftDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? gateDirective ?? lifecycleDirective;
-  const claimDirective = selectedDirective instanceof ExecuteStepDirective
-    && ["start", "recover", "retry"].includes(descriptor.operation)
+  const claimRequired = selectedDirective instanceof ExecuteStepDirective
+    && ["start", "recover", "retry"].includes(descriptor.operation);
+  const claimDirective = claimRequired
     ? new ExecuteCommandDirective({
         actionId: "CLAIM_NEXT_ACTION",
         nextAction: guardedCommand("sennel flow run claim-next-action", state, binding),
@@ -753,6 +753,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
     plan: target.stepId === "approval" ? routePlan : null,
     requiresApproval: derived.requiresApproval,
     autoApproveChoiceId: derived.autoApproveChoiceId,
+    claimRequired,
   });
   const result = {
     taskId: target.taskId,
