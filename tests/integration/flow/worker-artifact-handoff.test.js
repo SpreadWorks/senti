@@ -244,6 +244,20 @@ function seal(request) {
   });
 }
 
+function implementationEffect(paths) {
+  return new SourceWorkerEffect({
+    version: 1,
+    stepId: "implement",
+    completionStatus: "done",
+    requirements: [],
+    files: [{ requirementId: "R1", paths }],
+    issues: [],
+    overview: null,
+    triage: null,
+    repair: null,
+  });
+}
+
 function draftWorkerAction(stepId = "draft") {
   return {
     taskId: null,
@@ -400,6 +414,226 @@ describe("worker artifact handoff", () => {
 
       assert.deepEqual(readCatalogJson(value, "upgrade.result", "impl-gate"), upgrade);
       assert.equal(value.flowManager.activityLedger(value.specId).at(-1).nodeId, "implement");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("restores rejected source mutations without changing the invocation baseline", () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const clean = path.join(value.mainRoot, "clean.js");
+      const deleted = path.join(value.mainRoot, "deleted.js");
+      const link = path.join(value.mainRoot, "link.js");
+      const dirtyDeleted = path.join(value.mainRoot, "dirty-deleted.js");
+      const untracked = path.join(value.mainRoot, "preexisting.txt");
+      fs.writeFileSync(clean, "export const clean = 1;\n");
+      fs.writeFileSync(deleted, "export const deleted = 1;\n");
+      fs.writeFileSync(link, "clean.js");
+      fs.unlinkSync(link);
+      fs.symlinkSync("clean.js", link);
+      fs.writeFileSync(dirtyDeleted, "export const removed = 1;\n");
+      execFileSync("git", ["add", "clean.js", "deleted.js", "link.js", "dirty-deleted.js"], { cwd: value.mainRoot });
+      execFileSync("git", ["commit", "-q", "-m", "rollback baseline"], { cwd: value.mainRoot });
+      fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 0;\n");
+      fs.unlinkSync(link);
+      fs.symlinkSync("product.js", link);
+      fs.unlinkSync(dirtyDeleted);
+      fs.writeFileSync(untracked, "before\n");
+
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(clean, "export const clean = 2;\n");
+      fs.unlinkSync(deleted);
+      fs.unlinkSync(link);
+      fs.symlinkSync("clean.js", link);
+      fs.writeFileSync(path.join(value.mainRoot, "new-untracked.js"), "export const created = true;\n");
+      fs.symlinkSync("clean.js", path.join(value.mainRoot, "new-link.js"));
+      fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 1;\n");
+      fs.writeFileSync(untracked, "after\n");
+      fs.writeFileSync(dirtyDeleted, "export const removed = 1;\n");
+
+      authority.rollbackRejectedSourceMutation();
+
+      assert.equal(fs.readFileSync(clean, "utf8"), "export const clean = 1;\n");
+      assert.equal(fs.readFileSync(deleted, "utf8"), "export const deleted = 1;\n");
+      assert.equal(fs.readlinkSync(link), "product.js");
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 0;\n");
+      assert.equal(fs.readFileSync(untracked, "utf8"), "before\n");
+      assert.equal(fs.existsSync(dirtyDeleted), false);
+      assert.equal(fs.existsSync(path.join(value.mainRoot, "new-untracked.js")), false);
+      assert.equal(fs.existsSync(path.join(value.mainRoot, "new-link.js")), false);
+      const executionSnapshot = authority.repositories.find((entry) => entry.authorities.includes("execution"));
+      assert.deepEqual(
+        executionSnapshot.allChangedPaths(executionSnapshot.constructor.capture(executionSnapshot)),
+        [],
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("cleans a rejected source handoff so a retry observes only its own diff", () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const product = path.join(value.mainRoot, "product.js");
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js", "absent.js"]).toJSON()));
+      fs.writeFileSync(product, "export const value = 2;\n");
+      seal(request);
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_SOURCE_HANDOFF_EFFECT_PATH_INVALID",
+      );
+
+      assert.equal(value.coordinator.rollbackRejectedSourceHandoff({
+        ctx: value.ctx,
+        request,
+        mutationAuthority: authority,
+      }), true);
+      assert.equal(fs.readFileSync(product, "utf8"), "export const value = 1;\n");
+      assert.equal(fs.existsSync(request.directory), false);
+
+      const retryRequest = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: { ...value.invocation, id: "dispatch-worker-handoff-retry" },
+      });
+      const retryAuthority = WorkerArtifactMutationAuthoritySnapshot.capture(retryRequest);
+      fs.writeFileSync(product, "export const value = 2;\n");
+      assert.deepEqual(retryAuthority.assertSourceDiff({
+        stepId: "implement",
+        completionStatus: "done",
+        effect: implementationEffect(["product.js"]),
+      }), ["product.js"]);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("does not roll back source changes after canonical confirmation succeeds", () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+      const interrupted = new WorkerArtifactHandoffCoordinator({
+        faultInjector({ phase }) {
+          if (phase === "before-worker-handoff-cleanup-rename") throw new Error("simulated cleanup interruption");
+        },
+      });
+      assert.throws(
+        () => interrupted.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      );
+      assert.equal(interrupted.rollbackRejectedSourceHandoff({
+        ctx: value.ctx,
+        request,
+        mutationAuthority: authority,
+      }), false);
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 2;\n");
+      assert.equal(fs.existsSync(request.directory), true);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("fails closed without cleaning a rejected source handoff after index mutation", () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js", "absent.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+      execFileSync("git", ["add", "product.js"], { cwd: value.mainRoot });
+      seal(request);
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
+      );
+      assert.throws(
+        () => value.coordinator.rollbackRejectedSourceHandoff({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_SOURCE_HANDOFF_ROLLBACK_REQUIRED",
+      );
+      assert.equal(fs.existsSync(request.directory), true);
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 2;\n");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rolls back and cleans an invalid source handoff through the dispatcher", async () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const action = {
+        taskId: null,
+        step: "implement",
+        action: "implement-source",
+        instructions: { key: "plan.implement", content: "Implement the source change." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: {},
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
+      };
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(action); } },
+        agent: {
+          async call(_prompt, options) {
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "effects.json").payloadPath,
+              json(implementationEffect(["product.js", "absent.js"]).toJSON()),
+            );
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+      assert.equal(result.errors[0].code, "FLOW_SOURCE_HANDOFF_EFFECT_PATH_INVALID");
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 1;\n");
+      assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }

@@ -1186,6 +1186,40 @@ export default class RunDispatchCommand extends FlowCommand {
         });
         agentError = null;
       } catch (error) {
+        const rejectedSource = error instanceof WorkerArtifactHandoffError
+          && handoffRequest !== null
+          && handoffRequest.policy.kind === "source"
+          && workerArtifactAuthority !== null
+          && !NON_REPLAYABLE_HANDOFF_ERROR_CODES.has(error.code);
+        if (rejectedSource) {
+          try {
+            this.handoffCoordinator.rollbackRejectedSourceHandoff({
+              ctx,
+              request: handoffRequest,
+              mutationAuthority: workerArtifactAuthority,
+            });
+          } catch (rollbackError) {
+            await deferredMetric.flush();
+            return {
+              error: new WorkerArtifactHandoffError(
+                "recovery-required",
+                "FLOW_SOURCE_HANDOFF_ROLLBACK_REQUIRED",
+                `rejected source handoff could not be safely restored: ${rollbackError.message}`,
+                {
+                  cause: rollbackError,
+                  retryable: false,
+                  recoveryPossible: false,
+                  data: {
+                    stepId: handoffRequest.stepId,
+                    handoffDirectory: handoffRequest.directory,
+                  },
+                },
+              ),
+              handoffRequest,
+              agentError,
+            };
+          }
+        }
         await deferredMetric.flush();
         if (!(error instanceof WorkerArtifactHandoffError)) throw error;
         return {

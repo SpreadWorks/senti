@@ -1298,6 +1298,9 @@ export class WorkerArtifactMutationAuthoritySnapshot {
     this.specId = requiredString(specId, "worker artifact mutation authority specId");
     this.repositories = Object.freeze(repositories);
     this.sourceMode = sourceMode === true;
+    this.sourceRollbackCheckpoint = this.sourceMode
+      ? new WorkerArtifactSourceRollbackCheckpoint(this.repositories)
+      : null;
     Object.freeze(this);
   }
 
@@ -1338,24 +1341,25 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         ) existing.ignoredDirectories.push(relativeHandoff);
         roots.set(resolved, existing);
       }
+      return new WorkerArtifactMutationAuthoritySnapshot({
+        specId: request.specId,
+        sourceMode: request.policy.kind === "source",
+        repositories: [...roots].map(([root, scope]) => (
+          WorkerArtifactRepositoryMutationSnapshot.capture({
+            root,
+            authorities: scope.authorities,
+            ignoredDirectories: scope.ignoredDirectories,
+            runtimeLocks: scope.runtimeLocks,
+          })
+        )),
+      });
     } catch (cause) {
+      if (cause instanceof WorkerArtifactHandoffError) throw cause;
       throw authoritySnapshotError(
-        `worker artifact repository authority root is unavailable: ${cause.message}`,
+        `worker artifact repository authority checkpoint is unavailable: ${cause.message}`,
         cause,
       );
     }
-    return new WorkerArtifactMutationAuthoritySnapshot({
-      specId: request.specId,
-      sourceMode: request.policy.kind === "source",
-      repositories: [...roots].map(([root, scope]) => (
-        WorkerArtifactRepositoryMutationSnapshot.capture({
-          root,
-          authorities: scope.authorities,
-          ignoredDirectories: scope.ignoredDirectories,
-          runtimeLocks: scope.runtimeLocks,
-        })
-      )),
-    });
   }
 
   assertUnchanged() {
@@ -1461,6 +1465,300 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       );
     }
     return Object.freeze(unique);
+  }
+
+  rollbackRejectedSourceMutation() {
+    if (!this.sourceMode || this.sourceRollbackCheckpoint === null) return;
+    // This uses the same single-writer attribution as assertSourceDiff(): the
+    // dispatcher holds FlowHandoffAuthorityLease until the worker process tree
+    // exits and this restore completes. The checkpoint rechecks repository
+    // state before applying any operation so an unstable handoff fails closed.
+    this.sourceRollbackCheckpoint.restore();
+  }
+}
+
+class WorkerArtifactSourceRollbackEntry {
+  #bytes;
+
+  constructor({ entry, bytes = null, target = null }) {
+    if (!(entry instanceof WorkerArtifactRepositoryEntry)) {
+      throw new Error("source rollback entry requires a repository entry");
+    }
+    if (entry.kind === "file" && !Buffer.isBuffer(bytes)) {
+      throw new Error("source rollback file entry requires bytes");
+    }
+    if (entry.kind === "symlink" && typeof target !== "string") {
+      throw new Error("source rollback symlink entry requires a target");
+    }
+    if (["missing", "directory", "other"].includes(entry.kind) && (bytes !== null || target !== null)) {
+      throw new Error(`source rollback ${entry.kind} entry cannot carry content`);
+    }
+    if (entry.kind !== "file" && entry.kind !== "symlink" && !["missing", "directory", "other"].includes(entry.kind)) {
+      throw new Error(`invalid source rollback entry kind: ${entry.kind}`);
+    }
+    this.entry = entry;
+    this.#bytes = bytes === null ? null : Buffer.from(bytes);
+    this.target = target;
+    Object.freeze(this);
+  }
+
+  static capture(root, entry, budget) {
+    const absolute = path.join(root, entry.path);
+    if (entry.kind === "missing") return new WorkerArtifactSourceRollbackEntry({ entry });
+    if (entry.kind === "symlink") {
+      const target = fs.readlinkSync(absolute);
+      if (digest(target) !== entry.digest) throw new Error(`source rollback checkpoint changed while reading ${entry.path}`);
+      return new WorkerArtifactSourceRollbackEntry({ entry, target });
+    }
+    if (entry.kind === "directory" || entry.kind === "other") return new WorkerArtifactSourceRollbackEntry({ entry });
+    if (entry.kind !== "file") throw new Error(`source rollback cannot checkpoint ${entry.kind} path ${entry.path}`);
+    const file = captureRegularFile(absolute, {
+      label: `source rollback checkpoint ${entry.path}`,
+      maxBytes: MAX_AUTHORITY_FILE_BYTES,
+    });
+    budget.bytes += file.byteLength;
+    if (budget.bytes > MAX_AUTHORITY_TOTAL_FILE_BYTES || file.digest !== entry.digest) {
+      throw new Error(`source rollback checkpoint changed while reading ${entry.path}`);
+    }
+    return new WorkerArtifactSourceRollbackEntry({ entry, bytes: file.bytes });
+  }
+
+  operation(root, { gitMode }) {
+    const absolute = path.join(root, this.entry.path);
+    if (this.entry.kind === "directory") {
+      if (gitMode) throw new Error(`source rollback cannot restore Git directory path ${this.entry.path}`);
+      return new WorkerArtifactSourceRollbackOperation({ absolute, kind: "directory", root });
+    }
+    if (this.entry.kind === "missing") return new WorkerArtifactSourceRollbackOperation({ absolute, kind: "remove", root });
+    if (this.entry.kind === "symlink") return new WorkerArtifactSourceRollbackOperation({ absolute, kind: "symlink", root, target: this.target });
+    if (this.entry.kind === "file") return new WorkerArtifactSourceRollbackOperation({
+      absolute,
+      kind: "file",
+      root,
+      bytes: this.#bytes,
+      mode: this.entry.mode,
+    });
+    throw new Error(`source rollback cannot restore ${this.entry.kind} path ${this.entry.path}`);
+  }
+}
+
+class WorkerArtifactSourceRollbackOperation {
+  #bytes;
+
+  constructor({ absolute, root, kind, bytes = null, mode = null, target = null }) {
+    this.absolute = path.resolve(absolute);
+    this.root = path.resolve(root);
+    if (!isWithin(this.root, this.absolute)) throw new Error("source rollback operation escapes its repository");
+    if (!new Set(["remove", "remove-directory", "directory", "file", "symlink"]).has(kind)) {
+      throw new Error(`invalid source rollback operation kind: ${kind}`);
+    }
+    if (kind === "file" && (!Buffer.isBuffer(bytes) || !Number.isSafeInteger(mode) || mode < 0 || mode > 0o7777)) {
+      throw new Error("source rollback file operation requires bytes and mode");
+    }
+    if (kind === "symlink" && typeof target !== "string") {
+      throw new Error("source rollback symlink operation requires a target");
+    }
+    this.kind = kind;
+    this.#bytes = bytes === null ? null : Buffer.from(bytes);
+    this.mode = mode;
+    this.target = target;
+    Object.freeze(this);
+  }
+
+  apply() {
+    if (this.kind === "remove") {
+      removeSourceRollbackPath(this.absolute);
+      return;
+    }
+    if (this.kind === "remove-directory") {
+      removeEmptySourceRollbackDirectory(this.absolute);
+      return;
+    }
+    if (this.kind === "directory") {
+      let stat = null;
+      try {
+        stat = fs.lstatSync(this.absolute);
+      } catch (cause) {
+        if (cause.code !== "ENOENT") throw cause;
+      }
+      if (stat !== null && (!stat.isDirectory() || stat.isSymbolicLink())) removeSourceRollbackPath(this.absolute);
+      ensureRealDirectory(this.absolute, this.root);
+      return;
+    }
+    removeSourceRollbackPath(this.absolute);
+    ensureRealDirectory(path.dirname(this.absolute), this.root);
+    if (this.kind === "symlink") {
+      fs.symlinkSync(this.target, this.absolute);
+      return;
+    }
+    fs.writeFileSync(this.absolute, this.#bytes, { mode: this.mode });
+    fs.chmodSync(this.absolute, this.mode);
+  }
+}
+
+function removeSourceRollbackPath(absolute) {
+  let stat;
+  try {
+    stat = fs.lstatSync(absolute);
+  } catch (cause) {
+    if (cause.code === "ENOENT") return;
+    throw cause;
+  }
+  if (stat.isDirectory() && !stat.isSymbolicLink()) {
+    throw new Error(`source rollback refuses to replace directory ${absolute}`);
+  }
+  fs.unlinkSync(absolute);
+}
+
+function removeEmptySourceRollbackDirectory(absolute) {
+  let stat;
+  try {
+    stat = fs.lstatSync(absolute);
+  } catch (cause) {
+    if (cause.code === "ENOENT") return;
+    throw cause;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error(`source rollback expected a directory at ${absolute}`);
+  }
+  fs.rmdirSync(absolute);
+}
+
+function indexedSourceRollbackEntry(root, relativePath) {
+  const listing = boundedGitOutput(root, ["ls-files", "--stage", "-z", "--", relativePath], "Git index path");
+  const records = listing.toString("utf8").split("\u0000").filter(Boolean);
+  if (records.length === 0) return null;
+  if (records.length !== 1) throw new Error(`source rollback requires one Git index entry for ${relativePath}`);
+  const match = /^(100644|100755|120000) [a-f0-9]{40,64} 0\t/.exec(records[0]);
+  if (match === null || records[0].slice(match[0].length) !== relativePath) {
+    throw new Error(`source rollback received an invalid Git index entry for ${relativePath}`);
+  }
+  return Number.parseInt(match[1], 8);
+}
+
+function indexedSourceRollbackOperation(root, relativePath, budget) {
+  const mode = indexedSourceRollbackEntry(root, relativePath);
+  const absolute = path.join(root, relativePath);
+  if (mode === null) return new WorkerArtifactSourceRollbackOperation({ absolute, kind: "remove", root });
+  const bytes = boundedGitOutput(root, ["show", `:${relativePath}`], `Git index content for ${relativePath}`);
+  budget.bytes += bytes.length;
+  if (budget.bytes > MAX_AUTHORITY_TOTAL_FILE_BYTES) {
+    throw new Error(`source rollback index content exceeds ${MAX_AUTHORITY_TOTAL_FILE_BYTES} bytes`);
+  }
+  if (mode === 0o120000) {
+    return new WorkerArtifactSourceRollbackOperation({
+      absolute,
+      kind: "symlink",
+      root,
+      target: bytes.toString("utf8"),
+    });
+  }
+  return new WorkerArtifactSourceRollbackOperation({
+    absolute,
+    kind: "file",
+    root,
+    bytes,
+    mode: mode & 0o777,
+  });
+}
+
+function filesystemSourceRollbackOperation(root, relativePath, currentEntry) {
+  return new WorkerArtifactSourceRollbackOperation({
+    absolute: path.join(root, relativePath),
+    kind: currentEntry.kind === "directory" ? "remove-directory" : "remove",
+    root,
+  });
+}
+
+class WorkerArtifactSourceRollbackRepositoryCheckpoint {
+  constructor(snapshot) {
+    this.snapshot = snapshot;
+    const budget = { bytes: 0 };
+    this.entries = new Map(snapshot.entries.map((entry) => [
+      entry.path,
+      WorkerArtifactSourceRollbackEntry.capture(snapshot.root, entry, budget),
+    ]));
+    Object.freeze(this);
+  }
+
+  restore() {
+    const current = WorkerArtifactRepositoryMutationSnapshot.capture(this.snapshot);
+    const changed = this.snapshot.allChangedPaths(current);
+    if (changed.includes("<HEAD>") || changed.includes("<index>")) {
+      throw new Error("source rollback refuses committed or staged changes");
+    }
+    const paths = changed.filter((entry) => !entry.startsWith("<")).sort();
+    const forbidden = paths.filter((entry) => entry.startsWith(".sennel/") || entry.startsWith("specs/"));
+    if (forbidden.length > 0) throw new Error(`source rollback refuses canonical or runtime paths: ${forbidden.join(", ")}`);
+    const currentEntries = new Map(current.entries.map((entry) => [entry.path, entry]));
+    const budget = { bytes: 0 };
+    const currentStates = new Map();
+    const restoreBudget = { bytes: 0 };
+    for (const relativePath of paths) {
+      const actual = authorityFileEntry(this.snapshot.root, relativePath, budget);
+      const listed = currentEntries.get(relativePath);
+      if (listed !== undefined && stableStringify(actual.toJSON()) !== stableStringify(listed.toJSON())) {
+        throw new Error(`source rollback cannot prove ownership of ${relativePath}`);
+      }
+      currentStates.set(relativePath, actual);
+    }
+    const operations = [];
+    for (const relativePath of paths) {
+      const checkpoint = this.entries.get(relativePath);
+      const operation = checkpoint !== undefined
+        ? checkpoint.operation(this.snapshot.root, {
+          gitMode: this.snapshot.mode === "git",
+        })
+        : this.snapshot.mode === "git"
+          ? indexedSourceRollbackOperation(this.snapshot.root, relativePath, restoreBudget)
+          : filesystemSourceRollbackOperation(
+            this.snapshot.root,
+            relativePath,
+            currentStates.get(relativePath),
+          );
+      const currentEntry = currentStates.get(relativePath);
+      if (currentEntry.kind === "directory" && !["directory", "remove-directory"].includes(operation.kind)) {
+        throw new Error(`source rollback refuses to replace directory ${relativePath}`);
+      }
+      operations.push(operation);
+    }
+    const verifiedBudget = { bytes: 0 };
+    for (const relativePath of paths) {
+      const actual = authorityFileEntry(this.snapshot.root, relativePath, verifiedBudget);
+      if (stableStringify(actual.toJSON()) !== stableStringify(currentStates.get(relativePath).toJSON())) {
+        throw new Error(`source rollback cannot prove ownership of ${relativePath}`);
+      }
+    }
+    const verified = WorkerArtifactRepositoryMutationSnapshot.capture(this.snapshot);
+    if (verified.digest !== current.digest) {
+      throw new Error("source rollback cannot prove repository ownership after checkpoint verification");
+    }
+    const regular = operations.filter((operation) => operation.kind !== "remove-directory");
+    const directories = operations.filter((operation) => operation.kind === "remove-directory");
+    for (const operation of regular) operation.apply();
+    for (const operation of directories.sort((left, right) => right.absolute.localeCompare(left.absolute))) operation.apply();
+  }
+}
+
+class WorkerArtifactSourceRollbackCheckpoint {
+  constructor(repositories) {
+    this.repositories = Object.freeze(repositories
+      .filter((entry) => entry.authorities.includes("execution"))
+      .map((entry) => new WorkerArtifactSourceRollbackRepositoryCheckpoint(entry)));
+    Object.freeze(this);
+  }
+
+  restore() {
+    try {
+      for (const repository of this.repositories) repository.restore();
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_SOURCE_HANDOFF_ROLLBACK_REQUIRED",
+        `source rollback could not safely restore the invocation checkpoint: ${cause.message}`,
+        { cause, retryable: false, recoveryPossible: false },
+      );
+    }
   }
 }
 
@@ -3583,6 +3881,37 @@ export class WorkerArtifactHandoffCoordinator {
     new AtomicFile(request.quarantinePath, { phaseNamespace: "worker-handoff-quarantine" })
       .write(`${JSON.stringify(receipt.toJSON(), null, 2)}\n`);
     return receipt;
+  }
+
+  cleanupRejectedSourceHandoff(request) {
+    if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
+      throw new Error("rejected source handoff cleanup requires a typed source request");
+    }
+    return cleanupTransientExecutionHandoffDirectory(request.handoffRoot, request.directory);
+  }
+
+  rollbackRejectedSourceHandoff({ ctx, request, mutationAuthority }) {
+    if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
+      throw new Error("source rollback requires a typed source handoff request");
+    }
+    if (!(mutationAuthority instanceof WorkerArtifactMutationAuthoritySnapshot)) {
+      throw new Error("source rollback requires a parent-owned mutation authority snapshot");
+    }
+    let state;
+    try {
+      state = ctx.flowManager.load(request.specId);
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_SOURCE_HANDOFF_ROLLBACK_REQUIRED",
+        `source rollback cannot verify canonical publication state: ${cause.message}`,
+        { cause, retryable: false, recoveryPossible: false },
+      );
+    }
+    if (canonicalHandoffReceiptForRequest(state, request, ctx.flowManager) !== null) return false;
+    mutationAuthority.rollbackRejectedSourceMutation();
+    this.cleanupRejectedSourceHandoff(request);
+    return true;
   }
 
   recoverPending({ ctx }) {
