@@ -37,6 +37,11 @@ import {
   CurrentFlowSpecRecord,
 } from "../../../src/flow/lib/current-flow-state.js";
 import { CanonicalSpecApproval } from "../../../src/flow/lib/canonical-spec-approval.js";
+import { applySpecRepairOperations } from "../../../src/flow/lib/spec-repair-operations.js";
+import {
+  attachCanonicalCommandResultArtifact,
+  attachCanonicalCommandResultPublications,
+} from "../../../src/flow/lib/canonical-command-result.js";
 import { persistAgentInvocationMetric } from "../../../src/lib/agent-invocation-metric.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../../src/lib/process-owned-lock.js";
 import { CanonicalFlowFixture } from "../../support/infrastructure/flow-setup.js";
@@ -308,6 +313,135 @@ function rewriteSubmission(request, mutate) {
     .update(stableStringify(unsigned))
     .digest("hex");
   fs.writeFileSync(request.submissionPath, `${JSON.stringify(document, null, 2)}\n`);
+}
+
+function specRepairReview() {
+  return {
+    version: 1,
+    phase: "spec",
+    generatedAt: "2026-08-04T00:00:00.000Z",
+    verdict: "REJECTED",
+    blockingFindings: [{ findingId: "spec-review-blocking-1", title: "Name target", target: "R1" }],
+    nonBlockingImprovements: [],
+    summary: { blocking: 1, nonBlocking: 0, total: 1 },
+    repairFingerprint: ACTION_DIGEST,
+  };
+}
+
+function specRepairTriage() {
+  const target = { entity: "requirement", id: "R1", field: "desc" };
+  return {
+    version: 1,
+    phase: "spec-triage",
+    sourceReview: "spec-review.json",
+    summary: "Apply the bounded correction.",
+    items: [{
+      findingId: "spec-review-blocking-1",
+      title: "Name target",
+      target: "R1",
+      decision: "apply",
+      rationale: "The requirement target needs a bounded correction.",
+      evidence: "The reviewed requirement is incomplete.",
+      allowedTargets: [{ target, operationKinds: ["replace-entity-field"] }],
+      requiredTargets: [target],
+    }],
+  };
+}
+
+function prepareSpecRepairFixture() {
+  const value = fixture("spec-review", {
+    specRecord: validSpec(),
+    beforeActivate(candidate) {
+      candidate.flow.addTask({
+        id: "T1",
+        title: "Preserve the admitted task",
+        goal: "Keep the task decomposition valid.",
+        acceptance: ["The task remains executable."],
+        implementation_notes: "Use the canonical task contract.",
+        test_strategy: "Run the focused test.",
+        origin: "plan",
+        added_round: 0,
+        status: "pending",
+      });
+    },
+  });
+  const reviewResult = { result: "fixture spec review" };
+  attachCanonicalCommandResultArtifact(reviewResult, {
+    logicalKey: "spec.review",
+    payload: specRepairReview(),
+  });
+  const triageResult = { result: "fixture spec triage" };
+  attachCanonicalCommandResultPublications(triageResult, [{
+    logicalKey: "spec.triage",
+    payload: specRepairTriage(),
+  }]);
+  value.flowManager.updateStepStatus(
+    { stepId: "spec-review", requestedStatus: "done" },
+    { specId: value.specId, canonicalCommandResult: reviewResult },
+  );
+  value.flow.activate("spec-triage");
+  value.flowManager.updateStepStatus(
+    { stepId: "spec-triage", requestedStatus: "done" },
+    { specId: value.specId, canonicalCommandResult: triageResult },
+  );
+  value.flow.activate("spec-repair");
+  return value;
+}
+
+function specRepairWorkerAction() {
+  return {
+    taskId: null,
+    step: "spec-repair",
+    action: "write-spec",
+    instructions: { key: "plan.spec-repair", content: "Write the constrained spec repair." },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: {},
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-spec" },
+  };
+}
+
+function specRepairPayload(request, { scopeExpansion = false, valid = false } = {}) {
+  const target = { entity: "requirement", id: "R1", field: "desc" };
+  const rejectedReplacement = "SECRET-WORKER-REPLACEMENT";
+  return {
+    version: 1,
+    baseRevision: `sha256:${request.inputRevision}`,
+    operations: scopeExpansion || valid ? [{
+      findingId: "spec-review-blocking-1",
+      kind: "replace-entity-field",
+      target,
+      expectedDigest: repairDigest("Publish a validated artifact."),
+      replacement: "Publish a corrected validated artifact.",
+      reason: "The reviewed requirement needs its target named.",
+    }] : [{
+      findingId: "untrusted-finding",
+      kind: "replace-entity-field",
+      target,
+      expectedDigest: repairDigest("Publish a validated artifact."),
+      replacement: rejectedReplacement,
+      reason: "This operation is intentionally unauthorized.",
+    }],
+    scopeExpansions: scopeExpansion ? ["A new scope proposal."] : [],
+  };
+}
+
+function specRepairSnapshot(value) {
+  const state = value.flowManager.load(value.specId);
+  const spec = value.flowManager.readArtifact({
+    specId: value.specId,
+    logicalKey: "spec.record",
+    consumerNodeId: "spec-repair",
+  });
+  return structuredClone({
+    canonicalSpec: spec.bytes.toString("base64"),
+    flowState: state,
+    activities: value.flowManager.activityLedger(value.specId),
+    catalog: value.flowManager.artifactCatalog(value.specId).toJSON(),
+    stepStatus: findStepById(state.steps, "spec-repair").status,
+    semanticRetry: value.flowManager.canonicalState(value.specId).retryEligibility(),
+  });
 }
 
 describe("worker artifact handoff", () => {
@@ -3010,6 +3144,158 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("limits spec-repair correction failures to three worker calls without changing semantic Flow state", async () => {
+    for (const scenario of [
+      {
+        name: "required targets",
+        scopeExpansion: false,
+        code: "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED",
+      },
+      {
+        name: "scope expansion",
+        scopeExpansion: true,
+        code: "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED",
+      },
+    ]) {
+      const value = prepareSpecRepairFixture();
+      try {
+        const action = specRepairWorkerAction();
+        const before = specRepairSnapshot(value);
+        const snapshotsAfterFailures = [];
+        let nextActionCalls = 0;
+        let workerCalls = 0;
+        const dispatcher = new RunDispatchCommand({
+          nextAction: {
+            async run() {
+              nextActionCalls += 1;
+              if (nextActionCalls === 2 || nextActionCalls === 3) {
+                snapshotsAfterFailures.push(specRepairSnapshot(value));
+              }
+              return structuredClone(action);
+            },
+          },
+          agent: {
+            async call(_prompt, options) {
+              workerCalls += 1;
+              const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+              const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+              fs.writeFileSync(
+                request.payloads.find((entry) => entry.logicalName === "spec-repair.json").payloadPath,
+                json(specRepairPayload(request, scenario)),
+              );
+              sealWorkerArtifactHandoff({
+                requestPath,
+                invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+              });
+            },
+          },
+          repositoryFingerprint: () => "stable-fixture",
+          leaseFactory: () => ({ acquire() {}, release() {} }),
+        });
+        dispatcher.container = {};
+
+        const result = await dispatcher.execute({
+          ...value.ctx,
+          flowState: value.flowManager.load(),
+          expectRunId: value.flowManager.load().runId,
+          expectSpec: value.specId,
+          _envelopeType: "run",
+          _envelopeKey: "dispatch",
+        });
+
+        assert.equal(result.ok, false, scenario.name);
+        assert.equal(result.errors[0].code, scenario.code, scenario.name);
+        assert.equal(result.data.retryExhausted, true, scenario.name);
+        assert.equal(result.data.attempts, 3, scenario.name);
+        assert.equal(result.data.dispatch.dispatchCount, 3, scenario.name);
+        assert.equal(workerCalls, 3, `${scenario.name}: no fourth worker call`);
+        assert.ok(nextActionCalls <= 4, `${scenario.name}: bounded next-action reads`);
+        assert.equal(snapshotsAfterFailures.length, 2, scenario.name);
+        assert.equal(result.data.dispatch.boundary, "blocked", `${scenario.name}: exhausted repair is blocked`);
+        assert.ok(result.data.specRepairAudit, `${scenario.name}: cumulative repair audit is retained`);
+        assert.ok(result.data.specRepairDiagnostic, `${scenario.name}: normalized exhausted diagnostic is returned`);
+        assert.equal(result.data.specRepairDiagnostic.consumedCalls, 3, `${scenario.name}: diagnostic records consumed calls`);
+        assert.ok(result.data.specRepairDiagnostic.lastError?.code, `${scenario.name}: last error is retained`);
+        assert.match(result.data.specRepairDiagnostic.resumeInstruction, /sennel flow run dispatch/, `${scenario.name}: resume instruction is executable`);
+        assert.doesNotMatch(JSON.stringify(result.data.specRepairDiagnostic), /SECRET-WORKER-REPLACEMENT/, `${scenario.name}: diagnostic excludes worker replacement values`);
+        assert.ok(result.data.specRepairDiagnostic.discardedOperations.every((entry) => (
+          !Object.hasOwn(entry, "replacement") && !Object.hasOwn(entry, "operation")
+        )), `${scenario.name}: diagnostic excludes raw operation payloads`);
+        assert.equal(result.data.specRepairAudit.attempts.length, 3, `${scenario.name}: all attempts are retained`);
+        assert.ok(result.data.specRepairAudit.attempts.every((attempt) => attempt.code), `${scenario.name}: each failed attempt retains its code`);
+        if (scenario.scopeExpansion) {
+          assert.ok(result.data.specRepairAudit.scopeExpansions.length > 0, `${scenario.name}: scope expansion details are retained`);
+        } else {
+          assert.ok(result.data.specRepairAudit.attempts.some((attempt) => attempt.missingRequiredTargets.length > 0), `${scenario.name}: missing targets are retained`);
+        }
+        const issueLog = readCatalogJson(value, "issue.log", "spec-gate");
+        const diagnosticEntry = issueLog.entries.at(-1);
+        assert.deepEqual(diagnosticEntry.diagnostic, result.data.specRepairDiagnostic, `${scenario.name}: issue-log diagnostic matches immediate output`);
+        for (const snapshot of snapshotsAfterFailures) {
+          assert.deepEqual(snapshot, before, `${scenario.name}: failed correction must be side-effect free`);
+        }
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
+    }
+  });
+
+  it("does not partially publish a valid spec-repair handoff when publication is interrupted", async () => {
+    const value = prepareSpecRepairFixture();
+    try {
+      const before = specRepairSnapshot(value);
+      let workerCalls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(specRepairWorkerAction()); } },
+        agent: {
+          async call(_prompt, options) {
+            workerCalls += 1;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "spec-repair.json").payloadPath,
+              json(specRepairPayload(request, { valid: true })),
+            );
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        handoffCoordinator: new WorkerArtifactHandoffCoordinator({
+          faultInjector({ phase }) {
+            if (phase === "before-worker-handoff-publication") throw new Error("simulated pre-commit crash");
+          },
+        }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED");
+      assert.equal(workerCalls, 1);
+      assert.deepEqual(specRepairSnapshot(value), before);
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "spec.repair",
+        consumerNodeId: "spec-gate",
+        optional: true,
+      }), null);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("rejects a pre-existing symlink in the staging directory authority", () => {
     const value = fixture();
     const outside = path.join(value.mainRoot, "outside-handoffs");
@@ -3287,5 +3573,232 @@ describe("worker artifact handoff", () => {
     } finally {
       removeTmpDir(value.mainRoot);
     }
+  });
+});
+
+function repairDigest(value) {
+  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function repairTargetPermission(target, operationKinds) {
+  return { target: structuredClone(target), operationKinds: [...operationKinds] };
+}
+
+function v1RepairSpec() {
+  return {
+    ...validSpec(),
+    background: "The original background.",
+    constraints: ["duplicate element", "duplicate element"],
+    tasks: [{
+      id: "T1",
+      title: "Preserve the bounded repair",
+      goal: "Keep the repaired specification executable.",
+      acceptance: ["The canonical repair remains valid."],
+      implementation_notes: "Use only the reviewed operation.",
+      test_strategy: "Run the focused repair test.",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }],
+  };
+}
+
+function v1RepairBatch(baseRevision, operations, scopeExpansions = []) {
+  return {
+    version: 1,
+    baseRevision: `sha256:${baseRevision}`,
+    operations,
+    scopeExpansions,
+  };
+}
+
+function v1RepairOperation({ findingId, kind, target, expectedDigest = null, replacement, reason = "The reviewed target requires correction." }) {
+  return {
+    findingId,
+    kind,
+    target: structuredClone(target),
+    expectedDigest,
+    replacement,
+    reason,
+  };
+}
+
+function v1RepairTriage(items) {
+  return {
+    version: 1,
+    phase: "spec-triage",
+    sourceReview: "spec-review.json",
+    summary: "Apply reviewed bounded corrections.",
+    items,
+  };
+}
+
+function v1ApplyItem(findingId, allowedTargets, requiredTargets) {
+  return {
+    findingId,
+    title: "Bounded repair target",
+    target: "reviewed target",
+    decision: "apply",
+    rationale: "The finding is actionable.",
+    evidence: "The target is present in the immutable spec.",
+    allowedTargets: allowedTargets.map(({ target, operationKinds }) => repairTargetPermission(target, operationKinds)),
+    requiredTargets: requiredTargets.map((target) => structuredClone(target)),
+  };
+}
+
+describe("spec-repair worker v1 contract", () => {
+  it("accepts a v1 worker proposal while publishing only a CLI-owned v2 audit", () => {
+    const revision = "b".repeat(64);
+    const target = { entity: "requirement", id: "R1", field: "desc" };
+    const triage = v1RepairTriage([
+      v1ApplyItem("F-v1", [repairTargetPermission(target, ["replace-entity-field"])], [target]),
+    ]);
+    const proposal = v1RepairBatch(revision, [v1RepairOperation({
+      findingId: "F-v1",
+      kind: "replace-entity-field",
+      target,
+      expectedDigest: repairDigest("Publish a validated artifact."),
+      replacement: "The requirement was repaired through a bounded v1 proposal.",
+    })]);
+
+    const result = applySpecRepairOperations({
+      spec: v1RepairSpec(),
+      triage,
+      repair: proposal,
+      inputRevision: revision,
+    });
+
+    assert.equal(result.spec.requirements[0].desc, "The requirement was repaired through a bounded v1 proposal.");
+    assert.equal(result.audit.version, 2);
+    assert.equal(result.audit.phase, "spec-repair");
+    assert.equal(result.audit.acceptedOperations[0].operation.kind, "replace-entity-field");
+    assert.equal(result.audit.acceptedOperations[0].operation.replacement, "The requirement was repaired through a bounded v1 proposal.");
+    assert.equal(Object.hasOwn(result.audit, "rawResponse"), false);
+    assert.equal(Object.hasOwn(result.audit, "operations"), false);
+  });
+
+  it("rejects full-spec and legacy repair envelopes at the worker boundary", () => {
+    const revision = "c".repeat(64);
+    const target = { entity: "requirement", id: "R1", field: "desc" };
+    const triage = v1RepairTriage([
+      v1ApplyItem("F-legacy", [repairTargetPermission(target, ["replace-entity-field"])], [target]),
+    ]);
+    const apply = (repair) => applySpecRepairOperations({
+      spec: v1RepairSpec(), triage, repair, inputRevision: revision,
+    });
+    assert.throws(
+      () => apply({ ...v1RepairBatch(revision, []), goal: "unauthorized full spec" }),
+      (error) => error.code === "FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE",
+    );
+    assert.throws(
+      () => apply({
+        ...v1RepairBatch(revision, []),
+        version: 2,
+      }),
+      (error) => error.code === "FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE",
+    );
+  });
+
+  it("discards a forbidden array kind while publishing independent authorized operations", () => {
+    const revision = "d".repeat(64);
+    const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
+    const constraintsTarget = { collection: "constraints" };
+    const triage = v1RepairTriage([
+      v1ApplyItem(
+        "F-permissions",
+        [
+          repairTargetPermission(requirementTarget, ["replace-entity-field"]),
+          repairTargetPermission(constraintsTarget, ["replace-array-element"]),
+        ],
+        [requirementTarget],
+      ),
+    ]);
+    const result = applySpecRepairOperations({
+      spec: v1RepairSpec(),
+      triage,
+      repair: v1RepairBatch(revision, [
+        v1RepairOperation({
+          findingId: "F-permissions",
+          kind: "add-array-element",
+          target: constraintsTarget,
+          replacement: "forbidden addition",
+        }),
+        v1RepairOperation({
+          findingId: "F-permissions",
+          kind: "replace-entity-field",
+          target: requirementTarget,
+          expectedDigest: repairDigest("Publish a validated artifact."),
+          replacement: "The independently authorized requirement correction.",
+        }),
+      ]),
+      inputRevision: revision,
+    });
+
+    assert.equal(result.spec.requirements[0].desc, "The independently authorized requirement correction.");
+    assert.deepEqual(result.spec.constraints, ["duplicate element", "duplicate element"]);
+    assert.equal(result.audit.acceptedOperations.length, 1);
+    assert.equal(result.audit.discardedOperations.length, 1);
+    assert.equal(result.audit.discardedOperations[0].kind, "add-array-element");
+  });
+
+  it("discards a same-target conflict and retains a later independent operation", () => {
+    const revision = "e".repeat(64);
+    const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
+    const backgroundTarget = { entity: "spec", field: "background" };
+    const triage = v1RepairTriage([
+      v1ApplyItem(
+        "F-conflict",
+        [
+          repairTargetPermission(requirementTarget, ["replace-entity-field"]),
+          repairTargetPermission(backgroundTarget, ["replace-field"]),
+        ],
+        [requirementTarget],
+      ),
+    ]);
+    let error;
+    try {
+      applySpecRepairOperations({
+        spec: v1RepairSpec(),
+        triage,
+        repair: v1RepairBatch(revision, [
+          v1RepairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "first" }),
+          v1RepairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "conflicting second" }),
+          v1RepairOperation({ findingId: "F-conflict", kind: "replace-field", target: backgroundTarget, expectedDigest: repairDigest("The original background."), replacement: "independent retained correction" }),
+        ]),
+        inputRevision: revision,
+      });
+    } catch (cause) {
+      error = cause;
+    }
+
+    assert.equal(error?.code, "FLOW_SPEC_REPAIR_OPERATION_CONFLICT");
+    assert.equal(error.audit.acceptedOperations.length, 1);
+    assert.equal(error.audit.acceptedOperations[0].target.field, "background");
+    assert.equal(error.audit.discardedOperations.length, 2);
+    assert.ok(error.audit.discardedOperations.every((entry) => /conflict/i.test(entry.reason)));
+  });
+
+  it("uses the optional base position to resolve a duplicate no-ID array element", () => {
+    const revision = "f".repeat(64);
+    const value = "duplicate element";
+    const target = { collection: "constraints", position: 1 };
+    const triage = v1RepairTriage([
+      v1ApplyItem("F-position", [repairTargetPermission(target, ["replace-array-element"])], [target]),
+    ]);
+    const result = applySpecRepairOperations({
+      spec: v1RepairSpec(),
+      triage,
+      repair: v1RepairBatch(revision, [v1RepairOperation({
+        findingId: "F-position",
+        kind: "replace-array-element",
+        target,
+        expectedDigest: repairDigest(value),
+        replacement: "the second duplicate is safely replaced",
+      })]),
+      inputRevision: revision,
+    });
+
+    assert.deepEqual(result.spec.constraints, [value, "the second duplicate is safely replaced"]);
   });
 });

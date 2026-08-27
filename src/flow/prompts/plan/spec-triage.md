@@ -5,11 +5,14 @@
    - Write `spec-triage.json` only to its exact handoff `payloadPath`.
    - If an immutable input is missing or invalid, stop without writing or sealing. If `spec-review.json` contains no blocking findings, write `spec-triage.json` with an empty `items[]` and a concise `summary`.
    - For every `blockingFindings[]` entry, add one `spec-triage.json.items[]` entry with:
+     - `findingId`: copy the immutable source finding's `findingId`. If a blocking finding has no stable id, stop and report that malformed review artifact instead of deriving an id from list position or mutable prose.
      - `title`: copied from the finding.
      - `target`: copied from the finding.
      - `decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`.
      - `rationale`: why that decision was made.
      - `evidence`: concrete evidence for the decision, such as a `spec.json` field path, draft/request fact, source/code context, or the reason the finding is non-blocking.
+   - For `decision: "apply"` only, `allowedTargets`: the exhaustive list of explicit repair permissions, and `requiredTargets`: the non-empty structured-target subset that must be changed. Each permission is `{ "target": <structured target>, "operationKinds": [<allowed kind>] }`; an allowed collection location never by itself authorizes adding or deleting elements. A required target must identify the same canonical location as a permission target; array element position belongs only to an operation proposal, not to triage authority.
+     - Structured targets are `{ "entity": "spec", "field": "..." }` for replaceable root fields, `{ "entity": "requirement" | "task", "id": "...", "field": "..." }` for identified entities, or `{ "collection": "..." }` for arrays. Only `replace-field`, `replace-entity-field`, `add-array-element`, `replace-array-element`, and `delete-array-element` are valid operation kinds. Never permit a task `test_strategy` or any entity `id` mutation.
    - Use `apply` only when the finding is still blocking and can be fixed by a small, directly supported spec change.
    - Use `invalid` when the finding belongs to gate-owned mechanical checks, contradicts verified context, asks for broader scope, or is not grounded in the review's blocking criteria.
    - Use `already_resolved` when the current `spec.json` already covers the finding.
@@ -23,13 +26,19 @@
        "sourceReview": "spec-review.json",
        "summary": "short summary of triage decisions",
        "items": [
-         {
-           "title": "copied finding title",
+        {
+          "findingId": "spec-review-blocking-1",
+          "title": "copied finding title",
            "target": "copied finding target",
            "decision": "apply",
            "rationale": "why this decision was made",
-           "evidence": "spec.json requirements[0].desc lacks the helper named by the finding"
-         }
+          "evidence": "spec.json requirements[0].desc lacks the helper named by the finding",
+          "allowedTargets": [{
+            "target": { "entity": "requirement", "id": "R1", "field": "desc" },
+            "operationKinds": ["replace-entity-field"]
+          }],
+          "requiredTargets": [{ "entity": "requirement", "id": "R1", "field": "desc" }]
+        }
        ]
      }
      ```

@@ -5,6 +5,7 @@ import {
   validateSpecRepairDocument,
   validateSpecTriageDocument,
 } from "../../../src/flow/lib/spec-review-artifacts.js";
+import { checkSpecGateReadiness } from "../../../src/flow/lib/spec-gate-readiness.js";
 
 function makeValidSpec() {
   return {
@@ -135,11 +136,29 @@ describe("checkSpecJson — empty-field sanity checks (spec 228)", () => {
   });
 });
 
+describe("shared spec gate readiness identity checks", () => {
+  it("reports duplicate requirement/task ids and invalid task parent graphs", () => {
+    const spec = makeValidSpec();
+    spec.requirements = [{ id: "R1", desc: "First." }, { id: "R1", desc: "Duplicate." }];
+    spec.tasks = [
+      { id: "T1", parent: "T2", test_strategy: "Run." },
+      { id: "T2", parent: "T1", test_strategy: "Run." },
+      { id: "T2", parent: "MISSING", test_strategy: "Run." },
+    ];
+    const issues = checkSpecGateReadiness(spec);
+    assert.ok(issues.some((issue) => issue.includes("requirements[1].id: duplicate")));
+    assert.ok(issues.some((issue) => issue.includes("tasks[2].id: duplicate")));
+    assert.ok(issues.some((issue) => issue.includes("unknown parent MISSING")));
+    assert.ok(issues.some((issue) => issue.includes("parent cycle")));
+  });
+});
+
 describe("spec review repair document contracts", () => {
   const failReview = {
     verdict: "REJECTED",
     blockingFindings: [
       {
+        findingId: "spec-review-blocking-1",
         title: "Missing implementation target",
         target: "R1",
         issue: "Spec omits the existing helper touched by this behavior.",
@@ -162,33 +181,38 @@ describe("spec review repair document contracts", () => {
 
   function applyTriageItem(overrides = {}) {
     return {
+      findingId: "spec-review-blocking-1",
       title: "Missing implementation target",
       target: "R1",
       decision: "apply",
       rationale: "The finding is still blocking and can be fixed in spec requirements.",
       evidence: "spec.json requirements[0].desc does not name the helper yet.",
+      allowedTargets: [{
+        target: { entity: "requirement", id: "R1", field: "desc" },
+        operationKinds: ["replace-entity-field"],
+      }],
+      requiredTargets: [{ entity: "requirement", id: "R1", field: "desc" }],
       ...overrides,
     };
   }
 
-  function repairArtifact(items) {
+  function repairArtifact(operations) {
     return {
       version: 1,
-      phase: "spec-repair",
-      sourceReview: "spec-triage.json",
-      summary: "Applied triaged review findings.",
-      items,
+      baseRevision: `sha256:${"b".repeat(64)}`,
+      scopeExpansions: [],
+      operations,
     };
   }
 
-  function appliedRepairItem(overrides = {}) {
+  function repairOperation(overrides = {}) {
     return {
-      title: "Missing implementation target",
-      target: "R1",
-      decision: "applied",
-      rationale: "The referenced helper is in scope and now appears in requirements.",
-      evidence: "spec.json requirements[0].desc names the helper required by R1.",
-      changedFields: ["requirements[0].desc"],
+      findingId: "spec-review-blocking-1",
+      kind: "replace-entity-field",
+      target: { entity: "requirement", id: "R1", field: "desc" },
+      expectedDigest: "a".repeat(64),
+      replacement: "The referenced helper is an implementation target.",
+      reason: "The referenced helper is in scope and now appears in requirements.",
       ...overrides,
     };
   }
@@ -197,18 +221,19 @@ describe("spec review repair document contracts", () => {
     assert.doesNotThrow(() => validateSpecRepairDocument({
       review: failReview,
       triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([appliedRepairItem()]),
+      repair: repairArtifact([repairOperation()]),
     }));
   });
 
   it("accepts triage-only drops with an empty repair artifact", () => {
+    const { allowedTargets, requiredTargets, ...nonApply } = applyTriageItem({
+      decision: "downgraded_to_non_blocking",
+      rationale: "The finding is helpful context but does not block implementation.",
+      evidence: "The current requirement already has a testable acceptance path.",
+    });
     assert.doesNotThrow(() => validateSpecRepairDocument({
       review: failReview,
-      triage: triageArtifact([applyTriageItem({
-        decision: "downgraded_to_non_blocking",
-        rationale: "The finding is helpful context but does not block implementation.",
-        evidence: "The current requirement already has a testable acceptance path.",
-      })]),
+      triage: triageArtifact([nonApply]),
       repair: repairArtifact([]),
     }));
   });
@@ -232,40 +257,30 @@ describe("spec review repair document contracts", () => {
     }), /spec-triage: items\[0\]\.decision must be one of/);
   });
 
-  it("rejects applied entries without changed fields", () => {
+  it("rejects legacy full-spec repair payloads", () => {
     assert.throws(() => validateSpecRepairDocument({
       review: failReview,
       triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([appliedRepairItem({
-        rationale: "Applied.",
-        evidence: "spec.json requirements[0].desc was intended to cover this finding.",
-        changedFields: [],
-      })]),
-    }), /changedFields must be non-empty/);
+      repair: { version: 2, baseRevision: `sha256:${"b".repeat(64)}`, operations: [], scopeExpansions: [] },
+    }), /invalid schema|version must be 1/);
   });
 
-  it("rejects repair entries without evidence", () => {
-    assert.throws(() => validateSpecRepairDocument({
+  it("retains an operation without a reason for command-owned discard audit", () => {
+    assert.doesNotThrow(() => validateSpecRepairDocument({
       review: failReview,
       triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([appliedRepairItem({
-        rationale: "The helper is now named.",
-        evidence: "",
-      })]),
-    }), /evidence must be non-empty/);
+      repair: repairArtifact([repairOperation({ reason: "" })]),
+    }));
   });
 
-  it("rejects unknown repair decisions", () => {
-    assert.throws(() => validateSpecRepairDocument({
+  it("keeps unauthorized operation decisions for command-owned audit", () => {
+    assert.doesNotThrow(() => validateSpecRepairDocument({
       review: failReview,
       triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([appliedRepairItem({
+      repair: repairArtifact([repairOperation({
         decision: "unsupported",
-        rationale: "This is not a supported decision.",
-        evidence: "No valid evidence because the decision is unsupported.",
-        changedFields: [],
       })]),
-    }), /decision must be one of/);
+    }));
   });
 
   it("rejects deferred repair decisions because review findings cannot be delegated to gate", () => {
@@ -276,13 +291,14 @@ describe("spec review repair document contracts", () => {
   });
 
   it("rejects triage entries that do not match the source finding", () => {
+    const { allowedTargets, requiredTargets, ...nonApply } = applyTriageItem({
+      title: "Different finding",
+      decision: "invalid",
+    });
     assert.throws(() => validateSpecTriageDocument({
       review: failReview,
-      triage: triageArtifact([applyTriageItem({
-        title: "Different finding",
-        decision: "invalid",
-      })]),
-    }), /title must match blockingFindings\[0\]\.title/);
+      triage: triageArtifact([nonApply]),
+    }), /title must match the identified canonical blocking finding title/);
   });
 
   it("rejects triage logs that do not cover every blocking finding", () => {
@@ -290,7 +306,7 @@ describe("spec review repair document contracts", () => {
       ...failReview,
       blockingFindings: [
         ...failReview.blockingFindings,
-        { title: "Second finding", target: "R2", issue: "x", requiredChange: "y", whyBlocking: "z" },
+        { findingId: "spec-review-blocking-2", title: "Second finding", target: "R2", issue: "x", requiredChange: "y", whyBlocking: "z" },
       ],
     };
     assert.throws(() => validateSpecTriageDocument({
@@ -303,11 +319,11 @@ describe("spec review repair document contracts", () => {
     }), /spec-triage\.json items length 1 does not match blockingFindings length 2/);
   });
 
-  it("rejects repair logs that do not cover every apply triage item", () => {
-    assert.throws(() => validateSpecRepairDocument({
+  it("permits an incomplete proposal so the command can request only the required shortfall", () => {
+    assert.doesNotThrow(() => validateSpecRepairDocument({
       review: failReview,
       triage: triageArtifact([applyTriageItem()]),
       repair: repairArtifact([]),
-    }), /does not match spec-triage apply item length 1/);
+    }));
   });
 });

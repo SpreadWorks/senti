@@ -93,6 +93,7 @@ import {
 } from "./canonical-gate-artifacts.js";
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { checkSpecGateReadiness } from "./spec-gate-readiness.js";
 
 export { resolveGateStepId };
 
@@ -556,111 +557,7 @@ function checkSpecText(text) {
  * @returns {string[]} issues, each prefixed with the dotted field path
  */
 function checkSpecJson(spec) {
-  const issues = [];
-  walkStrings(spec, "", (value, path) => {
-    const marker = findUnresolvedMatch(value);
-    if (marker) {
-      issues.push(`${path}: unresolved marker "${marker}" in value (${value.trim()})`);
-    }
-  });
-
-  // spec 228: minimum-content sanity checks — catch empty stubs before AI guardrails.
-  const requiredNonEmpty = [
-    ["goal", (v) => typeof v === "string" && v.trim() === "", "spec must have a non-empty goal"],
-    ["requirements", (v) => Array.isArray(v) && v.length === 0, "spec must have at least one requirement"],
-    ["acceptance_criteria", (v) => Array.isArray(v) && v.length === 0, "spec must have at least one acceptance criterion"],
-  ];
-  for (const [field, isEmpty, msg] of requiredNonEmpty) {
-    if (isEmpty(spec[field])) {
-      issues.push(`${field}: empty (${msg})`);
-    }
-  }
-
-  if (Array.isArray(spec.requirements) && spec.requirements.length > 3) {
-    for (let i = 0; i < spec.requirements.length; i += 1) {
-      const requirement = spec.requirements[i];
-      if (!Object.prototype.hasOwnProperty.call(requirement, "priority") || requirement.priority == null) {
-        issues.push(
-          `requirements[${i}].priority: missing priority for requirement ${requirement.id} ` +
-            "(required when requirements length is greater than 3)",
-        );
-      }
-    }
-  }
-
-  // spec 226: tasks[] must be present and non-empty for new specs.
-  // Existing merged specs are not gated (flow.json is cleanup'd on finalize),
-  // so this check naturally applies only to active flows.
-  if (spec.tasks === undefined) {
-    issues.push("tasks: missing field (task decomposition required per spec 226)");
-  } else if (Array.isArray(spec.tasks) && spec.tasks.length === 0) {
-    issues.push("tasks: empty array (task decomposition required for all new specs per spec 226)");
-  }
-
-  // spec 226: forest depth upper bound = 10.
-  if (Array.isArray(spec.tasks) && spec.tasks.length > 0) {
-    const depth = computeForestDepth(spec.tasks);
-    if (depth > 10) {
-      issues.push(`tasks: forest depth ${depth} exceeds maximum of 10`);
-    }
-    for (let i = 0; i < spec.tasks.length; i += 1) {
-      const task = spec.tasks[i];
-      const strategy = task.test_strategy;
-      if (strategy == null || (typeof strategy === "string" && strategy.trim() === "")) {
-        issues.push(`tasks[${i}].test_strategy: missing test strategy for task ${task.id}`);
-      }
-    }
-  }
-
-  return issues;
-}
-
-/**
- * Compute the deepest parent-chain length in a task forest.
- * Returns 0 for a flat (all parent=null) list. Bounded by tasks.length to
- * guard against cycles (schema prevents cycles but defensive).
- *
- * @param {Array<{id: string, parent?: string|null}>} tasks
- * @returns {number}
- */
-function computeForestDepth(tasks) {
-  const byId = new Map(tasks.map((t) => [t.id, t]));
-  let maxDepth = 0;
-  for (const t of tasks) {
-    let depth = 0;
-    let cur = t;
-    const maxHops = tasks.length;
-    while (cur && cur.parent != null && byId.has(cur.parent) && depth <= maxHops) {
-      cur = byId.get(cur.parent);
-      depth++;
-    }
-    if (depth > maxDepth) maxDepth = depth;
-  }
-  return maxDepth;
-}
-
-/**
- * Recursively visit every string value in a JSON-like tree, invoking the
- * callback with (value, dotted-path). Bounded by spec.schema.json's
- * maxItems / maxLength constraints (spec 218).
- */
-function walkStrings(node, path, fn) {
-  if (typeof node === "string") {
-    fn(node, path || "<root>");
-    return;
-  }
-  if (Array.isArray(node)) {
-    for (let i = 0; i < node.length; i++) {
-      walkStrings(node[i], `${path}[${i}]`, fn);
-    }
-    return;
-  }
-  if (node && typeof node === "object") {
-    for (const key of Object.keys(node)) {
-      const next = path ? `${path}.${key}` : key;
-      walkStrings(node[key], next, fn);
-    }
-  }
+  return checkSpecGateReadiness(spec);
 }
 
 // ---------------------------------------------------------------------------

@@ -148,6 +148,13 @@ export class DeferredAgentInvocationMetric {
       return false;
     }
   }
+
+  discard() {
+    if (this.#flushed) throw new Error("agent invocation metric was already finalized");
+    this.#flushed = true;
+    this.#metric = null;
+    return false;
+  }
 }
 
 export async function persistAgentInvocationMetric(options, deferred = null) {

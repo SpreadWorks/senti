@@ -89,17 +89,37 @@ describe("getStepInstructions (loader contract)", () => {
       const content = getStepInstructions("plan.spec-repair");
 
       assert.match(content, /handoff `inputs\[\]\.document` snapshots/);
-      assert.match(content, /Write `spec-repair\.json` and the complete resulting `spec\.json` only to their exact handoff `payloadPath` values/);
+      assert.match(content, /Write only `spec-repair\.json` to its exact handoff `payloadPath`/);
+      assert.match(content, /Never write `spec\.json`; the CLI alone applies accepted operations/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
       assert.doesNotMatch(content, /sennel flow set step spec-repair done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
       assert.match(content, /Treat only triage `items\[\]` entries with `decision: "apply"` as the repair input/);
       assert.match(content, /Do not re-triage review findings in this step/);
-      assert.match(content, /For every triage item with `decision: "apply"`/);
-      assert.match(content, /`decision`: `applied`/);
-      assert.match(content, /`changedFields`/);
+      assert.match(content, /Return only constrained operation proposals/);
+      assert.match(content, /`findingId`/);
+      assert.match(content, /same canonical location as an `allowedTargets` permission/);
+      assert.match(content, /`operationKinds`/);
+      assert.match(content, /`requiredTargets`/);
+      assert.match(content, /"version": 1/);
       assert.match(content, /must be small, auditable, and limited to triage `apply` items/);
+    });
+
+    it("spec-repair prompt exposes the v1 proposal and structured permission contract", () => {
+      const content = getStepInstructions("plan.spec-repair");
+
+      assert.match(content, /proposal contract.*version.*1|"version": 1/i);
+      assert.match(content, /structured target|target.*entity.*id.*field/i);
+      assert.match(content, /operationKinds/);
+      assert.match(content, /replace-field/);
+      assert.match(content, /replace-entity-field/);
+      assert.match(content, /add-array-element/);
+      assert.match(content, /replace-array-element/);
+      assert.match(content, /delete-array-element/);
+      assert.match(content, /replacement/);
+      assert.match(content, /position/);
+      assert.doesNotMatch(content, /"version": 2/);
     });
 
     it("spec gate instructions keep gate fixes separate from design review", () => {

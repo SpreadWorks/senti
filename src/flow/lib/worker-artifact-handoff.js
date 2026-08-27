@@ -25,9 +25,12 @@ import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
 import {
-  validateSpecRepairDocument,
   validateSpecTriageDocument,
 } from "./spec-review-artifacts.js";
+import {
+  applySpecRepairOperations,
+  SpecRepairOperationsError,
+} from "./spec-repair-operations.js";
 import {
   requiresWorkerArtifactHandoff,
   requiresWorkerSourceHandoff,
@@ -435,10 +438,10 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "spec-repair",
     inputs: ["spec.json", "spec-review.json", "spec-triage.json"],
-    payloads: [
-      { logicalName: "spec-repair.json", targetRelativePath: "spec-repair.json" },
-      { logicalName: "spec.json", targetRelativePath: "spec.json" },
-    ],
+    // The worker proposes constrained operations only.  The dispatcher
+    // reconstructs the canonical spec from its immutable input snapshot and
+    // publishes both the resulting spec and the command-owned audit together.
+    payloads: [{ logicalName: "spec-repair.json", targetRelativePath: "spec-repair.json" }],
     revisionKind: "spec",
   }),
   new WorkerArtifactHandoffPolicy({
@@ -3214,7 +3217,7 @@ function assertTestReviewRepairMadeProgress(request, submission, state, logicalN
   }
 }
 
-function validatePayload(request, submission, state) {
+function validatePayload(request, submission, state, specRepairCorrectionHistory = null) {
   try {
     if (request.policy.kind === "source") {
       const effect = SourceWorkerEffect.fromDocument(
@@ -3275,16 +3278,24 @@ function validatePayload(request, submission, state) {
       validateSpecTriageDocument({
         review: request.inputs.find((input) => input.name === "spec-review.json").document,
         triage: payloadDocument(request, submission, "spec-triage.json"),
+        spec: request.inputs.find((input) => input.name === "spec.json").document,
       });
       return;
     }
     if (request.stepId === "spec-repair") {
-      validateSpecRepairDocument({
+      const triage = validateSpecTriageDocument({
         review: request.inputs.find((input) => input.name === "spec-review.json").document,
         triage: request.inputs.find((input) => input.name === "spec-triage.json").document,
-        repair: payloadDocument(request, submission, "spec-repair.json"),
+        spec: request.inputs.find((input) => input.name === "spec.json").document,
       });
-      validateSpecJsonObject(payloadDocument(request, submission, "spec.json"));
+      applySpecRepairOperations({
+        spec: request.inputs.find((input) => input.name === "spec.json").document,
+        triage,
+        repair: payloadDocument(request, submission, "spec-repair.json"),
+        inputDigest: request.inputDigest,
+        inputRevision: request.inputRevision,
+        correctionHistory: specRepairCorrectionHistory,
+      });
       return;
     }
     if (request.stepId === "test") {
@@ -3305,6 +3316,22 @@ function validatePayload(request, submission, state) {
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    if (cause instanceof SpecRepairOperationsError) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        cause.code,
+        `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
+        {
+          cause,
+          retryable: request.stepId === "spec-repair" && cause.retryable,
+          data: {
+            stepId: request.stepId,
+            handoffDirectory: request.directory,
+            ...(cause.audit ? { specRepairAudit: cause.audit } : {}),
+          },
+        },
+      );
+    }
     throw new WorkerArtifactHandoffError(
       "invalid",
       "FLOW_ARTIFACT_HANDOFF_INVALID",
@@ -3595,13 +3622,28 @@ class DraftPromotionHandoffAdapter {
   }
 }
 
-function canonicalHandoffPublications(request, submission) {
+function canonicalHandoffPublications(request, submission, specRepairCorrectionHistory = null) {
   const artifactWrites = [];
   const artifactRemovals = [];
   const artifactBaselines = new Map();
   let specRecord;
   let testSourceBaseline;
   const testEntries = [];
+  const specRepairResult = request.stepId === "spec-repair"
+    ? applySpecRepairOperations({
+      spec: request.inputs.find((input) => input.name === "spec.json").document,
+      triage: validateSpecTriageDocument({
+        review: request.inputs.find((input) => input.name === "spec-review.json").document,
+        triage: request.inputs.find((input) => input.name === "spec-triage.json").document,
+        spec: request.inputs.find((input) => input.name === "spec.json").document,
+      }),
+      repair: payloadDocument(request, submission, "spec-repair.json"),
+      inputDigest: request.inputDigest,
+      inputRevision: request.inputRevision,
+      correctionHistory: specRepairCorrectionHistory,
+    })
+    : null;
+  const specRepairAudit = specRepairResult?.audit ?? null;
   const addArtifactBaseline = (baseline) => {
     const relativePath = baseline.artifact.relativePath;
     const existing = artifactBaselines.get(relativePath) ?? null;
@@ -3627,7 +3669,9 @@ function canonicalHandoffPublications(request, submission) {
     }));
   }
   for (const entry of submission.payloadManifest) {
-    const bytes = manifestPayloadBytes(request, entry, "canonical handoff payload");
+    const bytes = specRepairResult !== null && entry.logicalName === "spec-repair.json"
+      ? Buffer.from(`${JSON.stringify(specRepairAudit, null, 2)}\n`, "utf8")
+      : manifestPayloadBytes(request, entry, "canonical handoff payload");
     if (entry.targetRelativePath.startsWith("tests/")) {
       testEntries.push({
         targetRelativePath: entry.targetRelativePath,
@@ -3672,6 +3716,9 @@ function canonicalHandoffPublications(request, submission) {
       continue;
     }
     artifactWrites.push(address.publication(bytes, mediaTypeForPath(entry.targetRelativePath)));
+  }
+  if (specRepairResult !== null) {
+    specRecord = new CanonicalWorkerSpecPublication(specRepairResult.spec);
   }
   if (testEntries.length > 0) {
     const replacement = new CanonicalWorkerTestTree(testEntries)
@@ -4040,7 +4087,7 @@ export class WorkerArtifactHandoffCoordinator {
       : null;
   }
 
-  reconcile({ ctx, request, mutationAuthority = null }) {
+  reconcile({ ctx, request, mutationAuthority = null, specRepairCorrectionHistory = null }) {
     if (!(request instanceof WorkerArtifactHandoffRequest)) return null;
     // A sealed V1 payload sits in `.runtime/` until the parent accepts it.
     // Validate that untrusted surface before loading the Version Store: a
@@ -4087,10 +4134,10 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     state ??= ctx.flowManager.load(request.specId);
-    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority });
+    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority, specRepairCorrectionHistory });
   }
 
-  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null }) {
+  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null, specRepairCorrectionHistory = null }) {
     const committed = canonicalHandoffReceiptForRequest(state, request, ctx.flowManager);
     if (committed !== null) {
       return {
@@ -4106,7 +4153,7 @@ export class WorkerArtifactHandoffCoordinator {
       if (submission === null) validateSubmission(request, resolvedSubmission);
       submission = resolvedSubmission;
       request.assertCurrent(state);
-      validatePayload(request, submission, state);
+      validatePayload(request, submission, state, specRepairCorrectionHistory);
     } catch (cause) {
       throw cause instanceof WorkerArtifactHandoffError
         ? cause
@@ -4135,7 +4182,7 @@ export class WorkerArtifactHandoffCoordinator {
     }
     let publications;
     try {
-      publications = canonicalHandoffPublications(request, submission);
+      publications = canonicalHandoffPublications(request, submission, specRepairCorrectionHistory);
     } catch (cause) {
       throw cause instanceof WorkerArtifactHandoffError
         ? cause

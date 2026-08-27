@@ -3484,10 +3484,14 @@ class SpecReviewItem {
         `**Why non-blocking:** ${this.whyNonBlocking}`,
       ].join("\n");
     }
+    this.findingId = typeof item.findingId === "string" && item.findingId.trim() !== ""
+      ? item.findingId.trim()
+      : specReviewFindingId(kind, this);
   }
 
   toPromptMemory() {
     const base = {
+      findingId: this.findingId,
       title: this.title,
       target: this.target,
     };
@@ -3508,6 +3512,7 @@ class SpecReviewItem {
   toJSON() {
     const base = {
       kind: this.kind,
+      findingId: this.findingId,
       title: this.title,
       target: this.target,
       body: this.body,
@@ -3528,6 +3533,24 @@ class SpecReviewItem {
   }
 }
 
+function specReviewFindingId(kind, item) {
+  const identity = {
+    kind,
+    title: String(item?.title || "").trim(),
+    target: String(item?.target || "GLOBAL").trim(),
+    ...(kind === "blocking"
+      ? {
+          issue: String(item?.issue || "").trim(),
+          requiredChange: String(item?.requiredChange || "").trim(),
+        }
+      : {
+          improvement: String(item?.improvement || "").trim(),
+        }),
+  };
+  const digest = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
+  return `spec-review-${digest.slice(0, 32)}`;
+}
+
 class SpecReviewArtifact {
   constructor({ verdict, blocking = [], improvements = [], generatedAt = new Date().toISOString() }) {
     this.version = 1;
@@ -3536,6 +3559,16 @@ class SpecReviewArtifact {
     this.verdict = verdict;
     this.blockingFindings = blocking.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("blocking", item));
     this.nonBlockingImprovements = improvements.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("improvement", item));
+    const findingIds = [
+      ...this.blockingFindings,
+      ...this.nonBlockingImprovements,
+    ].map((item) => item.findingId);
+    if (findingIds.some((id) => typeof id !== "string" || id.trim() === "")) {
+      throw new Error("spec review findings require stable findingId values");
+    }
+    if (new Set(findingIds).size !== findingIds.length) {
+      throw new Error("spec review findings must not duplicate findingId values");
+    }
     this.counts = Object.freeze({
       blocking: this.blockingFindings.length,
       nonBlocking: this.nonBlockingImprovements.length,
