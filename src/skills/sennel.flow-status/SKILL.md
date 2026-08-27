@@ -35,6 +35,7 @@ Display the current state of the Spec-Driven Development workflow.
 
    ### Requirements Progress
    - Show the requirements table from `sennel flow get status` output.
+   - Treat `requirementsProgress.mapped` as the number of requirements with implementation file evidence. Do not describe it as requirement completion or infer implementation correctness from it.
    - If no requirements are set yet, note "Requirements not yet defined (set after spec approval)".
 
    ### Spec Summary
@@ -72,10 +73,10 @@ Display the current state of the Spec-Driven Development workflow.
       6. approval          pending
       ...
 
-   Requirements (1/3 done)
+   Requirements (1/3 mapped to files)
    ────────────────────────────────
-     0. ✓ refactor flow.js to dispatcher
-     1. > implement status subcommand
+     0. → refactor flow.js to dispatcher
+     1.   implement status subcommand
      2.   update SKILL.md
 
    Commits (3 ahead of main)

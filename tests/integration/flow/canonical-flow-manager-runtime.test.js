@@ -1268,7 +1268,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           version: 1,
           stepId: "impl-triage",
           completionStatus: "done",
-          requirements: [], files: [], issues: [], overview: null, repair: null,
+          files: [], issues: [], overview: null, repair: null,
           triage: {
             dispositions: [{
               findingKey: "finding-1",
@@ -1350,7 +1350,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.confirmSourceWorkerHandoff({
       specId,
       effect: new SourceWorkerEffect({
-        version: 1, stepId: "impl-triage", completionStatus: "done", requirements: [], files: [], issues: [], overview: null, repair: null,
+        version: 1, stepId: "impl-triage", completionStatus: "done", files: [], issues: [], overview: null, repair: null,
         triage: { dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
       }),
       handoffDigest: "a".repeat(64),
@@ -1359,7 +1359,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     manager.confirmSourceWorkerHandoff({
       specId,
       effect: new SourceWorkerEffect({
-        version: 1, stepId: "impl-repair", completionStatus: "done", requirements: [], files: [], issues: [], overview: null, triage: null,
+        version: 1, stepId: "impl-repair", completionStatus: "done", files: [], issues: [], overview: null, triage: null,
         repair: { appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
       }),
       handoffDigest: "b".repeat(64),
@@ -2404,7 +2404,6 @@ describe("FlowManager canonical Version-1 runtime", () => {
             id: "R1",
             desc: "Bind the implementation file map to the report.",
             priority: "must",
-            status: "pending",
           }],
           tasks: [],
         }, { specId: "001-canonical-linked-report" }),
@@ -4209,7 +4208,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         version: 1,
         stepId: "impl-repair",
         completionStatus: "done",
-        requirements: [], files: [], issues: [], overview: null, triage: null,
+        files: [], issues: [], overview: null, triage: null,
         repair: { appliedFindingKeys: ["finding-1"], summary: "Applied the reviewed implementation correction." },
       }),
       handoffDigest: "a".repeat(64),

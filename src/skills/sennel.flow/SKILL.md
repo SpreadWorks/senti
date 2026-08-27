@@ -385,8 +385,6 @@ sennel flow get qa-count
 sennel flow get resolve-context
 sennel flow set init [--issue N] [--request "..."]
 sennel flow set step <id> <status>
-sennel flow set summary '<JSON array>'
-sennel flow set req <reqId|zeroBasedIndex> <status>
 sennel flow set request "<text>" --run-id <runId>  # preparing lifecycle only
 sennel flow set note "<text>"
 sennel flow set issue <number>
@@ -402,7 +400,6 @@ sennel flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#s
 sennel flow run scenario-validity
 sennel flow run test-execute
 sennel flow run test-result-review
-sennel flow run impl-confirm --mode <overview|detail>
 sennel flow run retro [--dry-run]
 sennel flow run final-regression
 sennel flow run finalize-commit [--message "<msg>"]

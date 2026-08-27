@@ -32,7 +32,7 @@ function sampleSpec() {
       { option: "Keep spec.md primary.", reason: "Rejected; conflicts with cac6 decision." },
     ],
     requirements: [
-      { id: "R1", desc: "schema defines 11 fields", priority: "must", status: "pending" },
+      { id: "R1", desc: "schema defines 11 fields", priority: "must" },
     ],
     acceptance_criteria: ["schema file exists"],
     open_questions: [],

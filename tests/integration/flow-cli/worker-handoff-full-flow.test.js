@@ -55,7 +55,6 @@ function sourceEffect(stepId) {
     version: 1,
     stepId,
     completionStatus: "done",
-    requirements: [],
     files: [],
     issues: [],
     overview: null,
@@ -65,7 +64,6 @@ function sourceEffect(stepId) {
   if (stepId === "implement") {
     return {
       ...base,
-      requirements: [{ reference: "R1", status: "done" }],
       files: [{ requirementId: "R1", paths: ["src/implementation.js"] }],
     };
   }

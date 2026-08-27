@@ -26,6 +26,7 @@ import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-resu
 import { FlowCompletion } from "./flow-completion.js";
 import { advisorySummary } from "./nonblocking.js";
 import { CanonicalSpecRecord } from "./canonical-spec-record.js";
+import { CanonicalFileMap } from "./canonical-file-map.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
 /** Token sub-fields that the Logger / canonical command view emit per agent entry. */
@@ -232,6 +233,20 @@ class CanonicalStatusArtifacts {
     }).requirements();
   }
 
+  mappedRequirementIds(requirements) {
+    const artifact = this.flowManager.readArtifact({
+      specId: this.specId,
+      logicalKey: "file.map",
+      consumerNodeId: "system",
+      optional: true,
+    });
+    if (artifact === null) return new Set();
+    const fileMap = CanonicalFileMap.fromBytes(artifact.bytes)
+      .assertAgainstSpec({ requirements })
+      .toJSON();
+    return new Set(Object.keys(fileMap));
+  }
+
   finalRegression() {
     const resolved = this.#read("final.regression", { optional: true });
     if (resolved === null) return null;
@@ -315,7 +330,7 @@ function buildStatusOutput(state, root, options = {}) {
   const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
   const totalSteps = leafSteps.length;
   const requirements = artifacts ? artifacts.requirements() : [];
-  const doneReqs = requirements.filter((r) => r.status === "done").length;
+  const mappedReqs = artifacts ? artifacts.mappedRequirementIds(requirements).size : 0;
   const totalReqs = requirements.length;
   const reviewAction = null;
   const gateViews = state.specId ? buildStatusGateViews(state, active, root, options) : null;
@@ -357,7 +372,7 @@ function buildStatusOutput(state, root, options = {}) {
     steps: state.steps || [],
     stepsProgress: { done: doneSteps, total: totalSteps },
     requirements,
-    requirementsProgress: { done: doneReqs, total: totalReqs },
+    requirementsProgress: { mapped: mappedReqs, total: totalReqs },
     ...(deferredFindings.count > 0 && { deferredFindings }),
     ...(finalRegression && { finalRegression }),
     ...(recoveryDiagnostics && { recoveryDiagnostics }),

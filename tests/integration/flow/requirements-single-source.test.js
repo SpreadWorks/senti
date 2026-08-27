@@ -4,7 +4,8 @@
  * spec 219: requirements の source of truth が spec.json.requirements に統一され、
  * flow.json 側を参照しないことを検証する。
  *
- * Covers R1 (retro), R4 (get status), R6 (impl-confirm / resume), R7 (status 未設定時 pending 扱い)。
+ * Covers the cataloged requirement definition, file-map progress, and context
+ * consumers without a worker-controlled requirement completion status.
  */
 
 import { describe, it, afterEach } from "node:test";
@@ -14,7 +15,6 @@ import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import os from "node:os";
 import { CanonicalFlowFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
-import RunImplConfirmCommand from "../../../src/flow/lib/run-impl-confirm.js";
 import GetResolveContextCommand from "../../../src/flow/lib/get-resolve-context.js";
 import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 
@@ -101,14 +101,14 @@ describe("spec 219 R1: run-retro.js does not reference flow state requirements",
 });
 
 // ---------------------------------------------------------------------------
-// R4: flow get status — requirements come from spec.json
+// R4: flow get status — requirements come from spec.json, progress from file-map
 // ---------------------------------------------------------------------------
 
-describe("spec 219 R4: flow get status returns requirements from spec.json", () => {
+describe("flow get status reports requirement-file mapping progress", () => {
   let tmp;
   afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
 
-  it("returns requirements populated from spec.json when flow state requirements is empty", () => {
+  it("does not expose retired persisted statuses or report progress without a canonical file-map", () => {
     tmp = createProject();
     const specId = "001-test";
     setupFlow(tmp, specId, minimalSpec([
@@ -120,36 +120,61 @@ describe("spec 219 R4: flow get status returns requirements from spec.json", () 
     assert.equal(res.status, 0, res.stderr || res.stdout);
     const env = parseEnvelope(res);
     assert.equal(env.data.requirements.length, 2);
-    assert.equal(env.data.requirementsProgress.done, 1);
+    assert.equal(Object.hasOwn(env.data.requirements[0], "status"), false);
+    assert.equal(Object.hasOwn(env.data.requirements[1], "status"), false);
+    assert.deepEqual(env.data.requirementsProgress, { mapped: 0, total: 2 });
     assert.equal(env.data.requirementsProgress.total, 2);
   });
 
-  it("treats spec.json requirements without status field as 'pending' (R7)", () => {
+  it("returns requirement definitions without manufacturing a status", () => {
     tmp = createProject();
     const specId = "001-test";
     setupFlow(tmp, specId, minimalSpec([
       { id: "R1", desc: "no status", priority: "must" },
-      { id: "R2", desc: "explicit done", priority: "must", status: "done" },
+      { id: "R2", desc: "also no status", priority: "must" },
     ]));
 
     const res = run(tmp, ["flow", "get", "status"]);
     assert.equal(res.status, 0, res.stderr || res.stdout);
     const env = parseEnvelope(res);
-    assert.equal(env.data.requirementsProgress.total, 2);
-    assert.equal(env.data.requirementsProgress.done, 1);
+    assert.deepEqual(env.data.requirementsProgress, { mapped: 0, total: 2 });
+    assert.equal(Object.hasOwn(env.data.requirements[0], "status"), false);
+  });
+
+  it("counts only requirement ids recorded in the canonical file-map", () => {
+    tmp = createProject();
+    const specId = "001-test";
+    setupFlow(tmp, specId, minimalSpec([
+      { id: "R1", desc: "mapped requirement", priority: "must" },
+      { id: "R2", desc: "unmapped requirement", priority: "must" },
+    ])).activate("implement");
+    makeFlowManager(tmp).updateFileMap({ specId, requirementId: "R1", paths: ["src/result.js"] });
+
+    const res = run(tmp, ["flow", "get", "status"]);
+    assert.equal(res.status, 0, res.stderr || res.stdout);
+    const env = parseEnvelope(res);
+    assert.deepEqual(env.data.requirementsProgress, { mapped: 1, total: 2 });
+  });
+});
+
+describe("flow-status skill reports mapping evidence without completion claims", () => {
+  it("uses requirementsProgress.mapped and does not label requirements as done", () => {
+    const skill = fs.readFileSync(path.resolve("src/skills/sennel.flow-status/SKILL.md"), "utf8");
+    assert.match(skill, /requirementsProgress\.mapped/);
+    assert.match(skill, /mapped to files/);
+    assert.doesNotMatch(skill, /Requirements \([^\n]+ done\)/);
   });
 });
 
 // ---------------------------------------------------------------------------
-// R6: impl-confirm and resume — must not reference state.requirements
+// R6: resume and resolve-context read the cataloged requirement definitions
 // ---------------------------------------------------------------------------
 
-describe("spec 219 R6: impl-confirm / resume / resolve-context do not reference state.requirements", () => {
+describe("resume and resolve-context do not reference flow state requirements", () => {
   let tmp;
   afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
 
   for (const file of [
-    "src/flow/lib/run-impl-confirm.js",
     "src/flow/lib/run-resume.js",
     "src/flow/lib/get-resolve-context.js",
   ]) {
@@ -163,7 +188,7 @@ describe("spec 219 R6: impl-confirm / resume / resolve-context do not reference 
     });
   }
 
-  it("reads implementation and resume context from the cataloged spec.record", async () => {
+  it("reads implementation and resume context from the cataloged spec.record", () => {
     tmp = createProject();
     const manager = makeFlowManager(tmp);
     const fixture = new CanonicalFlowFixture({
@@ -173,33 +198,22 @@ describe("spec 219 R6: impl-confirm / resume / resolve-context do not reference 
       request: "Verify cataloged spec record consumers",
       execution: { mode: "direct", baseBranch: "main", featureBranch: "feature/001-test" },
       specRecord: minimalSpec([
-        { id: "R1", desc: "cataloged completed requirement", priority: "must", status: "done" },
-        { id: "R2", desc: "cataloged pending requirement", priority: "must", status: "pending" },
+        { id: "R1", desc: "first cataloged requirement", priority: "must", status: "done" },
+        { id: "R2", desc: "second cataloged requirement", priority: "must", status: "pending" },
       ]),
     }).create().registerActive();
     const state = fixture.state();
     const ctx = { root: tmp, mainRoot: tmp, flowManager: manager, flowState: state };
 
-    const implConfirm = await new RunImplConfirmCommand().execute(ctx);
     const resolved = new GetResolveContextCommand().execute(ctx);
     const resumed = new RunResumeCommand().execute(ctx);
 
-    assert.deepEqual(implConfirm.artifacts.requirements, {
-      total: 2,
-      done: 1,
-      pending: 1,
-      inProgress: 0,
-      items: [
-        { index: 0, desc: "cataloged completed requirement", status: "done" },
-        { index: 1, desc: "cataloged pending requirement", status: "pending" },
-      ],
-    });
     for (const context of [resolved, resumed]) {
       assert.equal(context.goal, "test");
       assert.deepEqual(context.scope, { in: [], out: [] });
-      assert.deepEqual(context.requirements.map(({ id, desc, status }) => ({ id, desc, status })), [
-        { id: "R1", desc: "cataloged completed requirement", status: "done" },
-        { id: "R2", desc: "cataloged pending requirement", status: "pending" },
+      assert.deepEqual(context.requirements, [
+        { id: "R1", desc: "first cataloged requirement", priority: "must" },
+        { id: "R2", desc: "second cataloged requirement", priority: "must" },
       ]);
     }
   });

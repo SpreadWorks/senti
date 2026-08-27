@@ -191,7 +191,7 @@ function setupFixture(tmp) {
       goal: "Implement numeric addition through the complete CLI lifecycle.",
       background: "CLI-only lifecycle fixture.",
       scope: { in: ["src/value.js"], out: [] },
-      requirements: [{ id: "R1", desc: "add returns the arithmetic sum of two numeric operands", priority: "must", status: "in_progress" }],
+      requirements: [{ id: "R1", desc: "add returns the arithmetic sum of two numeric operands", priority: "must" }],
       acceptance_criteria: ["add(2, 3) returns 5"],
       user_approval: { approved: true, confirmed_at: "2026-01-01T00:00:00.000Z", notes: "E2E fixture approval" },
     },
@@ -270,7 +270,6 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     runEnvelope(tmp, ["flow", "set", "step", "implement", "done"]);
     assertNext(tmp, "task-impl", "T-1");
     runEnvelope(tmp, ["flow", "set", "files", "R1", "src/value.js"]);
-    runEnvelope(tmp, ["flow", "set", "req", "R1", "done"]);
     runEnvelope(tmp, ["flow", "set", "step", "task-impl", "done"]);
     assertNext(tmp, "task-review", "T-1");
 

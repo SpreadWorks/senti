@@ -1,4 +1,4 @@
    - Read `impl-review.json`; it is the source of findings to classify. Do not read or create `impl-triage.json` directly.
    - Produce exactly one disposition for each reviewed finding. `apply` proceeds to repair; `reject` needs concrete rationale and evidence. Acceptance `notMet` findings must be `apply`.
    - Do not edit Flow state, canonical artifacts, or downstream evidence.
-   - Write the typed triage result only in the source handoff `effects.json` payload described by the dispatch contract. Set `requirements`, `files`, and `issues` empty, `overview` and `repair` null, and provide `triage.dispositions`; then run its exact `sealCommand`. The parent validates and publishes the canonical triage artifact.
+   - Write the typed triage result only in the source handoff `effects.json` payload described by the dispatch contract. Set `files` and `issues` empty, `overview` and `repair` null, and provide `triage.dispositions`; then run its exact `sealCommand`. The parent validates and publishes the canonical triage artifact.

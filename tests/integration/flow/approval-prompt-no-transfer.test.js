@@ -17,7 +17,7 @@ describe("spec 219 R8: approval prompt does not instruct manual requirements tra
     assert.doesNotMatch(
       src,
       /flow\s+set\s+summary/,
-      "approval prompt must not include deprecated `flow set summary` step",
+      "approval prompt must not include removed `flow set summary` step",
     );
   });
 

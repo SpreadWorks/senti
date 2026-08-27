@@ -46,7 +46,7 @@ function minimalSpecJson() {
     constraints: [],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "anything goes", priority: "must", status: "pending" }],
+    requirements: [{ id: "R1", desc: "anything goes", priority: "must" }],
     acceptance_criteria: [],
     clarifications: [],
     alternatives_considered: [],
@@ -562,8 +562,8 @@ describe("gate-impl integration (spec 202)", () => {
         }],
       },
       requirements: [
-        { id: "R1", desc: "Return a required status enum.", priority: "must", status: "pending" },
-        { id: "R2", desc: "Preserve the current R1 contract.", priority: "must", status: "pending" },
+        { id: "R1", desc: "Return a required status enum.", priority: "must" },
+        { id: "R2", desc: "Preserve the current R1 contract.", priority: "must" },
       ],
       clarifications: [{ q: "Is legacy [] valid?", a: "No." }],
     };

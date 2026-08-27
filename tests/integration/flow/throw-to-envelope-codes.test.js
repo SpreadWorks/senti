@@ -158,7 +158,7 @@ describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
   it("R2a: returns TEST_RESULT_REVIEW_MISSING when test-result-review.json is absent", () => {
     tmp = createTmpProject();
     createFlowState(tmp, {
-      requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
+      requirements: [{ id: "R1", desc: "x", priority: "must" }],
     });
     // No upstream artifact prepared → retro must refuse to aggregate.
     const res = run(tmp, ["flow", "run", "retro"]);
@@ -175,7 +175,7 @@ describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
   it("R2b: returns TEST_EXECUTE_RESULT_MISSING when only test-result-review.json exists", () => {
     tmp = createTmpProject();
     createFlowState(tmp, {
-      requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
+      requirements: [{ id: "R1", desc: "x", priority: "must" }],
       activeStep: "test-result-review",
     });
     const manager = makeFlowManager(tmp);
@@ -214,13 +214,10 @@ describe("R3: flow set argument validation → structured codes (table-driven)",
   const CASES = [
     { name: "set step with missing args", argv: ["flow", "set", "step"], code: "INVALID_USAGE" },
     { name: "set step with invalid status", argv: ["flow", "set", "step", "draft", "bogus-status"], code: "INVALID_STATUS" },
-    { name: "set req with invalid index", argv: ["flow", "set", "req", "not-a-number", "done"], code: "INVALID_ARG_VALUE" },
-    { name: "set req with invalid status", argv: ["flow", "set", "req", "0", "bogus"], code: "INVALID_STATUS" },
     { name: "set issue with missing arg", argv: ["flow", "set", "issue"], code: "INVALID_USAGE" },
     { name: "set issue with non-number", argv: ["flow", "set", "issue", "abc"], code: "INVALID_ARG_VALUE" },
     { name: "set note with no text", argv: ["flow", "set", "note"], code: "INVALID_USAGE" },
     { name: "set request with no text", argv: ["flow", "set", "request"], code: "INVALID_USAGE" },
-    { name: "set summary is deprecated", argv: ["flow", "set", "summary", '["x"]'], code: "DEPRECATED" },
     { name: "set metric with missing args", argv: ["flow", "set", "metric"], code: "INVALID_USAGE" },
     { name: "set metric with invalid phase", argv: ["flow", "set", "metric", "bogus-phase", "docsRead"], code: "INVALID_PHASE" },
     { name: "set metric with invalid counter", argv: ["flow", "set", "metric", "draft", "bogus-counter"], code: "INVALID_ARG_VALUE" },

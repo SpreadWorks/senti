@@ -45,8 +45,8 @@ src/
 │   ├── set.js               set サブディスパッチャ
 │   ├── run.js               run サブディスパッチャ
 │   ├── get/                 status, resolve-context, check, prompt, qa-count, guardrail, issue
-│   ├── set/                 step, request, issue, note, summary, req, metric
-│   ├── run/                 prepare-spec, gate, review, impl-confirm, finalize, sync
+│   ├── set/                 step, request, issue, note, files, metric
+│   ├── run/                 prepare-spec, gate, review, finalize, sync
 │   └── commands/            内部ヘルパー（merge, cleanup, review の実体）
 ├── spec/commands/            init, gate, guardrail（flow/run/prepare-spec, gate が内部で呼ぶ）
 ├── presets/                  core builtin preset（base のみ）

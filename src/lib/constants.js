@@ -129,32 +129,12 @@ export const VALID_REVIEW_PHASES = Object.freeze([
 export const BROAD_MODE_HISTORY_MAX_ENTRIES = 50;
 
 // ---------------------------------------------------------------------------
-// Impl-confirm modes
-// ---------------------------------------------------------------------------
-
-export const VALID_IMPL_CONFIRM_MODES = Object.freeze([
-  "overview",
-  "detail",
-]);
-
-// ---------------------------------------------------------------------------
 // Auto-approve values
 // ---------------------------------------------------------------------------
 
 export const VALID_AUTO_VALUES = Object.freeze([
   "on",
   "off",
-]);
-
-// ---------------------------------------------------------------------------
-// Requirement statuses
-// ---------------------------------------------------------------------------
-
-export const VALID_REQ_STATUSES = Object.freeze([
-  "pending",
-  "in_progress",
-  "done",
-  "skipped",
 ]);
 
 // ---------------------------------------------------------------------------

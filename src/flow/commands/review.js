@@ -3271,8 +3271,7 @@ function buildSpecSummaryMarkdown(spec) {
     lines.push("# Requirements");
     for (const r of spec.requirements) {
       const testable = r.testable === false ? " testable=false" : "";
-      const status = r.status ? ` status=${r.status}` : "";
-      lines.push(`- ${r.id} [${r.priority || "unknown"}${status}${testable}]: ${r.desc}`);
+      lines.push(`- ${r.id} [${r.priority || "unknown"}${testable}]: ${r.desc}`);
     }
   }
   const acceptance = formatSpecReviewSimpleList(spec.acceptance_criteria);

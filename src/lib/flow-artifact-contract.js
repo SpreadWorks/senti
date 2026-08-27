@@ -1652,7 +1652,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // namespace.  Workflow ideas retain their own contract and are excluded
   // from this broader source-era pattern below.
   contract("plugin.lifecycle.artifact", "artifacts/plugin-artifacts/:{pluginArtifactPath}", "plugin-lifecycle-artifact", "canonical-flow-artifacts", "system", own("system", ["system"], ["system"]), "permanent", "collection"),
-  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own(["implement", "task-impl"], ["implement", "impl-repair", "task-impl"], ["implement", "impl-repair", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report"])),
+  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own(["implement", "task-impl"], ["implement", "impl-repair", "task-impl"], ["system", "implement", "impl-repair", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report"])),
   // upgrade.js is the actual writer; this shared progress evidence is consumed by gates and reporting.
   contract("upgrade.result", "steps/upgrade-result.json", "upgrade-result", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "acceptance-review", "final-regression", "report"])),
   contract("placeholder.permission", "steps/test/permission.json", "placeholder-permission", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "impl-gate"])),

@@ -20,7 +20,7 @@ describe("flow set files canonical publication", () => {
       runId: "run-file-map",
       request: "Publish the implementation file map through the Version Store.",
       specRecord: {
-        requirements: [{ id: "R1", desc: "Map implementation files.", priority: "must", status: "pending" }],
+        requirements: [{ id: "R1", desc: "Map implementation files.", priority: "must" }],
       },
     }).create().registerActive().activate("implement");
     return { fixture, manager };

@@ -107,7 +107,7 @@ function createRetroContext(root, {
     execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
     specRecord: {
       goal: "retro fixture",
-      requirements: [{ id: "R1", desc: "first", priority: "must", status: "pending" }],
+      requirements: [{ id: "R1", desc: "first", priority: "must" }],
     },
     targetStep: "test",
   }).create();

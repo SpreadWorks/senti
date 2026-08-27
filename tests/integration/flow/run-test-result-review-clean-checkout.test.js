@@ -61,7 +61,7 @@ function fixture() {
     specId: "001-test",
     runId: "run-test-result-review-clean-checkout",
     specRecord: {
-      requirements: [{ id: "R1", desc: "Preserve the canonical completion contract.", priority: "must", status: "pending" }],
+      requirements: [{ id: "R1", desc: "Preserve the canonical completion contract.", priority: "must" }],
     },
   }).create().registerActive().activate("test");
   flowManager.publishArtifacts({

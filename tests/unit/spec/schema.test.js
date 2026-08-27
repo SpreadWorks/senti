@@ -27,7 +27,7 @@ function minimalValidSpec() {
       decisions: [],
     },
     background: "",
-    requirements: [{ id: "R1", desc: "d", priority: "must", status: "pending" }],
+    requirements: [{ id: "R1", desc: "d", priority: "must" }],
     acceptance_criteria: ["ok"],
     clarifications: [],
     alternatives_considered: [],
@@ -85,6 +85,14 @@ describe("spec.schema.json", () => {
     const schema = loadSchema();
     const errors = validateSchema(minimalValidSpec(), schema);
     assert.deepEqual(errors, []);
+  });
+
+  it("rejects a retired lifecycle status on a requirement definition", () => {
+    const schema = loadSchema();
+    const spec = minimalValidSpec();
+    spec.requirements[0].status = "done";
+    const errors = validateSchema(spec, schema);
+    assert.ok(errors.some((entry) => entry.includes("status")));
   });
 
   for (const field of ["goal", "scope", "requirements"]) {

@@ -13,7 +13,7 @@ const COLLECTION_TARGETS = new Set([
   "overview.decisions", "keywords", "implementationTargets",
 ]);
 const REPLACE_ROOTS = new Set(["goal", "background"]);
-const REQUIREMENT_FIELDS = new Set(["desc", "priority", "status", "testable"]);
+const REQUIREMENT_FIELDS = new Set(["desc", "priority", "testable"]);
 const TASK_FIELDS = new Set(["title", "goal", "acceptance", "implementation_notes"]);
 const OPERATION_TYPES = new Map();
 

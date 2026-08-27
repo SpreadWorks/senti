@@ -137,15 +137,6 @@ export function saveSpecJson(input, spec, { validate = true } = {}) {
 }
 
 /**
- * Normalize a requirements array so every entry has a concrete `status` field.
- * Entries whose `status` is missing are treated as "pending" (spec 219 R7).
- */
-export function normalizeRequirements(reqs) {
-  if (!Array.isArray(reqs)) return [];
-  return reqs.map((r) => ({ ...r, status: r.status ?? "pending" }));
-}
-
-/**
  * Enumerate requirement IDs from spec.json for gate source selection.
  * Usable IDs are trimmed non-empty strings, de-duplicated in first-seen order.
  */
@@ -162,45 +153,6 @@ export function enumerateUsableRequirementIds(spec) {
     ids.push(id);
   }
   return ids;
-}
-
-/**
- * Load and normalize `spec.json.requirements` for a given flow context.
- * Returns [] when spec.json does not yet exist (e.g. preparing flow) so
- * callers in the status/resume paths never have to guard the read.
- *
- * @param {string} root - repository or worktree root
- * @param {string|null|undefined} specPath - resolved path to the active spec.json
- * @returns {Array<{id?: string, desc: string, priority?: string, status: string}>}
- */
-export function loadSpecRequirements(root, specPath) {
-  if (!root || !specPath) return [];
-  const absPath = path.isAbsolute(specPath) ? specPath : path.resolve(root, specPath);
-  const spec = tryLoadSpecJson(absPath, { validate: false });
-  if (!spec) return [];
-  return normalizeRequirements(spec.requirements);
-}
-
-/**
- * Update a single requirement's `status` in spec.json and write the file back.
- * Throws when the index is out of range or the spec fails schema validation.
- *
- * @param {string} root - repository or worktree root
- * @param {string} specPath - resolved path to the active spec.json
- * @param {number} index - 0-based index into spec.requirements
- * @param {string} status - one of the schema-allowed status values
- */
-export function updateSpecRequirementStatus(root, specPath, index, status) {
-  if (!root) throw new Error("updateSpecRequirementStatus: root is required");
-  if (!specPath) throw new Error("updateSpecRequirementStatus: specPath is required");
-  const absPath = path.isAbsolute(specPath) ? specPath : path.resolve(root, specPath);
-  const spec = loadSpecJson(absPath, { validate: false });
-  if (!Array.isArray(spec.requirements) || !spec.requirements[index]) {
-    throw new Error(`requirement index out of range: ${index}`);
-  }
-  spec.requirements[index] = { ...spec.requirements[index], status };
-  saveSpecJson(absPath, spec);
-  return spec.requirements[index];
 }
 
 /**

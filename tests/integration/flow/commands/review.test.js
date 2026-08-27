@@ -1737,7 +1737,6 @@ describe("spec review classification helpers", () => {
       requirements: [{
         id: "R1",
         priority: "must",
-        status: "pending",
         testable: false,
         desc: "Review should see acceptance criteria.",
       }],

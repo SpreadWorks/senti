@@ -1,4 +1,4 @@
-import { normalizeRequirements } from "../../lib/spec-json.js";
+import { CanonicalRequirementDefinitions } from "./canonical-requirement-definitions.js";
 
 /**
  * Catalog-authorized view of the canonical spec record for one Flow Version.
@@ -36,6 +36,8 @@ export class CanonicalSpecRecord {
   }
 
   requirements() {
-    return normalizeRequirements(this.document().requirements);
+    const { requirements } = this.document();
+    if (!Array.isArray(requirements)) return [];
+    return new CanonicalRequirementDefinitions(requirements).toJSON();
   }
 }

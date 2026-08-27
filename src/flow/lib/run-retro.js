@@ -6,7 +6,6 @@
  * publication to the active Attempt. Performs no test execution.
  */
 
-import { normalizeRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateTestExecuteResultV2, validateTestResultReview } from "./test-artifacts.js";
@@ -142,7 +141,7 @@ function executeCanonicalRetro(ctx) {
     );
   }
   const spec = store.readSpec("retro");
-  const requirements = normalizeRequirements(spec.requirements);
+  const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
   if (requirements.length === 0) {
     return Envelope.fail("run", "retro", "NO_REQUIREMENTS", "no requirements found in canonical spec.json");
   }

@@ -512,7 +512,7 @@ export class ArtifactFullViewRenderer {
         kind: "requirement",
         requirementId: requirement.id,
         markdown: this.#renderRequirement(requirement, t),
-        sourceText: sourceText([requirement.id, requirement.desc, requirement.priority, requirement.status]),
+        sourceText: sourceText([requirement.id, requirement.desc, requirement.priority]),
       });
     }
     builder.add({
@@ -620,7 +620,6 @@ export class ArtifactFullViewRenderer {
   #renderRequirement(requirement, t) {
     const labels = [];
     if (rawText(requirement.priority)) labels.push(requirement.priority);
-    if (rawText(requirement.status)) labels.push(requirement.status);
     const suffix = labels.length === 0 ? "" : ` (${labels.join(", ")})`;
     const testable = requirement.testable === undefined ? "" : `\n- **${t.message("testable")}**: ${String(requirement.testable)}`;
     return `### ${t.message("requirement")} ${requirement.id}${suffix}\n${requirement.desc}${testable}\n\n`;

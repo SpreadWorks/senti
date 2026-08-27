@@ -66,7 +66,6 @@ describe("CommandDefinition registry", () => {
     const autoHelp = FLOW_COMMANDS.set.auto.help;
     const approvalHelp = FLOW_COMMANDS.set.approval.help;
     const overviewHelp = FLOW_COMMANDS.run["update-overview"].help;
-    const implConfirmHelp = FLOW_COMMANDS.run["impl-confirm"].help;
     const testExecuteHelp = FLOW_COMMANDS.run["test-execute"].help;
     const scenarioValidityHelp = FLOW_COMMANDS.run["scenario-validity"].help;
     const testResultReviewHelp = FLOW_COMMANDS.run["test-result-review"].help;
@@ -99,8 +98,8 @@ describe("CommandDefinition registry", () => {
     assert.doesNotMatch(approvalHelp, /produce spec\.md/);
     assert.match(overviewHelp, /typed spec\.record/);
     assert.doesNotMatch(overviewHelp, /spec\.md is\s+re-rendered/);
-    assert.match(implConfirmHelp, /requirements status from cataloged spec\.json/);
-    assert.doesNotMatch(implConfirmHelp, /requirements status from flow\.json/);
+    assert.equal(FLOW_COMMANDS.run["impl-confirm"], undefined);
+    assert.equal(FLOW_COMMANDS.set.summary, undefined);
     assert.match(testExecuteHelp, /steps\/test-execute\/result\.json/);
     assert.match(scenarioValidityHelp, /steps\/scenario-validity\/result\.json/);
     assert.match(testResultReviewHelp, /steps\/test-result-review\/result\.json/);

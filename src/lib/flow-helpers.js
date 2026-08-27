@@ -38,9 +38,6 @@ export const TASK_STATUSES = ["pending", "in_progress", "done", "skipped"];
 /** Valid values for Task.steps[].status. */
 export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 
-/** Valid values for Task.requirements[].status. */
-export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
-
 /** Task-level step sequence. Derived from TASK_DEFINITION. */
 export const TASK_STEPS_PLAN = collectTaskLeafIds();
 

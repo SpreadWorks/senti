@@ -590,12 +590,6 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
-  updateRequirementStatus(input = {}) {
-    return this._store.updateRequirementStatus({
-      ...input,
-      specId: input.specId ?? this._boundSpecId,
-    });
-  }
   /** Resolve a durable consumer input through the canonical artifact catalog. */
   readArtifact(input = {}) {
     return this._store.readArtifact({

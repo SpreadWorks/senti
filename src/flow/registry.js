@@ -1173,13 +1173,6 @@ export const FLOW_COMMANDS = {
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
-    summary: {
-      helpKey: "flow.set.summary",
-      requiresFlow: false,
-      command: () => import("./lib/set-summary.js"),
-      args: { positional: ["json"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: sennel flow set summary '<json-array>'\n\nDeprecated: requirements are authoritative in spec.json.",
-    },
     "draft-answer": {
       helpKey: "flow.set.draft-answer",
       explicitTargetResolution: true,
@@ -1197,12 +1190,6 @@ export const FLOW_COMMANDS = {
         "The question id and active Flow target are guarded; the next unresolved question remains the dispatcher boundary.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
-    },
-    req: {
-      helpKey: "flow.set.req",
-      command: () => import("./lib/set-req.js"),
-      args: { positional: ["reqRef", "status"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: sennel flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
     },
     files: {
       helpKey: "flow.set.files",
@@ -1658,25 +1645,6 @@ export const FLOW_COMMANDS = {
         "  --run-id <runId>   Target preparing flow (required for prelude, even when another flow is active)",
         ...FLOW_TARGET_GUARD_HELP_LINES,
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
-      ].join("\n"),
-    },
-    // impl-confirm is a read-only check, not the finalize action itself.
-    // Step status is managed by the skill, not hooks.
-    "impl-confirm": {
-      helpKey: "flow.run.impl-confirm",
-      runtimeLog: { stepMetadata: false },
-      command: () => import("./lib/run-impl-confirm.js"),
-      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--mode", ...FLOW_RUN_OPTIONS] },
-      help: [
-        "Usage: sennel flow run impl-confirm [options]",
-        "",
-        "Check implementation readiness against requirements.",
-        "",
-        "Options:",
-        "  --mode <overview|detail>  Check mode (default: overview)",
-        "    overview: summarize requirements status from cataloged spec.json",
-        "    detail:   also compare git diff against requirements",
-        "  --agent-work-dir <path>   Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
     "finalize-commit": {

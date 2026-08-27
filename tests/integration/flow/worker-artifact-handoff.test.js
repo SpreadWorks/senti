@@ -254,7 +254,6 @@ function implementationEffect(paths) {
     version: 1,
     stepId: "implement",
     completionStatus: "done",
-    requirements: [],
     files: [{ requirementId: "R1", paths }],
     issues: [],
     overview: null,
@@ -515,7 +514,6 @@ describe("worker artifact handoff", () => {
         version: 1,
         stepId: "implement",
         completionStatus: "done",
-        requirements: [],
         files: [{ requirementId: "R1", paths: ["product.js"] }],
         issues: [],
         overview: null,
@@ -651,6 +649,36 @@ describe("worker artifact handoff", () => {
         completionStatus: "done",
         effect: implementationEffect(["product.js"]),
       }), ["product.js"]);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("confirms a new file-map handoff against a canonical Spec that retains retired statuses", () => {
+    const specRecord = validSpec();
+    specRecord.requirements = specRecord.requirements.map((requirement) => ({
+      ...requirement,
+      status: "pending",
+    }));
+    const value = fixture("implement", { worktree: false, specRecord });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+
+      value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
+
+      assert.deepEqual(readCatalogJson(value, "file.map", "impl-review"), { R1: ["product.js"] });
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "done");
+      const canonicalSpec = readCatalogJson(value, "spec.record", "impl-review");
+      assert.equal(Object.hasOwn(canonicalSpec.requirements[0], "status"), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -805,7 +833,6 @@ describe("worker artifact handoff", () => {
         version: 1,
         stepId: "implement",
         completionStatus: "done",
-        requirements: [],
         files: [{ requirementId: "R1", paths: ["product.js"] }],
         issues: [],
         overview: null,
@@ -960,7 +987,6 @@ describe("worker artifact handoff", () => {
       version: 1,
       stepId: "task-impl",
       completionStatus: "done",
-      requirements: [],
       files: [],
       issues: [],
       overview: { modules: [], data_flow: [], decisions: [] },
@@ -972,13 +998,26 @@ describe("worker artifact handoff", () => {
       version: 1,
       stepId: "task-impl",
       completionStatus: "done",
-      requirements: [],
       files: [],
       issues: [],
       overview: null,
       triage: null,
       repair: null,
     }, "task-impl"), /requires overview/);
+  });
+
+  it("rejects the retired worker requirement completion field", () => {
+    assert.throws(() => SourceWorkerEffect.fromDocument({
+      version: 1,
+      stepId: "implement",
+      completionStatus: "done",
+      requirements: [{ reference: "R1", status: "done" }],
+      files: [{ requirementId: "R1", paths: ["product.js"] }],
+      issues: [],
+      overview: null,
+      triage: null,
+      repair: null,
+    }, "implement"), /invalid schema/);
   });
 
   it("defines one complete authority record for all 36 Flow leaves and 3 task leaves", () => {

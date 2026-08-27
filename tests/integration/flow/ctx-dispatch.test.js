@@ -51,8 +51,6 @@ describe("registry structure", () => {
       FLOW_COMMANDS.set.request,
       FLOW_COMMANDS.set.issue,
       FLOW_COMMANDS.set.note,
-      FLOW_COMMANDS.set.summary,
-      FLOW_COMMANDS.set.req,
       FLOW_COMMANDS.set.files,
       FLOW_COMMANDS.set.broad,
       FLOW_COMMANDS.set.metric,

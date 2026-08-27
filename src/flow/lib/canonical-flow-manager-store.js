@@ -31,7 +31,6 @@ import {
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { managedDir } from "../../lib/config.js";
-import { VALID_REQ_STATUSES } from "../../lib/constants.js";
 import {
   FLOW_ARTIFACT_CONTRACTS,
   FlowArtifactAttemptHistory,
@@ -86,6 +85,7 @@ import { readTestChainTransitionFactsFromSnapshot, TestChainTransitionSnapshot }
 import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
+import { CanonicalRequirementDefinitions } from "./canonical-requirement-definitions.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
 import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
@@ -333,31 +333,6 @@ function canonicalIssueLogEntry(value) {
     throw new CurrentFlowStateInvariantError("canonical issue-log entry must be an object");
   }
   return structuredClone(value);
-}
-
-/** A requirement status change is a typed replacement of the cataloged Spec. */
-class CanonicalRequirementStatusUpdate {
-  constructor({ reference, status } = {}) {
-    this.reference = requiredText(String(reference ?? ""), "canonical requirement reference");
-    this.status = requiredText(status, "canonical requirement status");
-    if (!VALID_REQ_STATUSES.includes(this.status)) {
-      throw new CurrentFlowStateInvariantError(`invalid requirement status: ${this.status}`);
-    }
-    Object.freeze(this);
-  }
-
-  apply(document) {
-    const requirements = Array.isArray(document?.requirements) ? document.requirements : [];
-    const index = /^\d+$/.test(this.reference)
-      ? Number.parseInt(this.reference, 10)
-      : requirements.findIndex((entry) => entry?.id === this.reference);
-    if (index < 0 || index >= requirements.length) {
-      throw new CurrentFlowStateInvariantError(`requirement id not found: ${this.reference}`);
-    }
-    const next = structuredClone(document);
-    next.requirements[index] = { ...next.requirements[index], status: this.status };
-    return Object.freeze({ document: next, index, requirement: Object.freeze(structuredClone(next.requirements[index])) });
-  }
 }
 
 function canonicalOutboxActivity({ outbox, attempt, result = null, failure = null, failureCode = null, recovery = null, exactRecoveryReceipt = null } = {}) {
@@ -2242,28 +2217,6 @@ export class CanonicalFlowManagerStore {
     return next;
   }
 
-  updateRequirementStatus({ specId = null, reference, status } = {}) {
-    const resolved = this.#resolveSpecId(specId);
-    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
-    const state = this.runtime.load(resolved);
-    const nodeId = state.current?.at(-1) ?? null;
-    if (nodeId === null || FlowArtifactUpdater.fromActivityNodeId(nodeId).toString() !== "task-impl") {
-      throw new CurrentFlowStateInvariantError("canonical requirement status updates require an active Task implementation Attempt");
-    }
-    const update = new CanonicalRequirementStatusUpdate({ reference, status });
-    const source = this.readArtifact({
-      specId: resolved, logicalKey: "spec.record", consumerNodeId: nodeId,
-    });
-    const outcome = update.apply(JSON.parse(source.bytes.toString("utf8")));
-    this.runtime.updateSpecRecord({
-      specId: resolved,
-      activityId: activityId("spec-record-updated"),
-      nodeId,
-      specRecord: new CurrentFlowSpecRecord(outcome.document, { specId: resolved }),
-    });
-    return outcome;
-  }
-
   recordDispatchApproval({ specId = null, receipt } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
@@ -2538,9 +2491,8 @@ export class CanonicalFlowManagerStore {
     if (!effectTargetsActiveNode) throw new CurrentFlowStateInvariantError("source worker effect does not target the active Attempt");
     const specSource = this.readArtifact({ specId: resolved, logicalKey: "spec.record", consumerNodeId: nodeId });
     let spec = JSON.parse(specSource.bytes.toString("utf8"));
-    for (const change of effect.requirements) {
-      spec = new CanonicalRequirementStatusUpdate(change).apply(spec).document;
-    }
+    const requirementDefinitions = new CanonicalRequirementDefinitions(spec.requirements).applyTo(spec);
+    spec = requirementDefinitions.document;
     if (effect.overview !== null) {
       const taskId = taskIdForNode(state, nodeId);
       if (taskId === null) throw new CurrentFlowStateInvariantError("source overview effect requires an active Task implementation");
@@ -2635,7 +2587,7 @@ export class CanonicalFlowManagerStore {
         ...(sourceWorkerUpgrade === null ? {} : { sourceWorkerUpgrade: true }),
       });
     }
-    const sourceSpecChanged = effect.requirements.length > 0 || effect.overview !== null;
+    const sourceSpecChanged = requirementDefinitions.changed || effect.overview !== null;
     this.runtime.confirmAttempt({
       specId: resolved,
       activityId: activityId(nodeId === "impl-repair" ? "impl-repair-invalidation-confirmed" : "source-handoff-confirmed"),

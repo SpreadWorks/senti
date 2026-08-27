@@ -529,16 +529,6 @@ export class WorkerArtifactInputSnapshot {
  * Source edits stay in the execution checkout; this sealed document merely
  * declares the catalog effects the parent may commit with completion.
  */
-export class SourceRequirementEffect {
-  constructor({ reference, status } = {}) {
-    this.reference = requiredString(reference, "source worker requirement reference");
-    this.status = requiredString(status, "source worker requirement status");
-    if (this.status !== "done") throw new Error("source worker requirement status must be done");
-    Object.freeze(this);
-  }
-  toJSON() { return { reference: this.reference, status: this.status }; }
-}
-
 export class SourceFileEffect {
   constructor({ requirementId, paths } = {}) {
     this.requirementId = requiredString(requirementId, "source worker file requirementId");
@@ -623,7 +613,7 @@ export class SourceRepairEffect {
 }
 
 export class SourceWorkerEffect {
-  constructor({ version, stepId, completionStatus, requirements = [], files = [], issues = [], overview = null, triage = null, repair = null } = {}) {
+  constructor({ version, stepId, completionStatus, files = [], issues = [], overview = null, triage = null, repair = null } = {}) {
     if (version !== 1) throw new Error("source worker effect version must be 1");
     this.version = 1;
     this.stepId = requiredString(stepId, "source worker effect stepId");
@@ -633,13 +623,9 @@ export class SourceWorkerEffect {
     if (this.completionStatus === "skipped" && this.stepId !== "implement") {
       throw new Error("only implement may report a skipped source completion");
     }
-    if (!Array.isArray(requirements) || !Array.isArray(files) || !Array.isArray(issues)) {
+    if (!Array.isArray(files) || !Array.isArray(issues)) {
       throw new Error("source worker effect collections must be arrays");
     }
-    this.requirements = Object.freeze(requirements.map((entry) => {
-      exactObjectKeys(entry, ["reference", "status"], "source worker requirement effect");
-      return new SourceRequirementEffect(entry);
-    }));
     this.files = Object.freeze(files.map((entry) => {
       exactObjectKeys(entry, ["requirementId", "paths"], "source worker file effect");
       return new SourceFileEffect(entry);
@@ -655,17 +641,17 @@ export class SourceWorkerEffect {
     if ((this.stepId === "impl-repair") !== (repair !== null)) throw new Error("source repair effect is required only for impl-repair");
     this.triage = triage === null ? null : new SourceTriageEffect(triage);
     this.repair = repair === null ? null : new SourceRepairEffect(repair);
-    if (this.stepId === "impl-triage" && (this.requirements.length > 0 || this.files.length > 0 || this.issues.length > 0 || this.overview !== null || this.repair !== null)) {
+    if (this.stepId === "impl-triage" && (this.files.length > 0 || this.issues.length > 0 || this.overview !== null || this.repair !== null)) {
       throw new Error("impl-triage source effect may contain only typed triage dispositions");
     }
-    if (this.stepId === "impl-repair" && (this.requirements.length > 0 || this.overview !== null || this.triage !== null)) {
+    if (this.stepId === "impl-repair" && (this.overview !== null || this.triage !== null)) {
       throw new Error("impl-repair source effect may contain source files, issues, and one typed repair only");
     }
     Object.freeze(this);
   }
 
   static fromDocument(value, expectedStepId) {
-    exactObjectKeys(value, ["version", "stepId", "completionStatus", "requirements", "files", "issues", "overview", "triage", "repair"], "source worker effect");
+    exactObjectKeys(value, ["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair"], "source worker effect");
     const effect = new SourceWorkerEffect(value);
     if (effect.stepId !== expectedStepId) throw new Error("source worker effect step does not match the handoff");
     return effect;
@@ -676,7 +662,6 @@ export class SourceWorkerEffect {
       version: this.version,
       stepId: this.stepId,
       completionStatus: this.completionStatus,
-      requirements: this.requirements.map((entry) => entry.toJSON()),
       files: this.files.map((entry) => entry.toJSON()),
       issues: this.issues.map((entry) => entry.toJSON()),
       overview: this.overview?.toJSON() ?? null,
@@ -1441,11 +1426,11 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         { retryable: false, data: { stepId, changedPaths: unique.slice(0, 20) } },
       );
     }
-    if (completionStatus === "skipped" && (effect.requirements.length > 0 || effect.files.length > 0)) {
+    if (completionStatus === "skipped" && effect.files.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
         "FLOW_SOURCE_HANDOFF_SKIP_EFFECT_INVALID",
-        "skipped implementation may report issues but cannot report requirements or file-map effects",
+        "skipped implementation may report issues but cannot report file-map effects",
         { retryable: false, data: { stepId } },
       );
     }
@@ -2194,7 +2179,7 @@ export class WorkerArtifactHandoffRequest {
       && this.inputs.some((input) => input.name === "acceptance-review.json");
     return Object.freeze({
       path: this.payloadPath("effects.json"),
-      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "requirements", "files", "issues", "overview", "triage", "repair"]),
+      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair"]),
       required: Object.freeze({
         version: 1,
         stepId: this.stepId,
@@ -2211,7 +2196,6 @@ export class WorkerArtifactHandoffRequest {
         version: 1,
         stepId: this.stepId,
         completionStatus: "done",
-        requirements: [],
         files: [],
         issues: [],
         overview: this.stepId === "task-impl" ? { modules: [], data_flow: [], decisions: [] } : null,
