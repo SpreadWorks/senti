@@ -68,8 +68,8 @@ const RETRY_RECOVERY_TASK_ARTIFACTS = new Set([
   "retry.recovery.receipt",
 ]);
 const MIGRATION_CATALOG_INITIALIZATION = Symbol("migration-catalog-initialization");
-const CATALOG_LOCK_RETRY_ATTEMPTS = 3;
-const CATALOG_LOCK_RETRY_MS = 10;
+const CATALOG_LOCK_RETRY_INTERVAL_MS = 250;
+const CATALOG_LOCK_WAIT_TIMEOUT_MS = 10_000;
 const FLOW_STATE_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.state").relativePath;
 const FLOW_ACTIVITIES_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities").relativePath;
 const SPEC_RECORD_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("spec.record").relativePath;
@@ -1419,11 +1419,18 @@ export class FlowArtifactCatalogStore {
       authority: { directory: this.location.directory, runtimeDirectory, catalog: this.location.catalogFile },
     });
     let acquired = false;
-    for (let attempt = 0; attempt < CATALOG_LOCK_RETRY_ATTEMPTS; attempt += 1) {
+    const deadline = Date.now() + CATALOG_LOCK_WAIT_TIMEOUT_MS;
+    for (;;) {
       try { lock.acquire({ claimStale: true }); acquired = true; break; } catch (cause) {
         if (cause?.code !== "PROCESS_OWNED_LOCK_LIVE") throw cause;
-        if (attempt + 1 < CATALOG_LOCK_RETRY_ATTEMPTS) {
-          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, CATALOG_LOCK_RETRY_MS);
+        const remaining = deadline - Date.now();
+        if (remaining > 0) {
+          Atomics.wait(
+            new Int32Array(new SharedArrayBuffer(4)),
+            0,
+            0,
+            Math.min(CATALOG_LOCK_RETRY_INTERVAL_MS, remaining),
+          );
           continue;
         }
         const error = new Error("Flow artifact catalog authority is busy", { cause });

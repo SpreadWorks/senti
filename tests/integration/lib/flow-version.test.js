@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
+import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   ArtifactAuthority,
   ArtifactAuthoritySlot,
@@ -28,10 +31,12 @@ import {
   FlowVersionMigrationSourcePolicy,
 } from "../../../src/lib/flow-version.js";
 import { buildCurrentFlowDefinition } from "../../../src/flow/definition.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "../../../src/lib/process-owned-lock.js";
 
 const REVIEW_DIGEST_A = "a".repeat(64);
 const REVIEW_DIGEST_B = "b".repeat(64);
 const REVIEW_DIGEST_C = "c".repeat(64);
+const PROCESS_OWNED_LOCK_MODULE_PATH = fileURLToPath(new URL("../../../src/lib/process-owned-lock.js", import.meta.url));
 import {
   ActivityTransition,
   CurrentAttempt,
@@ -127,6 +132,35 @@ function descriptor({ file, kind, authority = "canonical-flow-artifacts", member
 }
 function saveCatalog(location, descriptors) {
   return new FlowArtifactCatalogStore({ location }).initialize(new FlowArtifactCatalog({ artifacts: descriptors }));
+}
+function spawnCatalogLockOwner(location, holdMs) {
+  const runtimeLock = location.runtimeLock("runtime.lock.artifact-catalog");
+  const child = spawn(process.execPath, [
+    "--input-type=module",
+    "--eval",
+    [
+      `import fs from "node:fs";`,
+      `import { ProcessOwnedLock, RealDirectoryAuthority } from ${JSON.stringify(PROCESS_OWNED_LOCK_MODULE_PATH)};`,
+      `const directory = ${JSON.stringify(location.directory)};`,
+      `const runtimeDirectory = ${JSON.stringify(runtimeLock.runtimeDirectory)};`,
+      `const lockDirectory = ${JSON.stringify(runtimeLock.directory)};`,
+      `const lockFileName = ${JSON.stringify(runtimeLock.fileName)};`,
+      `fs.mkdirSync(lockDirectory, { recursive: true, mode: 0o755 });`,
+      "const directoryAuthority = new RealDirectoryAuthority(directory);",
+      "const runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, { parentAuthority: directoryAuthority });",
+      "const lockDirectoryAuthority = new RealDirectoryAuthority(lockDirectory, { parentAuthority: runtimeAuthority });",
+      "const lock = new ProcessOwnedLock({",
+      "  directoryAuthority: lockDirectoryAuthority,",
+      "  fileName: lockFileName,",
+      "  kind: \"artifact-catalog-publication\",",
+      "  authority: { directory, runtimeDirectory, catalog: `${directory}/artifact-catalog.json` },",
+      "});",
+      "lock.acquire({ claimStale: true });",
+      "process.stdout.write(\"locked\\n\");",
+      `setTimeout(() => { lock.release(); }, ${holdMs});`,
+    ].join("\n"),
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  return child;
 }
 function confirmationActivity(state, id) {
   const node = state.findNode(state.current.at(-1));
@@ -660,6 +694,30 @@ describe("Flow artifact catalog authority slots", () => {
       },
     });
     assert.equal(fs.readFileSync(location.artifactPath("a.json"), "utf8"), "updated");
+  });
+
+  it("waits for a live external catalog authority before reading", async () => {
+    const location = canonicalLocation();
+    fs.mkdirSync(path.dirname(location.artifactPath("a.json")), { recursive: true });
+    fs.writeFileSync(location.artifactPath("a.json"), "a");
+    saveCatalog(location, [FlowArtifactDescriptor.fromFile({
+      location, authoritySlot: singleton("a"), relativePath: "artifacts/migration/a.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
+    })]);
+
+    const child = spawnCatalogLockOwner(location, 500);
+    const childExit = once(child, "exit");
+    try {
+      await once(child.stdout, "data");
+      const startedAt = Date.now();
+      const catalog = new FlowArtifactCatalogStore({ location }).load();
+      assert.equal(catalog.resolve("artifacts/migration/a.json").relativePath, "artifacts/migration/a.json");
+      assert.ok(Date.now() - startedAt >= 250, "catalog read should wait for the external lock");
+      const [status] = await childExit;
+      assert.equal(status, 0);
+    } finally {
+      if (child.exitCode === null) child.kill();
+    }
   });
 
   it("restores the complete managed tree after undeclared mutation, deletion, and creation", () => {
