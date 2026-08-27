@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-08-26T03:35:08.110Z",
+  "analyzedAt": "2026-08-27T00:37:55.594Z",
   "package": {
     "entries": [
       {
@@ -5114,15 +5114,16 @@
       },
       {
         "file": "src/flow/lib/canonical-worker-artifacts.js",
-        "hash": "adebe3339766de047cf23c4bebc073fb",
-        "lines": 317,
-        "mtime": "2026-08-15T04:29:56.930Z",
+        "hash": "2a19556edfcb5221abd90ebf7f2795ba",
+        "lines": 365,
+        "mtime": "2026-08-26T08:53:52.063Z",
         "className": "canonical-worker-artifacts",
         "methods": [
           "CanonicalWorkerArtifactInput",
           "CanonicalWorkerTestTreeSnapshot",
           "CanonicalWorkerArtifactAddress",
           "CanonicalWorkerTestTree",
+          "CanonicalSpecTestTopology",
           "mediaTypeForPath",
           "requiredPath",
           "requiredText",
@@ -5139,6 +5140,7 @@
           "CanonicalWorkerTestTreeSnapshot",
           "CanonicalWorkerArtifactAddress",
           "CanonicalWorkerTestTree",
+          "CanonicalSpecTestTopology",
           "mediaTypeForPath"
         ],
         "extends": null,
@@ -5146,22 +5148,22 @@
           "src/flow/lib/worker-artifact-handoff.js"
         ],
         "id": "2a8e83a8",
-        "summary": "Defines catalog-addressed worker artifact inputs, test-tree snapshots, replacements, and publication boundaries.",
-        "detail": "Worker artifact addresses carry logical keys, parameters, normalized paths, catalog identity, digests, and sizes, with ownership checked by the Store rather than inferred from paths. Inputs validate catalog size consistency and can parse canonical Attempt histories or JSON documents while preserving immutable copies. Test trees require entries below tests/, support media-type inference, and can publish replacement artifacts only against a catalog snapshot baseline. Snapshot validation prevents duplicate test sources and ensures artifact roots are resolved from the FlowManager Version location surface.",
+        "summary": "Defines canonical worker artifact value objects, validation rules, catalog-backed access, and test-tree topology utilities.",
+        "detail": "The module validates normalized relative paths, required text, catalog descriptors, artifact addresses, and immutable metadata. CanonicalWorkerArtifactInput reads catalog-owned bytes and parses command-attempt history or JSON documents with defensive error reporting. CanonicalWorkerTestTree and its snapshot enforce unique test sources below tests/ while preserving digests, sizes, media types, and publication metadata. CanonicalSpecTestTopology constrains canonical test roots to the repository and derives stable relative locations.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-20T10:06:51.002Z",
+          "processedAt": "2026-08-27T00:38:13.520Z",
           "attempts": 1
         },
         "keywords": [
+          "canonical artifacts",
           "worker artifacts",
-          "artifact address",
+          "catalog validation",
           "test tree",
-          "catalog snapshot",
-          "Attempt history",
-          "publication",
-          "ownership validation"
+          "path normalization",
+          "artifact digests",
+          "FlowManager"
         ]
       },
       {
@@ -7710,9 +7712,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "b1af94d4440be5cf49598748b3d3d5aa",
-        "lines": 864,
-        "mtime": "2026-08-26T01:31:24.492Z",
+        "hash": "f8b63e17832488852a79e0fa72684ea6",
+        "lines": 865,
+        "mtime": "2026-08-26T05:01:54.795Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -7789,23 +7791,23 @@
           "src/flow/lib/run-dispatch.js"
         ],
         "id": "c68afd69",
-        "summary": "Builds the canonical next-action plan for a Flow, including guarded commands, approvals, recovery, and blocking states.",
-        "detail": "The command derives state and target descriptors, loads schemas and persistent rules, and captures a target binding for safe execution. It routes gate, test-chain, review, acceptance, final-regression, retry, bootstrap, and missing-producer-artifact situations into typed directives. Decisions are Definition-owned and can produce execute-step, execute-command, repair-evidence, await-user, blocked, completed, or aborted outcomes. The resulting plan preserves canonical target identity and serializes bindings into the command response.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Computes the canonical next action for a Flow by combining persisted state, target bindings, definitions, recovery evidence, and approval or repair routes.",
+        "detail": "The command loads schemas and rules, derives typed Flow state, captures stable target bindings, and validates task-step identity before producing an action. It projects worker execution, gate decisions, final-regression repair, acceptance decisions, retry recovery, interrupted finalization, and missing producer-artifact cases into guarded directives. Persistent rules and contextual instructions are injected into canonical worker contexts, while malformed or mismatched state raises NextActionPlanError. Results support completed, aborted, blocked, user-decision, repair-evidence, and executable-command outcomes with serialized binding data.",
+        "chapter": "project_structure",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-26T03:35:59.301Z",
+          "processedAt": "2026-08-27T00:38:13.520Z",
           "attempts": 1
         },
         "keywords": [
-          "get next action",
-          "Flow command",
-          "guarded command",
-          "next-action plan",
+          "next action",
+          "Flow state",
+          "guarded directives",
+          "workflow transitions",
           "approval routing",
-          "final regression",
+          "recovery handling",
           "target binding",
-          "recovery"
+          "final regression"
         ]
       },
       {
@@ -10808,12 +10810,13 @@
       },
       {
         "file": "src/flow/lib/run-dispatch.js",
-        "hash": "b924f44d999b490e775a5fe55c3602c5",
-        "lines": 1758,
-        "mtime": "2026-08-25T07:46:04.904Z",
+        "hash": "13fa787c49a4527b0fbb6759fe313c15",
+        "lines": 1854,
+        "mtime": "2026-08-26T14:27:17.464Z",
         "className": "run-dispatch",
         "methods": [
           "DispatcherOwnedFlowCommand",
+          "WorkerArtifactRetryFeedback",
           "dispatchRepositoryFingerprint",
           "FlowDispatchLease",
           "FlowDispatchRepositoryFingerprintError",
@@ -10872,6 +10875,7 @@
         ],
         "exports": [
           "DispatcherOwnedFlowCommand",
+          "WorkerArtifactRetryFeedback",
           "dispatchRepositoryFingerprint",
           "FlowDispatchLease",
           "FlowDispatchRepositoryFingerprintError",
@@ -10884,23 +10888,23 @@
         "extends": "Error",
         "usedBy": null,
         "id": "6c7fd82a",
-        "summary": "Coordinates guarded Flow dispatch, including action leases, approvals, worker handoffs, repository integrity checks, and bounded continuation.",
-        "detail": "The dispatcher captures a canonical target and action under a dispatch lock, then routes work to registered commands or agent workers. It distinguishes dispatcher-owned repair and recovery commands from worker-facing steps and enforces resumable boundaries. Approval receipt mutations are verified to affect only canonical control files, while repository fingerprints detect unauthorized content changes. The command tracks stalled dispatches, validates handoff artifacts, quarantines rejected worker output, records diagnostics, and returns structured boundaries or failures.",
-        "chapter": "cli_commands",
+        "summary": "Implements the Flow dispatch loop, coordinating worker handoffs, dispatcher-owned commands, approvals, retries, repository fingerprints, and durable dispatch boundaries.",
+        "detail": "RunDispatchCommand captures a FlowDispatchSession and authority lease, validates target/action bindings, and repeatedly executes registered commands or worker handoffs within bounded dispatch and stall limits. Worker failures are converted into canonical diagnostics and retry feedback, while rejected handoffs are quarantined and logged through FlowManager. Approval continuations persist canonical Version receipt mutations and verify that only authorized control files changed. Repository fingerprints, resumable boundaries, lock handling, and explicit blocked or failure envelopes provide replay protection and durable recovery semantics.",
+        "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-25T07:59:09.459Z",
+          "processedAt": "2026-08-27T00:38:13.520Z",
           "attempts": 1
         },
         "keywords": [
-          "flow dispatch",
-          "workflow orchestrator",
-          "dispatch lease",
+          "Flow dispatch",
           "worker handoff",
+          "authority lease",
           "approval receipt",
           "repository fingerprint",
-          "action routing",
-          "recovery command"
+          "retry recovery",
+          "dispatch boundary",
+          "command orchestration"
         ]
       },
       {
@@ -14950,9 +14954,9 @@
       },
       {
         "file": "src/flow/lib/worker-artifact-handoff.js",
-        "hash": "bcbf8b1265a8348702d799b8dd68d5d8",
-        "lines": 3939,
-        "mtime": "2026-08-25T07:46:04.922Z",
+        "hash": "164b11743a1255c4fb46c2692bd51b8b",
+        "lines": 4276,
+        "mtime": "2026-08-26T14:35:09.235Z",
         "className": "worker-artifact-handoff",
         "methods": [
           "WorkerArtifactHandoffError",
@@ -15014,6 +15018,11 @@
           "filteredIndexDigest",
           "gitAuthoritySnapshot",
           "filesystemAuthoritySnapshot",
+          "removeSourceRollbackPath",
+          "removeEmptySourceRollbackDirectory",
+          "indexedSourceRollbackEntry",
+          "indexedSourceRollbackOperation",
+          "filesystemSourceRollbackOperation",
           "inputRevision",
           "currentPlanGateRepair",
           "canonicalAttempt",
@@ -15119,25 +15128,25 @@
           "src/upgrade.js"
         ],
         "id": "58154956",
-        "summary": "Implements a secure, versioned handoff protocol for worker-produced Flow artifacts. It validates inputs and payloads, seals submissions, enforces repository mutation authority, and coordinates publication, recovery, quarantine, and cleanup.",
-        "detail": "The module defines typed classes for handoff requests, policies, payload rules, manifests, submissions, receipts, mutation snapshots, journals, and source-worker effects. It uses SHA-256 digests, stable serialization, bounded file reads, strict path normalization, real-directory checks, and symlink defenses to make artifact capture and publication tamper-evident. A per-step policy matrix specifies allowed payloads, revision behavior, input contracts, and validation requirements for draft, review, implementation, test, and upgrade workflows. Repository authority snapshots combine Git and filesystem inspection to detect unauthorized changes while excluding managed runtime artifacts and version locks. The coordinator validates sealed handoffs, reconciles canonical or source results, records quarantine receipts for failures, supports recovery of pending work, and removes completed transient handoff directories safely.",
+        "summary": "Implements a versioned, policy-driven handoff protocol for worker-produced artifacts in Flow executions. It validates requests and submissions, enforces repository authority boundaries, supports sealing, publication, quarantine, rollback, cleanup, and recovery.",
+        "detail": "The module defines typed request, policy, payload, manifest, receipt, journal, snapshot, and error classes to establish strict contracts between Flow workers and the coordinating runtime. It uses bounded file reads, canonical JSON digests, normalized relative paths, real-directory checks, symlink protections, and Git or filesystem authority snapshots to prevent path escapes and unauthorized mutations. Step-specific policies validate source effects, draft reviews, plan-gate repairs, test-review repairs, acceptance repairs, upgrade results, and spec-test evidence. Handoffs are staged in identity-derived managed directories, sealed with immutable manifests, reconciled by a coordinator, and either published, quarantined, rolled back, or cleaned up according to verified state transitions.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-25T07:59:09.696Z",
+          "processedAt": "2026-08-27T00:38:13.539Z",
           "attempts": 1
         },
         "keywords": [
           "worker artifact handoff",
-          "artifact publication",
+          "Flow execution",
           "payload manifest",
+          "repository authority",
           "SHA-256 digest",
-          "atomic file",
-          "repository mutation authority",
-          "Flow lifecycle",
-          "handoff recovery",
+          "rollback",
           "quarantine",
-          "path validation"
+          "artifact publication",
+          "filesystem security",
+          "state reconciliation"
         ]
       },
       {
@@ -21410,9 +21419,9 @@
     ],
     "summary": {
       "total": 378,
-      "totalMethods": 3914
+      "totalMethods": 3921
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-08-26T03:35:59.342Z"
+  "enrichedAt": "2026-08-27T00:38:13.539Z"
 }
