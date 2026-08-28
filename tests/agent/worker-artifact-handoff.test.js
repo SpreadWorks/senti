@@ -128,7 +128,6 @@ function draftHandoffPayload(goal) {
       publication: "real-agent-worker-handoff",
       evidenceDigest: "a".repeat(64),
     },
-    approval: { approved: true },
   };
 }
 
@@ -375,9 +374,9 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         artifactWrites: [{
           logicalKey: "draft",
           mediaType: "application/json",
-          bytes: Buffer.from(workerArtifactJson({
-            goal: "Publish the canonical spec through the parent dispatcher.",
-          })),
+          bytes: Buffer.from(workerArtifactJson(draftHandoffPayload(
+            "Publish the canonical spec through the parent dispatcher.",
+          ))),
         }],
       });
       fixture.settle("draft").activate("spec");

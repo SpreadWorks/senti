@@ -180,11 +180,6 @@ export function buildDraftTemplate() {
       questions: [],
     },
     openQuestions: [],
-    approval: {
-      approved: false,
-      confirmedAt: "",
-      notes: "",
-    },
   }, null, 2) + "\n";
 }
 

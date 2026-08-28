@@ -114,14 +114,14 @@ describe("getStepInstructions (loader contract)", () => {
         assert.match(content, /`replace-value`/);
         assert.match(content, /`allowedFieldPaths`/);
         assert.match(content, /ignore(?:s|d) and audit(?:s|ed)/i);
-        assert.match(content, /Never set or rewrite approval/i);
+        assert.match(content, /draft schema has no approval field/i);
       }
     });
 
     it("keeps coverage review and repair responsibilities separate", () => {
       const content = getStepInstructions("plan.draft-coverage-review");
       assert.match(content, /parent publishes the derived draft/);
-      assert.match(content, /draft-gate.*strict structural and approval validation/);
+      assert.match(content, /draft-gate.*strict structural validation/);
       assert.doesNotMatch(content, /draft-coverage-repair.*responsible for setting draft approval/);
     });
 

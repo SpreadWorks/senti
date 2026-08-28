@@ -11,5 +11,5 @@
    - After the review artifact is written, do not re-run this stage automatically.
    - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; draft-gate handles residual structural validation.
    - The CLI marks this step done after the review artifact is written. PASS advances to `draft-gate` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and REJECTED advance to `draft-coverage-triage`.
-   - `draft-coverage-repair` may propose only explicitly triaged field operations; the parent publishes the derived draft, and `draft-gate` remains responsible for strict structural and approval validation.
+   - `draft-coverage-repair` may propose only explicitly triaged field operations; the parent publishes the derived draft, and `draft-gate` remains responsible for strict structural validation.
    - Draft-gate remains the blocking validation step.

@@ -237,7 +237,7 @@ function repairEligibilityIssues(repair) {
     issues.push("coverage repair has missing required targets");
   }
   if (!Array.isArray(audit.lifecycleIssues) || audit.lifecycleIssues.length > 0) {
-    issues.push("coverage repair retains non-approval lifecycle issues");
+    issues.push("coverage repair retains lifecycle issues");
   }
   return issues;
 }
@@ -342,7 +342,7 @@ export class DraftCompletionFacts {
   }
 }
 
-/** A sealed Definition-selected connector. It can only derive approval=true. */
+/** A sealed Definition-selected connector for an eligible canonical draft. */
 export class DraftCompletionConnector {
   constructor(token, facts) {
     if (token !== CONNECTOR_TOKEN || !(facts instanceof DraftCompletionFacts)) {
@@ -374,13 +374,7 @@ export class DraftCompletionConnector {
     if (draftCompletionDocumentDigest(draft) !== this.expectedDraftDocumentDigest) {
       throw new Error("draft completion connector rejected a stale draft revision");
     }
-    return {
-      ...structuredClone(draft),
-      approval: {
-        ...structuredClone(draft.approval),
-        approved: true,
-      },
-    };
+    return structuredClone(draft);
   }
 
   toJSON() {

@@ -40,7 +40,6 @@ function buildValidDraft(overrides = {}) {
     }],
     },
     openQuestions: [],
-    approval: { approved: true, confirmedAt: "2026-04-25", notes: "" },
     ...overrides,
   };
 }
@@ -56,9 +55,9 @@ describe("checkDraftJson", () => {
     assert.ok(issues.some((i) => /questionLedger/i.test(i)), `expected ledger issue, got: ${issues}`);
   });
 
-  it("detects missing user approval", () => {
+  it("rejects retired draft approval metadata", () => {
     const issues = checkDraftJson(buildValidDraft({ approval: { approved: false } }));
-    assert.ok(issues.some((i) => /approv/i.test(i)), `expected approval issue, got: ${issues}`);
+    assert.ok(issues.some((i) => /unknown field "approval"/i.test(i)), `expected retired approval issue, got: ${issues}`);
   });
 
   it("detects missing development type", () => {

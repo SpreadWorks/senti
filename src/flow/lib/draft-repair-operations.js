@@ -9,7 +9,6 @@ const MAX_ENVELOPE_ERRORS = 3;
 const MAX_REPLACEMENT_BYTES = 32 * 1024;
 const MAX_PATH_SEGMENTS = 24;
 const FORBIDDEN_PATH_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
-const GATE_OWNED_ROOT_PATHS = new Set(["approval"]);
 
 function clone(value) { return structuredClone(value); }
 function digest(value) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
@@ -43,8 +42,6 @@ function discardedOperation(value, reason) {
     reason,
   });
 }
-function isGateOwnedPath(path) { return GATE_OWNED_ROOT_PATHS.has(path.segments[0]); }
-
 /** A field path is a bounded, data-only location in the immutable draft. */
 export class DraftRepairPath {
   constructor(value, field = "draft repair path") {
@@ -195,9 +192,6 @@ export function applyDraftRepairOperations({ draft, triage, repair, inputRevisio
     const permission = permissions.get(operation.findingKey());
     if (!permission || permission.error || !permission.allowedPaths.some((path) => path.value === operation.path.value)) {
       discarded.push(discardedOperation(operation.toJSON(), "unauthorized operation")); continue;
-    }
-    if (isGateOwnedPath(operation.path)) {
-      discarded.push(discardedOperation(operation.toJSON(), "definition-owned completion field")); continue;
     }
     const reference = operation.path.resolve(candidate);
     if (reference === null || digest(reference.value) !== operation.expectedDigest) {

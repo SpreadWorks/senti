@@ -10,9 +10,9 @@
      - `decision`: one of `apply`, `invalid`, `already_resolved`, `downgraded_to_non_blocking`, or `requires_user_decision`.
      - `rationale`: why that decision was made.
      - `evidence`: concrete evidence for the decision, such as a `draft.json` field path, request fact, source/code context, or the reason the finding is non-blocking.
-     - For `apply` only, `allowedFieldPaths`: the exact existing draft field paths the repair worker may replace, and `requiredFieldPaths`: the subset needed to resolve this finding. Do not grant a whole object, unrelated fields, or any approval path. A Definition-owned parent completion connector—not this worker—may set approval only after eligible canonical coverage facts are confirmed.
+     - For `apply` only, `allowedFieldPaths`: the exact existing draft field paths the repair worker may replace, and `requiredFieldPaths`: the subset needed to resolve this finding. Do not grant a whole object or unrelated fields. A Definition-owned parent completion connector—not this worker—records completion after eligible canonical coverage facts are confirmed.
    - Use `apply` only when the item is still valid and can be fixed by a small, directly supported draft change.
-   - Use `invalid` when the item concerns approval or another mechanical check, contradicts verified context, asks for broader scope, or is not grounded in the draft coverage review criteria. Triage must never use `apply` to set approval automatically.
+   - Use `invalid` when the item concerns a mechanical check, contradicts verified context, asks for broader scope, or is not grounded in the draft coverage review criteria.
    - Use `already_resolved` when the current `draft.json` already covers the item.
    - Use `downgraded_to_non_blocking` when the item is useful context but does not block spec writing.
    - Use `requires_user_decision` only when resolving the item would require new user input. This decision blocks draft-gate until draft QA is reopened or answered.

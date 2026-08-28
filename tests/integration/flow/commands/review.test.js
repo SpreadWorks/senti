@@ -1051,7 +1051,6 @@ describe("draft review artifact phases", () => {
         draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [],
         stage,
-        draft: retryPhase === "draft-coverage" ? { approval: { approved: true } } : null,
       });
       const advisory = buildDraftReviewArtifact({
         raw: "A review finding was recorded.",
@@ -1059,7 +1058,6 @@ describe("draft review artifact phases", () => {
         draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [proposal],
         stage,
-        draft: retryPhase === "draft-coverage" ? { approval: { approved: true } } : null,
       });
 
       assert.equal(pass.phase, retryPhase);
@@ -1088,7 +1086,7 @@ describe("draft review artifact phases", () => {
     );
   });
 
-  it("keeps an unfinalized draft approval out of coverage review findings", () => {
+  it("does not invent coverage findings when the review reports none", () => {
     const artifact = buildDraftReviewArtifact({
       raw: "NO_PROPOSALS",
       draftPath: "draft.json",

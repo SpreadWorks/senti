@@ -116,7 +116,6 @@ function emptyQuestionLedgerDraft(goal = "full flow") {
     analysis: { problem: "Exercise the full flow.", proposedApproach: "Publish canonical artifacts.", validation: "Complete every deterministic step." },
     decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
     questionLedger: { revision: 0, publication: "fixture", evidenceDigest: "a".repeat(64), questions: [] },
-    approval: { approved: false },
   };
 }
 
@@ -533,7 +532,7 @@ describe("deterministic full Flow worker handoff", () => {
       );
       assert.equal(parentCommands.includes("branch"), false);
       assert.equal(parentCommands.includes("prepare-spec"), false);
-      assert.equal(parentCommands.includes("draft-gate"), true, "approval=false must be promoted through the connector to draft-gate");
+      assert.equal(parentCommands.includes("draft-gate"), true, "the completed draft must be connected to draft-gate");
       assert.equal(workerSteps.includes("spec"), true, "the accepted draft-gate must start the spec worker");
       const completionReceipt = flowManager.activityLedger(specId)
         .find((activity) => activity.transition.stepConnectionReceipt?.kind === "draft-completion");
@@ -738,7 +737,7 @@ describe("deterministic full Flow worker handoff", () => {
       assert.equal(repairAudit.discardedOperations.length, 1);
       assert.equal(repairAudit.discardedOperations[0].reason, "unauthorized operation");
       assert.equal(completedDraft.analysis.validation, repairedValue);
-      assert.equal(completedDraft.approval.approved, true);
+      assert.equal(Object.hasOwn(completedDraft, "approval"), false);
 
       const completionActivity = flowManager.activityLedger(specId).at(-1);
       const repairDescriptor = flowManager.readArtifact({

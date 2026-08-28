@@ -4,7 +4,12 @@ import assert from "node:assert/strict";
 import { attachCanonicalCommandResultPublications } from "../../../src/flow/lib/canonical-command-result.js";
 import { RunReopenDraftCommand } from "../../../src/flow/lib/run-reopen-draft.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
-import { FlowAtStepFixture, TaskLifecycleFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import {
+  canonicalDraftDocument,
+  FlowAtStepFixture,
+  TaskLifecycleFixture,
+  makeFlowManager,
+} from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 const SPEC_ID = "441-reopen-spec-correction";
@@ -99,7 +104,7 @@ describe("canonical reopen draft routes", () => {
     flowManager.publishCurrentAttemptResult({
       specId: SPEC_ID,
       commandResult: attachCanonicalCommandResultPublications({ result: "ok" }, [{
-        logicalKey: "draft", payload: { goal: "fixture", approval: { approved: true } },
+        logicalKey: "draft", payload: canonicalDraftDocument({ goal: "fixture" }),
       }]),
     });
     fixture.flow.flow.activate("implement");

@@ -11,5 +11,5 @@
      - When `autoApprove: true`, if the question is redundant or belongs to project rules/spec writing, update that same entry to `DiscardedQuestion` with a concrete reason.
    - Keep the work finite: process the existing question list once. Do not loop looking for more questions.
    - Update `decisionMap` so resolved decisions move to `knownFacts`, `resolvedByProjectRules`, or remain represented by answered ledger entries; a spec-writing detail that does not need user judgment may be recorded in `deferredToSpec` only as `{ "boundary": "...", "relevance": "...", "owner": "spec" }`. Verify the delegation boundary and relevance; do not write final specification detail here.
-   - Do not set `approval.approved = true` in this step. After coverage completes, the Definition-owned parent completion connector may set it from eligible canonical facts; `draft-gate` remains a read-only downstream validator.
+   - The draft schema has no approval field. Do not copy or add approval metadata; completion is recorded by the Definition-owned parent connector after coverage facts are eligible.
    - Read the current draft from the handoff input snapshot. When no entry is awaiting a user answer, write the complete updated `draft.json` to its exact handoff `payloadPath`, then run the exact handoff `sealCommand` once.

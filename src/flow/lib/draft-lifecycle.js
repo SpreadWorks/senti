@@ -11,7 +11,7 @@ export const DRAFT_LEGACY_QA_ERROR = "draft.json question schema changed; regene
 export const DRAFT_QA_CATEGORIES = DRAFT_QUESTION_CATEGORIES;
 
 const TOP_LEVEL_FIELDS = new Set([
-  "devType", "goal", "analysis", "decisionMap", "scopeVerification", "impactOnExisting", "questionLedger", "openQuestions", "approval",
+  "devType", "goal", "analysis", "decisionMap", "scopeVerification", "impactOnExisting", "questionLedger", "openQuestions",
 ]);
 const DEV_TYPES = new Set(["feature", "bugfix", "refactor", "docs", "chore", "test", "other"]);
 const DECISION_MAP_FIELDS = Object.freeze([
@@ -79,30 +79,11 @@ class DraftDecisionMap {
   }
 }
 
-class DraftApproval {
-  constructor(raw) {
-    this.raw = raw;
-    Object.freeze(this);
-  }
-  validate() {
-    return isObject(this.raw) && this.raw.approved === true
-      ? []
-      : ["draft approval is required: set approval.approved = true"];
-  }
-
-  validatePending() {
-    return isObject(this.raw) && this.raw.approved === false
-      ? []
-      : ["draft approval must be pending: set approval.approved = false"];
-  }
-}
-
 export class DraftLifecycle {
   constructor(raw) {
     if (!isObject(raw)) throw new Error("draft must be a non-null object");
     this.raw = structuredClone(raw);
     this.decisionMap = new DraftDecisionMap(this.raw.decisionMap);
-    this.approval = new DraftApproval(this.raw.approval);
     this.questionLedger = this.#parseLedger();
     Object.freeze(this);
   }
@@ -125,7 +106,6 @@ export class DraftLifecycle {
 
   validate() {
     return this.#validate({
-      requireApproval: true,
       allowCandidateQuestions: false,
       allowAwaitingQuestions: false,
     });
@@ -134,7 +114,6 @@ export class DraftLifecycle {
   /** Intermediate canonical publications retain a complete envelope while questions may still be active. */
   validateForPublication() {
     return this.#validate({
-      requireApproval: false,
       allowCandidateQuestions: true,
       allowAwaitingQuestions: true,
     });
@@ -143,7 +122,6 @@ export class DraftLifecycle {
   /** Writers may hand candidates to later draft stages, but may not leave an unanswered user prompt behind. */
   validateForWriterCompletion() {
     return this.#validate({
-      requireApproval: false,
       allowCandidateQuestions: true,
       allowAwaitingQuestions: false,
     });
@@ -152,13 +130,12 @@ export class DraftLifecycle {
   /** Final connector selection requires every draft-owned question to be resolved. */
   validateForCompletion() {
     return this.#validate({
-      requireApproval: false,
       allowCandidateQuestions: false,
       allowAwaitingQuestions: false,
     });
   }
 
-  #validate({ requireApproval, allowCandidateQuestions, allowAwaitingQuestions }) {
+  #validate({ allowCandidateQuestions, allowAwaitingQuestions }) {
     const issues = [];
     for (const field of unknownFields(this.raw, TOP_LEVEL_FIELDS)) {
       if (field !== "qa") issues.push(`unknown field "${field}"`);
@@ -186,7 +163,6 @@ export class DraftLifecycle {
         }
       });
     }
-    issues.push(...(requireApproval ? this.approval.validate() : this.approval.validatePending()));
     return issues;
   }
 

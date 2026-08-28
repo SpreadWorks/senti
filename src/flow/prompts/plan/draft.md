@@ -24,7 +24,6 @@
      - `analysis` — `problem`, `proposedApproach`, and `validation` are all non-empty
      - `decisionMap` — arrays for `knownFacts`, `decisionPoints`, `resolvedByProjectRules`, `requiresUserJudgment`, and `deferredToSpec`; each `deferredToSpec` entry is `{ boundary, relevance, owner: "spec" }`. Draft verifies only that delegation is bounded, relevant, and owned by Spec; it must not invent final specification detail.
      - `questionLedger` — typed entries conforming to the Draft QA Rules schema
-     - `approval` — `{ approved: false, confirmedAt: "", notes: "" }`
    - Write the draft to the declared `draft.json` payload. The parent dispatcher proceeds to `draft-questions-review` after validation and publication.
 
    **Communication rules for the draft phase (when NOT autoApprove):**

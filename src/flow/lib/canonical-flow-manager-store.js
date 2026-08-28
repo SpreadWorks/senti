@@ -3885,9 +3885,9 @@ export class CanonicalFlowManagerStore {
     return requiresAdmission ? this.#consumerAdmission(state, targetNodeId) : null;
   }
 
-  #producerCompletionAdmission(producerNodeId, artifactWrites, { requireApproval = false } = {}) {
+  #producerCompletionAdmission(producerNodeId, artifactWrites, { requireDraftCompletion = false } = {}) {
     this.#assertDraftPublication(producerNodeId, artifactWrites, {
-      requireApproval,
+      requireDraftCompletion,
       requireWriterCompletion: true,
     });
     const readinesses = producerArtifactReadinessesForProducer({ producerNodeId });
@@ -3898,7 +3898,7 @@ export class CanonicalFlowManagerStore {
 
   /** The catalog publication boundary is the single writer gate for draft structure. */
   #assertDraftPublication(producerNodeId, artifactWrites, {
-    requireApproval = false,
+    requireDraftCompletion = false,
     requireWriterCompletion = false,
   } = {}) {
     if (!DRAFT_ARTIFACT_WRITER_STEPS.includes(producerNodeId)) return;
@@ -3917,8 +3917,8 @@ export class CanonicalFlowManagerStore {
     } catch (cause) {
       throw new CurrentFlowStateInvariantError(`draft publication is invalid: ${cause.message}`);
     }
-    const issues = requireApproval
-      ? lifecycle.validate()
+    const issues = requireDraftCompletion
+      ? lifecycle.validateForCompletion()
       : requireWriterCompletion ? lifecycle.validateForWriterCompletion() : lifecycle.validateForPublication();
     if (issues.length > 0) {
       throw new CurrentFlowStateInvariantError(`draft publication is incomplete: ${issues.join("; ")}`);
@@ -3936,7 +3936,7 @@ export class CanonicalFlowManagerStore {
     return new StepConnectionAdmission({
       sourceConsumerAdmission,
       sourceProducerCompletionAdmission: this.#producerCompletionAdmission(sourceNodeId, artifactWrites, {
-        requireApproval: true,
+        requireDraftCompletion: true,
       }),
     });
   }

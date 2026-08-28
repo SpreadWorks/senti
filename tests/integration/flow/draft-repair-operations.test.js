@@ -21,7 +21,6 @@ function draft() {
     analysis: { problem: "Original problem", proposedApproach: "Original approach", validation: "Original validation" },
     decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
     questionLedger: { revision: 0, publication: "test", evidenceDigest: "b".repeat(64), questions: [] },
-    approval: { approved: true },
   };
 }
 function triage({ allowedFieldPaths = ["goal"], requiredFieldPaths = ["goal"] } = {}) {
@@ -52,7 +51,7 @@ describe("command-owned draft repair operations", () => {
 
   it("parses only bounded data paths and v1 proposal envelopes", () => {
     assert.deepEqual(new DraftRepairPath("questionLedger.questions[0].question").segments, ["questionLedger", "questions", 0, "question"]);
-    assert.throws(() => new DraftRepairPath("approval.__proto__.approved"));
+    assert.throws(() => new DraftRepairPath("goal.__proto__.value"));
     assert.ok(new DraftRepairOperationBatch(repair([])));
     const malformed = new DraftRepairOperationBatch({ version: 2, baseRevision: "wrong", operations: [] });
     assert.equal(malformed.envelopeErrors.length, 2);
@@ -112,38 +111,20 @@ describe("command-owned draft repair operations", () => {
     assert.ok(result.audit.discardedOperations.every((entry) => entry.reason));
   });
 
-  it("rejects approval operations from both repair routes even when triage grants them", () => {
+  it("keeps retired approval metadata invalid instead of treating it as completion state", () => {
     const source = draft();
     source.approval = { approved: false };
-    const approvalTriage = triage({ allowedFieldPaths: ["approval.approved"], requiredFieldPaths: ["approval.approved"] });
-    const approvalOperation = operation({
-      path: "approval.approved",
-      expectedDigest: digest(false),
-      replacement: true,
-    });
-    for (const phase of ["draft-questions-repair", "draft-coverage-repair"]) {
-      const result = applyDraftRepairOperations({
-        draft: source,
-        triage: approvalTriage,
-        repair: repair([approvalOperation]),
-        inputRevision: INPUT_REVISION,
-        phase,
-      });
-      assert.deepEqual(result.draft, source);
-      assert.equal(result.audit.acceptedOperations.length, 0);
-      assert.equal(result.audit.discardedOperations[0].reason, "definition-owned completion field");
-      assert.deepEqual(result.audit.audit.missingRequiredTargets, [{ key: "Repair goal\u0000goal", path: "approval.approved" }]);
-      assert.equal(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")), false);
-      assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
-    }
+    const result = apply({ draft: source, repair: repair([]) });
+    assert.deepEqual(result.draft, source);
+    assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")));
+    assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
   });
 
   it("keeps coverage triage and repair outside parent completion ownership", () => {
     const triagePrompt = prompt("draft-coverage-triage");
     const repairPrompt = prompt("draft-coverage-repair");
     assert.match(triagePrompt, /Definition-owned parent completion connector/i);
-    assert.match(triagePrompt, /never use `apply` to set approval automatically/);
-    assert.match(repairPrompt, /Never set or rewrite approval/);
+    assert.match(repairPrompt, /draft schema has no approval field/i);
     assert.match(repairPrompt, /Definition-owned parent completion connector/i);
     assert.doesNotMatch(triagePrompt, /"approval\.approved"/);
     assert.doesNotMatch(repairPrompt, /"approval\.approved"/);
@@ -158,15 +139,12 @@ describe("command-owned draft repair operations", () => {
     assert.deepEqual(result.audit.audit.missingRequiredTargets, [{ key: "Repair goal\u0000goal", path: "goal" }]);
   });
 
-  it("retains structural lifecycle findings for publication while leaving approval to DraftCompletionConnector", () => {
+  it("retains structural lifecycle findings for publication", () => {
     const source = draft();
-    source.approval = { approved: false };
     delete source.questionLedger.questions;
     const result = apply({ draft: source, repair: repair([]) });
     assert.deepEqual(result.draft, source);
-    assert.equal(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")), false);
     assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("questions")));
-    assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
     assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("questions")));
   });
 });

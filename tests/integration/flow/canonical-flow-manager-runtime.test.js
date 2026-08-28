@@ -2923,7 +2923,6 @@ describe("FlowManager canonical Version-1 runtime", () => {
           evidenceDigest: "c".repeat(64),
           questions: [],
         },
-        approval: { approved: false },
       };
       const draft = Buffer.from(`${JSON.stringify(draftDocument, null, 2)}\n`, "utf8");
       advanceTo(manager, created.specId, "draft");
@@ -3021,11 +3020,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         logicalKey: "draft",
         consumerNodeId: reviewPhase === "draft-coverage" ? "draft-gate" : "draft-refine",
       }).bytes.toString("utf8"));
-      assert.equal(
-        completedDraft.approval.approved,
-        reviewPhase === "draft-coverage",
-        "only the coverage completion connector may finalize draft approval",
-      );
+      assert.deepEqual(completedDraft, draftDocument);
       if (reviewPhase === "draft-coverage") {
         const completion = manager.activityLedger(created.specId).at(-1);
         assert.equal(findStepById(manager.load(created.specId).steps, "draft-coverage-repair").status, "done");
@@ -5452,7 +5447,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         failureMode: "process-evidence-missing",
         requirementRef: "process:gate-structure",
         where: null,
-        observed: "The draft approval marker has not been finalized.",
+        observed: "The draft omits a required retained behavior.",
         severity: "blocking",
         refs: ["process:diff-verifiable"],
       }],

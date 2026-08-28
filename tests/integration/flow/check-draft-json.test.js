@@ -52,7 +52,6 @@ function buildValidDraft(overrides = {}) {
     impactOnExisting: ["existing feature X affected"],
     questionLedger: ledger(),
     openQuestions: [],
-    approval: { approved: true, confirmedAt: "2026-04-25", notes: "" },
   };
   return { ...base, ...overrides };
 }
@@ -224,9 +223,12 @@ describe("checkDraftJson — devType and required fields", () => {
     assertHasIssue(buildValidDraft({ goal: "" }), (issue) => /goal/i.test(issue), "empty goal");
   });
 
-  it("flags missing or unapproved approval", () => {
-    assertHasIssue(buildValidDraft({ approval: undefined }), (issue) => /approval/i.test(issue), "missing approval");
-    assertHasIssue(buildValidDraft({ approval: { approved: false } }), (issue) => /approval/i.test(issue), "unapproved draft");
+  it("rejects retired draft approval metadata", () => {
+    assertHasIssue(
+      buildValidDraft({ approval: { approved: true } }),
+      (issue) => /unknown field "approval"/i.test(issue),
+      "retired approval metadata",
+    );
   });
 });
 

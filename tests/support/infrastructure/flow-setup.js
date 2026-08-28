@@ -186,7 +186,6 @@ export function canonicalDraftDocument({
       questions,
     },
     openQuestions: [],
-    approval: { approved: false, confirmedAt: "", notes: "" },
   };
 }
 

@@ -5,7 +5,12 @@ import { attachCanonicalCommandResultPublications } from "../../../src/flow/lib/
 import { ReviewFindingCycle } from "../../../src/flow/lib/finding-disposition-policy.js";
 import RunReopenDraftCommand from "../../../src/flow/lib/run-reopen-draft.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
-import { FlowAtStepFixture, TaskLifecycleFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import {
+  canonicalDraftDocument,
+  FlowAtStepFixture,
+  TaskLifecycleFixture,
+  makeFlowManager,
+} from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 const SPEC_ID = "498-draft-authority";
@@ -93,7 +98,7 @@ describe("draft reopen canonical authority", () => {
       specId: SPEC_ID,
       commandResult: attachCanonicalCommandResultPublications({ result: "ok" }, [{
         logicalKey: "draft",
-        payload: { goal: "catalog draft", approval: { approved: true } },
+        payload: canonicalDraftDocument({ goal: "catalog draft" }),
       }]),
     });
 
@@ -116,7 +121,7 @@ describe("draft reopen canonical authority", () => {
       specId: SPEC_ID,
       commandResult: attachCanonicalCommandResultPublications({ result: "ok" }, [{
         logicalKey: "draft",
-        payload: { goal: "catalog draft", approval: { approved: true } },
+        payload: canonicalDraftDocument({ goal: "catalog draft" }),
       }]),
     });
     fixture.flow.flow.activate("implement");
