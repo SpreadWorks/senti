@@ -4094,22 +4094,7 @@ function addDraftReviewFindingToBucket(buckets, finding) {
   }
 }
 
-function draftCoverageApprovalRepairTarget(draft, stage) {
-  if (stage.retryPhase !== "draft-coverage") return null;
-  if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
-    throw new Error("draft coverage review requires the canonical draft document");
-  }
-  if (draft.approval?.approved === true) return null;
-  return new DraftReviewFinding({
-    title: "Finalize draft approval",
-    target: "approval",
-    rationale: "Coverage review completed before the draft approval marker was finalized.",
-    evidence: "draft.json approval.approved is false after draft QA completion.",
-    classification: "repair_target",
-  });
-}
-
-function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, stage, draft = null }) {
+function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, stage }) {
   const buckets = {
     blockingFindings: [],
     advisoryFindings: [],
@@ -4121,8 +4106,6 @@ function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, st
       addDraftReviewFindingToBucket(buckets, finding);
     }
   }
-  const approvalRepair = draftCoverageApprovalRepairTarget(draft, stage);
-  if (approvalRepair !== null) addDraftReviewFindingToBucket(buckets, approvalRepair);
   return new DraftReviewArtifactDocument({
     phase: stage.retryPhase,
     sourceDraft: draftPath,
@@ -4306,7 +4289,6 @@ async function runDraftReview(root, flow, config, dryRun) {
     draftRevision: source.revision,
     proposals,
     stage,
-    draft: draftJson,
   });
   writeReviewAttemptHistory({
     specDir: outputDirectory,

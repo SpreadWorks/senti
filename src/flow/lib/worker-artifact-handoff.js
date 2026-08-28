@@ -17,8 +17,15 @@ import {
 } from "../../lib/regular-file-snapshot.js";
 import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
-import { findActiveNode, getFlowNode, PromoteDraftQuestionAndKeepRefineActive, resolveLifecyclePlan } from "../definition.js";
+import {
+  findActiveNode,
+  getFlowNode,
+  PromoteDraftQuestionAndKeepRefineActive,
+  resolveDraftCoverageRepairCompletion,
+  resolveLifecyclePlan,
+} from "../definition.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { DraftCompletionFacts } from "./draft-completion-connector.js";
 import { DraftTransitionFacts } from "./draft-transition-facts.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
@@ -3147,6 +3154,29 @@ function draftRepairResult(request, submission) {
   });
 }
 
+/** Build facts only; the Definition decides whether a connector is eligible. */
+function draftCoverageRepairCompletion(request, route, repair) {
+  if (route?.retryPhase !== "draft-coverage" || repair === null) return null;
+  const draft = request.inputs.find((input) => input.name === "draft.json");
+  const review = request.inputs.find((input) => input.name === route.reviewArtifact);
+  const triage = request.inputs.find((input) => input.name === route.triageArtifact);
+  if (!draft || !review || !triage) {
+    throw new Error("draft coverage repair completion is missing immutable facts");
+  }
+  return resolveDraftCoverageRepairCompletion(new DraftCompletionFacts({
+    source: "coverage-repair",
+    sourceStepId: route.repairStepId,
+    targetStepId: route.passNextStepId,
+    draft: repair.draft,
+    draftDigest: draft.digest,
+    draftByteLength: draft.byteLength,
+    reviewVerdict: review.document.verdict,
+    reviewDraftDigest: review.document.sourceDraftRevision?.digest ?? null,
+    triage: triage.document,
+    repair: repair.audit,
+  }));
+}
+
 function validateDraftPayload(request, submission, state) {
   const route = draftRepairRouteForRequest(request);
   if (route !== null) {
@@ -3657,6 +3687,11 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
   const specRepairAudit = specRepairResult?.audit ?? null;
   const repairRoute = draftRepairRouteForRequest(request);
   const draftRepairResultValue = repairRoute === null ? null : draftRepairResult(request, submission);
+  const draftCoverageRepairDecision = draftCoverageRepairCompletion(
+    request,
+    repairRoute,
+    draftRepairResultValue,
+  );
   const addArtifactBaseline = (baseline) => {
     const relativePath = baseline.artifact.relativePath;
     const existing = artifactBaselines.get(relativePath) ?? null;
@@ -3735,7 +3770,7 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
   if (specRepairResult !== null) {
     specRecord = new CanonicalWorkerSpecPublication(specRepairResult.spec);
   }
-  if (draftRepairResultValue !== null) {
+  if (draftRepairResultValue !== null && draftCoverageRepairDecision === null) {
     const address = new CanonicalWorkerArtifactAddress("draft.json");
     artifactWrites.push(address.publication(
       Buffer.from(`${JSON.stringify(draftRepairResultValue.draft, null, 2)}\n`, "utf8"),
@@ -3755,6 +3790,10 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
     artifactRemovals: Object.freeze(artifactRemovals),
     artifactBaselines: Object.freeze([...artifactBaselines.values()]),
     testSourceBaseline: testSourceBaseline ?? undefined,
+    draftCoverageRepairDecision,
+    draftCoverageRepairDraft: draftCoverageRepairDecision === null
+      ? null
+      : structuredClone(draftRepairResultValue.draft),
   });
 }
 
@@ -4252,21 +4291,30 @@ export class WorkerArtifactHandoffCoordinator {
         }
       }
       if (!promotionApplied) {
-        ctx.flowManager.confirmCurrentAttempt({
-        specId: request.specId,
-        result: canonicalHandoffResult(request, submission, this.now),
-        references: {
-          evaluations: [],
-          findings: [],
-          repairs: [],
-          artifacts: [{ id: submission.handoffDigest, label: request.stepId }],
-        },
-        specRecord: publications.specRecord,
-        artifactWrites: publications.artifactWrites,
-        artifactRemovals: publications.artifactRemovals,
-        artifactBaselines: publications.artifactBaselines,
-        testSourceBaseline: publications.testSourceBaseline,
-        });
+        const confirmation = {
+          specId: request.specId,
+          result: canonicalHandoffResult(request, submission, this.now),
+          references: {
+            evaluations: [],
+            findings: [],
+            repairs: [],
+            artifacts: [{ id: submission.handoffDigest, label: request.stepId }],
+          },
+          specRecord: publications.specRecord,
+          artifactWrites: publications.artifactWrites,
+          artifactRemovals: publications.artifactRemovals,
+          artifactBaselines: publications.artifactBaselines,
+          testSourceBaseline: publications.testSourceBaseline,
+        };
+        if (publications.draftCoverageRepairDecision !== null) {
+          ctx.flowManager.confirmDraftCoverageRepairCompletion({
+            ...confirmation,
+            decision: publications.draftCoverageRepairDecision,
+            draft: publications.draftCoverageRepairDraft,
+          });
+        } else {
+          ctx.flowManager.confirmCurrentAttempt(confirmation);
+        }
       }
     } catch (cause) {
       if (cause?.code === "CURRENT_FLOW_STATE_CONFLICT") {

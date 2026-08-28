@@ -2900,7 +2900,26 @@ describe("FlowManager canonical Version-1 runtime", () => {
       const created = manager.createFresh(request(`001-actual-${reviewPhase}-writer`));
       assert.equal(manager.specLocation(created.specId).directory.startsWith(path.join(repository, "specs")), true);
       manager.addActiveFlow(created.specId, "direct");
-      const draft = Buffer.from('{"goal":"Run writer boundary","qa":[],"approval":{"approved":true}}\n', "utf8");
+      const draftDocument = {
+        devType: "feature",
+        goal: "Run writer boundary",
+        analysis: {
+          problem: "Exercise the canonical review writer boundary.",
+          proposedApproach: "Publish review evidence before completing the draft.",
+          validation: "Confirm the coverage completion connector promotes the exact revision.",
+        },
+        decisionMap: {
+          knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [],
+        },
+        questionLedger: {
+          revision: 0,
+          publication: "canonical-review-writer-test",
+          evidenceDigest: "c".repeat(64),
+          questions: [],
+        },
+        approval: { approved: false },
+      };
+      const draft = Buffer.from(`${JSON.stringify(draftDocument, null, 2)}\n`, "utf8");
       advanceTo(manager, created.specId, "draft");
       manager.confirmCurrentAttempt({
         specId: created.specId,
@@ -2991,6 +3010,22 @@ describe("FlowManager canonical Version-1 runtime", () => {
       await FLOW_COMMANDS.run.review.post(ctx, result);
       assert.equal(fs.existsSync(outputDirectory), false);
       assert.equal(manager.activityLedger(created.specId).some((activity) => activity.type === "result_confirmed"), true);
+      const completedDraft = JSON.parse(manager.readArtifact({
+        specId: created.specId,
+        logicalKey: "draft",
+        consumerNodeId: reviewPhase === "draft-coverage" ? "draft-gate" : "draft-refine",
+      }).bytes.toString("utf8"));
+      assert.equal(
+        completedDraft.approval.approved,
+        reviewPhase === "draft-coverage",
+        "only the coverage completion connector may finalize draft approval",
+      );
+      if (reviewPhase === "draft-coverage") {
+        const completion = manager.activityLedger(created.specId).at(-1);
+        assert.equal(findStepById(manager.load(created.specId).steps, "draft-coverage-repair").status, "done");
+        assert.equal(manager.canonicalState(created.specId).nextAction().nodeId, "draft-gate");
+        assert.equal(completion.result.artifactRefs.at(-1).kind, "draft-completion-connector");
+      }
     });
   }
 

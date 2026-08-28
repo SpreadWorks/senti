@@ -230,7 +230,7 @@ const ENTRIES = Object.freeze([
   workerHandoffOwned("draft-refine", "draft-coverage-review", "draft schema and revision transaction"),
   commandOwned("draft-coverage-review", "draft-coverage-triage or draft-gate"),
   workerHandoffOwned("draft-coverage-triage", "draft-coverage-repair", "draft triage linkage validator"),
-  workerHandoffOwned("draft-coverage-repair", "draft-gate", "draft repair and revision transaction"),
+  workerHandoffOwned("draft-coverage-repair", "draft-gate", "draft repair and Definition-owned completion transaction"),
   commandOwned("draft-gate", "spec"),
   workerHandoffOwned("spec", "spec-review", "spec schema and revision transaction"),
   commandOwned("spec-review", "spec-triage or spec-gate"),

@@ -468,6 +468,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  confirmDraftCoverageRepairCompletion(input = {}) {
+    return this._store.confirmDraftCoverageRepairCompletion({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   completeAcceptanceDecisionNoOp(input = {}) {
     return this._store.completeAcceptanceDecisionNoOp({
       ...input,

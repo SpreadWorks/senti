@@ -1088,7 +1088,7 @@ describe("draft review artifact phases", () => {
     );
   });
 
-  it("routes an unfinalized draft approval through coverage repair", () => {
+  it("keeps an unfinalized draft approval out of coverage review findings", () => {
     const artifact = buildDraftReviewArtifact({
       raw: "NO_PROPOSALS",
       draftPath: "draft.json",
@@ -1099,12 +1099,10 @@ describe("draft review artifact phases", () => {
         artifactPhase: "draft-coverage-review",
         findingClassification: "blocking",
       },
-      draft: { approval: { approved: false } },
     });
 
-    assert.equal(artifact.verdict, "ADVISORY");
-    assert.equal(artifact.repairTargets.length, 1);
-    assert.equal(artifact.repairTargets[0].target, "approval");
+    assert.equal(artifact.verdict, "PASS");
+    assert.deepEqual(artifact.repairTargets, []);
   });
 });
 

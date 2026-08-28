@@ -27,6 +27,7 @@ import {
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
   testResultReviewTransitionDefinition,
+  DraftCoverageRepairCompletionDecision,
 } from "../definition.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
@@ -88,6 +89,7 @@ import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { CanonicalRequirementDefinitions } from "./canonical-requirement-definitions.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { draftCompletionDocumentDigest, isDraftCompletionConnector } from "./draft-completion-connector.js";
 import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
@@ -2450,6 +2452,128 @@ export class CanonicalFlowManagerStore {
       testSourceBaseline,
       gateTaskLifecycle: sealedTaskLifecycle,
       ...(status === "done" && { admission: this.#producerCompletionAdmission(nodeId, artifactWrites) }),
+    });
+  }
+
+  /**
+   * Apply the one Definition-selected coverage-repair completion decision.
+   * The Store never chooses a connector: it validates the selected facts,
+   * publishes the selected draft derivation, and confirms repair together.
+   */
+  confirmDraftCoverageRepairCompletion({
+    specId = null,
+    decision,
+    draft,
+    result = null,
+    references = undefined,
+    artifactWrites = [],
+    artifactRemovals = undefined,
+    artifactBaselines = [],
+  } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(decision instanceof DraftCoverageRepairCompletionDecision)) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion requires a Definition-selected decision");
+    }
+    const { facts, connector } = decision;
+    let state = this.runtime.load(resolved);
+    const sourceNode = state.findNode(facts.sourceStepId);
+    if (sourceNode?.status === "done") return state;
+    if (state.current !== null && (
+      state.current.at(-1) !== facts.sourceStepId
+      || state.attempt?.failure !== null
+    )) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion does not own the active Attempt");
+    }
+    const source = this.readArtifact({
+      specId: resolved,
+      logicalKey: "draft",
+      consumerNodeId: facts.sourceStepId,
+    });
+    if (
+      source.descriptor.hash !== facts.draftDigest
+      || source.descriptor.size !== facts.draftByteLength
+    ) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale canonical draft revision");
+    }
+    if (draftCompletionDocumentDigest(draft) !== facts.draftDocumentDigest) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a changed selected draft");
+    }
+    if (connector !== null && !isDraftCompletionConnector(connector)) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion connector is invalid");
+    }
+    const publishedDraft = connector === null ? structuredClone(draft) : connector.applyTo(draft);
+    const baseline = new CanonicalFlowArtifactBaseline({
+      logicalKey: "draft",
+      digest: facts.draftDigest,
+      byteLength: facts.draftByteLength,
+    });
+    const suppliedBaselines = artifactBaselines.map((entry) => CanonicalFlowArtifactBaseline.from(entry));
+    const suppliedDraftBaseline = suppliedBaselines.find((entry) => entry.artifact.logicalKey === "draft") ?? null;
+    if (suppliedDraftBaseline !== null && (
+      suppliedDraftBaseline.digest !== baseline.digest
+      || suppliedDraftBaseline.byteLength !== baseline.byteLength
+    )) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion baseline conflicts with the selected revision");
+    }
+    const baselines = suppliedDraftBaseline === null
+      ? [...suppliedBaselines, baseline]
+      : suppliedBaselines;
+    if (artifactWrites.some((entry) => entry?.logicalKey === "draft")) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion owns the only draft publication");
+    }
+    const publishesDraft = connector !== null || facts.source === "coverage-repair";
+    const writes = [
+      ...(publishesDraft ? [{
+        logicalKey: "draft",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8"),
+      }] : []),
+      ...artifactWrites,
+    ];
+    const connectorArtifact = connector === null ? null : {
+      kind: "draft-completion-connector",
+      id: connector.receiptId,
+    };
+    const baseConfirmation = result ?? {
+      outcome: "passed",
+      summary: "Draft coverage repair completion confirmed the canonical draft.",
+      confirmedAt: new Date().toISOString(),
+    };
+    const confirmation = connectorArtifact === null ? baseConfirmation : {
+      ...baseConfirmation,
+      artifactRefs: [...(baseConfirmation.artifactRefs ?? []), connectorArtifact],
+    };
+    const baseReferences = references ?? {
+      evaluations: [],
+      findings: [],
+      repairs: [],
+      artifacts: [],
+    };
+    const confirmationReferences = connectorArtifact === null ? baseReferences : {
+      ...baseReferences,
+      artifacts: [...(baseReferences.artifacts ?? []), {
+        id: connector.receiptId,
+        label: "draft completion connector",
+      }],
+    };
+    if (state.current === null) {
+      this.#beginExecutableNode(state, resolved, facts.sourceStepId);
+      state = this.runtime.load(resolved);
+    }
+    if (state.current?.at(-1) !== facts.sourceStepId || state.attempt?.failure !== null) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion does not own the active Attempt");
+    }
+    return this.runtime.confirmAttempt({
+      specId: resolved,
+      activityId: activityId("draft-coverage-repair-confirmed"),
+      status: "done",
+      result: confirmation,
+      references: confirmationReferences,
+      artifactWrites: writes,
+      artifactRemovals,
+      artifactBaselines: baselines,
+      admission: this.#producerCompletionAdmission(facts.sourceStepId, writes),
     });
   }
 

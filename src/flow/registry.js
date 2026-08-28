@@ -33,6 +33,8 @@ import {
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
   testResultReviewTransitionDefinition,
+  CompleteDraftCoverageRepair,
+  resolveDraftCoverageRepairCompletion,
   SetStepStatus,
   taskIdForResolvedStep,
 } from "./definition.js";
@@ -631,6 +633,25 @@ class RegistryLifecycleAdapter {
     this.ctx.flowManager.publishCurrentAttemptResult({
       specId: this.ctx.specId ?? this.ctx.flowState.specId,
       commandResult: this.result,
+    });
+    this.refreshFlowState();
+  }
+
+  async completeDraftCoverageRepair(action) {
+    if (!(action instanceof CompleteDraftCoverageRepair)) {
+      throw new Error("draft coverage repair requires the Definition-selected action");
+    }
+    const { readCoveragePassDraftCompletionFacts } = await import("./lib/draft-completion-connector.js");
+    const specId = this.ctx.specId ?? this.ctx.flowState.specId;
+    const facts = readCoveragePassDraftCompletionFacts({
+      flowManager: this.ctx.flowManager,
+      specId,
+    });
+    const decision = resolveDraftCoverageRepairCompletion(facts);
+    this.ctx.flowManager.confirmDraftCoverageRepairCompletion({
+      specId,
+      decision,
+      draft: facts.draft,
     });
     this.refreshFlowState();
   }

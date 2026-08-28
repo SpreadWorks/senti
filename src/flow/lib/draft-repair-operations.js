@@ -197,7 +197,7 @@ export function applyDraftRepairOperations({ draft, triage, repair, inputRevisio
       discarded.push(discardedOperation(operation.toJSON(), "unauthorized operation")); continue;
     }
     if (isGateOwnedPath(operation.path)) {
-      discarded.push(discardedOperation(operation.toJSON(), "gate-owned approval field")); continue;
+      discarded.push(discardedOperation(operation.toJSON(), "definition-owned completion field")); continue;
     }
     const reference = operation.path.resolve(candidate);
     if (reference === null || digest(reference.value) !== operation.expectedDigest) {

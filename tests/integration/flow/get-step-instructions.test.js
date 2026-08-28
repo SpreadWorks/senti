@@ -114,7 +114,7 @@ describe("getStepInstructions (loader contract)", () => {
         assert.match(content, /`replace-value`/);
         assert.match(content, /`allowedFieldPaths`/);
         assert.match(content, /ignore(?:s|d) and audit(?:s|ed)/i);
-        assert.match(content, /approval.*owned exclusively by `draft-gate`/i);
+        assert.match(content, /Never set or rewrite approval/i);
       }
     });
 

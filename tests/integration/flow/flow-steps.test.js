@@ -24,6 +24,11 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     );
   });
 
+  it("keeps draft completion as a connector, not an independent Flow step", () => {
+    assert.ok(!FLOW_STEPS.includes("draft-completion-connector"));
+    assert.equal(getFlowNode("draft-completion-connector"), null);
+  });
+
   it("has plan gate ordering and scenario-validity before test-review", () => {
     const expectedPrefix = [
       "branch", "prepare-spec", "draft", "draft-questions-review", "draft-questions-triage", "draft-questions-repair", "draft-refine",

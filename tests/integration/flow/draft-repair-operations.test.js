@@ -131,19 +131,20 @@ describe("command-owned draft repair operations", () => {
       });
       assert.deepEqual(result.draft, source);
       assert.equal(result.audit.acceptedOperations.length, 0);
-      assert.equal(result.audit.discardedOperations[0].reason, "gate-owned approval field");
+      assert.equal(result.audit.discardedOperations[0].reason, "definition-owned completion field");
       assert.deepEqual(result.audit.audit.missingRequiredTargets, [{ key: "Repair goal\u0000goal", path: "approval.approved" }]);
       assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")));
       assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
     }
   });
 
-  it("keeps coverage triage and repair outside draft-gate approval ownership", () => {
+  it("keeps coverage triage and repair outside parent completion ownership", () => {
     const triagePrompt = prompt("draft-coverage-triage");
     const repairPrompt = prompt("draft-coverage-repair");
-    assert.match(triagePrompt, /approval is owned exclusively by `draft-gate`/);
+    assert.match(triagePrompt, /Definition-owned parent completion connector/i);
     assert.match(triagePrompt, /never use `apply` to set approval automatically/);
-    assert.match(repairPrompt, /Never set or rewrite approval: it is owned exclusively by `draft-gate`/);
+    assert.match(repairPrompt, /Never set or rewrite approval/);
+    assert.match(repairPrompt, /Definition-owned parent completion connector/i);
     assert.doesNotMatch(triagePrompt, /"approval\.approved"/);
     assert.doesNotMatch(repairPrompt, /"approval\.approved"/);
   });

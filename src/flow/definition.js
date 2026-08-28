@@ -32,6 +32,11 @@ import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.j
 import { ReviewTransitionFacts } from "./lib/review-transition-facts.js";
 import { DraftTransitionFacts } from "./lib/draft-transition-facts.js";
 import {
+  DraftCompletionFacts,
+  DraftCompletionConnector,
+  createDraftCompletionConnector,
+} from "./lib/draft-completion-connector.js";
+import {
   flowReviewRouteForPhase,
   reviewPhaseForFlowStepId,
 } from "./lib/review-route.js";
@@ -189,6 +194,51 @@ const GATE_DISPOSITIONS = new Set([
   "pass", "retry", "repair", "defer", "external-blocked", "blocked", "recovery", "nonblocking", "advance",
 ]);
 const GATE_TRANSITION_TOKEN = Symbol("definition-gate-transition");
+const DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN = Symbol("definition-draft-coverage-repair-completion");
+export { DraftCompletionConnector } from "./lib/draft-completion-connector.js";
+
+/** Definition is the sole selector; stores and handoffs receive only this plan. */
+export function resolveDraftCompletionConnector(facts) {
+  if (!(facts instanceof DraftCompletionFacts)) {
+    throw new Error("resolveDraftCompletionConnector requires DraftCompletionFacts");
+  }
+  return facts.eligible
+    ? createDraftCompletionConnector(facts)
+    : null;
+}
+
+/** One sealed result for the shared draft-coverage-repair completion boundary. */
+export class DraftCoverageRepairCompletionDecision {
+  constructor(token, { facts, connector }) {
+    if (token !== DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN || !(facts instanceof DraftCompletionFacts)) {
+      throw new Error("Draft coverage repair completion is created only by the definition resolver");
+    }
+    if (connector !== null && !(connector instanceof DraftCompletionConnector)) {
+      throw new Error("Draft coverage repair completion connector is invalid");
+    }
+    this.facts = facts;
+    this.connector = connector;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      facts: this.facts.toJSON(),
+      connector: this.connector?.toJSON() ?? null,
+    };
+  }
+}
+
+/** Definition selects both the eligible connector and the explicit no-op case. */
+export function resolveDraftCoverageRepairCompletion(facts) {
+  if (!(facts instanceof DraftCompletionFacts)) {
+    throw new Error("resolveDraftCoverageRepairCompletion requires DraftCompletionFacts");
+  }
+  return new DraftCoverageRepairCompletionDecision(DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN, {
+    facts,
+    connector: resolveDraftCompletionConnector(facts),
+  });
+}
 
 export class GateTransitionDisposition {
   constructor(token, { operation, reason = null } = {}) {
@@ -2005,6 +2055,22 @@ export class PersistReviewResult {
   }
 }
 
+/**
+ * Definition-selected opportunity to apply the shared coverage-repair to
+ * draft-gate completion boundary. The adapter reads canonical facts, then the
+ * Definition selects one sealed completion decision (including explicit
+ * no-connector cases) for the Store to apply without re-selection.
+ */
+export class CompleteDraftCoverageRepair {
+  constructor() {
+    Object.freeze(this);
+  }
+
+  apply(adapter) {
+    return adapter.completeDraftCoverageRepair(this);
+  }
+}
+
 export class AppendIssueLog {
   constructor({ source }) {
     this.source = requireString(source, "source");
@@ -2335,7 +2401,11 @@ function resolveDraftReviewLifecycle(input) {
   actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
   if (verdict === "PASS") {
     actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
-    actions.push(new SetStepStatus({ step: route.repairStepId, status: "done" }));
+    if (route.retryPhase === "draft-coverage") {
+      actions.push(new CompleteDraftCoverageRepair());
+    } else {
+      actions.push(new SetStepStatus({ step: route.repairStepId, status: "done" }));
+    }
   }
   return actions;
 }
