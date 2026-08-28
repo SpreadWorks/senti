@@ -15,6 +15,11 @@ import {
   sealWorkerArtifactHandoff,
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import {
+  DraftCompletionCatalogBinding,
+  DraftCompletionLineage,
+  StepConnectionReceipt,
+} from "../../../src/flow/lib/draft-completion-connector.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import {
@@ -111,7 +116,7 @@ function emptyQuestionLedgerDraft(goal = "full flow") {
     analysis: { problem: "Exercise the full flow.", proposedApproach: "Publish canonical artifacts.", validation: "Complete every deterministic step." },
     decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
     questionLedger: { revision: 0, publication: "fixture", evidenceDigest: "a".repeat(64), questions: [] },
-    approval: { approved: true },
+    approval: { approved: false },
   };
 }
 
@@ -195,6 +200,24 @@ function writeSourcePayload(stepId, request, executionRoot) {
     fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}\n`);
   }
   fs.writeFileSync(payloadPath(request, "effects.json"), workerArtifactJson(sourceEffect(stepId)));
+}
+
+function completeArtifactHandoff({ coordinator, ctx, stepId, invocationId, logicalName, payload }) {
+  const actionDigest = crypto.createHash("sha256").update(`${invocationId}:action`).digest("hex");
+  const targetDigest = crypto.createHash("sha256").update(`${invocationId}:target`).digest("hex");
+  const request = coordinator.createRequest({
+    ctx,
+    state: ctx.flowManager.load(ctx.specId),
+    invocation: {
+      id: invocationId,
+      target: { digest: targetDigest },
+      action: { digest: actionDigest, nextAction: { step: stepId } },
+    },
+  });
+  assert.ok(request, `${stepId} must create a handoff request`);
+  fs.writeFileSync(request.payloadPath(logicalName), workerArtifactJson(payload));
+  sealWorkerArtifactHandoff({ requestPath: request.requestPath, invocationId });
+  return { request, result: coordinator.reconcile({ ctx, request }) };
 }
 
 function publishAttemptArtifact(flowManager, specId, nodeId, logicalKey, payload, histories) {
@@ -510,6 +533,18 @@ describe("deterministic full Flow worker handoff", () => {
       );
       assert.equal(parentCommands.includes("branch"), false);
       assert.equal(parentCommands.includes("prepare-spec"), false);
+      assert.equal(parentCommands.includes("draft-gate"), true, "approval=false must be promoted through the connector to draft-gate");
+      assert.equal(workerSteps.includes("spec"), true, "the accepted draft-gate must start the spec worker");
+      const completionReceipt = flowManager.activityLedger(specId)
+        .find((activity) => activity.transition.stepConnectionReceipt?.kind === "draft-completion");
+      assert.ok(completionReceipt, "the full flow must persist the connector receipt");
+      assert.equal(completionReceipt.transition.stepConnectionReceipt.targetStepId, "draft-gate");
+      assert.equal(completionReceipt.transition.stepConnectionReceipt.draftOutput.digest.length, 64);
+      const typedReceipt = StepConnectionReceipt.fromJSON(JSON.parse(JSON.stringify(completionReceipt.transition.stepConnectionReceipt)));
+      assert.ok(typedReceipt.lineage instanceof DraftCompletionLineage);
+      for (const slot of ["questionsReview", "questionsRefine", "coverageReview", "coverageTriage", "coverageRepair", "canonicalDraft"]) {
+        assert.ok(typedReceipt.lineage[slot] instanceof DraftCompletionCatalogBinding, `${slot} must bind its canonical publication`);
+      }
       assert.equal(implReviewRuns, 2, "impl-repair must restart the test/review route");
       assert.equal(position, route.length);
       assert.equal(
@@ -544,6 +579,188 @@ describe("deterministic full Flow worker handoff", () => {
       assert.equal(draftRepairAudit.acceptedOperations.length, 0);
       assert.equal(canonicalDraft.goal, "full flow");
       assert.equal(canonicalDraft.analysis.problem, "Exercise the full flow.");
+    } finally {
+      removeTmpDir(temporaryRoot);
+    }
+  });
+
+  it("routes a repaired draft through the coordinator and promotes one authorized operation", () => {
+    const temporaryRoot = createTmpDir("worker-handoff-draft-coverage-repair-");
+    try {
+      const repository = temporaryRoot;
+      const specId = "715f-worker-handoff-draft-coverage-repair";
+      const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false, specId });
+      const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: "run-worker-handoff-draft-coverage-repair" });
+      fixture.create().registerActive().activate("draft");
+
+      const sourceDraft = emptyQuestionLedgerDraft("draft coverage repair");
+      const sourceDraftBytes = Buffer.from(workerArtifactJson(sourceDraft), "utf8");
+      flowManager.confirmCurrentAttempt({
+        specId,
+        artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceDraftBytes }],
+      });
+
+      const coordinator = new WorkerArtifactHandoffCoordinator();
+      const ctx = {
+        root: repository,
+        mainRoot: repository,
+        executionRoot: repository,
+        specId,
+        flowManager,
+      };
+      fixture.activate("draft-refine");
+      completeArtifactHandoff({
+        coordinator,
+        ctx,
+        stepId: "draft-refine",
+        invocationId: "draft-coverage-repair-refine",
+        logicalName: "draft.json",
+        payload: sourceDraft,
+      });
+
+      fixture.activate("draft-coverage-review");
+      const draftArtifact = flowManager.readArtifact({
+        specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-coverage-review",
+      });
+      const reviewFinding = {
+        title: "Clarify validation coverage",
+        target: "analysis.validation",
+        rationale: "The validation statement must describe the repaired coverage.",
+        evidence: "The current validation statement omits the repaired coverage behavior.",
+        classification: "repair_target",
+      };
+      publishAttemptArtifact(flowManager, specId, "draft-coverage-review", "draft.coverage.review", {
+        version: 2,
+        phase: "draft-coverage",
+        sourceDraft: "draft.json",
+        sourceDraftRevision: {
+          version: 1,
+          runId: flowManager.load(specId).runId,
+          specId,
+          sourceStepId: "draft-refine",
+          digest: draftArtifact.descriptor.hash,
+          byteLength: draftArtifact.descriptor.size,
+          finalizedAt: "2026-08-28T00:00:00.000Z",
+        },
+        generatedAt: "2026-08-28T00:00:00.000Z",
+        verdict: "ADVISORY",
+        summary: "One coverage repair is required.",
+        blockingFindings: [],
+        advisoryFindings: [],
+        repairTargets: [reviewFinding],
+      }, new Map());
+      flowManager.updateStepStatus(
+        { stepId: "draft-coverage-review", requestedStatus: "done" },
+        { specId },
+      );
+
+      fixture.activate("draft-coverage-triage");
+      const triage = {
+        version: 1,
+        phase: "draft-coverage-triage",
+        sourceReview: "draft-review-coverage.json",
+        summary: "Apply the coverage repair.",
+        items: [{
+          ...reviewFinding,
+          decision: "apply",
+          allowedFieldPaths: ["analysis.validation"],
+          requiredFieldPaths: ["analysis.validation"],
+        }],
+      };
+      completeArtifactHandoff({
+        coordinator,
+        ctx,
+        stepId: "draft-coverage-triage",
+        invocationId: "draft-coverage-repair-triage",
+        logicalName: "draft-coverage-triage.json",
+        payload: triage,
+      });
+
+      fixture.activate("draft-coverage-repair");
+      const repairHandoff = coordinator.createRequest({
+        ctx,
+        state: flowManager.load(specId),
+        invocation: {
+          id: "draft-coverage-repair-worker",
+          target: { digest: "1".repeat(64) },
+          action: { digest: "2".repeat(64), nextAction: { step: "draft-coverage-repair" } },
+        },
+      });
+      const expectedDigest = repairValueDigest(sourceDraft.analysis.validation);
+      const repairedValue = "Complete the repaired coverage behavior.";
+      fs.writeFileSync(repairHandoff.payloadPath("draft-coverage-repair.json"), workerArtifactJson({
+        version: 1,
+        baseRevision: `sha256:${repairHandoff.inputRevision}`,
+        operations: [
+          {
+            title: reviewFinding.title,
+            target: reviewFinding.target,
+            kind: "replace-value",
+            path: "analysis.validation",
+            expectedDigest,
+            replacement: repairedValue,
+            reason: "The permitted validation field now covers the repaired behavior.",
+          },
+          {
+            title: "Unrelated operation",
+            target: "unrelated finding",
+            kind: "replace-value",
+            path: "analysis.problem",
+            expectedDigest: repairValueDigest(sourceDraft.analysis.problem),
+            replacement: "This unrelated field must remain unchanged.",
+            reason: "This proposal is outside the triage permission.",
+          },
+        ],
+      }));
+      sealWorkerArtifactHandoff({
+        requestPath: repairHandoff.requestPath,
+        invocationId: "draft-coverage-repair-worker",
+      });
+      const repaired = coordinator.reconcile({ ctx, request: repairHandoff });
+
+      assert.equal(repaired.completed, true);
+      const repairAudit = JSON.parse(flowManager.readArtifact({
+        specId,
+        logicalKey: "draft.coverage.repair",
+        consumerNodeId: "draft-gate",
+      }).bytes.toString("utf8"));
+      const completedDraftArtifact = flowManager.readArtifact({
+        specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-gate",
+      });
+      const completedDraft = JSON.parse(completedDraftArtifact.bytes.toString("utf8"));
+      assert.equal(repairAudit.acceptedOperations.length, 1);
+      assert.equal(repairAudit.acceptedOperations[0].kind, "replace-value");
+      assert.equal(repairAudit.acceptedOperations[0].path, "analysis.validation");
+      assert.equal(repairAudit.discardedOperations.length, 1);
+      assert.equal(repairAudit.discardedOperations[0].reason, "unauthorized operation");
+      assert.equal(completedDraft.analysis.validation, repairedValue);
+      assert.equal(completedDraft.approval.approved, true);
+
+      const completionActivity = flowManager.activityLedger(specId).at(-1);
+      const repairDescriptor = flowManager.readArtifact({
+        specId,
+        logicalKey: "draft.coverage.repair",
+        consumerNodeId: "draft-gate",
+      }).descriptor;
+      assert.equal(repairDescriptor.activityId, completedDraftArtifact.descriptor.activityId);
+      assert.equal(completedDraftArtifact.descriptor.activityId, completionActivity.id);
+      assert.equal(completionActivity.transition.stepConnectionReceipt.kind, "draft-completion");
+      assert.equal(completionActivity.transition.stepConnectionReceipt.source, "coverage-repair");
+      assert.equal(completionActivity.transition.stepConnectionReceipt.targetStepId, "draft-gate");
+      assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-gate");
+
+      const activityCount = flowManager.activityLedger(specId).length;
+      const replay = coordinator.reconcile({ ctx, request: repairHandoff });
+      assert.equal(replay.replayed, true);
+      assert.equal(flowManager.activityLedger(specId).length, activityCount);
+      assert.equal(
+        flowManager.activityLedger(specId).filter((activity) => activity.transition.stepConnectionReceipt?.kind === "draft-completion").length,
+        1,
+      );
     } finally {
       removeTmpDir(temporaryRoot);
     }

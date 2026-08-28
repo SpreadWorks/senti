@@ -25,7 +25,10 @@ import {
   resolveLifecyclePlan,
 } from "../definition.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
-import { DraftCompletionFacts } from "./draft-completion-connector.js";
+import {
+  DraftCompletionFacts,
+  readDraftCompletionCatalogDigest,
+} from "./draft-completion-connector.js";
 import { DraftTransitionFacts } from "./draft-transition-facts.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
@@ -3163,8 +3166,17 @@ function draftCoverageRepairCompletion(request, route, repair) {
   if (!draft || !review || !triage) {
     throw new Error("draft coverage repair completion is missing immutable facts");
   }
+  const coveragePassedWithoutRepair = review.document.verdict === "PASS";
+  const questionsReviewArtifactDigest = readDraftCompletionCatalogDigest({
+    flowManager: request.flowManager,
+    specId: request.specId,
+    logicalKey: "draft.questions.review",
+  });
   return resolveDraftCoverageRepairCompletion(new DraftCompletionFacts({
-    source: "coverage-repair",
+    // A repair worker can still be invoked by the static handoff route after a
+    // PASS. Its empty operations are operational evidence only; Definition
+    // must select the same no-repair connector plan as the command path.
+    source: coveragePassedWithoutRepair ? "coverage-pass" : "coverage-repair",
     sourceStepId: route.repairStepId,
     targetStepId: route.passNextStepId,
     draft: repair.draft,
@@ -3172,6 +3184,12 @@ function draftCoverageRepairCompletion(request, route, repair) {
     draftByteLength: draft.byteLength,
     reviewVerdict: review.document.verdict,
     reviewDraftDigest: review.document.sourceDraftRevision?.digest ?? null,
+    reviewArtifactDigest: review.digest,
+    triageArtifactDigest: triage.digest,
+    questionsReviewArtifactDigest,
+    // Static-route invocations after PASS still produce operational triage
+    // and repair audit evidence. It is lineage, not a reason to reclassify
+    // the canonical PASS as a repair decision.
     triage: triage.document,
     repair: repair.audit,
   }));

@@ -214,30 +214,32 @@ export class DraftCoverageRepairCompletionDecision {
       throw new Error("Draft coverage repair completion is created only by the definition resolver");
     }
     if (connector !== null && !(connector instanceof DraftCompletionConnector)) {
-      throw new Error("Draft coverage repair completion connector is invalid");
+      throw new Error("Draft coverage repair completion requires a StepConnector or an explicit no-connector plan");
     }
     this.facts = facts;
     this.connector = connector;
+    this.kind = connector === null ? "draft-coverage-repair-no-connector" : "draft-coverage-repair-completion";
     Object.freeze(this);
   }
 
   toJSON() {
     return {
       facts: this.facts.toJSON(),
+      kind: this.kind,
       connector: this.connector?.toJSON() ?? null,
     };
   }
 }
 
-/** Definition selects both the eligible connector and the explicit no-op case. */
+/** Definition selects both the eligible connector and the explicit no-connector case. */
 export function resolveDraftCoverageRepairCompletion(facts) {
   if (!(facts instanceof DraftCompletionFacts)) {
     throw new Error("resolveDraftCoverageRepairCompletion requires DraftCompletionFacts");
   }
-  return new DraftCoverageRepairCompletionDecision(DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN, {
-    facts,
-    connector: resolveDraftCompletionConnector(facts),
-  });
+  const connector = resolveDraftCompletionConnector(facts);
+  return new DraftCoverageRepairCompletionDecision(
+    DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN, { facts, connector },
+  );
 }
 
 export class GateTransitionDisposition {

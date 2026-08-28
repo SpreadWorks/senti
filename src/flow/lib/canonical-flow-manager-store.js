@@ -86,10 +86,21 @@ import { readTestChainTransitionFactsFromSnapshot, TestChainTransitionSnapshot }
 import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
+import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { CanonicalRequirementDefinitions } from "./canonical-requirement-definitions.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
-import { draftCompletionDocumentDigest, isDraftCompletionConnector } from "./draft-completion-connector.js";
+import {
+  createDraftCompletionReceipt,
+  DraftCompletionAbsentLineage,
+  DraftCompletionCatalogBinding,
+  DraftCompletionDecisionEvidence,
+  DraftCompletionLineage,
+  DraftCompletionRevision,
+  draftCompletionDocumentDigest,
+  isDraftCompletionConnector,
+  StepConnectionReceipt,
+} from "./draft-completion-connector.js";
 import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
@@ -636,6 +647,37 @@ function commandContextAttempt(state, nodeId) {
       ? []
       : [{ operation: "resolve-command-context", resources: requiredResources }],
   }).toJSON();
+}
+
+function draftCompletionLineageBinding({ catalog, activities, logicalKey, expectedDigest = null, expectedByteLength = null } = {}) {
+  const descriptor = catalog.artifacts.find((entry) => entry.logicalKey === logicalKey) ?? null;
+  if (descriptor === null) return new DraftCompletionAbsentLineage({ logicalKey, reason: "not-published" });
+  if (expectedDigest !== null && (descriptor.hash !== expectedDigest || descriptor.size !== expectedByteLength)) {
+    throw new CurrentFlowStateInvariantError(`draft completion lineage is stale for ${logicalKey}`);
+  }
+  const activity = activities.find((entry) => entry.id === descriptor.activityId) ?? null;
+  if (activity?.attemptId === null || activity?.sequence === null) {
+    throw new CurrentFlowStateInvariantError(`draft completion lineage has no producing Attempt for ${logicalKey}`);
+  }
+  return new DraftCompletionCatalogBinding({
+    logicalKey,
+    digest: descriptor.hash,
+    byteLength: descriptor.size,
+    activityId: descriptor.activityId,
+    attempt: { id: activity.attemptId, sequence: activity.sequence },
+    revision: logicalKey === "draft" ? { digest: descriptor.hash, byteLength: descriptor.size } : null,
+  });
+}
+
+function draftCompletionOutputBinding({ logicalKey, bytes, activityId: producingActivityId, attempt } = {}) {
+  return new DraftCompletionCatalogBinding({
+    logicalKey,
+    digest: crypto.createHash("sha256").update(bytes).digest("hex"),
+    byteLength: bytes.length,
+    activityId: producingActivityId,
+    attempt,
+    revision: null,
+  });
 }
 
 function gateRetryAttempt(state) {
@@ -2476,9 +2518,35 @@ export class CanonicalFlowManagerStore {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion requires a Definition-selected decision");
     }
     const { facts, connector } = decision;
-    let state = this.runtime.load(resolved);
+    const state = this.runtime.load(resolved);
     const sourceNode = state.findNode(facts.sourceStepId);
-    if (sourceNode?.status === "done") return state;
+    const repairWrites = artifactWrites.filter((entry) => entry?.logicalKey === "draft.coverage.repair");
+    if (repairWrites.length > 1) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion has duplicate repair audit publications");
+    }
+    const repairWrite = repairWrites[0] ?? null;
+    if (sourceNode?.status === "done") {
+      const completionActivity = this.runtime.activities(resolved).findLast(
+        (activity) => activity.transition.operation === "complete_draft_completion"
+          && activity.transition.stepConnectionReceipt?.sourceStepId === facts.sourceStepId,
+      ) ?? null;
+      if (completionActivity === null) {
+        throw new CurrentFlowStateInvariantError("completed draft coverage repair has no Step connection receipt");
+      }
+      const receipt = StepConnectionReceipt.fromJSON(
+        completionActivity.transition.stepConnectionReceipt.toJSON(),
+      );
+      const replayDraft = connector === null ? structuredClone(draft) : connector.applyTo(draft);
+      if (!receipt.matchesReplay({
+        connector,
+        facts,
+        publishedDraft: replayDraft,
+        repairArtifactBytes: repairWrite?.bytes ?? null,
+      })) {
+        throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale completed plan");
+      }
+      return state;
+    }
     if (state.current !== null && (
       state.current.at(-1) !== facts.sourceStepId
       || state.attempt?.failure !== null
@@ -2496,6 +2564,42 @@ export class CanonicalFlowManagerStore {
     ) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale canonical draft revision");
     }
+    const review = this.readArtifact({
+      specId: resolved, logicalKey: "draft.coverage.review", consumerNodeId: facts.sourceStepId,
+    });
+    if (review.descriptor.hash !== facts.reviewArtifactDigest) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale coverage review artifact");
+    }
+    const reviewDocument = CanonicalCommandAttemptArtifactHistory.fromBytes({
+      logicalKey: "draft.coverage.review", bytes: review.bytes,
+    }).current.payload;
+    if (reviewDocument.verdict !== facts.reviewVerdict
+      || (reviewDocument.sourceDraftRevision?.digest ?? null) !== facts.reviewDraftDigest) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion facts do not match the canonical coverage review");
+    }
+    let triagePublication = null;
+    if (facts.triageArtifactDigest !== null) {
+      triagePublication = this.readArtifact({
+        specId: resolved, logicalKey: "draft.coverage.triage", consumerNodeId: facts.sourceStepId,
+      });
+      if (triagePublication.descriptor.hash !== facts.triageArtifactDigest) {
+        throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale coverage triage artifact");
+      }
+      let triageDocument;
+      try {
+        triageDocument = JSON.parse(triagePublication.bytes.toString("utf8"));
+      } catch (cause) {
+        throw new CurrentFlowStateInvariantError(`draft coverage repair completion triage artifact is invalid: ${cause.message}`);
+      }
+      if (draftCompletionDocumentDigest(triageDocument) !== facts.triageDocumentDigest) {
+        throw new CurrentFlowStateInvariantError("draft coverage repair completion facts do not match the canonical coverage triage");
+      }
+    }
+    const questionsReview = this.runtime.catalog(resolved).artifacts
+      .find((artifact) => artifact.logicalKey === "draft.questions.review") ?? null;
+    if (questionsReview === null || questionsReview.hash !== facts.questionsReviewArtifactDigest) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a stale questions review artifact");
+    }
     if (draftCompletionDocumentDigest(draft) !== facts.draftDocumentDigest) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a changed selected draft");
     }
@@ -2503,6 +2607,7 @@ export class CanonicalFlowManagerStore {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion connector is invalid");
     }
     const publishedDraft = connector === null ? structuredClone(draft) : connector.applyTo(draft);
+    const publishedDraftBytes = Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8");
     const baseline = new CanonicalFlowArtifactBaseline({
       logicalKey: "draft",
       digest: facts.draftDigest,
@@ -2516,31 +2621,124 @@ export class CanonicalFlowManagerStore {
     )) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion baseline conflicts with the selected revision");
     }
-    const baselines = suppliedDraftBaseline === null
-      ? [...suppliedBaselines, baseline]
-      : suppliedBaselines;
+    const factBaselines = [baseline];
+    factBaselines.push(new CanonicalFlowArtifactBaseline({
+      logicalKey: "draft.coverage.review", digest: review.descriptor.hash, byteLength: review.descriptor.size,
+    }));
+    if (facts.triageArtifactDigest !== null) {
+      factBaselines.push(new CanonicalFlowArtifactBaseline({
+        logicalKey: "draft.coverage.triage", digest: triagePublication.descriptor.hash, byteLength: triagePublication.descriptor.size,
+      }));
+    }
+    factBaselines.push(new CanonicalFlowArtifactBaseline({
+      logicalKey: "draft.questions.review", digest: questionsReview.hash, byteLength: questionsReview.size,
+    }));
+    const baselineByPath = new Map();
+    for (const candidate of [...suppliedBaselines, ...factBaselines]) {
+      const previous = baselineByPath.get(candidate.artifact.relativePath) ?? null;
+      if (previous !== null && (previous.digest !== candidate.digest || previous.byteLength !== candidate.byteLength)) {
+        throw new CurrentFlowStateInvariantError("draft coverage repair completion has conflicting fact baselines");
+      }
+      baselineByPath.set(candidate.artifact.relativePath, candidate);
+    }
+    const baselines = [...baselineByPath.values()];
     if (artifactWrites.some((entry) => entry?.logicalKey === "draft")) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion owns the only draft publication");
     }
-    const publishesDraft = connector !== null || facts.source === "coverage-repair";
+    const publishesDraft = true;
     const writes = [
       ...(publishesDraft ? [{
         logicalKey: "draft",
         mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8"),
+        bytes: publishedDraftBytes,
       }] : []),
       ...artifactWrites,
     ];
-    const connectorArtifact = connector === null ? null : {
-      kind: "draft-completion-connector",
-      id: connector.receiptId,
+    const sourceAttempt = state.current?.at(-1) === facts.sourceStepId
+      ? state.attempt.toJSON()
+      : commandContextAttempt(state, facts.sourceStepId);
+    const sourceAttemptIdentity = { id: sourceAttempt.id, sequence: sourceAttempt.sequence };
+    const catalog = this.runtime.catalog(resolved);
+    const activities = this.runtime.activities(resolved).map((activity) => activity.toJSON());
+    const completionActivityId = activityId("draft-coverage-repair-confirmed");
+    if (facts.source === "coverage-repair" && repairWrite === null) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion requires its canonical repair audit publication");
+    }
+    if ((repairWrite === null) !== (facts.repairDocumentDigest === null)) {
+      throw new CurrentFlowStateInvariantError("draft coverage repair completion repair facts do not match its publication plan");
+    }
+    if (repairWrite !== null) {
+      let repairDocument;
+      try {
+        repairDocument = JSON.parse(repairWrite.bytes.toString("utf8"));
+      } catch (cause) {
+        throw new CurrentFlowStateInvariantError(`draft coverage repair completion repair artifact is invalid: ${cause.message}`);
+      }
+      if (facts.repairDocumentDigest === null
+        || draftCompletionDocumentDigest(repairDocument) !== facts.repairDocumentDigest) {
+        throw new CurrentFlowStateInvariantError("draft coverage repair completion facts do not match the canonical repair audit");
+      }
+    }
+    const lineage = new DraftCompletionLineage({
+      questionsReview: draftCompletionLineageBinding({
+        catalog, activities, logicalKey: "draft.questions.review", expectedDigest: facts.questionsReviewArtifactDigest,
+        expectedByteLength: questionsReview.size,
+      }),
+      questionsRefine: draftCompletionLineageBinding({
+        catalog, activities, logicalKey: "draft", expectedDigest: facts.draftDigest, expectedByteLength: facts.draftByteLength,
+      }),
+      coverageReview: draftCompletionLineageBinding({
+        catalog, activities, logicalKey: "draft.coverage.review", expectedDigest: facts.reviewArtifactDigest,
+        expectedByteLength: review.descriptor.size,
+      }),
+      coverageTriage: facts.triageArtifactDigest === null
+        ? new DraftCompletionAbsentLineage({
+          logicalKey: "draft.coverage.triage",
+          reason: facts.source === "coverage-pass" ? "coverage-pass" : "missing-selected-lineage",
+        })
+        : draftCompletionLineageBinding({
+          catalog, activities, logicalKey: "draft.coverage.triage", expectedDigest: facts.triageArtifactDigest,
+          expectedByteLength: catalog.artifacts.find((entry) => entry.logicalKey === "draft.coverage.triage")?.size,
+        }),
+      coverageRepair: repairWrite === null
+        ? new DraftCompletionAbsentLineage({ logicalKey: "draft.coverage.repair", reason: "coverage-pass" })
+        : draftCompletionOutputBinding({
+          logicalKey: "draft.coverage.repair",
+          bytes: repairWrite.bytes,
+          activityId: completionActivityId,
+          attempt: sourceAttemptIdentity,
+        }),
+      canonicalDraft: draftCompletionLineageBinding({
+        catalog, activities, logicalKey: "draft", expectedDigest: facts.draftDigest, expectedByteLength: facts.draftByteLength,
+      }),
+    });
+    const receipt = createDraftCompletionReceipt({
+      connector,
+      facts,
+      sourceAttempt: sourceAttemptIdentity,
+      draftInput: { digest: facts.draftDigest, byteLength: facts.draftByteLength },
+      publishedDraft,
+      lineage,
+      decisionEvidence: new DraftCompletionDecisionEvidence({
+        reviewVerdict: facts.reviewVerdict,
+        reviewDraftRevision: facts.reviewDraftDigest === null ? null : { digest: facts.reviewDraftDigest, byteLength: facts.draftByteLength },
+        source: facts.source,
+        eligibilityIssues: [...facts.eligibilityIssues],
+        triageArtifactDigest: facts.triageArtifactDigest,
+        repairArtifactDigest: repairWrite === null ? null : crypto.createHash("sha256").update(repairWrite.bytes).digest("hex"),
+        discardedOperationCount: facts.repair?.discardedOperations?.length ?? 0,
+      }),
+    });
+    const connectorArtifact = {
+      kind: connector === null ? "draft-completion-no-connector" : "draft-completion-connector",
+      id: receipt.id,
     };
     const baseConfirmation = result ?? {
       outcome: "passed",
       summary: "Draft coverage repair completion confirmed the canonical draft.",
       confirmedAt: new Date().toISOString(),
     };
-    const confirmation = connectorArtifact === null ? baseConfirmation : {
+    const confirmation = {
       ...baseConfirmation,
       artifactRefs: [...(baseConfirmation.artifactRefs ?? []), connectorArtifact],
     };
@@ -2550,26 +2748,19 @@ export class CanonicalFlowManagerStore {
       repairs: [],
       artifacts: [],
     };
-    const confirmationReferences = connectorArtifact === null ? baseReferences : {
+    const confirmationReferences = {
       ...baseReferences,
       artifacts: [...(baseReferences.artifacts ?? []), {
-        id: connector.receiptId,
+        id: receipt.id,
         label: "draft completion connector",
       }],
     };
-    if (state.current === null) {
-      this.#beginExecutableNode(state, resolved, facts.sourceStepId);
-      state = this.runtime.load(resolved);
-    }
-    if (state.current?.at(-1) !== facts.sourceStepId || state.attempt?.failure !== null) {
-      throw new CurrentFlowStateInvariantError("draft coverage repair completion does not own the active Attempt");
-    }
-    return this.runtime.confirmAttempt({
+    return this.runtime.completeDraftCompletion({
       specId: resolved,
-      activityId: activityId("draft-coverage-repair-confirmed"),
-      status: "done",
+      activityId: completionActivityId,
       result: confirmation,
       references: confirmationReferences,
+      receipt,
       artifactWrites: writes,
       artifactRemovals,
       artifactBaselines: baselines,

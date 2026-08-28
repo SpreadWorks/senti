@@ -26,6 +26,7 @@ import {
 } from "./plan-gate-repair.js";
 import { DefinitionFailureOwnership } from "./definition-failure-ownership.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
+import { StepConnectionReceipt as DraftStepConnectionReceipt } from "./draft-completion-connector.js";
 
 /**
  * The production Flow Version 1 record.  This is deliberately independent
@@ -100,6 +101,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "defer_failed_review",
   "defer_failed_gate",
 ]);
+const DRAFT_COMPLETION_TRANSITION_OPERATION = "complete_draft_completion";
 const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
@@ -969,7 +971,7 @@ function stableJsonValue(value) {
   return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
-function approvalTaskDigest(value) {
+function canonicalJsonDigest(value) {
   return crypto.createHash("sha256").update(JSON.stringify(stableJsonValue(value))).digest("hex");
 }
 
@@ -993,7 +995,7 @@ class ApprovalTaskSourceBinding {
     );
     this.taskKey = requireString(taskKey, "approval Task source taskKey");
     this.taskDocument = canonicalApprovalTaskDocument(taskDocument);
-    if (taskDigest !== approvalTaskDigest(this.taskDocument)) {
+    if (taskDigest !== canonicalJsonDigest(this.taskDocument)) {
       throw new CurrentFlowStateInvariantError("approval Task source digest does not match its Task document");
     }
     this.taskDigest = taskDigest;
@@ -1032,7 +1034,7 @@ export class ApprovalTaskAdmission {
     this.activitySource = new ApprovalTaskSourceBinding({
       specRecordHash: this.sourceDescriptor.hash,
       specRecordActivityId: this.sourceDescriptor.activityId,
-      taskDigest: approvalTaskDigest(this.canonicalTask),
+      taskDigest: canonicalJsonDigest(this.canonicalTask),
       taskKey: this.taskKey,
       taskDocument: this.canonicalTask,
     });
@@ -1737,6 +1739,48 @@ export class NodeResult {
       artifactRefs: this.artifactRefs.map((ref) => ref.toJSON()),
     };
   }
+}
+
+/** Schema-bound Activity receipt for the one Definition-owned draft connector. */
+export class ActivityStepConnectionReceipt {
+  constructor(value) {
+    requireExactFields(value, new Set([
+      "kind", "id", "source", "sourceStepId", "targetStepId", "sourceAttempt",
+      "draftInput", "draftOutput", "lineage", "decisionEvidence",
+    ]), "activity.stepConnectionReceipt");
+    for (const field of ["kind", "id", "source", "sourceStepId", "targetStepId"]) requireString(value[field], `activity Step connection receipt.${field}`);
+    if (!/^[a-f0-9]{64}$/.test(value.id)) {
+      throw new CurrentFlowStateInvariantError("activity Step connection receipt.id must be SHA-256");
+    }
+    requireExactFields(value.sourceAttempt, new Set(["id", "sequence"]), "activity Step connection receipt.sourceAttempt");
+    for (const [field, revision] of [["draftInput", value.draftInput], ["draftOutput", value.draftOutput]]) {
+      requireExactFields(revision, new Set(["digest", "byteLength"]), `activity Step connection receipt.${field}`);
+      if (!/^[a-f0-9]{64}$/.test(revision.digest ?? "")) {
+        throw new CurrentFlowStateInvariantError(`activity Step connection receipt.${field}.digest must be SHA-256`);
+      }
+      requirePositiveInteger(revision.byteLength, `activity Step connection receipt.${field}.byteLength`, { allowZero: true });
+    }
+    if (!isPlainObject(value.lineage) || !isPlainObject(value.decisionEvidence)) {
+      throw new CurrentFlowStateInvariantError("activity Step connection receipt evidence is invalid");
+    }
+    const { id, ...content } = value;
+    if (id !== canonicalJsonDigest(content)) {
+      throw new CurrentFlowStateInvariantError("activity Step connection receipt content digest is invalid");
+    }
+    try {
+      DraftStepConnectionReceipt.fromJSON(value);
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`activity Step connection receipt schema is invalid: ${cause.message}`);
+    }
+    this.kind = value.kind; this.id = value.id; this.source = value.source; this.sourceStepId = value.sourceStepId; this.targetStepId = value.targetStepId;
+    this.sourceAttempt = Object.freeze({ id: requireString(value.sourceAttempt.id, "activity Step connection receipt.sourceAttempt.id"), sequence: requirePositiveInteger(value.sourceAttempt.sequence, "activity Step connection receipt.sourceAttempt.sequence") });
+    this.draftInput = immutableSnapshotValue(structuredClone(value.draftInput));
+    this.draftOutput = immutableSnapshotValue(structuredClone(value.draftOutput));
+    this.lineage = immutableSnapshotValue(structuredClone(value.lineage));
+    this.decisionEvidence = immutableSnapshotValue(structuredClone(value.decisionEvidence));
+    Object.freeze(this);
+  }
+  toJSON() { return { kind: this.kind, id: this.id, source: this.source, sourceStepId: this.sourceStepId, targetStepId: this.targetStepId, sourceAttempt: { ...this.sourceAttempt }, draftInput: structuredClone(this.draftInput), draftOutput: structuredClone(this.draftOutput), lineage: structuredClone(this.lineage), decisionEvidence: structuredClone(this.decisionEvidence) }; }
 }
 
 export class AttemptConsumption {
@@ -4017,6 +4061,52 @@ export class CurrentFlowState {
     return this.confirmCurrentAttempt({ result, status: "done" });
   }
 
+  /** Complete the source and atomically expose the Definition-selected successor. */
+  completeDraftCompletion({ result, receipt }) {
+    this.#assertExecutionActive();
+    const connection = receipt instanceof ActivityStepConnectionReceipt ? receipt : new ActivityStepConnectionReceipt(receipt);
+    if (connection.sourceStepId !== "draft-coverage-repair" || connection.targetStepId !== "draft-gate") {
+      throw new CurrentFlowStateInvariantError("draft completion receipt has an invalid connector route");
+    }
+    const completed = result instanceof NodeResult ? result : new NodeResult(result);
+    const source = this.findNode(connection.sourceStepId);
+    const activeSource = this.current?.at(-1) === connection.sourceStepId;
+    if (activeSource) {
+      if (this.attempt === null || this.attempt.failure !== null
+        || this.attempt.id !== connection.sourceAttempt.id || this.attempt.sequence !== connection.sourceAttempt.sequence) {
+        throw new CurrentFlowStateInvariantError("draft completion receipt source Attempt is stale");
+      }
+    } else {
+      const next = this.nextAction();
+      if (this.current !== null || source.status !== "pending" || next?.operation !== "start" || next.nodeId !== source.id
+        || connection.sourceAttempt.sequence !== source.attemptSequence + 1) {
+        throw new CurrentFlowStateInvariantError("draft completion has no definition-authorized source Attempt");
+      }
+      const requiredResources = this.definition.contractForNode(source).resourceContract.required;
+      const sourceAttempt = new CurrentAttempt({
+        id: connection.sourceAttempt.id, nodeId: source.id, sequence: connection.sourceAttempt.sequence,
+        startedAt: completed.confirmedAt, consumption: { semantic: 0, tooling: 0 },
+        failure: null, blocker: null, incomplete: [],
+        operationClaims: requiredResources.length === 0 ? [] : [{ operation: "resolve-command-context", resources: requiredResources }],
+      });
+      return this.startAttempt({
+        path: this.definition.pathFor(this.root, source.id), attempt: sourceAttempt,
+      }).completeDraftCompletion({ result: completed, receipt: connection });
+    }
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, source.id, transitionNode(source, "done", this.definition, {
+        result: completed, attemptSequence: connection.sourceAttempt.sequence,
+      })),
+      this.definition,
+    );
+    const settled = this.#replaceRoot(root, null, null);
+    const next = settled.nextAction();
+    if (next?.operation !== "start" || next.nodeId !== connection.targetStepId) {
+      throw new CurrentFlowStateInvariantError("draft completion target is no longer the definition-selected successor");
+    }
+    return settled;
+  }
+
   /**
    * Complete final-regression from an explicit, evidence-bound operator
    * acceptance.  The accepted result is a new Attempt episode so the failed
@@ -5318,23 +5408,27 @@ export class ActivityGateTaskLifecycle {
 
 const ACTIVITY_TRANSITION_FIELDS = new Set([
   "operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval",
-  "nonblocking", "finalizeSteps", "gateTaskLifecycle",
+  "nonblocking", "finalizeSteps", "gateTaskLifecycle", "stepConnectionReceipt",
 ]);
 
 export class ActivityTransition {
   constructor(value) {
-    const normalized = isPlainObject(value) && (!Object.hasOwn(value, "finalizeSteps") || !Object.hasOwn(value, "gateTaskLifecycle"))
-      ? { ...value, finalizeSteps: value.finalizeSteps ?? null, gateTaskLifecycle: value.gateTaskLifecycle ?? null }
+    const normalized = isPlainObject(value) && (!Object.hasOwn(value, "finalizeSteps") || !Object.hasOwn(value, "gateTaskLifecycle") || !Object.hasOwn(value, "stepConnectionReceipt"))
+      ? { ...value, finalizeSteps: value.finalizeSteps ?? null, gateTaskLifecycle: value.gateTaskLifecycle ?? null, stepConnectionReceipt: value.stepConnectionReceipt ?? null }
       : value;
     requireExactFields(normalized, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
-    const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle, stepConnectionReceipt } = normalized;
+    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
     this.nodeId = requireString(nodeId, "activity.transition.nodeId");
     this.task = task == null ? null : task instanceof ActivityTask ? task : new ActivityTask(task);
     this.attempt = attempt == null ? null : attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    this.stepConnectionReceipt = stepConnectionReceipt === null ? null : stepConnectionReceipt instanceof ActivityStepConnectionReceipt ? stepConnectionReceipt : new ActivityStepConnectionReceipt(stepConnectionReceipt);
+    if ((operation === DRAFT_COMPLETION_TRANSITION_OPERATION) !== (this.stepConnectionReceipt !== null)) {
+      throw new CurrentFlowStateInvariantError("only draft completion transition carries a Step connection receipt");
+    }
     const taskRequired = ["add_task", "add_approval_task"].includes(operation);
     if (taskRequired !== (this.task !== null)) {
       throw new CurrentFlowStateInvariantError(this.task === null
@@ -5451,7 +5545,7 @@ export class ActivityTransition {
     if (operation === "complete_acceptance_decision_noop" && status !== "done") {
       throw new CurrentFlowStateInvariantError("acceptance decision no-op transition requires done status");
     }
-    if (["confirm_attempt", "complete_acceptance_decision_noop"].includes(operation)) {
+    if (["confirm_attempt", "complete_acceptance_decision_noop", DRAFT_COMPLETION_TRANSITION_OPERATION].includes(operation)) {
       if (!["done", "skipped"].includes(status)) {
         throw new CurrentFlowStateInvariantError("confirm_attempt transition requires done or skipped status");
       }
@@ -5728,6 +5822,14 @@ export class ActivityTransition {
       if (activity.result == null) throw new CurrentFlowStateInvariantError("record_failure Activity requires a result");
       return state.recordCurrentFailure({ result: activity.result });
     }
+    if (this.operation === DRAFT_COMPLETION_TRANSITION_OPERATION) {
+      if (activity.result == null) throw new CurrentFlowStateInvariantError("draft completion Activity requires a result");
+      if (activity.attemptId !== this.stepConnectionReceipt.sourceAttempt.id
+        || activity.sequence !== this.stepConnectionReceipt.sourceAttempt.sequence) {
+        throw new CurrentFlowStateInvariantError("draft completion Activity must bind its source Attempt receipt");
+      }
+      return state.completeDraftCompletion({ result: activity.result, receipt: this.stepConnectionReceipt });
+    }
     if (state.current == null || state.current.at(-1) !== targetId) {
       throw new CurrentFlowStateInvariantError("confirm_attempt Activity must target the active current leaf");
     }
@@ -5761,6 +5863,7 @@ export class ActivityTransition {
       nonblocking: this.nonblocking?.toJSON() ?? null,
       finalizeSteps: this.finalizeSteps,
       gateTaskLifecycle: this.gateTaskLifecycle?.toJSON() ?? null,
+      stepConnectionReceipt: this.stepConnectionReceipt?.toJSON() ?? null,
     };
   }
 }
@@ -5798,6 +5901,7 @@ export class FlowActivity {
       fail_attempt: "attempt_failed",
       record_failure: "failure_recorded",
       confirm_attempt: "result_confirmed",
+      [DRAFT_COMPLETION_TRANSITION_OPERATION]: "result_confirmed",
       complete_acceptance_decision_noop: "result_confirmed",
       rewind: "recovery",
       rewind_test_evidence: "recovery",
@@ -5853,10 +5957,10 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure", "repair_scenario_validity"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
@@ -6084,6 +6188,22 @@ function assertJournalAttemptIdentities(entries) {
   };
   const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
   for (const entry of entries) {
+    if (entry.transition.operation === DRAFT_COMPLETION_TRANSITION_OPERATION) {
+      const receipt = entry.transition.stepConnectionReceipt;
+      for (const [attempt, nodeId] of [[receipt.sourceAttempt, receipt.sourceStepId]]) {
+        const known = identities.get(attempt.id);
+        if (known !== undefined) {
+          registerIdentity(attempt.id, attempt.sequence, nodeId);
+          continue;
+        }
+        const previousSequence = lastSequenceByNode.get(nodeId);
+        if (previousSequence !== undefined && attempt.sequence !== previousSequence + 1) {
+          throw new CurrentFlowStateInvariantError(`Attempt sequence must be contiguous for node ${nodeId}`);
+        }
+        registerIdentity(attempt.id, attempt.sequence, nodeId);
+        lastSequenceByNode.set(nodeId, attempt.sequence);
+      }
+    }
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);
       if (

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -10,13 +11,35 @@ import {
   resolveLifecyclePlan,
 } from "../../../src/flow/definition.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { DraftCompletionFacts } from "../../../src/flow/lib/draft-completion-connector.js";
+import {
+  DraftCompletionAbsentLineage,
+  DraftCompletionCatalogBinding,
+  DraftCompletionFacts,
+  StepConnectionReceipt,
+} from "../../../src/flow/lib/draft-completion-connector.js";
+import RunGateCommand, { checkDraftJson } from "../../../src/flow/lib/run-gate.js";
+import { ActivityStepConnectionReceipt } from "../../../src/flow/lib/current-flow-state.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { CanonicalFlowFixture } from "../../support/infrastructure/flow-setup.js";
+import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js";
 
 function digest(value) {
   return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function receiptId(value) {
+  const { id: _id, ...content } = value;
+  return crypto.createHash("sha256").update(JSON.stringify(stableValue(content))).digest("hex");
 }
 
 function draft({ approval = false, questions = [] } = {}) {
@@ -69,6 +92,10 @@ function facts({
   repair = null,
   canonicalDigest = null,
   canonicalByteLength = null,
+  reviewDraftDigest = null,
+  reviewArtifactDigest = "1".repeat(64),
+  triageArtifactDigest = undefined,
+  questionsReviewArtifactDigest = "2".repeat(64),
 } = {}) {
   const bytes = Buffer.from(`${JSON.stringify(draftDocument, null, 2)}\n`, "utf8");
   const sourceDigest = canonicalDigest ?? crypto.createHash("sha256").update(bytes).digest("hex");
@@ -80,9 +107,81 @@ function facts({
     draftDigest: sourceDigest,
     draftByteLength: canonicalByteLength ?? bytes.length,
     reviewVerdict,
-    reviewDraftDigest: sourceDigest,
+    reviewDraftDigest: reviewDraftDigest ?? sourceDigest,
+    reviewArtifactDigest,
+    triageArtifactDigest: triageArtifactDigest === undefined
+      ? (triage === null ? null : "3".repeat(64))
+      : triageArtifactDigest,
+    questionsReviewArtifactDigest,
     triage,
     repair,
+  });
+}
+
+function completionEvidence(flowManager, specId, { includeTriage = false } = {}) {
+  const catalog = flowManager.artifactCatalog(specId).toJSON();
+  const artifact = (logicalKey) => catalog.artifacts.find((entry) => entry.logicalKey === logicalKey) ?? null;
+  const review = artifact("draft.coverage.review");
+  const questionsReview = artifact("draft.questions.review");
+  const triage = artifact("draft.coverage.triage");
+  assert.ok(review, "coverage review fixture evidence is required");
+  assert.ok(questionsReview, "questions review fixture evidence is required");
+  if (includeTriage) assert.ok(triage, "coverage triage fixture evidence is required");
+  const reviewHistory = JSON.parse(flowManager.readArtifact({
+    specId, logicalKey: "draft.coverage.review", consumerNodeId: "draft-coverage-repair",
+  }).bytes.toString("utf8"));
+  const reviewDocument = reviewHistory.attempts.at(-1).artifact.payload;
+  return {
+    reviewVerdict: reviewDocument.verdict,
+    reviewDraftDigest: reviewDocument.sourceDraftRevision?.digest ?? null,
+    reviewArtifactDigest: review.hash,
+    questionsReviewArtifactDigest: questionsReview.hash,
+    triageArtifactDigest: includeTriage ? triage.hash : null,
+    triage: includeTriage
+      ? JSON.parse(flowManager.readArtifact({
+        specId, logicalKey: "draft.coverage.triage", consumerNodeId: "draft-coverage-repair",
+      }).bytes.toString("utf8"))
+      : null,
+  };
+}
+
+function publishCoverageReviewEvidence(flowManager, specId, draftBytes, verdict = "PASS") {
+  const payload = {
+    version: 2,
+    phase: "draft-coverage",
+    sourceDraft: "draft.json",
+    sourceDraftRevision: {
+      version: 1,
+      runId: flowManager.load(specId).runId,
+      specId,
+      sourceStepId: "draft-refine",
+      digest: crypto.createHash("sha256").update(draftBytes).digest("hex"),
+      byteLength: draftBytes.length,
+      finalizedAt: "2026-08-28T00:00:00.000Z",
+    },
+    generatedAt: "2026-08-28T00:00:00.000Z",
+    verdict,
+    summary: verdict === "PASS" ? "No findings." : "Repair is required.",
+    blockingFindings: [],
+    advisoryFindings: [],
+    repairTargets: [],
+  };
+  const history = { attempts: [{ attempt: 1, artifact: { logicalKey: "draft.coverage.review", payload } }] };
+  flowManager.confirmCurrentAttempt({
+    specId,
+    artifactWrites: [{
+      logicalKey: "draft.coverage.review",
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(history, null, 2)}\n`, "utf8"),
+    }],
+  });
+}
+
+function persistedSnapshot(flowManager, specId) {
+  return JSON.stringify({
+    state: flowManager.loadReadOnly(specId),
+    activities: flowManager.activityLedger(specId),
+    catalog: flowManager.artifactCatalog(specId).toJSON(),
   });
 }
 
@@ -146,6 +245,7 @@ describe("DraftCompletionConnector", () => {
     const cases = [
       facts({ draftDocument: draft({ questions: [unresolved] }) }),
       facts({ reviewVerdict: "REJECTED" }),
+      facts({ triage: { items: [{ decision: "requires_user_decision" }] }, repair: repairAudit() }),
       facts({ source: "coverage-repair", triage: { items: [{ decision: "requires_user_decision" }] }, repair: repairAudit() }),
       facts({ source: "coverage-repair", triage: { items: [{ decision: "apply" }] }, repair: repairAudit({ audit: { envelopeErrors: ["invalid"], baseRevisionMatches: true, missingRequiredTargets: [], lifecycleIssues: [] } }) }),
       facts({ source: "coverage-repair", triage: { items: [{ decision: "apply" }] }, repair: repairAudit({ audit: { envelopeErrors: [], baseRevisionMatches: false, missingRequiredTargets: [], lifecycleIssues: [] } }) }),
@@ -154,7 +254,14 @@ describe("DraftCompletionConnector", () => {
 
     for (const candidate of cases) {
       assert.equal(resolveDraftCompletionConnector(candidate), null);
+      assert.equal(resolveDraftCoverageRepairCompletion(candidate).toJSON().connector, null);
     }
+    assert.throws(() => facts({ reviewArtifactDigest: null }), /review artifact digest/i);
+    assert.throws(() => facts({ questionsReviewArtifactDigest: null }), /questions review artifact digest/i);
+    assert.throws(() => facts({
+      source: "coverage-repair", triageArtifactDigest: null, reviewVerdict: "REJECTED",
+      triage: { items: [{ decision: "apply" }] }, repair: repairAudit(),
+    }), /triage document and publication digest/i);
   });
 
   it("binds connector application to the exact canonical draft revision", () => {
@@ -184,8 +291,14 @@ describe("DraftCompletionConnector", () => {
         artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }],
       });
       flowManager.confirmCurrentAttempt({ specId });
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
       fixture.activate("draft-coverage-repair");
-      const selected = resolveDraftCoverageRepairCompletion(facts({ draftDocument: source }));
+      const evidence = completionEvidence(flowManager, specId);
+      const selected = resolveDraftCoverageRepairCompletion(facts({
+        draftDocument: source,
+        ...evidence,
+      }));
       const before = flowManager.activityLedger(specId).length;
       flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: selected, draft: source });
 
@@ -196,14 +309,40 @@ describe("DraftCompletionConnector", () => {
       });
       assert.equal(JSON.parse(published.bytes.toString("utf8")).approval.approved, true);
       assert.equal(findStepById(state.steps, "draft-coverage-repair").status, "done");
-      assert.equal(state.currentNodeId, null);
+      assert.equal(state.currentNodeId, null, "the connector promotes the target but does not pre-claim its Attempt");
+      const canonical = flowManager.canonicalState(specId);
+      assert.equal(canonical.attempt, null, "beginNextAction remains the only normal target Attempt owner");
+      assert.equal(flowManager.canonicalState(specId).nextAction().operation, "start");
       assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-gate");
       assert.equal(ledger.length, before + 1);
       assert.equal(published.descriptor.activityId, ledger.at(-1).id);
       assert.equal(ledger.at(-1).result.artifactRefs.at(-1).kind, "draft-completion-connector");
+      assert.equal(ledger.at(-1).transition.stepConnectionReceipt.kind, "draft-completion");
+      assert.equal(ledger.at(-1).transition.stepConnectionReceipt.targetStepId, "draft-gate");
+      assert.equal(ledger.at(-1).transition.stepConnectionReceipt.lineage.coverageReview.logicalKey, "draft.coverage.review");
+
+      flowManager.beginNextAction(specId);
+      assert.equal(flowManager.canonicalState(specId).current.at(-1), "draft-gate");
+      const afterTargetClaim = flowManager.activityLedger(specId).length;
 
       flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: selected, draft: source });
-      assert.equal(flowManager.activityLedger(specId).length, ledger.length);
+      assert.equal(flowManager.activityLedger(specId).length, afterTargetClaim, "replay must not duplicate the connector Activity or target claim");
+
+      const staleDraft = { ...source, goal: "A stale alternative completion." };
+      const staleDecision = resolveDraftCoverageRepairCompletion(facts({
+        draftDocument: staleDraft,
+        canonicalDigest: selected.facts.draftDigest,
+        canonicalByteLength: selected.facts.draftByteLength,
+        ...evidence,
+      }));
+      const beforeStaleReplay = persistedSnapshot(flowManager, specId);
+      assert.throws(
+        () => flowManager.confirmDraftCoverageRepairCompletion({
+          specId, decision: staleDecision, draft: staleDraft,
+        }),
+        /stale completed plan/i,
+      );
+      assert.equal(persistedSnapshot(flowManager, specId), beforeStaleReplay);
     } finally {
       removeTmpDir(repository);
     }
@@ -224,6 +363,24 @@ describe("DraftCompletionConnector", () => {
         artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }],
       });
       flowManager.confirmCurrentAttempt({ specId });
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, sourceBytes, "REJECTED");
+      const triageDocument = {
+        version: 1,
+        phase: "draft-coverage-triage",
+        sourceReview: "draft-review-coverage.json",
+        summary: "Apply the selected repair.",
+        items: [{ decision: "apply" }],
+      };
+      fixture.activate("draft-coverage-triage");
+      flowManager.confirmCurrentAttempt({
+        specId,
+        artifactWrites: [{
+          logicalKey: "draft.coverage.triage",
+          mediaType: "application/json",
+          bytes: Buffer.from(`${JSON.stringify(triageDocument, null, 2)}\n`, "utf8"),
+        }],
+      });
       fixture.activate("draft-coverage-repair");
       const repaired = { ...source, goal: "Repaired canonical coverage goal." };
       const audit = repairAudit({
@@ -233,10 +390,11 @@ describe("DraftCompletionConnector", () => {
       const selected = resolveDraftCoverageRepairCompletion(facts({
         source: "coverage-repair",
         draftDocument: repaired,
+        ...completionEvidence(flowManager, specId, { includeTriage: true }),
         canonicalDigest: crypto.createHash("sha256").update(sourceBytes).digest("hex"),
         canonicalByteLength: sourceBytes.length,
         reviewVerdict: "REJECTED",
-        triage: { items: [{ decision: "apply" }] },
+        triage: triageDocument,
         repair: audit,
       }));
       flowManager.confirmDraftCoverageRepairCompletion({
@@ -271,7 +429,7 @@ describe("DraftCompletionConnector", () => {
     }
   });
 
-  it("rejects a stale selected canonical revision without completing repair", () => {
+  it("rejects a stale draft/refine revision without any completion side effect", () => {
     const repository = createTmpDir("draft-completion-stale-");
     const specId = "715f-draft-completion-stale";
     const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
@@ -285,20 +443,247 @@ describe("DraftCompletionConnector", () => {
         artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(source, null, 2)}\n`) }],
       });
       flowManager.confirmCurrentAttempt({ specId });
-      fixture.settleBefore("draft-coverage-repair");
-      const stale = resolveDraftCoverageRepairCompletion(facts({
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8"));
+      fixture.activate("draft-coverage-repair");
+      const selected = resolveDraftCoverageRepairCompletion(facts({
         draftDocument: source,
-        canonicalDigest: "f".repeat(64),
+        ...completionEvidence(flowManager, specId),
       }));
-      const before = flowManager.activityLedger(specId).length;
+      const changed = { ...source, goal: "A changed draft/refine canonical revision." };
+      flowManager.publishArtifacts({
+        specId,
+        nodeId: "draft-coverage-repair",
+        artifactWrites: [{
+          logicalKey: "draft", mediaType: "application/json",
+          bytes: Buffer.from(`${JSON.stringify(changed, null, 2)}\n`, "utf8"),
+        }],
+      });
+      const before = persistedSnapshot(flowManager, specId);
 
       assert.throws(
-        () => flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: stale, draft: source }),
+        () => flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: selected, draft: source }),
         /stale canonical draft revision/i,
       );
-      assert.equal(flowManager.activityLedger(specId).length, before);
-      assert.equal(findStepById(flowManager.loadReadOnly(specId).steps, "draft-coverage-repair").status, "pending");
-      assert.equal(flowManager.loadReadOnly(specId).currentNodeId, null);
+      assert.equal(persistedSnapshot(flowManager, specId), before);
+    } finally {
+      removeTmpDir(repository);
+    }
+  });
+
+  it("rejects a selected source Attempt that became stale without publishing completion", () => {
+    const repository = createTmpDir("draft-completion-stale-attempt-");
+    const specId = "715f-draft-completion-stale-attempt";
+    const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    try {
+      const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: "715f-stale-attempt-run" });
+      fixture.create().registerActive().activate("draft");
+      const source = draft();
+      const sourceBytes = Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8");
+      flowManager.publishArtifacts({ specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }] });
+      flowManager.confirmCurrentAttempt({ specId });
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
+      fixture.activate("draft-coverage-repair");
+      const selected = resolveDraftCoverageRepairCompletion(facts({
+        draftDocument: source,
+        ...completionEvidence(flowManager, specId),
+      }));
+      flowManager.failCurrentAttempt({
+        specId,
+        failure: { category: "tooling", code: "TEST_STALE_SOURCE", message: "The selected source Attempt was superseded.", retryable: true, retryKind: "tooling" },
+      });
+      const before = persistedSnapshot(flowManager, specId);
+      assert.throws(
+        () => flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: selected, draft: source }),
+        /does not own the active Attempt/i,
+      );
+      assert.equal(persistedSnapshot(flowManager, specId), before);
+    } finally {
+      removeTmpDir(repository);
+    }
+  });
+
+  it("rejects stale selected coverage, triage, and questions lineage without completion side effects", () => {
+    for (const [logicalKey, message] of [
+      ["draft.coverage.review", /stale coverage review artifact/i],
+      ["draft.coverage.triage", /stale coverage triage artifact/i],
+      ["draft.questions.review", /stale questions review artifact/i],
+    ]) {
+      const repository = createTmpDir(`draft-completion-stale-${logicalKey.replaceAll(".", "-")}-`);
+      const specId = `715f-stale-${logicalKey.replaceAll(".", "-")}`;
+      const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      try {
+        const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: `715f-${logicalKey}-run` });
+        fixture.create().registerActive().activate("draft");
+        const source = draft();
+        const sourceBytes = Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8");
+        flowManager.publishArtifacts({ specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }] });
+        flowManager.confirmCurrentAttempt({ specId });
+        fixture.activate("draft-coverage-review");
+        publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
+        fixture.activate("draft-coverage-triage");
+        flowManager.confirmCurrentAttempt({
+          specId,
+          artifactWrites: [{
+            logicalKey: "draft.coverage.triage",
+            mediaType: "application/json",
+            bytes: Buffer.from(`${JSON.stringify({
+              version: 1,
+              phase: "draft-coverage-triage",
+              sourceReview: "draft-review-coverage.json",
+              summary: "No repair is required for this stale-plan fixture.",
+              items: [],
+            }, null, 2)}\n`, "utf8"),
+          }],
+        });
+        fixture.activate("draft-coverage-repair");
+        const canonicalDraft = flowManager.readArtifact({ specId, logicalKey: "draft", consumerNodeId: "draft-coverage-repair" });
+        const coverageReview = flowManager.readArtifact({ specId, logicalKey: "draft.coverage.review", consumerNodeId: "draft-coverage-repair" });
+        const coverageTriage = flowManager.readArtifact({ specId, logicalKey: "draft.coverage.triage", consumerNodeId: "draft-coverage-repair" });
+        const questionsReview = flowManager.readCanonicalTransitionView({
+          specId,
+          read: (view) => view.catalog.artifacts.find((artifact) => artifact.logicalKey === "draft.questions.review") ?? null,
+        });
+        assert.ok(questionsReview, "questions review must be cataloged before completion selection");
+        const selectedDraft = JSON.parse(canonicalDraft.bytes.toString("utf8"));
+        const staleDigest = logicalKey === "draft.coverage.review"
+          ? (coverageReview.descriptor.hash === "f".repeat(64) ? "e".repeat(64) : "f".repeat(64))
+          : logicalKey === "draft.coverage.triage"
+            ? (coverageTriage.descriptor.hash === "f".repeat(64) ? "e".repeat(64) : "f".repeat(64))
+          : (questionsReview.hash === "f".repeat(64) ? "e".repeat(64) : "f".repeat(64));
+        const selected = resolveDraftCoverageRepairCompletion(facts({
+          draftDocument: selectedDraft,
+          canonicalDigest: canonicalDraft.descriptor.hash,
+          canonicalByteLength: canonicalDraft.descriptor.size,
+          ...completionEvidence(flowManager, specId, { includeTriage: true }),
+          reviewArtifactDigest: logicalKey === "draft.coverage.review" ? staleDigest : coverageReview.descriptor.hash,
+          triageArtifactDigest: logicalKey === "draft.coverage.triage" ? staleDigest : coverageTriage.descriptor.hash,
+          questionsReviewArtifactDigest: logicalKey === "draft.questions.review" ? staleDigest : questionsReview.hash,
+        }));
+        const before = persistedSnapshot(flowManager, specId);
+        assert.throws(
+          () => flowManager.confirmDraftCoverageRepairCompletion({ specId, decision: selected, draft: selectedDraft }),
+          message,
+        );
+        assert.equal(persistedSnapshot(flowManager, specId), before, `${logicalKey} stale rejection must be side-effect free`);
+      } finally {
+        removeTmpDir(repository);
+      }
+    }
+  });
+
+  it("records an explicit no-connector promotion without changing approval, leaving draft-gate as the read-only judge", async () => {
+    const repository = createTmpDir("draft-completion-no-connector-");
+    const specId = "715f-draft-completion-no-connector";
+    fs.writeFileSync(`${repository}/README.md`, "draft completion gate fixture\n");
+    initGitRepo(repository);
+    commitAll(repository, "fixture baseline");
+    const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    try {
+      const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: "715f-no-connector-run" });
+      fixture.create().registerActive().activate("draft");
+      const unresolved = {
+        state: "AwaitingUserAnswer", id: "q1", category: "user-visible-behavior", question: "Choose behavior.",
+        revision: 0, provenance: { producer: "test" }, evidenceDigest: "d".repeat(64),
+      };
+      const source = draft({ questions: [unresolved] });
+      const sourceBytes = Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8");
+      flowManager.publishArtifacts({
+        specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }],
+      });
+      flowManager.confirmCurrentAttempt({ specId });
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
+      fixture.activate("draft-coverage-repair");
+      const decision = resolveDraftCoverageRepairCompletion(facts({
+        draftDocument: source,
+        ...completionEvidence(flowManager, specId),
+      }));
+      assert.equal(decision.connector, null);
+
+      flowManager.confirmDraftCoverageRepairCompletion({ specId, decision, draft: source });
+
+      const published = JSON.parse(flowManager.readArtifact({
+        specId, logicalKey: "draft", consumerNodeId: "draft-gate",
+      }).bytes.toString("utf8"));
+      const activity = flowManager.activityLedger(specId).at(-1);
+      assert.equal(published.approval.approved, false);
+      assert.equal(activity.transition.stepConnectionReceipt.kind, "draft-completion-no-connector");
+      assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-gate");
+      assert.equal(flowManager.canonicalState(specId).attempt, null, "promotion must not start the gate Attempt");
+      assert.ok(
+        checkDraftJson(published).some((issue) => issue.includes("approval")),
+        "draft-gate's read-only validation must retain the unapproved lifecycle issue",
+      );
+      flowManager.beginNextAction(specId);
+      const draftBeforeGate = flowManager.readArtifact({
+        specId, logicalKey: "draft", consumerNodeId: "draft-gate",
+      });
+      const ctx = {
+        root: repository, mainRoot: repository, executionRoot: repository,
+        specId, phase: "draft", config: {}, skipGuardrail: true,
+        flowManager, flowState: flowManager.load(specId),
+      };
+      const gateResult = await new RunGateCommand().execute(ctx);
+      assert.equal(gateResult.result, "fail");
+      await FLOW_COMMANDS.run.gate.post(ctx, gateResult);
+      const draftAfterGate = flowManager.readArtifact({
+        specId, logicalKey: "draft", consumerNodeId: "draft-refine",
+      });
+      assert.deepEqual(draftAfterGate.bytes, draftBeforeGate.bytes);
+      assert.equal(draftAfterGate.descriptor.hash, draftBeforeGate.descriptor.hash);
+      assert.equal(draftAfterGate.descriptor.activityId, draftBeforeGate.descriptor.activityId);
+    } finally {
+      removeTmpDir(repository);
+    }
+  });
+
+  it("rehydrates the Activity receipt into typed fixed lineage slots", () => {
+    const repository = createTmpDir("draft-completion-receipt-reload-");
+    const specId = "715f-draft-completion-receipt-reload";
+    const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    try {
+      const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: "715f-receipt-reload-run" });
+      fixture.create().registerActive().activate("draft");
+      const source = draft();
+      const sourceBytes = Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8");
+      flowManager.publishArtifacts({
+        specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }],
+      });
+      flowManager.confirmCurrentAttempt({ specId });
+      fixture.activate("draft-coverage-review");
+      publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
+      fixture.activate("draft-coverage-repair");
+      flowManager.confirmDraftCoverageRepairCompletion({
+        specId,
+        decision: resolveDraftCoverageRepairCompletion(facts({
+          draftDocument: source,
+          ...completionEvidence(flowManager, specId),
+        })),
+        draft: source,
+      });
+
+      const persisted = flowManager.activityLedger(specId).at(-1).transition.stepConnectionReceipt;
+      const reloaded = StepConnectionReceipt.fromJSON(JSON.parse(JSON.stringify(persisted)));
+      assert.equal(reloaded.id, persisted.id);
+      assert.ok(reloaded.lineage.questionsReview instanceof DraftCompletionCatalogBinding);
+      assert.ok(reloaded.lineage.questionsRefine instanceof DraftCompletionCatalogBinding);
+      assert.ok(reloaded.lineage.coverageReview instanceof DraftCompletionCatalogBinding);
+      assert.ok(reloaded.lineage.coverageTriage instanceof DraftCompletionAbsentLineage);
+      assert.equal(reloaded.lineage.coverageTriage.reason, "coverage-pass");
+      assert.ok(reloaded.lineage.coverageRepair instanceof DraftCompletionAbsentLineage);
+      assert.equal(reloaded.lineage.coverageRepair.reason, "coverage-pass");
+      assert.ok(reloaded.lineage.canonicalDraft instanceof DraftCompletionCatalogBinding);
+      const altered = structuredClone(persisted);
+      altered.decisionEvidence.discardedOperationCount += 1;
+      assert.throws(() => StepConnectionReceipt.fromJSON(altered), /content digest/i);
+      assert.throws(() => new ActivityStepConnectionReceipt(altered), /content digest/i);
+      const malformed = structuredClone(persisted);
+      malformed.lineage = {};
+      malformed.id = receiptId(malformed);
+      assert.throws(() => StepConnectionReceipt.fromJSON(malformed), /unsupported fields/i);
+      assert.throws(() => new ActivityStepConnectionReceipt(malformed), /schema is invalid/i);
     } finally {
       removeTmpDir(repository);
     }

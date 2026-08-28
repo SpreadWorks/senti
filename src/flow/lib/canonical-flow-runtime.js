@@ -34,6 +34,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   fail_attempt: "attempt_failed",
   record_failure: "failure_recorded",
   confirm_attempt: "result_confirmed",
+  complete_draft_completion: "result_confirmed",
   complete_acceptance_decision_noop: "result_confirmed",
   rewind: "recovery",
   rewind_test_evidence: "recovery",
@@ -415,6 +416,24 @@ export class CanonicalFlowRuntime {
       sourceWorkerUpgrade,
       admission,
       gateTaskLifecycle,
+    });
+  }
+
+  /** One journal entry: publish connector output, confirm source, and expose the target. */
+  completeDraftCompletion({ specId, activityId, result, receipt, references, artifactWrites, artifactRemovals, artifactBaselines, admission } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "draft-coverage-repair",
+      operation: "complete_draft_completion",
+      result,
+      status: "done",
+      references,
+      artifactWrites,
+      artifactRemovals,
+      artifactBaselines,
+      admission,
+      stepConnectionReceipt: receipt?.toJSON?.() ?? receipt,
     });
   }
 
@@ -1111,6 +1130,7 @@ export class CanonicalFlowRuntime {
     admission = undefined,
     retryRecoveryPublication = undefined,
     gateTaskLifecycle = null,
+    stepConnectionReceipt = null,
   }) {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
@@ -1118,7 +1138,9 @@ export class CanonicalFlowRuntime {
     const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate"].includes(operation)
       ? attempt
       : null;
-    const activityAttempt = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]).has(operation)
+    const activityAttempt = operation === "complete_draft_completion"
+      ? stepConnectionReceipt?.sourceAttempt ?? null
+      : new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]).has(operation)
       ? state.attempt ?? attempt
       : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt
@@ -1147,6 +1169,7 @@ export class CanonicalFlowRuntime {
         status,
         nonblocking,
         gateTaskLifecycle,
+        stepConnectionReceipt,
       },
     });
     const resolvedArtifactWrites = retryRecoveryPublication == null
