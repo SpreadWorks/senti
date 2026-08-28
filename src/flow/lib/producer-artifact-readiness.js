@@ -85,15 +85,23 @@ function consumerNodeForTarget(target, producerNodeId) {
   return taskId === null ? null : `${taskId}-${consumerRole}`;
 }
 
+/** The coverage completion connector consumes its review evidence directly. */
+function isConnectorConsumerHandoff(producerNodeId, consumerNodeId) {
+  return producerNodeId === "draft-coverage-review"
+    && consumerNodeId === "draft-coverage-repair";
+}
+
 function producerHandoffs(producerNodeId, consumerNodeId) {
   const primary = attemptHistoryTargetForNode(producerNodeId);
   if (primary === null) return [];
-  const target = FLOW_ARTIFACT_SWITCH_TARGETS.find((candidate) => (
+  const switchTarget = FLOW_ARTIFACT_SWITCH_TARGETS.find((candidate) => (
     candidate.logicalKey === primary.logicalKey
     && targetProducerMatches(candidate, producerNodeId)
     && targetConsumerMatches(candidate, producerNodeId, consumerNodeId)
   )) ?? null;
-  if (target === null) return [];
+  if (switchTarget === null && !isConnectorConsumerHandoff(producerNodeId, consumerNodeId)) {
+    return [];
+  }
   const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(primary.logicalKey, primary.parameters);
   if (artifact.contract.cataloged !== true) {
     throw new CurrentFlowStateInvariantError("attempt history producer result must be cataloged");
@@ -395,6 +403,35 @@ export class ProducerArtifactPublicationAdmission {
     for (const readiness of this.readinesses) {
       if (readiness.isReady({ state, catalog, activities })) continue;
       readiness.assertPublication(this.artifactWrites);
+    }
+  }
+}
+
+/**
+ * One atomic Step-connector admission evaluates the source's ordinary
+ * consumer readiness and its producer-completion publication rule against
+ * the same catalog-lock snapshot.  A source with no attempt-history output
+ * has an explicit null producer admission; it is not represented by a
+ * permissive empty readiness list.
+ */
+export class StepConnectionAdmission {
+  constructor({ sourceConsumerAdmission, sourceProducerCompletionAdmission = null } = {}) {
+    if (!(sourceConsumerAdmission instanceof ProducerArtifactReadinessAdmission)) {
+      throw new CurrentFlowStateInvariantError("Step connection admission requires typed source consumer readiness");
+    }
+    if (sourceProducerCompletionAdmission !== null
+      && !(sourceProducerCompletionAdmission instanceof ProducerArtifactPublicationAdmission)) {
+      throw new CurrentFlowStateInvariantError("Step connection admission producer completion must be typed or null");
+    }
+    this.sourceConsumerAdmission = sourceConsumerAdmission;
+    this.sourceProducerCompletionAdmission = sourceProducerCompletionAdmission;
+    Object.freeze(this);
+  }
+
+  assert(snapshot) {
+    this.sourceConsumerAdmission.assert(snapshot);
+    if (this.sourceProducerCompletionAdmission !== null) {
+      this.sourceProducerCompletionAdmission.assert(snapshot);
     }
   }
 }

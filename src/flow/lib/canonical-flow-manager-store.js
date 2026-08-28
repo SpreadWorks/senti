@@ -117,6 +117,7 @@ import {
   MissingProducerArtifactRoute,
   ProducerArtifactPublicationAdmission,
   ProducerArtifactReadinessAdmission,
+  StepConnectionAdmission,
   AcceptanceDecisionNoOpAdmission,
   attemptHistoryTargetForNode,
   producerArtifactReadinessesForConsumer,
@@ -1071,28 +1072,8 @@ export class CanonicalFlowManagerStore {
         "the active Step requires its canonical Definition-selected Action before it can be claimed",
       );
     }
-    if (next.operation === "start") {
-      const attempt = commandContextAttempt(state, next.nodeId);
-      this.runtime.startAttempt({
-        specId: resolved,
-        activityId: activityId("attempt-started"),
-        nodeId: next.nodeId,
-        attempt,
-        retryRecoveryPublication: this.#retryBaselinePublication(state, next.nodeId, attempt),
-        admission: this.#consumerAdmission(state, next.nodeId),
-      });
-      return this.runtime.load(resolved);
-    }
-    if (next.operation === "recover") {
-      const attempt = commandContextAttempt(state, next.nodeId);
-      this.runtime.recover({
-        specId: resolved,
-        activityId: activityId("attempt-recovered"),
-        nodeId: next.nodeId,
-        attempt,
-        retryRecoveryPublication: this.#retryBaselinePublication(state, next.nodeId, attempt),
-        admission: this.#consumerAdmission(state, next.nodeId),
-      });
+    if (next.executable) {
+      this.#beginExecutableNode(state, resolved, next.nodeId);
       return this.runtime.load(resolved);
     }
     if (next.operation === "retry") {
@@ -2655,9 +2636,16 @@ export class CanonicalFlowManagerStore {
       ...artifactWrites,
     ];
     const sourceAttempt = state.current?.at(-1) === facts.sourceStepId
-      ? state.attempt.toJSON()
-      : commandContextAttempt(state, facts.sourceStepId);
-    const sourceAttemptIdentity = { id: sourceAttempt.id, sequence: sourceAttempt.sequence };
+      ? state.attempt
+      : new CurrentAttempt(commandContextAttempt(state, facts.sourceStepId));
+    const sourceClaim = state.executableStepClaim({
+      nodeId: facts.sourceStepId,
+      attempt: sourceAttempt,
+    });
+    const sourceAttemptIdentity = {
+      id: sourceClaim.identity.id,
+      sequence: sourceClaim.identity.sequence,
+    };
     const catalog = this.runtime.catalog(resolved);
     const activities = this.runtime.activities(resolved).map((activity) => activity.toJSON());
     const completionActivityId = activityId("draft-coverage-repair-confirmed");
@@ -2764,7 +2752,7 @@ export class CanonicalFlowManagerStore {
       artifactWrites: writes,
       artifactRemovals,
       artifactBaselines: baselines,
-      admission: this.#producerCompletionAdmission(facts.sourceStepId, writes),
+      admission: this.#stepConnectionAdmission(state, facts.sourceStepId, writes),
     });
   }
 
@@ -3780,25 +3768,22 @@ export class CanonicalFlowManagerStore {
   }
 
   #beginExecutableNode(state, specId, nodeId) {
-    const next = state.nextAction();
-    if (next?.nodeId !== nodeId || !["start", "recover"].includes(next.operation)) {
-      throw new CurrentFlowStateInvariantError(
-        `canonical transition is not definition-authorized for next node: ${nodeId}`,
-      );
-    }
+    const claim = state.executableStepClaim({
+      nodeId,
+      attempt: new CurrentAttempt(commandContextAttempt(state, nodeId)),
+    });
     const input = {
       specId,
-      activityId: activityId(next.operation === "recover" ? "attempt-recovered" : "attempt-started"),
-      nodeId,
-      // A lifecycle/direct transition begins the same definition-owned
-      // command-context operation as `get next-action`. The Activity kind
-      // preserves whether this is a fresh pending leaf or an invalidated
-      // recovery leaf.
-      attempt: commandContextAttempt(state, nodeId),
-      admission: this.#consumerAdmission(state, nodeId),
+      activityId: activityId(claim.operation === "recover" ? "attempt-recovered" : "attempt-started"),
+      nodeId: claim.nodeId,
+      // A lifecycle/direct transition begins the same sealed claim selected
+      // by CurrentFlowState as `get next-action`; Store owns only Activity
+      // persistence and consumer admission.
+      attempt: claim.attempt.toJSON(),
+      admission: this.#consumerAdmission(state, claim.nodeId),
     };
-    input.retryRecoveryPublication = this.#retryBaselinePublication(state, nodeId, input.attempt);
-    return next.operation === "recover"
+    input.retryRecoveryPublication = this.#retryBaselinePublication(state, claim.nodeId, input.attempt);
+    return claim.operation === "recover"
       ? this.runtime.recover(input)
       : this.runtime.startAttempt(input);
   }
@@ -3903,6 +3888,20 @@ export class CanonicalFlowManagerStore {
     return readinesses.length === 0
       ? null
       : new ProducerArtifactPublicationAdmission({ readinesses, artifactWrites });
+  }
+
+  /** Bind a synthetic connector to both sides of its source on one catalog snapshot. */
+  #stepConnectionAdmission(state, sourceNodeId, artifactWrites) {
+    const sourceConsumerAdmission = this.#consumerAdmission(state, sourceNodeId);
+    if (sourceConsumerAdmission === null) {
+      throw new CurrentFlowStateInvariantError(
+        `Step connection source has no typed consumer readiness: ${sourceNodeId}`,
+      );
+    }
+    return new StepConnectionAdmission({
+      sourceConsumerAdmission,
+      sourceProducerCompletionAdmission: this.#producerCompletionAdmission(sourceNodeId, artifactWrites),
+    });
   }
 
   #settlementAdmission(state, result) {

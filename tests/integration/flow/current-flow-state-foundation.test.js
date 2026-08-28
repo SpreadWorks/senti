@@ -25,6 +25,7 @@ import {
   CurrentFlowStateSerializer,
   CurrentFlowStateValidator,
   DefinitionFailurePolicy,
+  ExecutableStepClaim,
   FlowActivity,
   FlowActivityJournal,
   FlowDefinitionNode,
@@ -877,6 +878,60 @@ describe("Current Flow state foundation", () => {
     assert.equal(amendment.current.at(-1), "spec");
     assert.equal(amendment.attempt.sequence, 2);
     assert.equal(amendment.findNode("acceptance-review").status, "invalidated");
+  });
+
+  it("uses one executable claim rule for fresh and invalidated implementation no-repair gates", () => {
+    const triageResult = new NodeResult(passedResult("All implementation findings were rejected.", []));
+
+    let fresh = CurrentFlowState.create({ definition: definition() });
+    fresh = advanceUntil(fresh, "impl-triage", "fresh-no-repair");
+    const freshTriagePath = fresh.nextAction().path;
+    fresh = fresh.startAttempt({
+      path: freshTriagePath,
+      attempt: attemptFor(fresh, freshTriagePath, "fresh-impl-triage"),
+    });
+    const freshGatePath = fresh.definition.pathFor(fresh.root, "impl-gate");
+    fresh = fresh.triageImplementationNoRepair({
+      path: fresh.current,
+      attempt: attemptFor(fresh, freshGatePath, "fresh-impl-gate"),
+      result: triageResult,
+    });
+    assert.equal(fresh.findNode("impl-repair").status, "skipped");
+    assert.equal(fresh.findNode("impl-gate").status, "in_progress");
+    assert.equal(fresh.attempt.id, "fresh-impl-gate");
+
+    let recovered = CurrentFlowState.create({ definition: definition() });
+    recovered = advanceUntil(recovered, "acceptance-review", "recovered-no-repair");
+    const acceptancePath = recovered.nextAction().path;
+    recovered = recovered.startAttempt({
+      path: acceptancePath,
+      attempt: attemptFor(recovered, acceptancePath, "acceptance-rejected"),
+    });
+    const reopenedTriagePath = recovered.definition.pathFor(recovered.root, "impl-triage");
+    recovered = recovered.repairAcceptanceReview({
+      path: acceptancePath,
+      attempt: attemptFor(recovered, reopenedTriagePath, "recovered-impl-triage"),
+      result: new NodeResult(passedResult("Acceptance requested implementation reconsideration.", [])),
+    });
+    const activeClaim = recovered.executableStepClaim({
+      nodeId: "impl-triage",
+      attempt: recovered.attempt,
+    });
+    assert.ok(activeClaim instanceof ExecutableStepClaim);
+    assert.equal(activeClaim.origin, "active");
+    assert.equal(recovered.findNode("impl-repair").status, "invalidated");
+    assert.equal(recovered.findNode("impl-gate").status, "invalidated");
+
+    const recoveredGatePath = recovered.definition.pathFor(recovered.root, "impl-gate");
+    recovered = recovered.triageImplementationNoRepair({
+      path: recovered.current,
+      attempt: attemptFor(recovered, recoveredGatePath, "recovered-impl-gate"),
+      result: triageResult,
+    });
+    assert.equal(recovered.findNode("impl-repair").status, "skipped");
+    assert.equal(recovered.findNode("impl-gate").status, "in_progress");
+    assert.equal(recovered.attempt.id, "recovered-impl-gate");
+    assert.equal(recovered.attempt.sequence, 2, "recover must advance the invalidated gate Attempt episode");
   });
 
   it("rejects malformed lifecycle JSON while preserving valid parent results through a rewind", () => {

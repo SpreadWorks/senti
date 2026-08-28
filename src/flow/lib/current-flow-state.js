@@ -3034,6 +3034,36 @@ export class CurrentNextActionDescriptor {
     });
   }
 
+  /** Whether this descriptor may materialize a fresh canonical Attempt. */
+  get executable() {
+    return ["start", "recover"].includes(this.operation);
+  }
+
+  /**
+   * Keep the executable-frontier rule with the descriptor that selected it.
+   * Callers must not duplicate the start/recover distinction when they only
+   * need to prove that a passive successor may later be claimed.
+   */
+  assertPassiveExecutableTarget(nodeId) {
+    if (!this.executable || this.nodeId !== requireString(nodeId, "passive executable target nodeId")) {
+      throw new CurrentFlowStateInvariantError("target is not the canonical passive executable next action");
+    }
+    return this;
+  }
+
+  claim(attempt) {
+    if (!this.executable) {
+      throw new CurrentFlowStateInvariantError("only a canonical start or recover action may claim an Attempt");
+    }
+    return new ExecutableStepClaim({
+      path: this.path,
+      node: this.node,
+      operation: this.operation,
+      attempt,
+      origin: this.operation,
+    });
+  }
+
   toJSON() {
     return {
       path: [...this.path],
@@ -3045,6 +3075,85 @@ export class CurrentNextActionDescriptor {
       failureDisposition: this.failureDisposition?.toJSON() ?? null,
       ...(this.reviewDisposition === null ? {} : { reviewDisposition: this.reviewDisposition.toJSON() }),
       ...(this.draftDisposition === null ? {} : { draftDisposition: this.draftDisposition.toJSON() }),
+    };
+  }
+}
+
+/**
+ * A definition-authorized executable leaf and its exact Attempt episode.
+ *
+ * This is deliberately richer than a node id: a synthetic connector and a
+ * normal command-context claim must agree on the same path, lifecycle
+ * operation, Attempt identity, and activation origin before either can alter
+ * the state tree.  `active` identifies an already materialized source;
+ * `start` and `recover` identify the only passive operations that may be
+ * materialized.
+ */
+export class ExecutableStepClaim {
+  constructor({ path: currentPath, node, operation, attempt, origin } = {}) {
+    if (!Array.isArray(currentPath) || currentPath.length === 0 || currentPath.at(-1) !== node?.id) {
+      throw new CurrentFlowStateInvariantError("executable Step claim path must terminate at its node");
+    }
+    if (!(node instanceof CurrentFlowNode)) {
+      throw new CurrentFlowStateInvariantError("executable Step claim requires a current-state node");
+    }
+    if (!["active", "start", "recover"].includes(operation) || operation !== origin) {
+      throw new CurrentFlowStateInvariantError("executable Step claim operation and origin are invalid");
+    }
+    const currentAttempt = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (currentAttempt.nodeId !== node.id) {
+      throw new CurrentFlowStateInvariantError("executable Step claim Attempt does not belong to its node");
+    }
+    const expectedSequence = operation === "active" ? node.attemptSequence : node.attemptSequence + 1;
+    if (currentAttempt.sequence !== expectedSequence) {
+      throw new CurrentFlowStateInvariantError("executable Step claim Attempt sequence is not canonical");
+    }
+    const expectedStatus = operation === "active"
+      ? "in_progress"
+      : operation === "start" ? "pending" : "invalidated";
+    if (node.status !== expectedStatus) {
+      throw new CurrentFlowStateInvariantError("executable Step claim lifecycle status is not canonical");
+    }
+    if (currentAttempt.failure !== null || currentAttempt.blocker !== null || currentAttempt.incomplete.length !== 0) {
+      throw new CurrentFlowStateInvariantError("executable Step claim requires a runnable Attempt");
+    }
+    this.path = Object.freeze([...currentPath]);
+    this.node = node;
+    this.nodeId = node.id;
+    this.operation = operation;
+    this.origin = origin;
+    this.attempt = currentAttempt;
+    this.identity = new CurrentAttemptIdentity(currentAttempt);
+    Object.freeze(this);
+  }
+
+  static active({ path: currentPath, node, attempt } = {}) {
+    return new ExecutableStepClaim({
+      path: currentPath,
+      node,
+      operation: "active",
+      attempt,
+      origin: "active",
+    });
+  }
+
+  materialize(state) {
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("executable Step claim materialization requires CurrentFlowState");
+    }
+    if (this.operation === "active") return state;
+    return this.operation === "recover"
+      ? state.recover({ path: this.path, attempt: this.attempt })
+      : state.startAttempt({ path: this.path, attempt: this.attempt });
+  }
+
+  toJSON() {
+    return {
+      path: [...this.path],
+      nodeId: this.nodeId,
+      operation: this.operation,
+      origin: this.origin,
+      attempt: this.identity.toJSON(),
     };
   }
 }
@@ -4071,15 +4180,17 @@ export class CurrentFlowState {
     const completed = result instanceof NodeResult ? result : new NodeResult(result);
     const source = this.findNode(connection.sourceStepId);
     const activeSource = this.current?.at(-1) === connection.sourceStepId;
+    let sourceClaim;
     if (activeSource) {
-      if (this.attempt === null || this.attempt.failure !== null
-        || this.attempt.id !== connection.sourceAttempt.id || this.attempt.sequence !== connection.sourceAttempt.sequence) {
+      if (this.attempt === null || this.attempt.id !== connection.sourceAttempt.id || this.attempt.sequence !== connection.sourceAttempt.sequence) {
         throw new CurrentFlowStateInvariantError("draft completion receipt source Attempt is stale");
       }
+      sourceClaim = this.executableStepClaim({
+        nodeId: connection.sourceStepId,
+        attempt: this.attempt,
+      });
     } else {
-      const next = this.nextAction();
-      if (this.current !== null || source.status !== "pending" || next?.operation !== "start" || next.nodeId !== source.id
-        || connection.sourceAttempt.sequence !== source.attemptSequence + 1) {
+      if (this.current !== null) {
         throw new CurrentFlowStateInvariantError("draft completion has no definition-authorized source Attempt");
       }
       const requiredResources = this.definition.contractForNode(source).resourceContract.required;
@@ -4089,9 +4200,10 @@ export class CurrentFlowState {
         failure: null, blocker: null, incomplete: [],
         operationClaims: requiredResources.length === 0 ? [] : [{ operation: "resolve-command-context", resources: requiredResources }],
       });
-      return this.startAttempt({
-        path: this.definition.pathFor(this.root, source.id), attempt: sourceAttempt,
-      }).completeDraftCompletion({ result: completed, receipt: connection });
+      sourceClaim = this.executableStepClaim({ nodeId: source.id, attempt: sourceAttempt });
+    }
+    if (sourceClaim.operation !== "active") {
+      return sourceClaim.materialize(this).completeDraftCompletion({ result: completed, receipt: connection });
     }
     const root = reconcileCompletedParents(
       replaceNode(this.root, source.id, transitionNode(source, "done", this.definition, {
@@ -4100,10 +4212,7 @@ export class CurrentFlowState {
       this.definition,
     );
     const settled = this.#replaceRoot(root, null, null);
-    const next = settled.nextAction();
-    if (next?.operation !== "start" || next.nodeId !== connection.targetStepId) {
-      throw new CurrentFlowStateInvariantError("draft completion target is no longer the definition-selected successor");
-    }
+    settled.assertPassiveExecutableTarget(connection.targetStepId);
     return settled;
   }
 
@@ -4458,13 +4567,8 @@ export class CurrentFlowState {
       attemptSequence: currentRepair.attemptSequence + 1,
     }));
     root = reconcileCompletedParents(root, this.definition);
-    return this.#replaceRoot(root, null, null).#activateAttempt({
-      path: gatePath,
-      attempt,
-      allowedLeafStatuses: ["pending"],
-      initial: true,
-      operation: "triageImplementationNoRepair",
-    });
+    const exposed = this.#replaceRoot(root, null, null);
+    return exposed.executableStepClaim({ nodeId: "impl-gate", attempt }).materialize(exposed);
   }
 
   repairAcceptanceReview({ path: currentPath, attempt, result }) {
@@ -4742,6 +4846,47 @@ export class CurrentFlowState {
 
   get cursor() {
     return this.current == null ? null : new CurrentCursor({ path: this.current, attempt: this.attempt });
+  }
+
+  /**
+   * Resolve the one canonical attempt claim for either an active source or
+   * the passive Definition-selected executable frontier.  Store callers and
+   * synthetic connectors use this same authority; neither may recreate the
+   * start/recover policy from lifecycle status checks.
+   */
+  executableStepClaim({ nodeId, attempt } = {}) {
+    this.#assertExecutionActive();
+    const targetId = requireString(nodeId, "executable Step claim nodeId");
+    if (this.current !== null) {
+      const active = nodeAtPath(this.root, this.current);
+      if (active.id !== targetId || this.attempt === null) {
+        throw new CurrentFlowStateInvariantError("executable Step claim does not own the active Attempt");
+      }
+      const provided = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+      if (provided.id !== this.attempt.id || provided.sequence !== this.attempt.sequence) {
+        throw new CurrentFlowStateInvariantError("executable Step claim Attempt identity is stale");
+      }
+      return ExecutableStepClaim.active({ path: this.current, node: active, attempt: this.attempt });
+    }
+    const descriptor = this.nextAction();
+    if (descriptor === null) {
+      throw new CurrentFlowStateInvariantError("Flow has no canonical executable next action");
+    }
+    descriptor.assertPassiveExecutableTarget(targetId);
+    return descriptor.claim(attempt);
+  }
+
+  /** Verify, without materializing it, a passive canonical successor. */
+  assertPassiveExecutableTarget(nodeId) {
+    if (this.current !== null) {
+      throw new CurrentFlowStateInvariantError("an active Attempt has no passive executable successor");
+    }
+    const descriptor = this.nextAction();
+    if (descriptor === null) {
+      throw new CurrentFlowStateInvariantError("Flow has no canonical passive successor");
+    }
+    descriptor.assertPassiveExecutableTarget(nodeId);
+    return descriptor;
   }
 
   nextAction() {
