@@ -10,7 +10,11 @@ import {
   writeCapturingStubAgentScript,
   stubAgentConfig,
 } from "../../support/fakes/stub-agent.js";
-import { CanonicalAutoCheckScenario, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import {
+  CanonicalAutoCheckScenario,
+  canonicalDraftDocument,
+  makeFlowManager,
+} from "../../support/infrastructure/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 
@@ -116,7 +120,9 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
   it("includes draft.json body in AI prompt when draft-gate is done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const draftBody = JSON.stringify({ goal: "DRAFT_MARKER_XYZ123 add a progress bar" });
+    const draftBody = JSON.stringify(canonicalDraftDocument({
+      goal: "DRAFT_MARKER_XYZ123 add a progress bar",
+    }));
     seedActiveFlow(tmp, { phase: "draft-gate-done", draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
@@ -138,7 +144,9 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
   it("excludes draft body when draft-gate is not done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const draftBody = JSON.stringify({ goal: "PROVISIONAL_DRAFT_MARKER should not leak while draft-gate is pending" });
+    const draftBody = JSON.stringify(canonicalDraftDocument({
+      goal: "PROVISIONAL_DRAFT_MARKER should not leak while draft-gate is pending",
+    }));
     seedActiveFlow(tmp, { phase: "draft-saved-before-gate", draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);

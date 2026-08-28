@@ -11,6 +11,7 @@ import {
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { canonicalDraftDocument } from "../../support/infrastructure/flow-setup.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const cliPath = path.join(repoRoot, "src/sennel.js");
@@ -133,8 +134,8 @@ describe("worktree draft promotion", () => {
     const root = createProject();
     const first = prepareWorktree(root, 497, "first canonical draft");
     const second = prepareWorktree(root, 498, "second canonical draft");
-    const firstDraft = { goal: "first completed draft", qa: [] };
-    const secondDraft = { goal: "second completed draft", qa: [] };
+    const firstDraft = canonicalDraftDocument({ goal: "first completed draft" });
+    const secondDraft = canonicalDraftDocument({ goal: "second completed draft" });
     assert.equal(fs.existsSync(canonicalDraft(root, first)), false);
     assert.equal(fs.existsSync(canonicalDraft(root, second)), false);
 

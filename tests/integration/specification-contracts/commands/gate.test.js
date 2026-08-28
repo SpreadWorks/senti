@@ -36,7 +36,7 @@ function initGateProject(tmp, { specId = "001-test", specRecord = null } = {}) {
   return fixture;
 }
 
-function runBlockedGate(tmp, args) {
+function runLocallyBlockedGate(tmp, args) {
   const result = spawnSync(process.execPath, [SENNEL, "flow", "run", "gate", ...args], {
     encoding: "utf8",
     env: { ...process.env, SENNEL_WORK_ROOT: tmp },
@@ -44,8 +44,8 @@ function runBlockedGate(tmp, args) {
   assert.equal(result.status, 1, result.stderr || result.stdout);
   const envelope = JSON.parse(result.stdout);
   assert.equal(envelope.ok, false);
-  assert.ok(envelope.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
-  assert.equal(envelope.data.artifacts.gateTransitionFailureCategory.category, "tooling");
+  assert.ok(envelope.errors.some((error) => error.code === "GATE_LOCAL_INPUT_INVALID"));
+  assert.equal(envelope.data.artifacts.gateTransitionFailureCategory.category, "local");
   assert.equal(findInProgressLeaf(makeFlowManager(tmp).load().steps).id, "spec-gate");
   return envelope;
 }
@@ -401,12 +401,12 @@ describe("gate CLI", () => {
     assert.equal(envelope.ok, true);
   });
 
-  it("returns a typed external block when task-spec markdown is empty", () => {
+  it("returns a typed local-input block when task-spec markdown is empty", () => {
     tmp = createTmpDir();
     initGateProject(tmp);
     writeFile(tmp, "spec.md", "# Empty spec\n");
 
-    const envelope = runBlockedGate(tmp, [
+    const envelope = runLocallyBlockedGate(tmp, [
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
     ]);
@@ -468,7 +468,7 @@ describe("gate CLI", () => {
     });
     const fixture = initGateProject(tmp, { specRecord: invalidSpec });
 
-    const envelope = runBlockedGate(tmp, [
+    const envelope = runLocallyBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", fixture.location().specFile,
     ]);
@@ -505,7 +505,7 @@ describe("gate CLI", () => {
     };
     const fixture = initGateProject(tmp, { specId: "002-test", specRecord: spec });
 
-    const envelope = runBlockedGate(tmp, [
+    const envelope = runLocallyBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", fixture.location().specFile,
     ]);
@@ -533,7 +533,7 @@ describe("gate CLI", () => {
     };
     const fixture = initGateProject(tmp, { specId: "003-test", specRecord: spec });
 
-    const envelope = runBlockedGate(tmp, [
+    const envelope = runLocallyBlockedGate(tmp, [
       "--phase", "spec",
       "--spec", fixture.location().specFile,
     ]);

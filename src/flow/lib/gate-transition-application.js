@@ -8,6 +8,7 @@
 import {
   GatePublicOutcomeProjection,
   GateTransitionDecision,
+  projectGatePublicOutcome,
   resolveGateTransition,
 } from "../definition.js";
 import { GateTransitionFacts } from "./gate-transition.js";
@@ -26,6 +27,7 @@ export class GateTransitionActionProjection {
     this.stepId = decision.facts.target.stepId;
     this.operation = decision.disposition.operation;
     this.reason = decision.disposition.reason;
+    this.failureCode = projectGatePublicOutcome(decision).failureCode;
     this.advance = decision.advance?.operation === "advance";
     // The directive projection must not reopen the Decision to recover
     // route-specific details.  Keep the Definition-selected handoff with the
@@ -42,6 +44,7 @@ export class GateTransitionActionProjection {
       actionId: this.actionId.toJSON(),
       operation: this.operation,
       reason: this.reason,
+      failureCode: this.failureCode,
       advance: this.advance,
       nonblockingHandoff: this.nonblockingHandoff?.toJSON() ?? null,
     };

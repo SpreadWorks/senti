@@ -85,6 +85,7 @@ import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js";
 import { validWorkerHandoffSpec } from "../../support/infrastructure/worker-artifact.js";
 import {
+  canonicalDraftDocument,
   canonicalFixtureProducerResult,
   confirmCanonicalFixtureStep,
   FlowAtStepFixture,
@@ -156,6 +157,10 @@ function request(specId = "001-canonical-manager", overrides = {}) {
     specRecord: new CurrentFlowSpecRecord({ ...emptySpecStub(), tasks: [] }, { specId }),
     ...overrides,
   });
+}
+
+function canonicalDraftBytes(goal) {
+  return Buffer.from(`${JSON.stringify(canonicalDraftDocument({ goal }), null, 2)}\n`, "utf8");
 }
 
 function runtimeLog(runId, sequence) {
@@ -923,10 +928,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
     });
     assert.ok(facts);
     assert.equal(facts.result, "fail");
-    // The fixture intentionally omits an AI semantic judgment.  Its
-    // structural Gate failure is a tooling stop and must not consume the
+    // The fixture intentionally omits an AI semantic judgment. Its
+    // structural Gate failure is a local input stop and must not consume the
     // semantic retry budget.
-    assert.equal(facts.failure.category, "tooling");
+    assert.equal(facts.failure.category, "local");
+    assert.equal(facts.failure.code, "GATE_LOCAL_INPUT_INVALID");
     assert.equal(facts.lineage.sourceFingerprint.length, 64);
     assert.equal(facts.lineage.canonicalFingerprint.length, 64);
     assert.equal(facts.lineage.sourceFingerprint, facts.lineage.canonicalFingerprint);
@@ -2815,7 +2821,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-draft-review"));
     manager.addActiveFlow(created.specId, "direct");
-    const draft = Buffer.from(`${JSON.stringify({ goal: "Review the draft", qa: [] }, null, 2)}\n`, "utf8");
+    const draft = canonicalDraftBytes("Review the draft");
     advanceTo(manager, created.specId, "draft");
     manager.confirmCurrentAttempt({
       specId: created.specId,
@@ -3038,7 +3044,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
       const created = manager.createFresh(request(`001-canonical-draft-replay-${verdict.toLowerCase()}`));
       manager.addActiveFlow(created.specId, "direct");
-      const draft = Buffer.from(`${JSON.stringify({ goal: "Replay sealed draft review", qa: [] }, null, 2)}\n`, "utf8");
+      const draft = canonicalDraftBytes("Replay sealed draft review");
       advanceTo(manager, created.specId, "draft");
       manager.confirmCurrentAttempt({
         specId: created.specId,
@@ -3110,7 +3116,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-review-cleanup-reconcile"));
     manager.addActiveFlow(created.specId, "direct");
-    const draft = Buffer.from('{"goal":"Reconcile cleanup","qa":[]}\n', "utf8");
+    const draft = canonicalDraftBytes("Reconcile cleanup");
     advanceTo(manager, created.specId, "draft");
     manager.confirmCurrentAttempt({
       specId: created.specId,
@@ -5070,12 +5076,13 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId: created.specId,
     });
 
+    const draftBytes = canonicalDraftBytes("canonical");
     manager.confirmCurrentAttempt({
       specId: created.specId,
       artifactWrites: [{
         logicalKey: "draft",
         mediaType: "application/json",
-        bytes: '{"goal":"canonical"}\n',
+        bytes: draftBytes,
       }],
     });
 
@@ -5088,7 +5095,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(draft.logicalKey, "draft");
     assert.equal(draft.activityId, activities.at(-1).id);
     assert.equal(fs.existsSync(path.join(location.directory, "draft.json")), false);
-    assert.equal(fs.readFileSync(path.join(location.directory, draft.relativePath), "utf8"), '{"goal":"canonical"}\n');
+    assert.deepEqual(fs.readFileSync(path.join(location.directory, draft.relativePath)), draftBytes);
   });
 
   it("journals a durable producer artifact without a second mutable state write", async () => {
@@ -5118,13 +5125,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId: created.specId,
     });
 
+    const draftBytes = canonicalDraftBytes("durable without completion");
     manager.publishArtifacts({
       specId: created.specId,
       nodeId: "draft",
       artifactWrites: [{
         logicalKey: "draft",
         mediaType: "application/json",
-        bytes: '{"goal":"durable without completion"}\n',
+        bytes: draftBytes,
       }],
     });
     const location = manager.specLocation(created.specId);
@@ -5136,7 +5144,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(activities.at(-1).transition.operation, "publish_artifacts");
     assert.equal(activities.at(-1).attemptId, manager.canonicalState(created.specId).attempt.id);
     assert.equal(artifact.activityId, activities.at(-1).id);
-    assert.equal(fs.readFileSync(path.join(location.directory, artifact.relativePath), "utf8"), '{"goal":"durable without completion"}\n');
+    assert.deepEqual(fs.readFileSync(path.join(location.directory, artifact.relativePath)), draftBytes);
   });
 
   it("confirms a sealed normal worker handoff from the execution handoff directory", async () => {
@@ -5196,7 +5204,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const location = manager.specLocation(created.specId);
     assert.equal(handoff.requestPath.startsWith(path.join(repository, ".sennel", "handoffs")), true);
     assert.equal(fs.existsSync(path.join(location.directory, ".runtime", "worker-handoffs")), false);
-    fs.writeFileSync(handoff.payloadPath("draft.json"), '{"goal":"sealed canonical handoff"}\n');
+    const draftBytes = canonicalDraftBytes("sealed canonical handoff");
+    fs.writeFileSync(handoff.payloadPath("draft.json"), draftBytes);
     sealWorkerArtifactHandoff({ requestPath: handoff.requestPath, invocationId: "canonical-handoff" });
 
     const result = coordinator.reconcile({ ctx: context, request: handoff });
@@ -5206,7 +5215,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(result.completed, true);
     assert.equal(manager.canonicalState(created.specId).findNode("draft").status, "done");
     assert.equal(manager.load(created.specId).metrics[0].kind, "agent");
-    assert.equal(fs.readFileSync(path.join(location.directory, draft.relativePath), "utf8"), '{"goal":"sealed canonical handoff"}\n');
+    assert.deepEqual(fs.readFileSync(path.join(location.directory, draft.relativePath)), draftBytes);
     assert.equal(fs.existsSync(path.join(location.directory, "draft.json")), false);
   });
 
@@ -5268,7 +5277,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-draft-triage"));
     manager.addActiveFlow(created.specId, "direct");
-    const draftBytes = Buffer.from('{"goal":"Review the canonical draft."}\n', "utf8");
+    const draftBytes = canonicalDraftBytes("Review the canonical draft.");
     const revision = {
       version: 1,
       runId: created.runId,
@@ -5682,11 +5691,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
     const tooling = integration("tooling");
     const toolingResult = promote(tooling.manager, tooling.specId, {
-      result: "fail", artifacts: { failureKind: "protocol_failure", failureCode: "INTEGRATION_PROTOCOL" },
+      result: "fail", artifacts: { failureKind: "provider_failure", failureCode: "INTEGRATION_PROVIDER_FAILURE" },
     });
     tooling.manager.failCurrentAttempt({
       specId: tooling.specId,
-      failure: { category: "tooling", code: "INTEGRATION_PROTOCOL", message: "fixture", retryable: false, retryKind: null },
+      failure: { category: "tooling", code: "INTEGRATION_PROVIDER_FAILURE", message: "fixture", retryable: false, retryKind: null },
       commandResult: toolingResult,
     });
     assert.equal(resolveGateTransition(readCurrentGateTransitionFacts({
@@ -6737,7 +6746,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         action: { digest: "c".repeat(64), nextAction: { step: "draft" } },
       },
     });
-    fs.writeFileSync(handoff.payloadPath("draft.json"), '{"goal":"recover cleanup"}\n');
+    fs.writeFileSync(handoff.payloadPath("draft.json"), canonicalDraftBytes("recover cleanup"));
     sealWorkerArtifactHandoff({ requestPath: handoff.requestPath, invocationId: "canonical-recovery" });
     assert.throws(
       () => coordinator.reconcile({ ctx: context, request: handoff }),

@@ -152,9 +152,19 @@ export function draftDocumentWithPendingQuestions({
     provenance: { producer: "fixture" },
     evidenceDigest: "a".repeat(64),
   });
+  return canonicalDraftDocument({
+    goal: "Exercise an explicit draft question boundary.",
+    questions: questions.map(question),
+  });
+}
+
+export function canonicalDraftDocument({
+  goal = "Exercise a canonical draft boundary.",
+  questions = [],
+} = {}) {
   return {
     devType: "feature",
-    goal: "Exercise an explicit draft question boundary.",
+    goal,
     analysis: {
       problem: "A non-interactive worker cannot collect a user decision.",
       proposedApproach: "The CLI must yield before starting that worker.",
@@ -164,16 +174,16 @@ export function draftDocumentWithPendingQuestions({
       knownFacts: [],
       decisionPoints: [],
       resolvedByProjectRules: [],
-      requiresUserJudgment: questions.map(([id]) => id),
+      requiresUserJudgment: questions.map((entry) => entry.id),
       deferredToSpec: [],
     },
     scopeVerification: { in: [], out: [] },
-    impactOnExisting: { affected: [], unchanged: [] },
+    impactOnExisting: [],
     questionLedger: {
       revision: 0,
       publication: "fixture",
       evidenceDigest: "a".repeat(64),
-      questions: questions.map(question),
+      questions,
     },
     openQuestions: [],
     approval: { approved: false, confirmedAt: "", notes: "" },

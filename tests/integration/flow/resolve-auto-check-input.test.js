@@ -10,7 +10,11 @@ import {
   resolveAutoCheckInputForFlow,
   resolvePreparingAutoCheckInput,
 } from "../../../src/flow/lib/resolve-auto-check-input.js";
-import { CanonicalAutoCheckScenario, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import {
+  CanonicalAutoCheckScenario,
+  canonicalDraftDocument,
+  makeFlowManager,
+} from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 describe("resolve-auto-check-input — canonical and preparing authorities", () => {
@@ -78,7 +82,7 @@ describe("resolve-auto-check-input — canonical and preparing authorities", () 
     const output = resolveCanonical(canonical({
       issue: 10,
       request: "implement X",
-      draft: JSON.stringify({ goal: "DRAFT_MARKER 内容が続く" }),
+      draft: JSON.stringify(canonicalDraftDocument({ goal: "DRAFT_MARKER 内容が続く" })),
     }));
     assert.equal(output.skip, false);
     assert.match(output.text, /implement X[\s\S]*DRAFT_MARKER/);
@@ -86,7 +90,7 @@ describe("resolve-auto-check-input — canonical and preparing authorities", () 
   });
 
   it("fails closed when a cataloged draft disappears", () => {
-    const fixture = canonical({ draft: JSON.stringify({ goal: "saved" }) });
+    const fixture = canonical({ draft: JSON.stringify(canonicalDraftDocument({ goal: "saved" })) });
     const artifact = fixture.flowManager.readArtifact({
       specId: fixture.scenario.specId,
       logicalKey: "draft",
@@ -104,7 +108,7 @@ describe("resolve-auto-check-input — canonical and preparing authorities", () 
   it("approval takes precedence over an existing cataloged draft", () => {
     const output = resolveCanonical(canonical({
       issue: 10,
-      draft: JSON.stringify({ goal: "ignored draft" }),
+      draft: JSON.stringify(canonicalDraftDocument({ goal: "ignored draft" })),
       approval: true,
     }));
     assert.equal(output.skip, true);

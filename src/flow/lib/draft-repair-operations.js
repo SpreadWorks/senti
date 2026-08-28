@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { validateDraftLifecycle } from "./draft-lifecycle.js";
+import { validateDraftLifecycleForCompletion } from "./draft-lifecycle.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SHA256_REVISION = /^sha256:([a-f0-9]{64})$/;
@@ -210,7 +210,7 @@ export function applyDraftRepairOperations({ draft, triage, repair, inputRevisio
   const missingRequiredTargets = [...required.entries()]
     .filter(([key]) => !acceptedKeys.has(key))
     .map(([, value]) => value);
-  const lifecycleIssues = validateDraftLifecycle(candidate);
+  const lifecycleIssues = validateDraftLifecycleForCompletion(candidate);
   const audit = frozen({
     version: 2,
     phase,

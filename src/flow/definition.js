@@ -202,9 +202,10 @@ export function resolveDraftCompletionConnector(facts) {
   if (!(facts instanceof DraftCompletionFacts)) {
     throw new Error("resolveDraftCompletionConnector requires DraftCompletionFacts");
   }
-  return facts.eligible
-    ? createDraftCompletionConnector(facts)
-    : null;
+  if (!facts.eligible) {
+    throw new Error(`draft completion connector is unavailable: ${facts.eligibilityIssues.join("; ")}`);
+  }
+  return createDraftCompletionConnector(facts);
 }
 
 /** One sealed result for the shared draft-coverage-repair completion boundary. */
@@ -213,12 +214,12 @@ export class DraftCoverageRepairCompletionDecision {
     if (token !== DRAFT_COVERAGE_REPAIR_COMPLETION_TOKEN || !(facts instanceof DraftCompletionFacts)) {
       throw new Error("Draft coverage repair completion is created only by the definition resolver");
     }
-    if (connector !== null && !(connector instanceof DraftCompletionConnector)) {
-      throw new Error("Draft coverage repair completion requires a StepConnector or an explicit no-connector plan");
+    if (!(connector instanceof DraftCompletionConnector)) {
+      throw new Error("Draft coverage repair completion requires a DraftCompletionConnector");
     }
     this.facts = facts;
     this.connector = connector;
-    this.kind = connector === null ? "draft-coverage-repair-no-connector" : "draft-coverage-repair-completion";
+    this.kind = "draft-coverage-repair-completion";
     Object.freeze(this);
   }
 
@@ -231,7 +232,7 @@ export class DraftCoverageRepairCompletionDecision {
   }
 }
 
-/** Definition selects both the eligible connector and the explicit no-connector case. */
+/** Definition selects the mandatory connector for the shared completion boundary. */
 export function resolveDraftCoverageRepairCompletion(facts) {
   if (!(facts instanceof DraftCompletionFacts)) {
     throw new Error("resolveDraftCoverageRepairCompletion requires DraftCompletionFacts");
@@ -567,6 +568,9 @@ export function projectGatePublicOutcome(decision) {
   }
   const phase = decision.facts.phase;
   const sourceCode = decision.facts.failure?.code ?? "GATE_EXTERNAL_BLOCKED";
+  if (decision.facts.failure?.category === "local") {
+    return new GatePublicOutcomeProjection({ failureCode: "GATE_LOCAL_INPUT_INVALID" });
+  }
   return new GatePublicOutcomeProjection({
     failureCode: ["draft", "spec", "task-spec"].includes(phase) || sourceCode === "GATE_EXTERNAL_BLOCKED"
       ? "STEP_EXTERNAL_BLOCKED"
@@ -675,6 +679,11 @@ export function resolveGateTransition(facts) {
   if (facts.failure.category === "tooling") {
     return gateDecision(facts, new GateExternalBlockedDisposition(
       GATE_TRANSITION_TOKEN, facts.failure.code || "tooling_failure",
+    ));
+  }
+  if (facts.failure.category === "local") {
+    return gateDecision(facts, new GateBlockedDisposition(
+      GATE_TRANSITION_TOKEN, facts.failure.code || "local_input_invalid",
     ));
   }
   // An explicit current repair receipt may reopen a failed observation only
@@ -2060,8 +2069,8 @@ export class PersistReviewResult {
 /**
  * Definition-selected opportunity to apply the shared coverage-repair to
  * draft-gate completion boundary. The adapter reads canonical facts, then the
- * Definition selects one sealed completion decision (including explicit
- * no-connector cases) for the Store to apply without re-selection.
+ * Definition selects one sealed completion decision for the Store to apply
+ * without re-selection.
  */
 export class CompleteDraftCoverageRepair {
   constructor() {

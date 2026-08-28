@@ -27,7 +27,7 @@ function draft(questionLedger) {
     devType: "feature", goal: "Exercise typed questions.",
     analysis: { problem: "A decision is required.", proposedApproach: "Persist the ledger.", validation: "Read it again." },
     decisionMap: { knownFacts: [], decisionPoints: [], resolvedByProjectRules: [], requiresUserJudgment: [], deferredToSpec: [] },
-    questionLedger: questionLedger.toJSON(), approval: { approved: true },
+    questionLedger: questionLedger.toJSON(), approval: { approved: false },
   };
 }
 

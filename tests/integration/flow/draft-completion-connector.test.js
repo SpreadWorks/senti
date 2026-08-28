@@ -19,9 +19,7 @@ import {
   DraftCompletionFacts,
   StepConnectionReceipt,
 } from "../../../src/flow/lib/draft-completion-connector.js";
-import RunGateCommand, { checkDraftJson } from "../../../src/flow/lib/run-gate.js";
 import { ActivityStepConnectionReceipt, CurrentAttempt } from "../../../src/flow/lib/current-flow-state.js";
-import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
 import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
@@ -83,7 +81,7 @@ function repairAudit(overrides = {}) {
       envelopeErrors: [],
       baseRevisionMatches: true,
       missingRequiredTargets: [],
-      lifecycleIssues: ["draft approval is required: set approval.approved = true"],
+      lifecycleIssues: [],
     },
     ...overrides,
   };
@@ -405,7 +403,7 @@ describe("DraftCompletionConnector", () => {
     assert.equal(connector.applyTo(source).approval.approved, true);
   });
 
-  it("does not select a connector when canonical coverage facts are incomplete, stale, or structurally invalid", () => {
+  it("rejects completion selection when canonical coverage facts are incomplete, stale, or structurally invalid", () => {
     const unresolved = {
       state: "AwaitingUserAnswer",
       id: "q1",
@@ -426,8 +424,8 @@ describe("DraftCompletionConnector", () => {
     ];
 
     for (const candidate of cases) {
-      assert.equal(resolveDraftCompletionConnector(candidate), null);
-      assert.equal(resolveDraftCoverageRepairCompletion(candidate).toJSON().connector, null);
+      assert.throws(() => resolveDraftCompletionConnector(candidate), /connector is unavailable/);
+      assert.throws(() => resolveDraftCoverageRepairCompletion(candidate), /connector is unavailable/);
     }
     assert.throws(() => facts({ reviewArtifactDigest: null }), /review artifact digest/i);
     assert.throws(() => facts({ questionsReviewArtifactDigest: null }), /questions review artifact digest/i);
@@ -806,20 +804,21 @@ describe("DraftCompletionConnector", () => {
         flowManager.publishArtifacts({ specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }] });
         flowManager.confirmCurrentAttempt({ specId });
         fixture.activate("draft-coverage-review");
-        publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
+        publishCoverageReviewEvidence(flowManager, specId, sourceBytes, "REJECTED");
+        const triageDocument = {
+          version: 1,
+          phase: "draft-coverage-triage",
+          sourceReview: "draft-review-coverage.json",
+          summary: "No repair is required for this stale-plan fixture.",
+          items: [{ decision: "apply" }],
+        };
         fixture.activate("draft-coverage-triage");
         flowManager.confirmCurrentAttempt({
           specId,
           artifactWrites: [{
             logicalKey: "draft.coverage.triage",
             mediaType: "application/json",
-            bytes: Buffer.from(`${JSON.stringify({
-              version: 1,
-              phase: "draft-coverage-triage",
-              sourceReview: "draft-review-coverage.json",
-              summary: "No repair is required for this stale-plan fixture.",
-              items: [],
-            }, null, 2)}\n`, "utf8"),
+            bytes: Buffer.from(`${JSON.stringify(triageDocument, null, 2)}\n`, "utf8"),
           }],
         });
         fixture.activate("draft-coverage-repair");
@@ -838,10 +837,14 @@ describe("DraftCompletionConnector", () => {
             ? (coverageTriage.descriptor.hash === "f".repeat(64) ? "e".repeat(64) : "f".repeat(64))
           : (questionsReview.hash === "f".repeat(64) ? "e".repeat(64) : "f".repeat(64));
         const selected = resolveDraftCoverageRepairCompletion(facts({
+          source: "coverage-repair",
           draftDocument: selectedDraft,
           canonicalDigest: canonicalDraft.descriptor.hash,
           canonicalByteLength: canonicalDraft.descriptor.size,
           ...completionEvidence(flowManager, specId, { includeTriage: true }),
+          reviewVerdict: "REJECTED",
+          triage: triageDocument,
+          repair: repairAudit(),
           reviewArtifactDigest: logicalKey === "draft.coverage.review" ? staleDigest : coverageReview.descriptor.hash,
           triageArtifactDigest: logicalKey === "draft.coverage.triage" ? staleDigest : coverageTriage.descriptor.hash,
           questionsReviewArtifactDigest: logicalKey === "draft.questions.review" ? staleDigest : questionsReview.hash,
@@ -858,7 +861,7 @@ describe("DraftCompletionConnector", () => {
     }
   });
 
-  it("records an explicit no-connector promotion without changing approval, leaving draft-gate as the read-only judge", async () => {
+  it("rejects an unavailable connector before completion can publish or promote", () => {
     const repository = createTmpDir("draft-completion-no-connector-");
     const specId = "715f-draft-completion-no-connector";
     fs.writeFileSync(`${repository}/README.md`, "draft completion gate fixture\n");
@@ -868,11 +871,7 @@ describe("DraftCompletionConnector", () => {
     try {
       const fixture = new CanonicalFlowFixture({ flowManager, specId, runId: "715f-no-connector-run" });
       fixture.create().registerActive().activate("draft");
-      const unresolved = {
-        state: "AwaitingUserAnswer", id: "q1", category: "user-visible-behavior", question: "Choose behavior.",
-        revision: 0, provenance: { producer: "test" }, evidenceDigest: "d".repeat(64),
-      };
-      const source = draft({ questions: [unresolved] });
+      const source = draft();
       const sourceBytes = Buffer.from(`${JSON.stringify(source, null, 2)}\n`, "utf8");
       flowManager.publishArtifacts({
         specId, nodeId: "draft", artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: sourceBytes }],
@@ -881,44 +880,85 @@ describe("DraftCompletionConnector", () => {
       fixture.activate("draft-coverage-review");
       publishCoverageReviewEvidence(flowManager, specId, sourceBytes);
       fixture.activate("draft-coverage-repair");
-      const decision = resolveDraftCoverageRepairCompletion(facts({
+      const before = persistedSnapshot(flowManager, specId);
+      assert.throws(() => resolveDraftCoverageRepairCompletion(facts({
         draftDocument: source,
         ...completionEvidence(flowManager, specId),
-      }));
-      assert.equal(decision.connector, null);
+        reviewVerdict: "REJECTED",
+      })), /connector is unavailable/);
+      assert.equal(persistedSnapshot(flowManager, specId), before);
+      assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-coverage-repair");
+      assert.equal(flowManager.canonicalState(specId).attempt?.nodeId, "draft-coverage-repair");
+    } finally {
+      removeTmpDir(repository);
+    }
+  });
 
-      flowManager.confirmDraftCoverageRepairCompletion({ specId, decision, draft: source });
+  it("rejects malformed and incomplete drafts at every canonical writer before publication", () => {
+    const repository = createTmpDir("draft-publication-boundary-");
+    const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    try {
+      const draftWithoutApproval = draft();
+      delete draftWithoutApproval.approval;
+      for (const stepId of ["draft", "draft-questions-repair", "draft-refine", "draft-coverage-repair"]) {
+        const specId = `715f-${stepId}`;
+        new CanonicalFlowFixture({ flowManager, specId, runId: `draft-publication-${stepId}` })
+          .create().registerActive().activate(stepId);
+        for (const [caseName, bytes] of [
+          ["malformed", Buffer.from("{ invalid", "utf8")],
+          ["incomplete", Buffer.from(JSON.stringify({ ...draft(), goal: "" }), "utf8")],
+          ["missing-pending-approval", Buffer.from(JSON.stringify(draftWithoutApproval), "utf8")],
+        ]) {
+          const before = persistedSnapshot(flowManager, specId);
+          assert.throws(
+            () => flowManager.publishArtifacts({
+              specId,
+              nodeId: stepId,
+              artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes }],
+            }),
+            /draft publication (is invalid|is incomplete)/,
+          );
+          assert.equal(persistedSnapshot(flowManager, specId), before, `${stepId} ${caseName} rejection must be atomic`);
+        }
+      }
+    } finally {
+      removeTmpDir(repository);
+    }
+  });
 
-      const published = JSON.parse(flowManager.readArtifact({
-        specId, logicalKey: "draft", consumerNodeId: "draft-gate",
-      }).bytes.toString("utf8"));
-      const activity = flowManager.activityLedger(specId).at(-1);
-      assert.equal(published.approval.approved, false);
-      assert.equal(activity.transition.stepConnectionReceipt.kind, "draft-completion-no-connector");
-      assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-gate");
-      assert.equal(flowManager.canonicalState(specId).attempt, null, "promotion must not start the gate Attempt");
-      assert.ok(
-        checkDraftJson(published).some((issue) => issue.includes("approval")),
-        "draft-gate's read-only validation must retain the unapproved lifecycle issue",
-      );
-      flowManager.beginNextAction(specId);
-      const draftBeforeGate = flowManager.readArtifact({
-        specId, logicalKey: "draft", consumerNodeId: "draft-gate",
-      });
-      const ctx = {
-        root: repository, mainRoot: repository, executionRoot: repository,
-        specId, phase: "draft", config: {}, skipGuardrail: true,
-        flowManager, flowState: flowManager.load(specId),
+  it("allows an intermediate question-state writer but rejects final connector completion", () => {
+    const repository = createTmpDir("draft-question-publication-boundary-");
+    const specId = "715f-draft-question-publication";
+    const flowManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    try {
+      new CanonicalFlowFixture({ flowManager, specId, runId: "draft-question-publication" })
+        .create().registerActive().activate("draft");
+      const candidate = {
+        state: "CandidateQuestion",
+        id: "q1",
+        category: "user-visible-behavior",
+        question: "Which behavior should be selected?",
+        revision: 0,
+        provenance: { producer: "test" },
+        evidenceDigest: "d".repeat(64),
       };
-      const gateResult = await new RunGateCommand().execute(ctx);
-      assert.equal(gateResult.result, "fail");
-      await FLOW_COMMANDS.run.gate.post(ctx, gateResult);
-      const draftAfterGate = flowManager.readArtifact({
-        specId, logicalKey: "draft", consumerNodeId: "draft-refine",
+      flowManager.publishArtifacts({
+        specId,
+        nodeId: "draft",
+        artifactWrites: [{
+          logicalKey: "draft",
+          mediaType: "application/json",
+          bytes: Buffer.from(JSON.stringify(draft({ questions: [candidate] })), "utf8"),
+        }],
       });
-      assert.deepEqual(draftAfterGate.bytes, draftBeforeGate.bytes);
-      assert.equal(draftAfterGate.descriptor.hash, draftBeforeGate.descriptor.hash);
-      assert.equal(draftAfterGate.descriptor.activityId, draftBeforeGate.descriptor.activityId);
+      const unresolvedDraft = draft({ questions: [candidate] });
+      flowManager.confirmCurrentAttempt({ specId });
+      assert.equal(flowManager.canonicalState(specId).findNode("draft").status, "done");
+      assert.equal(flowManager.canonicalState(specId).nextAction().nodeId, "draft-questions-review");
+      assert.throws(
+        () => resolveDraftCompletionConnector(facts({ draftDocument: unresolvedDraft })),
+        /connector is unavailable/,
+      );
     } finally {
       removeTmpDir(repository);
     }

@@ -121,7 +121,7 @@ describe("definition-owned Gate transition boundary", () => {
     assert.deepEqual(resolveGateTransition(reload(stored)).toJSON(), resolveGateTransition(original).toJSON());
   });
 
-  it("separates semantic retry from tooling failure", () => {
+  it("separates semantic retry, local input defects, and external provider failures", () => {
     const passed = resolveGateTransition(facts());
     const semantic = resolveGateTransition(facts({
       result: "fail",
@@ -130,7 +130,15 @@ describe("definition-owned Gate transition boundary", () => {
     }));
     const tooling = resolveGateTransition(facts({
       result: "fail",
-      failure: new GateFailureCategory({ category: "tooling", code: "PROTOCOL" }),
+      failure: new GateFailureCategory({ category: "tooling", code: "GATE_REQUIRED_AGENT_SPAWN" }),
+      retry: new GateRetryMetrics({ used: 0, maximum: 1 }),
+    }));
+    const local = resolveGateTransition(facts({
+      result: "fail",
+      failure: GateFailureCategory.fromObservedGateResult({
+        result: "fail",
+        artifacts: { failureKind: "mechanical", failureCode: "DRAFT_JSON_INVALID" },
+      }),
       retry: new GateRetryMetrics({ used: 0, maximum: 1 }),
     }));
     assert.equal(semantic.disposition.operation, "retry");
@@ -138,9 +146,19 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(semantic.plan.retryMetric.operation, "increment");
     assert.equal(tooling.disposition.operation, "external-blocked");
     assert.equal(tooling.plan.retryMetric, null);
+    assert.equal(local.disposition.operation, "blocked");
+    assert.equal(local.disposition.reason, "DRAFT_JSON_INVALID");
     assert.equal(GateFailureCategory.fromObservedGateResult({
       result: "fail",
       artifacts: { failureKind: "mechanical" },
+    }).category, "local");
+    assert.equal(GateFailureCategory.fromObservedGateResult({
+      result: "fail",
+      artifacts: { failureKind: "agent-evaluation" },
+    }).category, "tooling");
+    assert.equal(GateFailureCategory.fromObservedGateResult({
+      result: "fail",
+      artifacts: { failureKind: "schema" },
     }).category, "tooling");
   });
 
@@ -156,9 +174,14 @@ describe("definition-owned Gate transition boundary", () => {
     const retry = resolveGateTransition(facts({
       result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
     }));
+    const local = resolveGateTransition(facts({
+      phase: "draft", result: "fail",
+      failure: new GateFailureCategory({ category: "local", code: "DRAFT_JSON_INVALID" }),
+    }));
 
     assert.equal(projectGatePublicOutcome(draftTooling).failureCode, "STEP_EXTERNAL_BLOCKED");
     assert.equal(projectGatePublicOutcome(integrationTooling).failureCode, "PROTOCOL");
+    assert.equal(projectGatePublicOutcome(local).failureCode, "GATE_LOCAL_INPUT_INVALID");
     assert.equal(projectGatePublicOutcome(retry).failed, false);
     const recovered = resolveGateTransition(facts({
       phase: "integration", result: "recovered",
@@ -500,6 +523,7 @@ describe("definition-owned Gate transition boundary", () => {
       actionId: decision.plan.action.identity.toJSON(),
       operation: "retry",
       reason: null,
+      failureCode: null,
       advance: false,
       nonblockingHandoff: null,
     });

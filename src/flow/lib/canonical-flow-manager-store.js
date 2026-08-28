@@ -90,6 +90,7 @@ import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-resu
 import { CanonicalRequirementDefinitions } from "./canonical-requirement-definitions.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 import { DraftLifecycle } from "./draft-lifecycle.js";
+import { DRAFT_ARTIFACT_WRITER_STEPS } from "./draft-artifact-promotion.js";
 import {
   createDraftCompletionReceipt,
   DraftCompletionAbsentLineage,
@@ -1908,6 +1909,7 @@ export class CanonicalFlowManagerStore {
       );
     }
     const producerNodeId = requiredText(nodeId, "canonical artifact publication nodeId");
+    this.#assertDraftPublication(producerNodeId, artifactWrites);
     const expectedAttempt = state.current?.at(-1) === producerNodeId && state.attempt !== null
       ? CurrentAttemptIdentity.from(state.attempt)
       : null;
@@ -1968,6 +1970,7 @@ export class CanonicalFlowManagerStore {
       throw new CurrentFlowStateInvariantError(`draft promotion does not match source ledger: ${cause.message}`);
     }
     const promotedBytes = Buffer.from(`${JSON.stringify(promotedDraft, null, 2)}\n`, "utf8");
+    this.#assertDraftPublication("draft-refine", [{ logicalKey: "draft", bytes: promotedBytes }]);
     const promotedDigest = crypto.createHash("sha256").update(promotedBytes).digest("hex");
     const state = this.runtime.load(resolved);
     if (state.current?.at(-1) !== "draft-refine" || state.attempt === null) throw new CurrentFlowStateInvariantError("draft promotion requires active draft-refine");
@@ -2517,7 +2520,7 @@ export class CanonicalFlowManagerStore {
       const receipt = StepConnectionReceipt.fromJSON(
         completionActivity.transition.stepConnectionReceipt.toJSON(),
       );
-      const replayDraft = connector === null ? structuredClone(draft) : connector.applyTo(draft);
+      const replayDraft = connector.applyTo(draft);
       if (!receipt.matchesReplay({
         connector,
         facts,
@@ -2584,10 +2587,10 @@ export class CanonicalFlowManagerStore {
     if (draftCompletionDocumentDigest(draft) !== facts.draftDocumentDigest) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion rejected a changed selected draft");
     }
-    if (connector !== null && !isDraftCompletionConnector(connector)) {
+    if (!isDraftCompletionConnector(connector)) {
       throw new CurrentFlowStateInvariantError("draft coverage repair completion connector is invalid");
     }
-    const publishedDraft = connector === null ? structuredClone(draft) : connector.applyTo(draft);
+    const publishedDraft = connector.applyTo(draft);
     const publishedDraftBytes = Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8");
     const baseline = new CanonicalFlowArtifactBaseline({
       logicalKey: "draft",
@@ -2702,7 +2705,6 @@ export class CanonicalFlowManagerStore {
     });
     const receipt = createDraftCompletionReceipt({
       connector,
-      facts,
       sourceAttempt: sourceAttemptIdentity,
       draftInput: { digest: facts.draftDigest, byteLength: facts.draftByteLength },
       publishedDraft,
@@ -2718,7 +2720,7 @@ export class CanonicalFlowManagerStore {
       }),
     });
     const connectorArtifact = {
-      kind: connector === null ? "draft-completion-no-connector" : "draft-completion-connector",
+      kind: "draft-completion-connector",
       id: receipt.id,
     };
     const baseConfirmation = result ?? {
@@ -3883,11 +3885,44 @@ export class CanonicalFlowManagerStore {
     return requiresAdmission ? this.#consumerAdmission(state, targetNodeId) : null;
   }
 
-  #producerCompletionAdmission(producerNodeId, artifactWrites) {
+  #producerCompletionAdmission(producerNodeId, artifactWrites, { requireApproval = false } = {}) {
+    this.#assertDraftPublication(producerNodeId, artifactWrites, {
+      requireApproval,
+      requireWriterCompletion: true,
+    });
     const readinesses = producerArtifactReadinessesForProducer({ producerNodeId });
     return readinesses.length === 0
       ? null
       : new ProducerArtifactPublicationAdmission({ readinesses, artifactWrites });
+  }
+
+  /** The catalog publication boundary is the single writer gate for draft structure. */
+  #assertDraftPublication(producerNodeId, artifactWrites, {
+    requireApproval = false,
+    requireWriterCompletion = false,
+  } = {}) {
+    if (!DRAFT_ARTIFACT_WRITER_STEPS.includes(producerNodeId)) return;
+    if (!Array.isArray(artifactWrites)) {
+      throw new CurrentFlowStateInvariantError("draft publication requires artifact writes");
+    }
+    const writes = artifactWrites.filter((entry) => entry?.logicalKey === "draft");
+    if (writes.length > 1) {
+      throw new CurrentFlowStateInvariantError("draft publication has duplicate draft writes");
+    }
+    const write = writes[0] ?? null;
+    if (write === null) return;
+    let lifecycle;
+    try {
+      lifecycle = new DraftLifecycle(JSON.parse(write.bytes.toString("utf8")));
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError(`draft publication is invalid: ${cause.message}`);
+    }
+    const issues = requireApproval
+      ? lifecycle.validate()
+      : requireWriterCompletion ? lifecycle.validateForWriterCompletion() : lifecycle.validateForPublication();
+    if (issues.length > 0) {
+      throw new CurrentFlowStateInvariantError(`draft publication is incomplete: ${issues.join("; ")}`);
+    }
   }
 
   /** Bind a synthetic connector to both sides of its source on one catalog snapshot. */
@@ -3900,7 +3935,9 @@ export class CanonicalFlowManagerStore {
     }
     return new StepConnectionAdmission({
       sourceConsumerAdmission,
-      sourceProducerCompletionAdmission: this.#producerCompletionAdmission(sourceNodeId, artifactWrites),
+      sourceProducerCompletionAdmission: this.#producerCompletionAdmission(sourceNodeId, artifactWrites, {
+        requireApproval: true,
+      }),
     });
   }
 

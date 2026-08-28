@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { validateDraftLifecycle } from "./draft-lifecycle.js";
+import { validateDraftLifecycleForCompletion } from "./draft-lifecycle.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -217,10 +217,6 @@ export class DraftCompletionDecisionEvidence {
   }
 }
 
-function nonApprovalLifecycleIssues(issues) {
-  return issues.filter((issue) => issue !== "draft approval is required: set approval.approved = true");
-}
-
 function triageRequiresUserDecision(triage) {
   return Array.isArray(triage?.items)
     && triage.items.some((item) => item?.decision === "requires_user_decision");
@@ -240,7 +236,7 @@ function repairEligibilityIssues(repair) {
   if (!Array.isArray(audit.missingRequiredTargets) || audit.missingRequiredTargets.length > 0) {
     issues.push("coverage repair has missing required targets");
   }
-  if (!Array.isArray(audit.lifecycleIssues) || nonApprovalLifecycleIssues(audit.lifecycleIssues).length > 0) {
+  if (!Array.isArray(audit.lifecycleIssues) || audit.lifecycleIssues.length > 0) {
     issues.push("coverage repair retains non-approval lifecycle issues");
   }
   return issues;
@@ -301,10 +297,7 @@ export class DraftCompletionFacts {
 
   #eligibilityIssues() {
     const issues = [];
-    if (this.draft.approval?.approved !== false) {
-      issues.push("draft approval marker is not pending");
-    }
-    issues.push(...nonApprovalLifecycleIssues(validateDraftLifecycle(this.draft)));
+    issues.push(...validateDraftLifecycleForCompletion(this.draft));
     if (this.reviewDraftDigest === null || this.reviewDraftDigest !== this.draftDigest) {
       issues.push("coverage review is stale for the canonical draft revision");
     }
@@ -414,17 +407,16 @@ export class DraftCompletionConnector {
  */
 export class StepConnectionReceipt {
   constructor(token, {
-    connector = null, facts = null, sourceAttempt, draftInput, draftOutput,
+    connector, sourceAttempt, draftInput, draftOutput,
     lineage, decisionEvidence,
   } = {}) {
-    if (token !== RECEIPT_TOKEN || (connector !== null && !(connector instanceof DraftCompletionConnector))
-      || (connector === null && !(facts instanceof DraftCompletionFacts))) {
+    if (token !== RECEIPT_TOKEN || !(connector instanceof DraftCompletionConnector)) {
       throw new Error("StepConnectionReceipt is created only by the connector transition plan");
     }
-    this.kind = connector === null ? "draft-completion-no-connector" : "draft-completion";
-    this.source = connector?.source ?? facts.source;
-    this.sourceStepId = connector?.sourceStepId ?? facts.sourceStepId;
-    this.targetStepId = connector?.targetStepId ?? facts.targetStepId;
+    this.kind = "draft-completion";
+    this.source = connector.source;
+    this.sourceStepId = connector.sourceStepId;
+    this.targetStepId = connector.targetStepId;
     this.sourceAttempt = sourceAttempt instanceof DraftCompletionAttemptIdentity
       ? sourceAttempt : new DraftCompletionAttemptIdentity(sourceAttempt, "draft completion sourceAttempt");
     this.draftInput = draftInput instanceof DraftCompletionRevision
@@ -456,14 +448,13 @@ export class StepConnectionReceipt {
   /** Exact replay identity excludes transaction-local Activity ids but binds every selected fact and output byte. */
   matchesReplay({ connector, facts, publishedDraft, repairArtifactBytes = null } = {}) {
     if (!(facts instanceof DraftCompletionFacts)) return false;
-    if (connector !== null && !(connector instanceof DraftCompletionConnector)) return false;
-    const expectedKind = connector === null ? "draft-completion-no-connector" : "draft-completion";
+    if (!(connector instanceof DraftCompletionConnector)) return false;
     const outputBytes = Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8");
     const repairArtifactDigest = repairArtifactBytes === null
       ? null
       : createHash("sha256").update(repairArtifactBytes).digest("hex");
     const lineageDigest = (slot) => slot instanceof DraftCompletionCatalogBinding ? slot.digest : null;
-    return this.kind === expectedKind
+    return this.kind === "draft-completion"
       && this.source === facts.source
       && this.sourceStepId === facts.sourceStepId
       && this.targetStepId === facts.targetStepId
@@ -504,7 +495,7 @@ export class StepConnectionReceipt {
     ], "draft completion receipt");
     const receipt = Object.create(StepConnectionReceipt.prototype);
     receipt.kind = requiredText(value.kind, "draft completion receipt kind");
-    if (!new Set(["draft-completion", "draft-completion-no-connector"]).has(receipt.kind)) {
+    if (receipt.kind !== "draft-completion") {
       throw new Error("draft completion receipt kind is invalid");
     }
     receipt.source = requiredText(value.source, "draft completion receipt source");
@@ -543,11 +534,11 @@ function assertReceiptConsistency(receipt) {
   }
 }
 
-export function createDraftCompletionReceipt({ connector, facts = null, sourceAttempt, draftInput, publishedDraft, lineage, decisionEvidence } = {}) {
-  if (connector !== null && !(connector instanceof DraftCompletionConnector)) throw new Error("draft completion receipt connector is invalid");
+export function createDraftCompletionReceipt({ connector, sourceAttempt, draftInput, publishedDraft, lineage, decisionEvidence } = {}) {
+  if (!(connector instanceof DraftCompletionConnector)) throw new Error("draft completion receipt requires a DraftCompletionConnector");
   const bytes = Buffer.from(`${JSON.stringify(publishedDraft, null, 2)}\n`, "utf8");
   return new StepConnectionReceipt(RECEIPT_TOKEN, {
-    connector, facts, sourceAttempt, draftInput,
+    connector, sourceAttempt, draftInput,
     draftOutput: { digest: createHash("sha256").update(bytes).digest("hex"), byteLength: bytes.length },
     lineage, decisionEvidence,
   });

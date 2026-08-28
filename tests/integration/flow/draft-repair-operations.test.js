@@ -133,7 +133,7 @@ describe("command-owned draft repair operations", () => {
       assert.equal(result.audit.acceptedOperations.length, 0);
       assert.equal(result.audit.discardedOperations[0].reason, "definition-owned completion field");
       assert.deepEqual(result.audit.audit.missingRequiredTargets, [{ key: "Repair goal\u0000goal", path: "approval.approved" }]);
-      assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")));
+      assert.equal(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")), false);
       assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
     }
   });
@@ -158,13 +158,13 @@ describe("command-owned draft repair operations", () => {
     assert.deepEqual(result.audit.audit.missingRequiredTargets, [{ key: "Repair goal\u0000goal", path: "goal" }]);
   });
 
-  it("retains lifecycle validation findings for draft-gate instead of hiding an incomplete canonical draft", () => {
+  it("retains structural lifecycle findings for publication while leaving approval to DraftCompletionConnector", () => {
     const source = draft();
     source.approval = { approved: false };
     delete source.questionLedger.questions;
     const result = apply({ draft: source, repair: repair([]) });
     assert.deepEqual(result.draft, source);
-    assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")));
+    assert.equal(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("approval")), false);
     assert.ok(result.audit.audit.lifecycleIssues.some((issue) => issue.includes("questions")));
     assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("approval")));
     assert.ok(checkDraftJson(result.draft).some((issue) => issue.includes("questions")));

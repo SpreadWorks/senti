@@ -451,28 +451,16 @@ describe("flow get next-action", () => {
     const scenario = createScenario(tmp).atFlowStep("draft");
     const draft = draftDocumentWithPendingQuestions();
     draft.questionLedger.questions[0].priority = "must";
-    publishDraft(scenario, draft);
-    scenario.atFlowStep("draft-refine");
+    assert.throws(
+      () => publishDraft(scenario, draft),
+      /draft publication is incomplete: questionLedger\.questions\[0\]: unknown field "priority"/,
+    );
 
-    const result = runCli(tmp, ["flow", "get", "next-action"]);
-
-    assert.notEqual(result.exitCode, 0);
-    assert.equal(result.envelope.errors[0].code, "DRAFT_SCHEMA_INVALID");
-    assert.match(result.envelope.errors[0].messages.join(" "), /unknown field "priority"/);
-    assert.match(result.envelope.errors[0].messages.join(" "), /reopen-draft/);
-
-    const dispatch = runCli(tmp, [
-      "flow", "run", "dispatch",
-      "--expect-run-id", RUN_ID,
-      "--expect-spec", SPEC_ID,
-      "--expect-no-issue",
-    ]);
-    assert.notEqual(dispatch.exitCode, 0);
-    assert.equal(dispatch.envelope.errors[0].code, "DRAFT_SCHEMA_INVALID");
-    assert.equal(dispatch.envelope.data.dispatch.boundary, "blocked");
+    const state = stateFor(scenario);
+    assert.equal(state.currentNodeId, "draft");
     assert.equal(
-      FlowTargetBinding.deserialize(dispatch.envelope.data.dispatch.binding).runId,
-      RUN_ID,
+      managerFor(scenario).artifactCatalog(SPEC_ID).artifacts.some((entry) => entry.logicalKey === "draft"),
+      false,
     );
   });
 

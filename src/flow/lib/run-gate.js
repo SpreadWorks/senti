@@ -3018,7 +3018,7 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
         : failedMechanicalEvaluations
           ? "mechanical_guardrail_fail"
           : "mechanical",
-      ...(!failedSemanticEvaluations ? { failureCode: "GATE_EXTERNAL_BLOCKED" } : {}),
+      ...(!failedSemanticEvaluations ? { failureCode: "GATE_LOCAL_INPUT_INVALID" } : {}),
       nextAction,
     },
   };

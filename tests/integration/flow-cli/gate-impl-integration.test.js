@@ -542,7 +542,8 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, false);
-    assert.ok(env.errors.some((error) => error.code === "STEP_EXTERNAL_BLOCKED"));
+    assert.ok(env.errors.some((error) => error.code === "GATE_LOCAL_INPUT_INVALID"));
+    assert.equal(env.data.artifacts.gateTransitionFailureCategory.category, "local");
     assert.equal(env.data.result, "fail");
     assert.deepEqual(env.data.artifacts.issues, ["spec.json has no requirements with usable ids"]);
   });

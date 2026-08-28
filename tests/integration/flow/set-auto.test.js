@@ -1,5 +1,9 @@
 import { describe, it, afterEach } from "node:test";
-import { CanonicalAutoCheckScenario, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
+import {
+  CanonicalAutoCheckScenario,
+  canonicalDraftDocument,
+  makeFlowManager,
+} from "../../support/infrastructure/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
@@ -246,7 +250,7 @@ describe("flow set auto", () => {
 
     const DRAFT_MARKER = "UNIQUE_DRAFT_CONTENT_MARKER_QWERTY";
     const REQUEST_MARKER = "REQUEST_MARKER_APPENDED_ALONGSIDE_DRAFT";
-    const draftText = JSON.stringify({ devType: "feature", goal: DRAFT_MARKER, analysis: { problem: "p", proposedApproach: "a", validation: "v" }, qa: [], approval: { approved: true } });
+    const draftText = JSON.stringify(canonicalDraftDocument({ goal: DRAFT_MARKER }));
     new CanonicalAutoCheckScenario({
       flowManager: makeFlowManager(tmp),
       specId: "001-test",
@@ -271,29 +275,24 @@ describe("flow set auto", () => {
     assert.equal(Object.hasOwn(saved, "autoCheck"), false);
   });
 
-  it("rejects auto mode when draft-gate is done but draft goal is missing", () => {
+  it("rejects an incomplete draft before it can reach draft-gate", () => {
     tmp = createTmpProject(passResponse());
-    new CanonicalAutoCheckScenario({
+    const scenario = new CanonicalAutoCheckScenario({
       flowManager: makeFlowManager(tmp),
       specId: "001-test",
       runId: "run-001-test",
       request: "add a progress bar",
       execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
-    }).create().draftGateDone(JSON.stringify({
-      devType: "feature",
-      goal: "",
-      analysis: { problem: "p", proposedApproach: "a", validation: "v" },
-      qa: [],
-      approval: { approved: true },
-    }));
+    }).create();
 
-    const res = runSetAuto(tmp, "on");
-    assert.notEqual(res.status, 0);
-    const envelope = JSON.parse(res.stdout.trim());
-    assert.equal(envelope.ok, false);
-    assert.match(JSON.stringify(envelope), /draft goal is missing/);
+    assert.throws(() => scenario.draftGateDone(JSON.stringify({
+      ...canonicalDraftDocument(),
+      goal: "",
+    })), /draft publication is incomplete: missing or empty goal/);
+
     const saved = makeFlowManager(tmp).load();
-    assert.notEqual(saved.autoApprove, true);
+    assert.equal(saved.currentNodeId, "draft");
+    assert.equal(saved.autoApprove, false);
     assert.equal(Object.hasOwn(saved, "autoCheck"), false);
   });
 

@@ -3,7 +3,8 @@
 const GATE_PHASES = new Set(["draft", "spec", "task-spec", "task-impl", "integration"]);
 const GATE_SCOPES = new Set(["flow", "task"]);
 const GATE_RESULTS = new Set(["pass", "fail", "recovered"]);
-const FAILURE_CATEGORIES = new Set(["semantic", "tooling"]);
+const FAILURE_CATEGORIES = new Set(["semantic", "local", "tooling"]);
+const LOCAL_FAILURE_KINDS = new Set(["mechanical", "mechanical_guardrail_fail"]);
 const RECOVERY_KINDS = new Set(["none", "repair", "defer", "recovered"]);
 
 function requiredText(value, field) {
@@ -78,7 +79,7 @@ export class GateCatalogPublication {
   }
 }
 
-/** A category intentionally separates semantic gate rejection from tooling failure. */
+/** A category separates semantic rejection, local input defects, and external failures. */
 export class GateFailureCategory {
   constructor({ category, code = null } = {}) {
     this.category = requiredText(category, "gate failure category");
@@ -95,8 +96,11 @@ export class GateFailureCategory {
     const artifacts = requireObject(result.artifacts, "observed Gate failure artifacts");
     const failureKind = requiredText(artifacts.failureKind, "observed Gate failure kind");
     // Only a completed semantic judgment spends the semantic Gate budget.
-    // Structural, protocol, and mechanical observations are external stops.
-    const category = failureKind === "ai_semantic_fail" ? "semantic" : "tooling";
+    // Local artifacts and mechanical checks are actionable input defects;
+    // every explicit evaluator/provider execution failure remains external.
+    const category = failureKind === "ai_semantic_fail"
+      ? "semantic"
+      : LOCAL_FAILURE_KINDS.has(failureKind) ? "local" : "tooling";
     return new GateFailureCategory({
       category,
       code: artifacts.failureCode ?? failureKind,

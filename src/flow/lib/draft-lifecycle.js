@@ -89,6 +89,12 @@ class DraftApproval {
       ? []
       : ["draft approval is required: set approval.approved = true"];
   }
+
+  validatePending() {
+    return isObject(this.raw) && this.raw.approved === false
+      ? []
+      : ["draft approval must be pending: set approval.approved = false"];
+  }
 }
 
 export class DraftLifecycle {
@@ -118,6 +124,41 @@ export class DraftLifecycle {
   }
 
   validate() {
+    return this.#validate({
+      requireApproval: true,
+      allowCandidateQuestions: false,
+      allowAwaitingQuestions: false,
+    });
+  }
+
+  /** Intermediate canonical publications retain a complete envelope while questions may still be active. */
+  validateForPublication() {
+    return this.#validate({
+      requireApproval: false,
+      allowCandidateQuestions: true,
+      allowAwaitingQuestions: true,
+    });
+  }
+
+  /** Writers may hand candidates to later draft stages, but may not leave an unanswered user prompt behind. */
+  validateForWriterCompletion() {
+    return this.#validate({
+      requireApproval: false,
+      allowCandidateQuestions: true,
+      allowAwaitingQuestions: false,
+    });
+  }
+
+  /** Final connector selection requires every draft-owned question to be resolved. */
+  validateForCompletion() {
+    return this.#validate({
+      requireApproval: false,
+      allowCandidateQuestions: false,
+      allowAwaitingQuestions: false,
+    });
+  }
+
+  #validate({ requireApproval, allowCandidateQuestions, allowAwaitingQuestions }) {
     const issues = [];
     for (const field of unknownFields(this.raw, TOP_LEVEL_FIELDS)) {
       if (field !== "qa") issues.push(`unknown field "${field}"`);
@@ -137,13 +178,15 @@ export class DraftLifecycle {
     issues.push(...this.validateQuestionStructure());
     if (this.questionLedger !== null) {
       this.questionLedger.questions.forEach((question, index) => {
-        if (question instanceof CandidateQuestion || question instanceof AwaitingUserAnswer) {
-          const state = question instanceof CandidateQuestion ? "CandidateQuestion" : "AwaitingUserAnswer";
-          issues.push(`questionLedger.questions[${index}]: state ${state} blocks spec generation`);
+        if (!allowCandidateQuestions && question instanceof CandidateQuestion) {
+          issues.push(`questionLedger.questions[${index}]: state CandidateQuestion blocks spec generation`);
+        }
+        if (!allowAwaitingQuestions && question instanceof AwaitingUserAnswer) {
+          issues.push(`questionLedger.questions[${index}]: state AwaitingUserAnswer blocks spec generation`);
         }
       });
     }
-    issues.push(...this.approval.validate());
+    issues.push(...(requireApproval ? this.approval.validate() : this.approval.validatePending()));
     return issues;
   }
 
@@ -167,6 +210,22 @@ export function parseDraftLifecycle(raw) {
 export function validateDraftLifecycle(raw) {
   try {
     return parseDraftLifecycle(raw).validate();
+  } catch (error) {
+    return [error.message];
+  }
+}
+
+export function validateDraftLifecycleForPublication(raw) {
+  try {
+    return parseDraftLifecycle(raw).validateForPublication();
+  } catch (error) {
+    return [error.message];
+  }
+}
+
+export function validateDraftLifecycleForCompletion(raw) {
+  try {
+    return parseDraftLifecycle(raw).validateForCompletion();
   } catch (error) {
     return [error.message];
   }

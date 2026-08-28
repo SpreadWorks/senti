@@ -76,6 +76,7 @@ export default class GetRuntimeLogCommand extends Command {
         key: "runtime-log",
         input: ctx,
         flowState: targetState,
+        context: ctx,
       });
       if (mismatch) {
         outputEnvelope(mismatch);

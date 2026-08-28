@@ -302,10 +302,15 @@ function definitionOwnedGateDirective(selection, { state, binding }) {
     });
   }
   if (operation === "blocked") {
+    const localInput = action.failureCode === "GATE_LOCAL_INPUT_INVALID";
     return new BlockedDirective({
-      code: "GATE_EVIDENCE_BLOCKED",
-      reason: reason || "Definition rejected the current Gate evidence.",
-      resumeInstruction: "Restore a current, catalog-bound Gate observation before continuing.",
+      code: localInput ? "GATE_LOCAL_INPUT_INVALID" : "GATE_EVIDENCE_BLOCKED",
+      reason: reason || (localInput
+        ? "Definition rejected invalid local Gate input."
+        : "Definition rejected the current Gate evidence."),
+      resumeInstruction: localInput
+        ? "Correct the local Gate input and publish a fresh current Gate observation before continuing."
+        : "Restore a current, catalog-bound Gate observation before continuing.",
     });
   }
   if (operation === "repair") {

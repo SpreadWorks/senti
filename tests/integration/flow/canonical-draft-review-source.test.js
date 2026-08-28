@@ -4,6 +4,7 @@ import { afterEach, describe, it } from "node:test";
 import { CanonicalDraftReviewSource } from "../../../src/flow/lib/canonical-review-artifacts.js";
 import { ReviewTargetAuthority } from "../../../src/flow/lib/review-target-authority.js";
 import {
+  canonicalDraftDocument,
   canonicalFixtureProducerResult,
   FlowAtStepFixture,
   makeFlowManager,
@@ -73,7 +74,7 @@ describe("canonical draft review source", () => {
       artifactWrites: [{
         logicalKey: "draft",
         mediaType: "application/json",
-        bytes: Buffer.from(JSON.stringify({ goal: "atomically confirmed draft" }), "utf8"),
+        bytes: Buffer.from(JSON.stringify(canonicalDraftDocument({ goal: "atomically confirmed draft" })), "utf8"),
       }],
     });
     return flowManager;
@@ -115,7 +116,7 @@ describe("canonical draft review source", () => {
     completeStep(flowManager, "draft-questions-repair", [{
       logicalKey: "draft",
       mediaType: "application/json",
-      bytes: Buffer.from(JSON.stringify({ goal: "question-repaired draft" }), "utf8"),
+      bytes: Buffer.from(JSON.stringify(canonicalDraftDocument({ goal: "question-repaired draft" })), "utf8"),
     }]);
 
     const questionsSource = new CanonicalDraftReviewSource({
@@ -128,7 +129,7 @@ describe("canonical draft review source", () => {
     completeStep(flowManager, "draft-refine", [{
       logicalKey: "draft",
       mediaType: "application/json",
-      bytes: Buffer.from(JSON.stringify({ goal: "refined draft" }), "utf8"),
+      bytes: Buffer.from(JSON.stringify(canonicalDraftDocument({ goal: "refined draft" })), "utf8"),
     }]);
     const coverageSource = new CanonicalDraftReviewSource({
       flowManager,
@@ -142,7 +143,7 @@ describe("canonical draft review source", () => {
     completeStep(flowManager, "draft-coverage-repair", [{
       logicalKey: "draft",
       mediaType: "application/json",
-      bytes: Buffer.from(JSON.stringify({ goal: "coverage-repaired draft" }), "utf8"),
+      bytes: Buffer.from(JSON.stringify(canonicalDraftDocument({ goal: "coverage-repaired draft" })), "utf8"),
     }]);
     const repairedCoverageSource = new CanonicalDraftReviewSource({
       flowManager,
