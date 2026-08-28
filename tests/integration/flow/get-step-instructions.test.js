@@ -106,6 +106,25 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /must be small, auditable, and limited to triage `apply` items/);
     });
 
+    it("draft repair prompts request operation proposals, never a replacement draft", () => {
+      for (const key of ["plan.draft-questions-repair", "plan.draft-coverage-repair"]) {
+        const content = getStepInstructions(key);
+        assert.match(content, /Write only `draft-(?:questions|coverage)-repair\.json`/);
+        assert.match(content, /never write `draft\.json`/);
+        assert.match(content, /`replace-value`/);
+        assert.match(content, /`allowedFieldPaths`/);
+        assert.match(content, /ignore(?:s|d) and audit(?:s|ed)/i);
+        assert.match(content, /approval.*owned exclusively by `draft-gate`/i);
+      }
+    });
+
+    it("keeps coverage review and repair responsibilities separate", () => {
+      const content = getStepInstructions("plan.draft-coverage-review");
+      assert.match(content, /parent publishes the derived draft/);
+      assert.match(content, /draft-gate.*strict structural and approval validation/);
+      assert.doesNotMatch(content, /draft-coverage-repair.*responsible for setting draft approval/);
+    });
+
     it("spec-repair prompt exposes the v1 proposal and structured permission contract", () => {
       const content = getStepInstructions("plan.spec-repair");
 

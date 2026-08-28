@@ -4,6 +4,7 @@ import {
 } from "./draft-review-routes.js";
 import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
 import { DraftReviewRevisionBinding } from "./draft-review-revision.js";
+import { validateDraftRepairTriage } from "./draft-repair-operations.js";
 
 const MAX_DRAFT_CHANGED_FIELD_PATHS = 20;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
@@ -323,12 +324,17 @@ function validateDraftTriageArtifact(issues, route, review, triageFile) {
     validateRequiredStringFields(issues, prefix, item, DRAFT_TRIAGE_ITEM_FIELDS);
     if (!ALLOWED_DRAFT_TRIAGE_DECISIONS.has(item?.decision)) issues.push(`${prefix}.decision is invalid`);
     if (item?.decision === "requires_user_decision") issues.push(`${prefix}.decision requires user decision`);
+    if (item?.decision === "apply") {
+      if (!Array.isArray(item.allowedFieldPaths)) issues.push(`${prefix}.allowedFieldPaths must be an array`);
+      if (!Array.isArray(item.requiredFieldPaths)) issues.push(`${prefix}.requiredFieldPaths must be an array`);
+    }
   }
   for (const [key, requiredCount] of requiredCounts) {
     if ((triageCounts.get(key) || 0) < requiredCount) {
       issues.push(`${route.triageArtifact}: missing item for ${requiredItemsByKey.get(key).title}`);
     }
   }
+  for (const issue of validateDraftRepairTriage(triage)) issues.push(`${route.triageArtifact}: ${issue}`);
   return triageItems;
 }
 
@@ -339,6 +345,14 @@ function validateDraftRepairArtifact(issues, route, triageItems, repairFile) {
   }
   const repair = repairFile.document;
   if (!validateArtifactObject(issues, route.repairArtifact, repair)) return;
+  if (repair.version === 2) {
+    if (repair.phase !== route.repairStepId) issues.push(`${route.repairArtifact}: phase must be ${route.repairStepId}`);
+    if (repair.sourceTriage !== route.triageArtifact) issues.push(`${route.repairArtifact}: sourceTriage must be ${route.triageArtifact}`);
+    if (!Array.isArray(repair.acceptedOperations)) issues.push(`${route.repairArtifact}: acceptedOperations must be an array`);
+    if (!Array.isArray(repair.discardedOperations)) issues.push(`${route.repairArtifact}: discardedOperations must be an array`);
+    if (!repair.audit || typeof repair.audit !== "object" || Array.isArray(repair.audit)) issues.push(`${route.repairArtifact}: audit must be an object`);
+    return;
+  }
   if (repair.version !== 1) issues.push(`${route.repairArtifact}: version must be 1`);
   if (repair.phase !== route.repairStepId) issues.push(`${route.repairArtifact}: phase must be ${route.repairStepId}`);
   if (repair.sourceTriage !== route.triageArtifact) issues.push(`${route.repairArtifact}: sourceTriage must be ${route.triageArtifact}`);

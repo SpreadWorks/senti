@@ -146,11 +146,11 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
     return;
   }
   if (["draft-questions-repair", "draft-coverage-repair"].includes(stepId)) {
-    const prefix = stepId.replace("-repair", "");
-    fs.writeFileSync(payloadPath(request, `${stepId}.json`), workerArtifactJson({
-      version: 1, phase: stepId, sourceTriage: `${prefix}-triage.json`, summary: "No applied repairs.", items: [],
-    }));
-    fs.writeFileSync(payloadPath(request, "draft.json"), workerArtifactJson(inputDocument(request, "draft.json")));
+    fs.writeFileSync(payloadPath(request, `${stepId}.json`), workerArtifactJson(
+      stepId === "draft-questions-repair"
+        ? {}
+        : { version: 1, baseRevision: `sha256:${request.inputRevision}`, operations: [] },
+    ));
     return;
   }
   if (stepId === "spec-triage") {
@@ -526,6 +526,24 @@ describe("deterministic full Flow worker handoff", () => {
       const repairedSpec = JSON.parse(flowManager.readArtifact({ specId, logicalKey: "spec.record", consumerNodeId: "approval" }).bytes.toString("utf8"));
       assert.equal(repairedSpec.requirements.find((requirement) => requirement.id === "R1").desc, "The requirement retains publication authority.");
       assert.equal(repairedSpec.background, "The background retains publication authority.");
+      const draftRepairAudit = JSON.parse(flowManager.readArtifact({
+        specId,
+        logicalKey: "draft.questions.repair",
+        consumerNodeId: "draft-refine",
+      }).bytes.toString("utf8"));
+      const canonicalDraft = JSON.parse(flowManager.readArtifact({
+        specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-gate",
+      }).bytes.toString("utf8"));
+      assert.deepEqual(draftRepairAudit.audit.envelopeErrors, [
+        "draft repair version is invalid",
+        "draft repair baseRevision is invalid",
+        "draft repair operations are invalid",
+      ]);
+      assert.equal(draftRepairAudit.acceptedOperations.length, 0);
+      assert.equal(canonicalDraft.goal, "full flow");
+      assert.equal(canonicalDraft.analysis.problem, "Exercise the full flow.");
     } finally {
       removeTmpDir(temporaryRoot);
     }

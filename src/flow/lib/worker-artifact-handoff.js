@@ -31,6 +31,7 @@ import {
   applySpecRepairOperations,
   SpecRepairOperationsError,
 } from "./spec-repair-operations.js";
+import { applyDraftRepairOperations } from "./draft-repair-operations.js";
 import {
   requiresWorkerArtifactHandoff,
   requiresWorkerSourceHandoff,
@@ -397,10 +398,9 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "draft-questions-repair",
     inputs: ["draft.json", "draft-review-questions.json", "draft-questions-triage.json"],
-    payloads: [
-      { logicalName: "draft-questions-repair.json", targetRelativePath: "draft-questions-repair.json" },
-      { logicalName: "draft.json", targetRelativePath: "draft.json" },
-    ],
+    // The worker proposes a bounded patch only. The parent reconstructs and
+    // validates the draft from the immutable input before it publishes it.
+    payloads: [{ logicalName: "draft-questions-repair.json", targetRelativePath: "draft-questions-repair.json" }],
     revisionKind: "draft",
   }),
   new WorkerArtifactHandoffPolicy({
@@ -417,10 +417,8 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "draft-coverage-repair",
     inputs: ["draft.json", "draft-review-coverage.json", "draft-coverage-triage.json"],
-    payloads: [
-      { logicalName: "draft-coverage-repair.json", targetRelativePath: "draft-coverage-repair.json" },
-      { logicalName: "draft.json", targetRelativePath: "draft.json" },
-    ],
+    // Keep draft publication parent-owned for the same reason as spec repair.
+    payloads: [{ logicalName: "draft-coverage-repair.json", targetRelativePath: "draft-coverage-repair.json" }],
     revisionKind: "draft",
   }),
   new WorkerArtifactHandoffPolicy({
@@ -3127,18 +3125,47 @@ function canonicalDraftReviewEvidence(request, submission, state, route, { triag
   });
 }
 
+function draftRepairRouteForRequest(request) {
+  const route = draftReviewRouteForStepId(request.stepId);
+  return route?.repairStepId === request.stepId ? route : null;
+}
+
+function draftRepairResult(request, submission) {
+  const route = draftRepairRouteForRequest(request);
+  if (route === null) return null;
+  const draftInput = request.inputs.find((input) => input.name === "draft.json");
+  const triageInput = request.inputs.find((input) => input.name === route.triageArtifact);
+  if (!draftInput || !triageInput) {
+    throw new Error(`draft repair handoff is missing immutable inputs for ${request.stepId}`);
+  }
+  return applyDraftRepairOperations({
+    draft: draftInput.document,
+    triage: triageInput.document,
+    repair: payloadDocument(request, submission, route.repairArtifact),
+    inputRevision: request.inputRevision,
+    phase: request.stepId,
+  });
+}
+
 function validateDraftPayload(request, submission, state) {
+  const route = draftRepairRouteForRequest(request);
+  if (route !== null) {
+    const repair = draftRepairResult(request, submission).audit;
+    const evidence = canonicalDraftReviewEvidence(request, submission, state, route, {
+      repair: new CanonicalDraftReviewHandoffArtifact({
+        name: route.repairArtifact,
+        digest: digest(stableStringify(repair)),
+        document: repair,
+      }),
+    });
+    const validation = evidence.validateThrough(request.stepId);
+    if (validation.issues.length > 0) throw new Error(validation.issues.join("; "));
+    return;
+  }
   const draft = payloadDocument(request, submission, "draft.json");
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
     throw new Error("draft.json must contain a JSON object");
   }
-  const route = draftReviewRouteForStepId(request.stepId);
-  if (!route) return;
-  const evidence = canonicalDraftReviewEvidence(request, submission, state, route, {
-    repair: canonicalDraftReviewPayload(request, submission, route.repairArtifact),
-  });
-  const validation = evidence.validateThrough(request.stepId);
-  if (validation.issues.length > 0) throw new Error(validation.issues.join("; "));
 }
 
 function assertPlanGateRepairMadeProgress(request, submission, state, logicalName) {
@@ -3628,6 +3655,8 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
     })
     : null;
   const specRepairAudit = specRepairResult?.audit ?? null;
+  const repairRoute = draftRepairRouteForRequest(request);
+  const draftRepairResultValue = repairRoute === null ? null : draftRepairResult(request, submission);
   const addArtifactBaseline = (baseline) => {
     const relativePath = baseline.artifact.relativePath;
     const existing = artifactBaselines.get(relativePath) ?? null;
@@ -3655,7 +3684,9 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
   for (const entry of submission.payloadManifest) {
     const bytes = specRepairResult !== null && entry.logicalName === "spec-repair.json"
       ? Buffer.from(`${JSON.stringify(specRepairAudit, null, 2)}\n`, "utf8")
-      : manifestPayloadBytes(request, entry, "canonical handoff payload");
+      : draftRepairResultValue !== null && entry.logicalName === repairRoute.repairArtifact
+        ? Buffer.from(`${JSON.stringify(draftRepairResultValue.audit, null, 2)}\n`, "utf8")
+        : manifestPayloadBytes(request, entry, "canonical handoff payload");
     if (entry.targetRelativePath.startsWith("tests/")) {
       testEntries.push({
         targetRelativePath: entry.targetRelativePath,
@@ -3703,6 +3734,13 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
   }
   if (specRepairResult !== null) {
     specRecord = new CanonicalWorkerSpecPublication(specRepairResult.spec);
+  }
+  if (draftRepairResultValue !== null) {
+    const address = new CanonicalWorkerArtifactAddress("draft.json");
+    artifactWrites.push(address.publication(
+      Buffer.from(`${JSON.stringify(draftRepairResultValue.draft, null, 2)}\n`, "utf8"),
+      "application/json",
+    ));
   }
   if (testEntries.length > 0) {
     const replacement = new CanonicalWorkerTestTree(testEntries)

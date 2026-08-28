@@ -10,8 +10,9 @@
      - `decision`: one of `apply`, `invalid`, `already_resolved`, `downgraded_to_non_blocking`, or `requires_user_decision`.
      - `rationale`: why that decision was made.
      - `evidence`: concrete evidence for the decision, such as a `draft.json` field path, request fact, source/code context, or the reason the finding is non-blocking.
+     - For `apply` only, `allowedFieldPaths`: the exact existing draft field paths the next worker may replace, and `requiredFieldPaths`: the subset that must be proposed to resolve this finding. Do not grant a whole object, an unrelated field, or any approval path: approval is owned exclusively by `draft-gate`.
    - Use `apply` when the item is still valid and existing evidence directly supports answering or dropping the question without user input. A requirement already stated by the authoritative Issue/request is existing evidence, not a new user decision.
-   - Use `invalid` when the item belongs to gate-owned mechanical checks, contradicts verified context, asks for broader scope, or is not grounded in the draft question review criteria.
+   - Use `invalid` when the item concerns approval or another gate-owned mechanical check, contradicts verified context, asks for broader scope, or is not grounded in the draft question review criteria. Triage must never use `apply` to set approval automatically.
    - Use `already_resolved` when the current `draft.json` already covers the item.
    - Use `downgraded_to_non_blocking` when the item is useful context but does not block draft refinement.
    - Use `requires_user_decision` only when resolving the item truly requires new user input after checking every supplied authority. Preserve that QA entry as unresolved; the parent dispatcher owns the user boundary.
@@ -28,7 +29,9 @@
            "target": "copied finding target",
            "decision": "apply",
            "rationale": "why this decision was made",
-           "evidence": "draft.json questionLedger.questions[0].question is duplicated"
+           "evidence": "draft.json questionLedger.questions[0].question is duplicated",
+           "allowedFieldPaths": ["questionLedger.questions[0].question"],
+           "requiredFieldPaths": ["questionLedger.questions[0].question"]
          }
        ]
      }

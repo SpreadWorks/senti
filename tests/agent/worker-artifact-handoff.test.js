@@ -152,18 +152,17 @@ function action(stepId) {
         '{"version":1,"phase":"draft-questions-triage","sourceReview":"draft-review-questions.json",',
         '"summary":"Apply the parent publication repair.","items":[{"title":"Publish through the parent",',
         '"target":"goal","decision":"apply","rationale":"The review target is valid.",',
-        '"evidence":"The parent owns canonical publication."}]}',
+        '"evidence":"The parent owns canonical publication.","allowedFieldPaths":["goal"],"requiredFieldPaths":["goal"]}]}',
         "Do not rename or omit items. Then seal the handoff exactly once.",
       ].join(" ")
     : [
-        "Use only the immutable handoff input snapshots and write both declared payloads.",
+        "Use only the immutable handoff input snapshots and write the declared payload.",
         "Write the declared draft-questions-repair.json payload with exactly this JSON shape:",
-        '{"version":1,"phase":"draft-questions-repair","sourceTriage":"draft-questions-triage.json",',
-        '"summary":"Applied the parent publication repair.","items":[{"title":"Publish through the parent",',
-        '"target":"goal","rationale":"The repair uses the guarded handoff.",',
-        '"evidence":"The parent publishes the sealed bytes.","changedFieldPaths":["goal"]}]}',
-        `Write the declared draft.json payload with exactly this JSON document: ${JSON.stringify(draftHandoffPayload("Parent publication is canonical."))}`,
-        "Do not rename or omit items. Then seal the handoff exactly once.",
+        '"version":1,"baseRevision":"sha256:<exact inputRevision>","operations":[{"title":"Publish through the parent",',
+        '"target":"goal","kind":"replace-value","path":"goal",',
+        '"expectedDigest":"634747b65b9a50fcc3d49a71b10763c810dd2a8f88b9446acdd99f4e1012cea9","replacement":"Parent publication is canonical.",',
+        '"reason":"The parent publishes the derived canonical draft."}]}',
+        "Use the exact inputRevision from the handoff request for baseRevision. Do not rename or omit items. Then seal the handoff exactly once.",
       ].join(" ");
   return {
     taskId: null,

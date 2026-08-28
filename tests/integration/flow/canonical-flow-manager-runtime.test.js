@@ -5308,6 +5308,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
         decision: "apply",
         rationale: "The target is valid.",
         evidence: "The parent owns durable publication.",
+        allowedFieldPaths: ["goal"],
+        requiredFieldPaths: ["goal"],
       }],
     }, null, 2)}\n`);
     sealWorkerArtifactHandoff({ requestPath: handoff.requestPath, invocationId: "canonical-draft-triage" });
@@ -5340,18 +5342,25 @@ describe("FlowManager canonical Version-1 runtime", () => {
     );
     fs.writeFileSync(repairHandoff.payloadPath("draft-questions-repair.json"), `${JSON.stringify({
       version: 1,
-      phase: "draft-questions-repair",
-      sourceTriage: "draft-questions-triage.json",
-      summary: "Applied the repair target.",
-      items: [{
+      baseRevision: `sha256:${repairHandoff.inputRevision}`,
+      operations: [{
+        title: "Outside the triage scope",
+        target: "outside",
+        kind: "replace-value",
+        path: "goal",
+        expectedDigest: crypto.createHash("sha256").update(JSON.stringify("Review the canonical draft.")).digest("hex"),
+        replacement: "This proposal must be discarded.",
+        reason: "This operation is intentionally outside the triage scope.",
+      }, {
         title: "Publish through the parent",
         target: "goal",
-        rationale: "The parent owns durable publication.",
-        evidence: "The sealed payload is cataloged by the parent.",
-        changedFieldPaths: ["goal"],
+        kind: "replace-value",
+        path: "goal",
+        expectedDigest: crypto.createHash("sha256").update(JSON.stringify("Review the canonical draft.")).digest("hex"),
+        replacement: "Repaired through the parent.",
+        reason: "The parent owns durable publication.",
       }],
     }, null, 2)}\n`);
-    fs.writeFileSync(repairHandoff.payloadPath("draft.json"), '{"goal":"Repaired through the parent."}\n');
     sealWorkerArtifactHandoff({ requestPath: repairHandoff.requestPath, invocationId: "canonical-draft-repair" });
 
     const repaired = coordinator.reconcile({ ctx: context, request: repairHandoff });
@@ -5360,9 +5369,17 @@ describe("FlowManager canonical Version-1 runtime", () => {
       logicalKey: "draft",
       consumerNodeId: "draft-refine",
     });
+    const repairAudit = manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "draft.questions.repair",
+      consumerNodeId: "draft-refine",
+    });
     assert.equal(repaired.completed, true);
     assert.equal(manager.canonicalState(created.specId).findNode("draft-questions-repair").status, "done");
     assert.equal(JSON.parse(draft.bytes.toString("utf8")).goal, "Repaired through the parent.");
+    assert.equal(JSON.parse(repairAudit.bytes.toString("utf8")).acceptedOperations.length, 1);
+    assert.equal(JSON.parse(repairAudit.bytes.toString("utf8")).discardedOperations[0].reason, "unauthorized operation");
+    assert.deepEqual(JSON.parse(repairAudit.bytes.toString("utf8")).audit.envelopeErrors, []);
     assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-repair.json")), false);
   });
 
