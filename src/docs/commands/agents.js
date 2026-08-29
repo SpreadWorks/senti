@@ -21,6 +21,7 @@ import { loadSpecDrivenDevelopmentTemplate } from "../../lib/agents-md.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 
 const logger = createLogger("agents");
 
@@ -194,7 +195,7 @@ async function runAgents(ctx, rawArgs) {
     const agentsBuilt = agentsPb.build();
 
     try {
-      const result = await agent.call(agentsBuilt.userPrompt, {
+      const result = await DocumentationAgent.from(agent).call(agentsBuilt.userPrompt, {
         commandId: "docs.agents",
         systemPrompt: agentsBuilt.systemPrompt,
       });

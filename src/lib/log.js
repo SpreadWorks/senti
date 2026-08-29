@@ -27,6 +27,7 @@ import fs from "fs";
 import path from "path";
 
 import { maskSensitive } from "./log-masking.js";
+import { FlowAttributionPolicy } from "./flow-attribution.js";
 import { PRODUCT } from "./product.js";
 
 /** Absolute path of this module file, used to exclude own frames in extractCaller. */
@@ -121,6 +122,7 @@ export class Logger {
   #enabled;
   #entryCommand;
   #flowManager;
+  #flowAttribution;
   #cwd;
   #pending = new Set();
 
@@ -130,13 +132,15 @@ export class Logger {
    * @param {boolean} opts.enabled      - Whether logging I/O is active.
    * @param {string|null} [opts.entryCommand]  - Argv string for metadata.
    * @param {Object|null} [opts.flowManager]   - FlowManager for end-event context.
+   * @param {"ambient"|"none"} [opts.flowAttribution] - Whether logs inherit Flow context.
    * @param {string|null} [opts.cwd]    - Cwd for relative promptFile paths.
    */
-  constructor({ logDir, enabled, entryCommand = null, flowManager = null, cwd = null }) {
+  constructor({ logDir, enabled, entryCommand = null, flowManager = null, flowAttribution = "ambient", cwd = null }) {
     this.#logDir = logDir;
     this.#enabled = enabled === true;
     this.#entryCommand = entryCommand ?? null;
     this.#flowManager = flowManager ?? null;
+    this.#flowAttribution = new FlowAttributionPolicy(flowAttribution);
     this.#cwd = cwd ?? null;
   }
 
@@ -207,7 +211,7 @@ export class Logger {
         taskId: ctx?.taskId ?? null,
       };
     }
-    if (!this.#flowManager || this.#resolvingContext) {
+    if (!this.#flowAttribution.usesFlowState || !this.#flowManager || this.#resolvingContext) {
       return { specId: null, flowPhase: null, taskId: null };
     }
     this.#resolvingContext = true;

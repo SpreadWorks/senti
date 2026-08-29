@@ -24,6 +24,7 @@ import { PRODUCT } from "../../lib/product.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 
 const logger = createLogger("init");
 
@@ -110,7 +111,7 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
 
   let response;
   try {
-    response = await agent.call(initBuilt.userPrompt, {
+    response = await DocumentationAgent.from(agent).call(initBuilt.userPrompt, {
       commandId: "docs.init",
       systemPrompt: initBuilt.systemPrompt,
       jsonSchema: initBuilt.jsonSchema,

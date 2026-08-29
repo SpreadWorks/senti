@@ -133,6 +133,8 @@ function buildPaths(root, config, opts = {}) {
  *   repository authority after the managed worktree is removed.
  * @param {boolean} [opts.allowInvalidConfig] - Initialize with null config so
  *   migration commands can repair config that strict validation rejects.
+ * @param {"ambient"|"none"} [opts.flowAttribution] - Ambient Flow attribution
+ *   policy for command-level diagnostic logging.
  */
 export function initContainer(opts = {}) {
   // Idempotent: if already initialized (e.g. by sennel.js before a
@@ -198,6 +200,7 @@ export function initContainer(opts = {}) {
     enabled: configLoaded && config?.logs?.enabled === true,
     entryCommand: opts.entryCommand ?? null,
     flowManager: loggerFlowManager,
+    flowAttribution: opts.flowAttribution ?? "ambient",
     cwd: durableFinalizeRoot || root,
   });
   container.register("logger", logger);

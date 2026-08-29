@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import { parseBlocks, BLOCK_START_RE, BLOCK_END_RE } from "./directive-parser.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "./documentation-agent.js";
 import { resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
 
 const SPECIAL_FILES = new Set(["README.md", "flow-agent-instructions.md", "layout.md"]);
@@ -432,7 +433,7 @@ export async function translateTemplate(content, fromLang, toLang, agent, _root)
   const built = pb.build();
 
   try {
-    return await agent.call(built.userPrompt, {
+    return await DocumentationAgent.from(agent).call(built.userPrompt, {
       commandId: "docs.init",
       systemPrompt: built.systemPrompt,
     });

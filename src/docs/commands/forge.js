@@ -25,6 +25,7 @@ import { createResolver } from "../lib/resolver-factory.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { loadSpecJson, specJsonToPromptText } from "../../lib/spec-json.js";
 import {
@@ -148,7 +149,7 @@ async function invokeAgent(agent, prompt, { systemPrompt, verbose, label }) {
   const built = pb.build();
 
   try {
-    return await agent.call(built.userPrompt, {
+    return await DocumentationAgent.from(agent).call(built.userPrompt, {
       commandId: "docs.forge",
       systemPrompt: built.systemPrompt,
       onStdout: verbose ? (chunk) => process.stderr.write(chunk) : undefined,

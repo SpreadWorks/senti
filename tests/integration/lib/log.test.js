@@ -30,6 +30,7 @@ function buildLogger(tmpDir, opts = {}) {
     enabled: opts.enabled ?? true,
     entryCommand: opts.entryCommand ?? "test",
     flowManager: opts.flowManager ?? null,
+    flowAttribution: opts.flowAttribution ?? "ambient",
     cwd: opts.cwd ?? tmpDir,
   });
 }
@@ -198,6 +199,27 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     const entries = readJsonl(logFile);
     assert.equal(entries[0].specId, null);
     assert.equal(entries[0].flowPhase, null);
+  });
+
+  it("does not inspect an ambient Flow when attribution is disabled", async () => {
+    let contextReads = 0;
+    const flowManager = {
+      resolveCurrentContext: () => {
+        contextReads += 1;
+        throw new Error("stale active Flow must remain unread");
+      },
+    };
+    const inst = buildLogger(tmpDir, { flowManager, flowAttribution: "none" });
+
+    await inst.git({ cmd: ["git", "status"], exitCode: 0, stderr: "" });
+    await inst.agent({ phase: "start", requestId: "abcdef05" });
+    await inst.flush();
+
+    assert.equal(contextReads, 0);
+    const entries = readJsonl(logFile);
+    assert.deepEqual(entries.map((entry) => entry.type), ["git", "agent"]);
+    assert.equal(entries[1].specId, null);
+    assert.equal(entries[1].flowPhase, null);
   });
 
   it("requestId links start/end and prompt file name", async () => {

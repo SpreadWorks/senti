@@ -100,6 +100,7 @@ describe("processTemplateFileBatch", () => {
 
     assert.equal(calls.length, 1);
     assert.equal(calls[0].executionWorkDir, tmp);
+    assert.equal(calls[0].flowAttribution, "none");
   });
 
   it("replaces existing content between {{text}} tags without duplicating opening tag", async () => {

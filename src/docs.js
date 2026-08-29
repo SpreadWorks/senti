@@ -9,6 +9,6 @@
 import { container, initContainer } from "./lib/container.js";
 import { NamespaceDispatcher } from "./lib/namespace-dispatcher.js";
 
-initContainer();
+initContainer({ flowAttribution: "none" });
 
 await new NamespaceDispatcher({ namespace: "docs", container }).run(process.argv.slice(2));

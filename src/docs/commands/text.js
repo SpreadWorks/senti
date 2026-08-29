@@ -18,6 +18,7 @@ import { mapWithConcurrency } from "../lib/concurrency.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 import {
   getAnalysisContext,
   getEnrichedContext,
@@ -341,7 +342,7 @@ async function invokeAgent(agent, prompt, preamblePatterns, systemPrompt, extraO
   if (systemPrompt) pb.setRole(systemPrompt);
   pb.addUserPrompt("## Content", prompt);
   const built = pb.build();
-  const result = await agent.call(built.userPrompt, {
+  const result = await DocumentationAgent.from(agent).call(built.userPrompt, {
     commandId: "docs.text",
     systemPrompt: built.systemPrompt,
     ...extraOptions,

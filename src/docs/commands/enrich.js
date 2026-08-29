@@ -29,6 +29,7 @@ import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 
 const logger = createLogger("enrich");
 const DEFAULT_BATCH_TOKEN_LIMIT = 10000;
@@ -526,7 +527,7 @@ async function runEnrich(ctx, rawArgs) {
 
     let response;
     try {
-      response = await agent.call(enrichBuilt.userPrompt, {
+      response = await DocumentationAgent.from(agent).call(enrichBuilt.userPrompt, {
         commandId: ctx.commandId || "docs.enrich",
         systemPrompt: enrichBuilt.systemPrompt,
         jsonSchema: enrichBuilt.jsonSchema,

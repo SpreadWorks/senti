@@ -18,6 +18,7 @@ import { getChapterFiles, stripResponsePreamble } from "../lib/command-context.j
 import { mapWithConcurrency } from "../lib/concurrency.js";
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { DocumentationAgent } from "../lib/documentation-agent.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 
@@ -74,7 +75,7 @@ async function translateDocument(content, fromLang, toLang, agent, _root, docume
   pb.addUserPrompt("## Document", content);
   const built = pb.build();
 
-  const result = await agent.call(built.userPrompt, {
+  const result = await DocumentationAgent.from(agent).call(built.userPrompt, {
     commandId: "docs.translate",
     systemPrompt: built.systemPrompt,
   });

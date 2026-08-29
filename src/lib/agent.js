@@ -27,6 +27,7 @@ import { persistAgentInvocationMetric } from "./agent-invocation-metric.js";
 import { AgentTimeout, DEFAULT_AGENT_PROCESS_TREE_GRACE_MS } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
+import { FlowAttributionPolicy } from "./flow-attribution.js";
 import {
   AgentFailure,
   AgentPermissionConfigurationFailure,
@@ -932,25 +933,6 @@ class PromptCachePolicy {
     this.readsCache = normalized === "default";
     this.writesCache = normalized === "default";
     Object.freeze(this);
-  }
-}
-
-class FlowAttributionPolicy {
-  constructor(mode = "ambient") {
-    const normalized = mode ?? "ambient";
-    if (normalized !== "ambient" && normalized !== "none") {
-      throw new Error(`invalid flow attribution mode: ${normalized}`);
-    }
-    this.mode = normalized;
-    Object.freeze(this);
-  }
-
-  get usesFlowState() {
-    return this.mode === "ambient";
-  }
-
-  get logContext() {
-    return this.usesFlowState ? undefined : null;
   }
 }
 

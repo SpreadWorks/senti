@@ -82,6 +82,7 @@ if (definition && isHelpRequest(rest) && coreCommandRegistry.find(sharedHelpTopi
 initContainer({
   entryCommand: rawArgs.join(" "),
   agentWorkDirOverride,
+  flowAttribution: subCmd === "docs" ? "none" : "ambient",
   finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
   allowInvalidConfig: definition?.allowInvalidConfig === true || !definition,
 });
