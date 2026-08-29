@@ -35,11 +35,14 @@ import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
 import {
-  validateSpecTriageDocument,
+  CanonicalSpecReview,
+  SpecReviewDelta,
+  mergeSpecReviewDelta,
 } from "./spec-review-artifacts.js";
 import {
   applySpecRepairOperations,
   SpecRepairOperationsError,
+  validateSpecRepairTriageFinding,
 } from "./spec-repair-operations.js";
 import { applyDraftRepairOperations } from "./draft-repair-operations.js";
 import {
@@ -121,7 +124,7 @@ function digest(value) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
-function boundedJson(filePath, label) {
+function boundedJson(filePath, label, { retryableMalformedJson = false } = {}) {
   const snapshot = readRegularFile(filePath, label, MAX_JSON_BYTES);
   try {
     return { document: JSON.parse(snapshot.bytes.toString("utf8")), snapshot };
@@ -130,7 +133,11 @@ function boundedJson(filePath, label) {
       "invalid",
       "FLOW_ARTIFACT_HANDOFF_INVALID",
       `${label} is malformed JSON: ${cause.message}`,
-      { cause },
+      {
+        cause,
+        retryable: retryableMalformedJson,
+        data: retryableMalformedJson ? { transport: "malformed-json" } : {},
+      },
     );
   }
 }
@@ -146,7 +153,7 @@ function readRegularFile(filePath, label, maxBytes = MAX_PAYLOAD_BYTES) {
         ? "FLOW_ARTIFACT_HANDOFF_MISSING"
         : "FLOW_ARTIFACT_HANDOFF_INVALID",
       `${label} is unavailable: ${cause.message}`,
-      { cause },
+      { cause, retryable: ["ENOENT", "EIO", "EACCES"].includes(cause?.code) },
     );
   }
 }
@@ -440,16 +447,15 @@ const POLICIES = Object.freeze([
   }),
   new WorkerArtifactHandoffPolicy({
     stepId: "spec-triage",
-    inputs: ["spec.json", "spec-review.json"],
-    payloads: [{ logicalName: "spec-triage.json", targetRelativePath: "spec-triage.json" }],
+    inputs: ["spec.json", "review.json"],
+    payloads: [{ logicalName: "review.delta.json", targetRelativePath: "review.delta.json" }],
   }),
   new WorkerArtifactHandoffPolicy({
     stepId: "spec-repair",
-    inputs: ["spec.json", "spec-review.json", "spec-triage.json"],
-    // The worker proposes constrained operations only.  The dispatcher
-    // reconstructs the canonical spec from its immutable input snapshot and
-    // publishes both the resulting spec and the command-owned audit together.
-    payloads: [{ logicalName: "spec-repair.json", targetRelativePath: "spec-repair.json" }],
+    inputs: ["spec.json", "review.json"],
+    payloads: [{ logicalName: "review.delta.json", targetRelativePath: "review.delta.json" }],
+    // Workers propose full-input-bound deltas only. The parent merges and
+    // publishes the revision-scoped canonical review.
     revisionKind: "spec",
   }),
   new WorkerArtifactHandoffPolicy({
@@ -695,6 +701,7 @@ function scanTree(directory, {
       "missing",
       "FLOW_ARTIFACT_HANDOFF_MISSING",
       `${label} is missing: ${root}`,
+      { retryable: true },
     );
   }
   const rootStat = fs.lstatSync(root);
@@ -871,6 +878,7 @@ function canonicalIssueSnapshotText({ flowManager, state }) {
 
 function canonicalPayloadBaseline({ flowManager, state, rule }) {
   if (rule.logicalName === "effects.json") return null;
+  if (rule.logicalName === "review.delta.json") return null;
   if (rule.kind === "tree") {
     const snapshot = CanonicalWorkerTestTree.catalogSnapshot({ flowManager, specId: state.specId });
     return Object.freeze({
@@ -2495,7 +2503,11 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
     // Every file payload is JSON. Parsing it here keeps malformed worker
     // output outside the sealed handoff protocol and gives the parent a
     // retryable producer error before any publication journal can exist.
-    const { document } = boundedJson(source, `handoff payload ${rule.logicalName}`);
+    const { document } = boundedJson(
+      source,
+      `handoff payload ${rule.logicalName}`,
+      { retryableMalformedJson: true },
+    );
     if (rule.logicalName === "upgrade.result") {
       const validation = validateUpgradeResultArtifact(document);
       if (!validation.ok) throw new Error(`upgrade result is invalid: ${validation.reason}`);
@@ -2514,8 +2526,7 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
         cause.message,
         {
           cause,
-          retryable: request.policy.kind !== "source"
-            && (cause.classification === "invalid" || cause.classification === "missing"),
+          retryable: cause.retryable === true,
           data: {
             stepId: request.stepId,
             logicalName: rule.logicalName,
@@ -2531,7 +2542,7 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
       `handoff payload ${rule.logicalName} failed CLI boundary validation: ${cause.message}`,
       {
         cause,
-        retryable: request.policy.kind !== "source",
+        retryable: false,
         data: {
           stepId: request.stepId,
           logicalName: rule.logicalName,
@@ -2542,13 +2553,14 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
   }
 }
 
-function invalidUnsealedFilePayload(request) {
+function unsealedFilePayloadError(request) {
   for (const { rule } of request.payloads) {
     if (rule.kind !== "file") continue;
+    if (!fs.existsSync(request.payloadPath(rule.logicalName)) && !rule.required) continue;
     try {
       validateFilePayloadAtCliBoundary(request, rule, request.payloadPath(rule.logicalName));
     } catch (cause) {
-      if (cause instanceof WorkerArtifactHandoffError && cause.classification === "invalid") {
+      if (cause instanceof WorkerArtifactHandoffError) {
         return cause;
       }
     }
@@ -2568,7 +2580,7 @@ function prePublicationArtifactError(request, error) {
     error.message,
     {
       cause: error,
-      retryable: true,
+      retryable: false,
       data: {
         stepId: request.stepId,
         actionDigest: request.actionDigest,
@@ -3078,25 +3090,22 @@ function payloadDocument(request, submission, logicalName) {
   const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === logicalName);
   if (!entry) throw new Error(`handoff payload is missing: ${logicalName}`);
   const source = path.join(request.payloadDirectory, ...entry.relativePath.split("/"));
-  return boundedJson(source, `handoff payload ${logicalName}`).document;
+  return boundedJson(
+    source,
+    `handoff payload ${logicalName}`,
+    { retryableMalformedJson: true },
+  ).document;
 }
 
 function optionalUpgradeResultBytes(request, submission) {
   const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === "upgrade.result");
   if (!entry) return null;
   const source = path.join(request.payloadDirectory, ...entry.relativePath.split("/"));
-  const snapshot = readRegularFile(source, "sealed handoff payload upgrade.result", MAX_JSON_BYTES);
-  let document;
-  try {
-    document = JSON.parse(snapshot.bytes.toString("utf8"));
-  } catch (cause) {
-    throw new WorkerArtifactHandoffError(
-      "invalid",
-      "FLOW_ARTIFACT_HANDOFF_INVALID",
-      `sealed handoff payload upgrade.result is malformed JSON: ${cause.message}`,
-      { cause },
-    );
-  }
+  const { document, snapshot } = boundedJson(
+    source,
+    "sealed handoff payload upgrade.result",
+    { retryableMalformedJson: true },
+  );
   const validation = validateUpgradeResultArtifact(document);
   if (!validation.ok) {
     throw new WorkerArtifactHandoffError(
@@ -3276,7 +3285,7 @@ function assertTestReviewRepairMadeProgress(request, submission, state, logicalN
   }
 }
 
-function validatePayload(request, submission, state, specRepairCorrectionHistory = null) {
+function validatePayload(request, submission, state) {
   try {
     if (request.policy.kind === "source") {
       const effect = SourceWorkerEffect.fromDocument(
@@ -3333,28 +3342,9 @@ function validatePayload(request, submission, state, specRepairCorrectionHistory
       assertPlanGateRepairMadeProgress(request, submission, state, "spec.json");
       return;
     }
-    if (request.stepId === "spec-triage") {
-      validateSpecTriageDocument({
-        review: request.inputs.find((input) => input.name === "spec-review.json").document,
-        triage: payloadDocument(request, submission, "spec-triage.json"),
-        spec: request.inputs.find((input) => input.name === "spec.json").document,
-      });
-      return;
-    }
-    if (request.stepId === "spec-repair") {
-      const triage = validateSpecTriageDocument({
-        review: request.inputs.find((input) => input.name === "spec-review.json").document,
-        triage: request.inputs.find((input) => input.name === "spec-triage.json").document,
-        spec: request.inputs.find((input) => input.name === "spec.json").document,
-      });
-      applySpecRepairOperations({
-        spec: request.inputs.find((input) => input.name === "spec.json").document,
-        triage,
-        repair: payloadDocument(request, submission, "spec-repair.json"),
-        inputDigest: request.inputDigest,
-        inputRevision: request.inputRevision,
-        correctionHistory: specRepairCorrectionHistory,
-      });
+    if (request.stepId === "spec-triage" || request.stepId === "spec-repair") {
+      const delta = new SpecReviewDelta(payloadDocument(request, submission, "review.delta.json"));
+      if (delta.stage !== request.stepId) throw new Error("canonical review delta stage does not match the handoff Step");
       return;
     }
     if (request.stepId === "test") {
@@ -3382,7 +3372,7 @@ function validatePayload(request, submission, state, specRepairCorrectionHistory
         `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
         {
           cause,
-          retryable: request.stepId === "spec-repair" && cause.retryable,
+          retryable: false,
           data: {
             stepId: request.stepId,
             handoffDirectory: request.directory,
@@ -3397,7 +3387,7 @@ function validatePayload(request, submission, state, specRepairCorrectionHistory
       `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
       {
         cause,
-        retryable: request.policy.kind !== "source",
+        retryable: false,
         data: {
           stepId: request.stepId,
           handoffDirectory: request.directory,
@@ -3423,7 +3413,11 @@ function manifestPayloadBytes(request, entry, label = "publication payload") {
 function readSubmission(request) {
   let document;
   try {
-    ({ document } = boundedJson(request.submissionPath, "sealed worker artifact handoff"));
+    ({ document } = boundedJson(
+      request.submissionPath,
+      "sealed worker artifact handoff",
+      { retryableMalformedJson: true },
+    ));
   } catch (error) {
     if (error instanceof WorkerArtifactHandoffError) throw error;
     throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", error.message, { cause: error });
@@ -3681,28 +3675,94 @@ class DraftPromotionHandoffAdapter {
   }
 }
 
-function canonicalHandoffPublications(request, submission, specRepairCorrectionHistory = null) {
+function canonicalHandoffPublications(request, submission) {
+  if (request.stepId === "spec-triage") {
+    const reviewInput = request.inputs.find((input) => input.name === "review.json");
+    const specInput = request.inputs.find((input) => input.name === "spec.json");
+    const current = new CanonicalSpecReview(reviewInput.document);
+    const delta = new SpecReviewDelta(payloadDocument(request, submission, "review.delta.json"));
+    const validFindings = [];
+    const discardedOperations = [];
+    for (const update of delta.findings.findings) {
+      try {
+        validateSpecRepairTriageFinding(update.toJSON(), specInput.document);
+        validFindings.push(update.toJSON());
+      } catch (cause) {
+        discardedOperations.push({ findingId: update.findingId, reason: `invalid triage permission: ${cause.message}` });
+      }
+    }
+    const permitted = delta.withPermittedFindings(validFindings);
+    const next = mergeSpecReviewDelta({ review: current, delta: permitted, discardedOperations });
+    const parameters = { revision: current.identity.revision.toString() };
+    return Object.freeze({
+      specRecord: undefined,
+      artifactWrites: Object.freeze([{
+        logicalKey: "spec.review", parameters, mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(next.toJSON(), null, 2)}\n`, "utf8"),
+      }]),
+      artifactRemovals: Object.freeze([]),
+      artifactBaselines: Object.freeze([new CanonicalFlowArtifactBaseline({
+        logicalKey: "spec.review", parameters,
+        digest: request.inputs.find((input) => input.name === "review.json").digest,
+        byteLength: request.inputs.find((input) => input.name === "review.json").byteLength,
+      })]),
+      testSourceBaseline: undefined, draftCoverageRepairDecision: null, draftCoverageRepairDraft: null,
+    });
+  }
+  if (request.stepId === "spec-repair") {
+    const reviewInput = request.inputs.find((input) => input.name === "review.json");
+    const specInput = request.inputs.find((input) => input.name === "spec.json");
+    if (!reviewInput || !specInput) throw new Error("spec-repair requires canonical spec and review inputs");
+    const current = new CanonicalSpecReview(reviewInput.document);
+    const delta = new SpecReviewDelta(payloadDocument(request, submission, "review.delta.json"));
+    const repairResult = applySpecRepairOperations({
+      spec: specInput.document,
+      // Permissions are taken only from the immutable canonical review input.
+      // A repair delta can propose operations, never grant itself authority.
+      triage: current.toJSON(),
+      repair: delta.toJSON(),
+      inputRevision: delta.identity.digest,
+    });
+    const acceptedOperations = repairResult.audit.acceptedOperations
+      .map((entry) => entry.operation ?? entry);
+    const discardedOperations = [
+      ...repairResult.audit.discardedOperations,
+      ...repairResult.audit.scopeExpansions.map(({ proposal }) => ({
+        findingIds: [], kind: null, target: null,
+        operationDigest: digest(stableStringify(proposal)),
+        reason: "scope expansion requires definition-owned admission",
+      })),
+    ];
+    const next = mergeSpecReviewDelta({
+      review: current,
+      delta,
+      acceptedOperations,
+      discardedOperations,
+    });
+    const parameters = { revision: current.identity.revision.toString() };
+    return Object.freeze({
+      // `confirmCurrentAttempt` submits both of these to CurrentFlowVersionStore
+      // together. The Store then publishes the new snapshot/review revision
+      // atomically with the audit of the revision that authorised the repair.
+      specRecord: new CanonicalWorkerSpecPublication(repairResult.spec),
+      artifactWrites: Object.freeze([{
+        logicalKey: "spec.review", parameters, mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(next.toJSON(), null, 2)}\n`, "utf8"),
+      }]),
+      artifactRemovals: Object.freeze([]),
+      artifactBaselines: Object.freeze([new CanonicalFlowArtifactBaseline({
+        logicalKey: "spec.review", parameters,
+        digest: reviewInput.digest, byteLength: reviewInput.byteLength,
+      })]),
+      testSourceBaseline: undefined, draftCoverageRepairDecision: null, draftCoverageRepairDraft: null,
+    });
+  }
   const artifactWrites = [];
   const artifactRemovals = [];
   const artifactBaselines = new Map();
   let specRecord;
   let testSourceBaseline;
   const testEntries = [];
-  const specRepairResult = request.stepId === "spec-repair"
-    ? applySpecRepairOperations({
-      spec: request.inputs.find((input) => input.name === "spec.json").document,
-      triage: validateSpecTriageDocument({
-        review: request.inputs.find((input) => input.name === "spec-review.json").document,
-        triage: request.inputs.find((input) => input.name === "spec-triage.json").document,
-        spec: request.inputs.find((input) => input.name === "spec.json").document,
-      }),
-      repair: payloadDocument(request, submission, "spec-repair.json"),
-      inputDigest: request.inputDigest,
-      inputRevision: request.inputRevision,
-      correctionHistory: specRepairCorrectionHistory,
-    })
-    : null;
-  const specRepairAudit = specRepairResult?.audit ?? null;
   const repairRoute = draftRepairRouteForRequest(request);
   const draftRepairResultValue = repairRoute === null ? null : draftRepairResult(request, submission);
   const draftCoverageRepairDecision = draftCoverageRepairCompletion(
@@ -3735,9 +3795,7 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
     }));
   }
   for (const entry of submission.payloadManifest) {
-    const bytes = specRepairResult !== null && entry.logicalName === "spec-repair.json"
-      ? Buffer.from(`${JSON.stringify(specRepairAudit, null, 2)}\n`, "utf8")
-      : draftRepairResultValue !== null && entry.logicalName === repairRoute.repairArtifact
+    const bytes = draftRepairResultValue !== null && entry.logicalName === repairRoute.repairArtifact
         ? Buffer.from(`${JSON.stringify(draftRepairResultValue.audit, null, 2)}\n`, "utf8")
         : manifestPayloadBytes(request, entry, "canonical handoff payload");
     if (entry.targetRelativePath.startsWith("tests/")) {
@@ -3778,15 +3836,12 @@ function canonicalHandoffPublications(request, submission, specRepairCorrectionH
           "invalid",
           "FLOW_ARTIFACT_HANDOFF_INVALID",
           `canonical spec payload is malformed JSON: ${cause.message}`,
-          { cause, retryable: true },
+          { cause, retryable: false },
         );
       }
       continue;
     }
     artifactWrites.push(address.publication(bytes, mediaTypeForPath(entry.targetRelativePath)));
-  }
-  if (specRepairResult !== null) {
-    specRecord = new CanonicalWorkerSpecPublication(specRepairResult.spec);
   }
   if (draftRepairResultValue !== null && draftCoverageRepairDecision === null) {
     const address = new CanonicalWorkerArtifactAddress("draft.json");
@@ -4166,7 +4221,7 @@ export class WorkerArtifactHandoffCoordinator {
       : null;
   }
 
-  reconcile({ ctx, request, mutationAuthority = null, specRepairCorrectionHistory = null }) {
+  reconcile({ ctx, request, mutationAuthority = null }) {
     if (!(request instanceof WorkerArtifactHandoffRequest)) return null;
     // A sealed V1 payload sits in `.runtime/` until the parent accepts it.
     // Validate that untrusted surface before loading the Version Store: a
@@ -4203,6 +4258,10 @@ export class WorkerArtifactHandoffCoordinator {
       submission = readSubmission(request);
       validateSubmission(request, submission);
     } catch (cause) {
+      if (cause instanceof WorkerArtifactHandoffError && cause.classification === "missing") {
+        const payloadError = unsealedFilePayloadError(request);
+        if (payloadError !== null) throw payloadError;
+      }
       throw cause instanceof WorkerArtifactHandoffError
         ? cause
         : new WorkerArtifactHandoffError(
@@ -4213,10 +4272,10 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     state ??= ctx.flowManager.load(request.specId);
-    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority, specRepairCorrectionHistory });
+    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority });
   }
 
-  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null, specRepairCorrectionHistory = null }) {
+  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null }) {
     const committed = canonicalHandoffReceiptForRequest(state, request, ctx.flowManager);
     if (committed !== null) {
       return {
@@ -4232,7 +4291,7 @@ export class WorkerArtifactHandoffCoordinator {
       if (submission === null) validateSubmission(request, resolvedSubmission);
       submission = resolvedSubmission;
       request.assertCurrent(state);
-      validatePayload(request, submission, state, specRepairCorrectionHistory);
+      validatePayload(request, submission, state);
     } catch (cause) {
       throw cause instanceof WorkerArtifactHandoffError
         ? cause
@@ -4261,7 +4320,7 @@ export class WorkerArtifactHandoffCoordinator {
     }
     let publications;
     try {
-      publications = canonicalHandoffPublications(request, submission, specRepairCorrectionHistory);
+      publications = canonicalHandoffPublications(request, submission);
     } catch (cause) {
       throw cause instanceof WorkerArtifactHandoffError
         ? cause
@@ -4269,7 +4328,7 @@ export class WorkerArtifactHandoffCoordinator {
             "invalid",
             "FLOW_ARTIFACT_HANDOFF_INVALID",
             `canonical worker artifact publication cannot be resolved: ${cause.message}`,
-            { cause, retryable: true },
+            { cause, retryable: false },
           );
     }
     try {

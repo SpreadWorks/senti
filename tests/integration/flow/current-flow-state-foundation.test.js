@@ -227,6 +227,7 @@ function flowActivity({
     },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 

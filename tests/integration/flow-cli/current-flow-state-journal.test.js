@@ -107,6 +107,7 @@ function activity({
     },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 

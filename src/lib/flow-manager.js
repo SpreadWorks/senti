@@ -603,6 +603,20 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  /** Read the one current revision-scoped Spec review through the Store. */
+  readCurrentSpecReview(input = {}) {
+    return this._store.readCurrentSpecReview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Prepare the authoritative input for the first spec-review publication. */
+  readCurrentSpecReviewInput(input = {}) {
+    return this._store.readCurrentSpecReviewInput({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   readActiveProducerArtifact(input = {}) {
     return this._store.readActiveProducerArtifact({
       ...input,

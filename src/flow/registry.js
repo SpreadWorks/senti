@@ -262,6 +262,16 @@ async function persistNonTerminalReviewResult(ctx, result) {
   ctx.flowState = ctx.flowManager.loadReadOnly(specId);
 }
 
+/** A spec review owns a revision-scoped publication rather than generic
+ * Attempt history. All other review phases retain their Attempt artifact. */
+function hasRevisionScopedSpecReviewPublication(result) {
+  return result?.artifacts?.phase === "spec"
+    && attachedCanonicalCommandResultPublications(result).some((publication) => (
+      publication.logicalKey === "spec.review"
+      && typeof publication.parameters?.revision === "string"
+    ));
+}
+
 /**
  * Best-effort step status update. Hooks may fire after `cleanup` removes
  * flow.json (and during early init before it exists), so a missing-file
@@ -336,6 +346,7 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
       provenance.result !== undefined
       && (
         state.currentNodeId === stepId
+        || (stepId === "spec-review" && hasRevisionScopedSpecReviewPublication(provenance.result))
         || canonicalResultProducerStep(provenance, provenance.result) === stepId
       )
     ) {
@@ -626,6 +637,12 @@ class RegistryLifecycleAdapter {
   }
 
   async persistReviewResult() {
+    if (hasRevisionScopedSpecReviewPublication(this.result)) {
+      // The version-scoped review is accepted only by confirm_attempt. Its
+      // lifecycle confirmation below owns that one transaction; publishing
+      // here would create an unrelated Activity before the confirmation.
+      return;
+    }
     const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
     if (attachedCanonicalCommandResultArtifact(this.result) === null) {
       throw new Error("definition-selected Review result persistence requires a canonical command result");

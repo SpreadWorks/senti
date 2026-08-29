@@ -225,13 +225,11 @@ describe("flow get next-action", () => {
     });
   });
 
-  it("keeps exhausted flow Reviews active before draft/spec/impl rejection routes leave Review", () => {
+  it("keeps exhausted flow Reviews active before draft/impl rejection routes leave Review", () => {
     const metric = (phase) => ({ phase, counter: "reviewRetry", delta: 1 });
     const cases = [
       { phase: "draft-questions", stepId: "draft-questions-review", previous: 0, retained: true },
       { phase: "draft-coverage", stepId: "draft-coverage-review", previous: 0, retained: true },
-      { phase: "spec", stepId: "spec-review", previous: 2, retained: false },
-      { phase: "spec", stepId: "spec-review", previous: 3, retained: true },
       { phase: "impl", stepId: "impl-review", previous: 2, retained: false },
       { phase: "impl", stepId: "impl-review", previous: 3, retained: true },
     ];
@@ -264,6 +262,20 @@ describe("flow get next-action", () => {
         testCase.retained ? 1 : 0,
         `${testCase.phase} result persistence`,
       );
+    }
+  });
+
+  it("always advances the Spec review funnel without semantic retry accounting", () => {
+    for (const verdict of ["PASS", "ADVISORY", "REJECTED"]) {
+      const actions = resolveLifecycle({
+        event: "review:post", phase: "spec", currentStepId: "spec-review",
+        flowState: { metrics: Array.from({ length: 8 }, () => ({ phase: "spec", counter: "reviewRetry", delta: 1 })), policy: { nonblocking: { enabled: true } } },
+        result: { artifacts: { phase: "spec", verdict } },
+      });
+      assert.equal(actions.some((action) => action.constructor.name === "SetStepStatus" && action.step === "spec-review" && action.status === "done"), true);
+      assert.equal(actions.some((action) => action.constructor.name === "SetStepStatus" && ["spec-triage", "spec-repair"].includes(action.step)), false);
+      assert.equal(actions.some((action) => action.constructor.name === "IncrementMetric" && action.phase === "spec"), false);
+      assert.equal(actions.some((action) => action.constructor.name === "PersistReviewResult"), false);
     }
   });
 

@@ -26,7 +26,7 @@ function attemptHistory(nodeId, logicalKey, payload) {
 
 const EVIDENCE_KEY = {
   "draft-questions-review": "draft.questions.review", "draft-coverage-review": "draft.coverage.review",
-  "draft-gate": "draft.gate", "spec-review": "spec.review", "spec-gate": "spec.gate",
+  "draft-gate": "draft.gate", "spec-gate": "spec.gate",
   "scenario-validity": "scenario.validity", "test-review": "test.review", "test-result-review": "test.result.review",
   "impl-review": "impl.review", "impl-gate": "impl.gate", "acceptance-review": "acceptance.review",
   "final-regression": "final.regression", retro: "retro",
@@ -60,7 +60,6 @@ const ELIGIBLE_CANONICAL_EVIDENCE = [
   ["draft-questions-review", { verdict: "REJECTED" }, ["repair", "continue"]],
   ["draft-coverage-review", { verdict: "REJECTED" }, ["repair", "continue"]],
   ["draft-gate", { result: "fail" }, ["repair", "continue"]],
-  ["spec-review", { verdict: "REJECTED" }, ["repair", "continue"]],
   ["spec-gate", { result: "fail" }, ["repair", "continue"]],
   ["scenario-validity", { result: "block" }, ["retry", "continue"]],
   ["test-review", { verdict: "REJECTED" }, ["repair", "continue"]],

@@ -31,6 +31,12 @@ import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
 import { draftReviewSourceStepIds } from "./draft-review-routes.js";
 import { ReviewWorkUnit, ReviewWorkUnitOutput, ReviewWorkUnitOutputReceipt } from "./review-work-unit.js";
 import { renderTaskMarkdown } from "../../spec/commands/render.js";
+import {
+  CanonicalSpecReview,
+  SpecRevision,
+  SpecReviewDelta,
+  mergeSpecReviewDelta,
+} from "./spec-review-artifacts.js";
 
 const PHASES = new Set(["draft-questions", "draft-coverage", "spec", "test", "impl"]);
 const ATTACHED_REVIEW_WORK_UNIT = Symbol("canonical-review-work-unit");
@@ -211,6 +217,7 @@ function reviewFinding(input, reviewPhase, bucket, index, sourceName, usedIds, u
   if (summary === "") throw new Error("canonical review finding summary is required");
   return Object.freeze({
     findingId,
+    severity: bucket,
     summary,
     fingerprint,
     evidenceRefs: [`${sourceName}#${findingId}`],
@@ -518,6 +525,37 @@ export class CanonicalReviewWorkUnit {
     return this.#materializeCatalogInput({ logicalKey: "spec.record", logicalPath: "spec.json" }, options);
   }
 
+  /** The review phase receives the current revision-scoped review as an
+   * immutable input. It is deliberately not an attempt-history artifact. */
+  materializeSpecReview({ write = true } = {}) {
+    if (this.phase !== "spec") return null;
+    const current = this.flowManager.readCurrentSpecReviewInput({
+      specId: this.state.specId,
+      consumerNodeId: this.nodeId,
+    });
+    const input = {
+      logicalKey: "spec.review",
+      logicalPath: "review.json",
+      mediaType: current.descriptor?.mediaType ?? "application/json",
+      // Preserve the exact catalog-authorized artifact bytes. Reconstructing
+      // JSON here would turn a verified immutable input into a merely
+      // equivalent serialization and could break its descriptor binding.
+      bytes: Buffer.from(current.bytes),
+    };
+    this.specReviewSource = Object.freeze({
+      revision: current.revision,
+      descriptor: current.descriptor,
+      review: current.review,
+      persisted: current.persisted,
+    });
+    if (!write) {
+      this.workUnit.declareInput(input);
+      return this.specReviewSource;
+    }
+    const sourcePath = this.workUnit.writeInput(input).sourcePath;
+    return Object.freeze({ ...this.specReviewSource, logicalPath: "review.json", sourcePath });
+  }
+
   /**
    * Flow-level implementation review consumes the shared map when one has
    * been published. The child decides whether absence is valid only after it
@@ -628,6 +666,7 @@ export class CanonicalReviewWorkUnit {
   /** Reconstruct the exact parent contract without touching worker files. */
   declareCanonicalInputs() {
     this.materializeSpecRecord({ write: false });
+    this.materializeSpecReview({ write: false });
     this.materializeFileMap({ write: false });
     this.materializeDraft({ write: false });
     this.materializeTestSources(this.workUnit.directory, { write: false });
@@ -638,18 +677,40 @@ export class CanonicalReviewWorkUnit {
 
 /** Turn a child worker's transient JSON artifact into one V1 command result. */
 export class CanonicalReviewPromotion {
-  constructor({ workUnit, phase: reviewPhase, taskId = null, treeSha, targetStateDigest } = {}) {
+  constructor({ workUnit, phase: reviewPhase, taskId = null, treeSha, targetStateDigest, specReviewSource = null } = {}) {
     if (!(workUnit instanceof ReviewWorkUnit)) throw new Error("canonical review promotion requires a sealed execution work unit");
     this.workUnit = workUnit;
     this.phase = phase(reviewPhase);
     this.taskId = taskId == null ? null : requiredText(taskId, "canonical review taskId");
     this.treeSha = requiredText(treeSha, "canonical review treeSha").toLowerCase();
     this.targetStateDigest = requiredText(targetStateDigest, "canonical review targetStateDigest").toLowerCase();
+    if (reviewPhase === "spec") {
+      if (!specReviewSource || !(specReviewSource.review instanceof CanonicalSpecReview)) {
+        throw new Error("canonical spec review promotion requires its revision-scoped review input");
+      }
+      this.specReviewSource = specReviewSource;
+    } else {
+      this.specReviewSource = null;
+    }
     Object.freeze(this);
   }
 
   sealedArtifact() {
     const sealed = this.workUnit.readSealedOutput();
+    if (this.phase === "spec") {
+      let document;
+      try {
+        document = JSON.parse(sealed.bytes.toString("utf8"));
+      } catch (cause) {
+        throw new Error(`canonical spec-review delta is invalid JSON: ${cause.message}`);
+      }
+      const delta = new SpecReviewDelta(document);
+      if (delta.stage !== "spec-review") {
+        throw new Error("canonical spec-review worker output must be a spec-review delta");
+      }
+      const next = mergeSpecReviewDelta({ review: this.specReviewSource.review, delta });
+      return Object.freeze({ sealed, delta, next });
+    }
     const artifact = jsonObject(JSON.parse(sealed.bytes.toString("utf8")), `canonical ${this.phase} review artifact`);
     const evidence = evidenceFor({
       artifact,
@@ -668,6 +729,28 @@ export class CanonicalReviewPromotion {
    * the same PASS/ADVISORY/REJECTED route without another Agent invocation.
    */
   resultFromSealedArtifact() {
+    if (this.phase === "spec") {
+      const { sealed, delta, next } = this.sealedArtifact();
+      const blockingCount = next.findings.findings.filter((finding) => finding.kind === "blocking").length;
+      const advisoryCount = next.findings.findings.filter((finding) => finding.kind === "improvement").length;
+      const verdict = blockingCount > 0 ? "REJECTED" : advisoryCount > 0 ? "ADVISORY" : "PASS";
+      return {
+        result: "ok",
+        changed: [],
+        artifacts: {
+          phase: this.phase,
+          verdict,
+          canonicalVerdict: verdict,
+          // The worker's delta receipt is the only transient evidence. The
+          // durable authority is the parent-merged revision review below.
+          evidenceDigest: sealed.seal.output.digest,
+          reviewDigest: next.digest,
+          treeSha: this.treeSha,
+          targetStateDigest: this.targetStateDigest,
+          proposalCount: delta.findings.findings.length,
+        },
+      };
+    }
     const { artifact, evidence } = this.sealedArtifact();
     const verdict = normalizedVerdict(artifact.verdict);
     const findings = findingLists(artifact, this.phase);
@@ -696,6 +779,29 @@ export class CanonicalReviewPromotion {
   }
 
   promote(result) {
+    if (this.phase === "spec") {
+      const { sealed, delta, next } = this.sealedArtifact();
+      // `spec.review` is a revision-scoped authority, not a generic Attempt
+      // history artifact.  Attaching it here would make generic result
+      // handling resolve the collection without its required revision
+      // parameter.  The sealed delta stays transient; the one parent-owned
+      // publication below is the durable review receipt.
+      attachCanonicalCommandResultPublications(result, [
+        new CanonicalCommandResultPublication({
+          logicalKey: "spec.review",
+          parameters: { revision: new SpecRevision(this.specReviewSource.revision).toString() },
+          mediaType: "application/json",
+          payload: next.toJSON(),
+        }),
+      ]);
+      Object.defineProperty(result, ATTACHED_REVIEW_WORK_UNIT, {
+        value: this.workUnit,
+        enumerable: false,
+        configurable: false,
+        writable: false,
+      });
+      return result;
+    }
     const { sealed, artifact, evidence } = this.sealedArtifact();
     const logicalKey = logicalKeyFor({ phase: this.phase, taskId: this.taskId });
     const normalizedArtifact = structuredClone(artifact);

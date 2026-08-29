@@ -171,6 +171,12 @@ export class CanonicalFlowRuntime {
   loadSnapshot(specId) {
     return this.store(specId).loadSnapshot();
   }
+  readCurrentSpecReview(specId) {
+    return this.store(specId).readCurrentSpecReview();
+  }
+  readCurrentSpecReviewInput(specId) {
+    return this.store(specId).readCurrentSpecReviewInput();
+  }
   loadTransitionSnapshot(specId) {
     return this.store(specId).loadTransitionSnapshot();
   }
@@ -1238,6 +1244,7 @@ export class CanonicalFlowRuntime {
       references,
       metric,
       note,
+      reviewPublication: null,
     });
   }
 

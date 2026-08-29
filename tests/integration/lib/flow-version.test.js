@@ -17,6 +17,7 @@ import {
   FlowArtifactCatalogStore,
   FlowArtifactDescriptor,
   FlowActivityId,
+  FlowSpecRevision,
   FlowVersion,
   FlowVersionAuthorityScope,
   FlowVersionLocation,
@@ -198,6 +199,7 @@ function confirmationActivity(state, id) {
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 
@@ -252,6 +254,7 @@ function startActivity(state, { id = "activity-1", attemptId = null } = {}) {
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 
@@ -287,6 +290,7 @@ function addTaskActivity(state, { id = "add-task-activity", taskId = "T-mismatch
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 
@@ -303,6 +307,7 @@ function updateAttemptActivity(state) {
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 
@@ -371,6 +376,10 @@ describe("Flow Version identity, schema, and consumer paths", () => {
     }), /canonical contract/);
     const location = canonicalLocation({ version: 1004 });
     assert.equal(new FlowVersion(1).pathSegment, "001");
+    assert.equal(new FlowSpecRevision(1).pathSegment, "001");
+    assert.equal(location.specSnapshotFile(1), location.artifact("spec.snapshot", { revision: "001" }));
+    assert.equal(location.specReviewFile(new FlowSpecRevision(2)), location.artifact("spec.review", { revision: "002" }));
+    assert.throws(() => new FlowSpecRevision(0), /positive safe integer/);
     assert.equal(location.relativeDirectory, "specs/508-flow-version/1004");
     assert.equal(location.artifact("task.review", { taskId: "T-1" }).endsWith(path.join("steps", "impl", "T-1", "review", "result.json")), true);
     assert.equal(location.reviewEvidencePath({ taskId: "T-1", digest: REVIEW_DIGEST_A }).endsWith(path.join("steps", "impl", "T-1", "review", "evidence", `${REVIEW_DIGEST_A}.json`)), true);
@@ -1146,7 +1155,7 @@ describe("Current Flow Version storage", () => {
     assert.throws(() => store.create(freshState(boundary, location), { specRecord: specRecord("other") }), /must match/);
     assert.doesNotThrow(() => store.create(freshState(boundary, location), { specRecord: specRecord() }));
     assert.deepEqual(store.catalog().artifacts.map((artifact) => artifact.relativePath), [
-      "activities.jsonl", "flow.json", "spec.json",
+      "activities.jsonl", "flow.json", "revisions/001/spec.json", "spec.json",
     ]);
     assert.equal(store.load().schemaRevision, CURRENT_FLOW_SCHEMA_REVISION);
     assert.equal(fs.existsSync(location.resolve("flow-version.json")), false);
@@ -1157,7 +1166,7 @@ describe("Current Flow Version storage", () => {
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
     const store = boundary.openVersionStore({ location });
     store.create(freshState(boundary, location), { specRecord: specRecord() });
-    assert.equal(store.catalog().artifacts.length, 3);
+    assert.equal(store.catalog().artifacts.length, 4);
 
     const changed = JSON.parse(fs.readFileSync(location.catalogFile, "utf8"));
     changed.hash = "0".repeat(64);
@@ -1191,6 +1200,7 @@ describe("Current Flow Version storage", () => {
     assert.deepEqual(recovered.activities().map((entry) => entry.type), ["flow_created"]);
     assert.equal(recovered.load().confirmationOrder, 1);
     assert.deepEqual(recovered.catalog().artifacts.map((artifact) => artifact.activityId?.toString()), [
+      recovered.activities()[0].id,
       recovered.activities()[0].id,
       recovered.activities()[0].id,
       recovered.activities()[0].id,
@@ -1236,6 +1246,7 @@ describe("Current Flow Version storage", () => {
     fs.copyFileSync(wrongLocation.flowStateFile, location.flowStateFile);
     fs.copyFileSync(wrongLocation.activitiesFile, location.activitiesFile);
     fs.copyFileSync(wrongLocation.specFile, location.specFile);
+    fs.cpSync(wrongLocation.resolve("revisions"), location.resolve("revisions"), { recursive: true });
     fs.writeFileSync(location.catalogFile, JSON.stringify(wrongCatalog.toJSON()));
 
     const before = {

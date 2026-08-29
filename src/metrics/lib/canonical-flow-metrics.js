@@ -10,6 +10,7 @@ import fs from "node:fs/promises";
 
 import { FlowArtifactAttemptHistory } from "../../lib/flow-artifact-contract.js";
 import { FlowSpecId } from "../../lib/flow-spec-id.js";
+import { CanonicalSpecReview } from "../../flow/lib/spec-review-artifacts.js";
 
 const REVIEW_PHASE_BY_LOGICAL_KEY = new Map([
   ["draft.questions.review", "draft-questions"],
@@ -57,7 +58,8 @@ function reviewTaskId(descriptor) {
 }
 
 function reviewHistoryPayload(entry) {
-  const payload = entry?.artifact?.payload
+  const payload = entry?.payload
+    ?? entry?.artifact?.payload
     ?? entry?.result?.artifact?.payload
     ?? entry?.result
     ?? null;
@@ -194,6 +196,34 @@ export class CanonicalMetricsFlow {
     for (const descriptor of this.artifacts) {
       const phase = REVIEW_PHASE_BY_LOGICAL_KEY.get(descriptor.logicalKey) ?? null;
       if (phase === null) continue;
+      if (descriptor.logicalKey === "spec.review") {
+        const match = descriptor.relativePath.match(/^revisions\/(\d+)\/review\.json$/);
+        if (match === null) throw new Error("canonical spec.review catalog path is invalid");
+        const resolved = this.readArtifact("spec.review", { parameters: { revision: match[1] } });
+        let review;
+        try {
+          review = new CanonicalSpecReview(JSON.parse(resolved.bytes.toString("utf8")));
+        } catch (error) {
+          throw new Error(`canonical spec.review is invalid: ${error.message}`);
+        }
+        const publication = this.activities.find((activity) => (
+          activityOperation(activity) === "confirm_attempt"
+          && activity.nodeId === "spec-review"
+          && activity.reviewPublication?.reviewDigest === descriptor.hash
+        )) ?? null;
+        histories.push(new CanonicalMetricsReviewHistory({
+          logicalKey: "spec.review",
+          phase,
+          attempts: [{
+            attempt: publication?.sequence ?? review.generation + 1,
+            payload: {
+              blockingFindings: review.findings.findings.filter((finding) => finding.kind === "blocking"),
+              nonBlockingImprovements: review.findings.findings.filter((finding) => finding.kind === "improvement"),
+            },
+          }],
+        }));
+        continue;
+      }
       const taskId = reviewTaskId(descriptor);
       const resolved = this.readArtifact(descriptor.logicalKey, {
         ...(taskId === null ? {} : { parameters: { taskId } }),

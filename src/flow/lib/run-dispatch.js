@@ -46,7 +46,6 @@ import {
   WorkerArtifactHandoffRequest,
   workerArtifactHandoffPolicy,
 } from "./worker-artifact-handoff.js";
-import { SpecRepairCorrectionHistory } from "./spec-repair-operations.js";
 import {
   AutoApprovedFlowDispatchAuthorization,
   ExplicitFlowDispatchAuthorization,
@@ -87,21 +86,6 @@ const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([
   "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
   "FLOW_SOURCE_HANDOFF_CANONICAL_PATH_VIOLATION",
 ]);
-const SPEC_REPAIR_CORRECTION_CODES = new Set([
-  "FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE",
-  "FLOW_SPEC_REPAIR_REQUIRED_TARGETS_MISSING",
-  "FLOW_SPEC_REPAIR_OPERATION_CONFLICT",
-  "FLOW_SPEC_REPAIR_BASE_REVISION_MISMATCH",
-  "FLOW_SPEC_REPAIR_RESULT_SCHEMA_INVALID",
-  "FLOW_SPEC_REPAIR_GATE_READY_INVALID",
-  "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED",
-]);
-
-const SPEC_REPAIR_EXHAUSTED_CODES = new Set([
-  "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED",
-  "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED",
-]);
-
 /**
  * Definition-backed command invocation owned by the dispatcher.  This keeps
  * command selection as typed definition data, rather than asking a sandboxed
@@ -241,16 +225,13 @@ function freshWorkerInvocation(invocation, nextAction) {
  * validator's exact correction signal.
  */
 export class WorkerArtifactRetryFeedback {
-  constructor(error, { remainingCalls = null, specRepairCorrectionHistory = null } = {}) {
+  constructor(error, { remainingCalls = null } = {}) {
     if (!(error instanceof WorkerArtifactHandoffError) || error.retryable !== true) {
       throw new Error("worker artifact retry feedback requires a retryable handoff error");
     }
     this.code = error.code;
     this.classification = error.classification;
     this.message = error.message;
-    this.specRepair = specRepairCorrectionHistory instanceof SpecRepairCorrectionHistory
-      ? specRepairCorrectionHistory.aggregate()
-      : error.data?.specRepairAudit ?? null;
     this.remainingCalls = remainingCalls;
     Object.freeze(this);
   }
@@ -260,7 +241,6 @@ export class WorkerArtifactRetryFeedback {
       code: this.code,
       classification: this.classification,
       message: this.message,
-      ...(this.specRepair ? { specRepair: this.specRepair } : {}),
       ...(this.remainingCalls !== null ? { remainingCalls: this.remainingCalls } : {}),
     };
   }
@@ -801,17 +781,6 @@ function workerHandoffFailureData(ctx, target, error, request, dispatchCount, ag
   const stepId = request?.stepId || error.data?.stepId || state?.currentStep || "flow-dispatch";
   const actionDigest = request?.actionDigest || error.data?.actionDigest || null;
   const dispatchInvocationId = request?.dispatchInvocationId || error.data?.dispatchInvocationId || null;
-  const exhaustedSpecRepair = SPEC_REPAIR_EXHAUSTED_CODES.has(error.code)
-    && error.data?.attempts === 3;
-  const specRepairDiagnostic = exhaustedSpecRepair
-    ? new SpecRepairExhaustedDiagnostic({
-        code: error.code,
-        message: error.message,
-        attempts: error.data?.attempts,
-        audit: error.data?.specRepairAudit ?? null,
-        lastError: error.data?.third ?? null,
-      }).toJSON()
-    : null;
   let issueLogError = null;
   // A recovery-required handoff must leave the canonical Version byte-for-byte
   // untouched so replay can inspect and recover the publication journal. The
@@ -824,9 +793,7 @@ function workerHandoffFailureData(ctx, target, error, request, dispatchCount, ag
         step: stepId,
         reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
         trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
-        resolution: error.code === "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED" || error.code === "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED"
-          ? "Three command-owned spec-repair correction calls were consumed without changing Flow retry state; correct the listed required targets before dispatching again."
-          : error instanceof WorkerArtifactRetryExhaustedError
+        resolution: error instanceof WorkerArtifactRetryExhaustedError
           ? "One fresh worker handoff retry was consumed; correct the artifact producer before dispatching this step again."
           : error.recoveryPossible
           ? "Resume the guarded dispatcher to replay the pending publication journal."
@@ -840,7 +807,6 @@ function workerHandoffFailureData(ctx, target, error, request, dispatchCount, ag
             second: error.data.second,
           },
         }),
-        ...(specRepairDiagnostic !== null ? { diagnostic: specRepairDiagnostic } : {}),
         taskId: null,
         timestamp: new Date().toISOString(),
       };
@@ -866,11 +832,10 @@ function workerHandoffFailureData(ctx, target, error, request, dispatchCount, ag
     retryBudgetConsumed: false,
     recoveryPossible: error.recoveryPossible === true,
     retryable: error.retryable === true,
-    ...((error instanceof WorkerArtifactRetryExhaustedError || error.code === "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED" || error.code === "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED") && { retryExhausted: true }),
+    ...(error instanceof WorkerArtifactRetryExhaustedError && { retryExhausted: true }),
     actionDigest,
     dispatchInvocationId,
     ...(error.data || {}),
-    ...(specRepairDiagnostic !== null ? { specRepairDiagnostic } : {}),
     ...(agentError instanceof AgentFailure ? { agentFailure: agentError.toJSON() } : {}),
     ...(issueLogError ? { issueLogError } : {}),
   };
@@ -907,84 +872,6 @@ function blockedBoundary({ target, nextAction, dispatchCount, message }) {
     dispatchCount,
     message,
   }).toJSON();
-}
-
-/**
- * Durable, command-owned summary for a spec-repair correction that exhausted
- * its bounded calls.  This deliberately projects audit evidence instead of
- * retaining worker operations, so a diagnostic cannot become a covert copy
- * of a worker payload (in particular, replacement values are never stored).
- */
-export class SpecRepairExhaustedDiagnostic {
-  constructor({ code, message, attempts, audit = null, lastError = null }) {
-    if (!SPEC_REPAIR_EXHAUSTED_CODES.has(code)) {
-      throw new Error("spec-repair exhausted diagnostic requires an exhaustion code");
-    }
-    const source = audit && typeof audit === "object" ? audit : {};
-    const attemptEntries = Array.isArray(source.attempts) ? source.attempts : [];
-    const missing = [];
-    const discarded = [];
-    for (const attempt of attemptEntries) {
-      for (const entry of attempt?.missingRequiredTargets ?? []) {
-        if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-          missing.push({
-            findingId: entry.findingId ?? null,
-            target: entry.target == null ? null : structuredClone(entry.target),
-            attempt: entry.attempt ?? attempt.attempt ?? null,
-          });
-          continue;
-        }
-        const key = String(entry);
-        const separator = key.indexOf(":");
-        missing.push({
-          findingId: separator === -1 ? null : key.slice(0, separator),
-          target: separator === -1 ? key : key.slice(separator + 1),
-          attempt: attempt.attempt ?? null,
-        });
-      }
-      for (const entry of attempt?.discardedOperations ?? []) {
-        const operation = entry?.operation && typeof entry.operation === "object"
-          ? entry.operation
-          : entry;
-        discarded.push({
-          findingId: entry?.findingId ?? operation?.findingId ?? null,
-          kind: operation?.kind ?? null,
-          target: operation?.target == null ? null : structuredClone(operation.target),
-          reason: typeof entry?.reason === "string" ? entry.reason : "discarded operation",
-          operationDigest: entry?.operationDigest ?? null,
-          attempt: entry?.attempt ?? attempt.attempt ?? null,
-        });
-      }
-    }
-    const expansions = (source.scopeExpansions ?? []).map((entry) => (
-      entry && typeof entry === "object" && Object.hasOwn(entry, "proposal")
-        ? { proposal: structuredClone(entry.proposal), attempt: entry.attempt ?? null }
-        : { proposal: structuredClone(entry), attempt: null }
-    ));
-    const last = lastError && typeof lastError === "object"
-      ? { code: lastError.code ?? code, message: lastError.message ?? message }
-      : { code, message };
-    this.code = code;
-    this.consumedCalls = Number.isInteger(attempts) ? attempts : attemptEntries.length;
-    this.missingTargets = Object.freeze(missing.map((entry) => Object.freeze(entry)));
-    this.lastError = Object.freeze(last);
-    this.discardedOperations = Object.freeze(discarded.map((entry) => Object.freeze(entry)));
-    this.scopeExpansions = Object.freeze(expansions.map((entry) => Object.freeze(entry)));
-    this.resumeInstruction = "Correct the listed spec-repair targets or scope proposals, then resume with `sennel flow run dispatch`.";
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return {
-      code: this.code,
-      consumedCalls: this.consumedCalls,
-      missingTargets: structuredClone(this.missingTargets),
-      lastError: structuredClone(this.lastError),
-      discardedOperations: structuredClone(this.discardedOperations),
-      scopeExpansions: structuredClone(this.scopeExpansions),
-      resumeInstruction: this.resumeInstruction,
-    };
-  }
 }
 
 export default class RunDispatchCommand extends FlowCommand {
@@ -1218,7 +1105,7 @@ export default class RunDispatchCommand extends FlowCommand {
     });
   }
 
-  async runWorkerAttempt(ctx, invocation, retryFeedback = null, specRepairCorrectionHistory = null) {
+  async runWorkerAttempt(ctx, invocation, retryFeedback = null) {
     const action = new FlowDispatchAction(invocation.action.nextAction);
     let handoffRequest = null;
     let handoffAuthority = null;
@@ -1311,7 +1198,6 @@ export default class RunDispatchCommand extends FlowCommand {
           ctx,
           request: handoffRequest,
           mutationAuthority: workerArtifactAuthority,
-          specRepairCorrectionHistory,
         });
         agentError = null;
       } catch (error) {
@@ -1840,15 +1726,13 @@ export default class RunDispatchCommand extends FlowCommand {
 
       let attempt = await this.runWorkerAttempt(ctx, invocation);
       dispatchCount += 1;
-      const constrainedSpecRepair = invocation.action.nextAction.step === "spec-repair";
-      const specRepairMetrics = constrainedSpecRepair && attempt.deferredMetric ? [attempt.deferredMetric] : [];
+      const deferredMetrics = attempt.deferredMetric ? [attempt.deferredMetric] : [];
       if (attempt.error) {
         if (
           attempt.error.retryable !== true
           || !attempt.handoffRequest
-          || (constrainedSpecRepair && !SPEC_REPAIR_CORRECTION_CODES.has(attempt.error.code))
         ) {
-          discardDeferredMetrics(specRepairMetrics);
+          discardDeferredMetrics(deferredMetrics);
           return this.failure(
             ctx,
             attempt.error.code,
@@ -1864,16 +1748,17 @@ export default class RunDispatchCommand extends FlowCommand {
           );
         }
 
-        // A producer-side invalid payload is retried exactly once with a new
-        // dispatch invocation and therefore a new handoff directory. The
-        // first sealed payload is intentionally left byte-for-byte untouched.
+        // Only malformed JSON or a missing or unreadable handoff transport is
+        // retried once with a new dispatch invocation and handoff directory.
+        // Parsed semantic, schema, identity, authority, and publication
+        // failures are terminal.
         const retryCurrent = await this.fetchNextAction(target);
         if (
           retryCurrent instanceof Envelope
           || retryCurrent.step !== invocation.action.nextAction.step
           || retryCurrent.action !== invocation.action.nextAction.action
         ) {
-          discardDeferredMetrics(specRepairMetrics);
+          discardDeferredMetrics(deferredMetrics);
           return this.failure(
             ctx,
             attempt.error.code,
@@ -1890,85 +1775,16 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         const retryInvocation = freshWorkerInvocation(invocation, retryCurrent);
         const firstError = attempt.error;
-        let specRepairCorrectionHistory = constrainedSpecRepair
-          ? new SpecRepairCorrectionHistory().appendFailure(firstError)
-          : null;
         const firstRequest = attempt.handoffRequest;
         attempt = await this.runWorkerAttempt(
           ctx,
           retryInvocation,
-          new WorkerArtifactRetryFeedback(firstError, {
-            remainingCalls: constrainedSpecRepair ? 1 : null,
-            specRepairCorrectionHistory,
-          }),
-          specRepairCorrectionHistory,
+          new WorkerArtifactRetryFeedback(firstError),
         );
-        if (attempt.deferredMetric) specRepairMetrics.push(attempt.deferredMetric);
+        if (attempt.deferredMetric) deferredMetrics.push(attempt.deferredMetric);
         dispatchCount += 1;
-        if (
-          attempt.error
-          && constrainedSpecRepair
-          && attempt.error.retryable === true
-          && SPEC_REPAIR_CORRECTION_CODES.has(attempt.error.code)
-        ) {
-          const secondError = attempt.error;
-          specRepairCorrectionHistory = specRepairCorrectionHistory.appendFailure(secondError);
-          const secondRequest = attempt.handoffRequest;
-          const thirdCurrent = await this.fetchNextAction(target);
-          if (
-            thirdCurrent instanceof Envelope
-            || thirdCurrent.step !== retryInvocation.action.nextAction.step
-            || thirdCurrent.action !== retryInvocation.action.nextAction.action
-          ) {
-            discardDeferredMetrics(specRepairMetrics);
-            return this.failure(
-              ctx,
-              secondError.code,
-              secondError.message,
-              workerHandoffFailureData(ctx, target, secondError, secondRequest, dispatchCount, attempt.agentError),
-            );
-          }
-          const thirdInvocation = freshWorkerInvocation(retryInvocation, thirdCurrent);
-          attempt = await this.runWorkerAttempt(
-            ctx,
-            thirdInvocation,
-            new WorkerArtifactRetryFeedback(secondError, { remainingCalls: 0, specRepairCorrectionHistory }),
-            specRepairCorrectionHistory,
-          );
-          if (attempt.deferredMetric) specRepairMetrics.push(attempt.deferredMetric);
-          dispatchCount += 1;
-          if (attempt.error) {
-            const thirdError = attempt.error;
-            specRepairCorrectionHistory = specRepairCorrectionHistory.appendFailure(thirdError);
-            attempt = {
-              ...attempt,
-              error: new WorkerArtifactHandoffError(
-                "invalid",
-              thirdError.code === "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED"
-                ? "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED"
-                : "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED",
-              thirdError.code === "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED"
-                ? "spec-repair scope expansion remains unresolved after three command-owned correction calls"
-                : "spec-repair required operations remained invalid after three command-owned correction calls",
-                {
-                  cause: thirdError,
-                  retryable: false,
-                  data: {
-                    attempts: 3,
-                    specRepairAudit: specRepairCorrectionHistory.aggregate(),
-                    first: { code: firstError.code, message: firstError.message },
-                    second: { code: secondError.code, message: secondError.message },
-                    third: { code: thirdError.code, message: thirdError.message },
-                  },
-                },
-              ),
-            };
-          } else {
-            invocation = thirdInvocation;
-          }
-        }
         if (attempt.error) {
-          discardDeferredMetrics(specRepairMetrics);
+          discardDeferredMetrics(deferredMetrics);
           const exhausted = attempt.error.retryable === true
             ? new WorkerArtifactRetryExhaustedError({
                 firstError,
@@ -1993,7 +1809,7 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         invocation = retryInvocation;
       }
-      await flushDeferredMetrics(specRepairMetrics);
+      await flushDeferredMetrics(deferredMetrics);
       const agentError = attempt.agentError;
 
       const refreshed = await this.fetchNextAction(target);

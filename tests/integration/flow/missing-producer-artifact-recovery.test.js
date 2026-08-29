@@ -176,6 +176,7 @@ function rawAttemptActivity({ state, id, nodeId, operation, activityAttempt, tra
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
     metric: null,
     note: null,
+    reviewPublication: null,
   });
 }
 

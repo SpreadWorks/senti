@@ -15,6 +15,7 @@ import { AtomicFile } from "../../lib/atomic-file.js";
 import { PRODUCT } from "../../lib/product.js";
 import { captureRegularFile } from "../../lib/regular-file-snapshot.js";
 import { FlowArtifactAttemptHistory } from "../../lib/flow-artifact-contract.js";
+import { CanonicalSpecReview, SpecReviewDelta, mergeSpecReviewDelta } from "./spec-review-artifacts.js";
 
 export const REVIEW_WORK_UNIT_MANIFEST_ENV = PRODUCT.env("REVIEW_WORK_UNIT_MANIFEST");
 const REVIEW_WORK_UNIT_ROOT = PRODUCT.managedPath("review-work-units");
@@ -135,7 +136,9 @@ export class ReviewWorkUnitOutput {
     const values = {
       "draft-questions": ["draft.questions.review", "draft-review-questions.json"],
       "draft-coverage": ["draft.coverage.review", "draft-review-coverage.json"],
-      spec: ["spec.review", "spec-review.json"],
+      // Spec review is a full-input-bound V2 delta.  The parent alone merges
+      // it into the revision-scoped `spec.review` authority.
+      spec: ["spec.review", "review.delta.json"],
       test: ["test.review", "test-review.json"],
       impl: [task === null ? "impl.review" : "task.review", "impl-review.json"],
     }[reviewPhase];
@@ -545,7 +548,9 @@ function descriptorSnapshot(flowManager, specId, descriptor) {
   return snapshot;
 }
 
-function confirmedReviewReceipt(flowManager, specId, manifest, seal) {
+function confirmedReviewReceipt(flowManager, specId, workUnit, sealed) {
+  const manifest = workUnit.manifestDocument;
+  const seal = sealed.seal;
   const activity = flowManager.activityLedger(specId).find((candidate) => (
     candidate.type === "result_confirmed"
     && candidate.nodeId === manifest.nodeId
@@ -553,6 +558,41 @@ function confirmedReviewReceipt(flowManager, specId, manifest, seal) {
   )) ?? null;
   if (activity === null) return false;
   const catalog = flowManager.artifactCatalog(specId);
+  if (manifest.phase === "spec") {
+    const outputDescriptor = catalog.artifacts.find((entry) => (
+      entry.logicalKey === "spec.review" && entry.activityId === activity.id
+    )) ?? null;
+    const reviewInput = manifest.inputs.filter((input) => input.logicalKey === "spec.review");
+    if (outputDescriptor === null || outputDescriptor.mediaType !== manifest.output.mediaType
+      || reviewInput.length !== 1 || activity.reviewPublication === null
+      || activity.reviewPublication.stage !== "spec-review") return false;
+    let inputReview;
+    let publishedReview;
+    let delta;
+    try {
+      inputReview = new CanonicalSpecReview(JSON.parse(
+        reviewInput[0].assertSnapshot(workUnit.directory).bytes.toString("utf8"),
+      ));
+      publishedReview = new CanonicalSpecReview(JSON.parse(
+        descriptorSnapshot(flowManager, specId, outputDescriptor).bytes.toString("utf8"),
+      ));
+      delta = new SpecReviewDelta(JSON.parse(sealed.bytes.toString("utf8")));
+      delta.assertCurrent(inputReview);
+      if (delta.stage !== "spec-review") return false;
+      activity.reviewPublication.assertReview(publishedReview, {
+        specId,
+        revision: publishedReview.identity.revision.value,
+        bytes: descriptorSnapshot(flowManager, specId, outputDescriptor).bytes,
+      });
+    } catch {
+      return false;
+    }
+    try {
+      return mergeSpecReviewDelta({ review: inputReview, delta }).digest === publishedReview.digest;
+    } catch {
+      return false;
+    }
+  }
   const evidenceDescriptor = catalog.artifacts.find((entry) => (
     entry.logicalKey === "review.evidence" && entry.activityId === activity.id
   )) ?? null;
@@ -629,7 +669,7 @@ export function reconcileCompletedReviewWorkUnits({ flowManager, specId, executi
       || !manifest.output.equals(ReviewWorkUnitOutput.forReview({ phase: manifest.phase, taskId: manifest.taskId }))
     ) throw new Error("review work unit reconciliation identity does not match its execution namespace");
     const sealed = worker.readSealedOutput();
-    if (confirmedReviewReceipt(flowManager, specId, manifest, sealed.seal)) {
+    if (confirmedReviewReceipt(flowManager, specId, worker, sealed)) {
       worker.cleanup();
       cleaned += 1;
       continue;

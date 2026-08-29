@@ -16,7 +16,7 @@ import {
 } from "../../../src/flow/definition.js";
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
-import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
+import RunDispatchCommand, * as runDispatchModule from "../../../src/flow/lib/run-dispatch.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
@@ -38,6 +38,11 @@ import {
 } from "../../../src/flow/lib/current-flow-state.js";
 import { CanonicalSpecApproval } from "../../../src/flow/lib/canonical-spec-approval.js";
 import { applySpecRepairOperations } from "../../../src/flow/lib/spec-repair-operations.js";
+import {
+  CanonicalSpecReview,
+  SpecReviewDelta,
+  mergeSpecReviewDelta,
+} from "../../../src/flow/lib/spec-review-artifacts.js";
 import {
   attachCanonicalCommandResultArtifact,
   attachCanonicalCommandResultPublications,
@@ -302,39 +307,6 @@ function rewriteSubmission(request, mutate) {
   fs.writeFileSync(request.submissionPath, `${JSON.stringify(document, null, 2)}\n`);
 }
 
-function specRepairReview() {
-  return {
-    version: 1,
-    phase: "spec",
-    generatedAt: "2026-08-04T00:00:00.000Z",
-    verdict: "REJECTED",
-    blockingFindings: [{ findingId: "spec-review-blocking-1", title: "Name target", target: "R1" }],
-    nonBlockingImprovements: [],
-    summary: { blocking: 1, nonBlocking: 0, total: 1 },
-    repairFingerprint: ACTION_DIGEST,
-  };
-}
-
-function specRepairTriage() {
-  const target = { entity: "requirement", id: "R1", field: "desc" };
-  return {
-    version: 1,
-    phase: "spec-triage",
-    sourceReview: "spec-review.json",
-    summary: "Apply the bounded correction.",
-    items: [{
-      findingId: "spec-review-blocking-1",
-      title: "Name target",
-      target: "R1",
-      decision: "apply",
-      rationale: "The requirement target needs a bounded correction.",
-      evidence: "The reviewed requirement is incomplete.",
-      allowedTargets: [{ target, operationKinds: ["replace-entity-field"] }],
-      requiredTargets: [target],
-    }],
-  };
-}
-
 function prepareSpecRepairFixture() {
   const value = fixture("spec-review", {
     specRecord: validSpec(),
@@ -352,26 +324,78 @@ function prepareSpecRepairFixture() {
       });
     },
   });
-  const reviewResult = { result: "fixture spec review" };
-  attachCanonicalCommandResultArtifact(reviewResult, {
-    logicalKey: "spec.review",
-    payload: specRepairReview(),
-  });
-  const triageResult = { result: "fixture spec triage" };
-  attachCanonicalCommandResultPublications(triageResult, [{
-    logicalKey: "spec.triage",
-    payload: specRepairTriage(),
-  }]);
+  const initial = value.flowManager.readCurrentSpecReviewInput({ specId: value.specId, consumerNodeId: "spec-review" });
+  const reviewDelta = new SpecReviewDelta({ version: 2, stage: "spec-review", identity: initial.review.identity.toJSON(), baseReviewDigest: initial.review.digest, operations: [], findings: [{
+    findingId: "spec-review-blocking-1", kind: "blocking", title: "Name target", target: "R1", body: "The reviewed requirement is incomplete.", issue: "Requirement R1 needs a bounded correction.", requiredChange: "Update its description.", whyBlocking: "The handoff must retain a typed permission.",
+  }] });
+  const reviewed = mergeSpecReviewDelta({ review: initial.review, delta: reviewDelta });
+  const reviewResult = attachCanonicalCommandResultPublications({ result: "fixture spec review", artifacts: { phase: "spec" } }, [{ logicalKey: "spec.review", parameters: { revision: String(initial.revision).padStart(3, "0") }, payload: reviewed.toJSON() }]);
   value.flowManager.updateStepStatus(
     { stepId: "spec-review", requestedStatus: "done" },
     { specId: value.specId, canonicalCommandResult: reviewResult },
   );
   value.flow.activate("spec-triage");
+  const triageInput = value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-triage" });
+  const triageDelta = new SpecReviewDelta({ version: 2, stage: "spec-triage", identity: triageInput.review.identity.toJSON(), baseReviewDigest: triageInput.review.digest, operations: [], findings: [{ findingId: "spec-review-blocking-1", disposition: "apply", evidence: "The reviewed requirement is incomplete.", allowedTargets: [{ target: { entity: "requirement", id: "R1", field: "desc" }, operationKinds: ["replace-entity-field"] }] }] });
+  const triaged = mergeSpecReviewDelta({ review: triageInput.review, delta: triageDelta });
+  const triageResult = attachCanonicalCommandResultPublications({ result: "fixture spec triage", artifacts: { phase: "spec" } }, [{ logicalKey: "spec.review", parameters: { revision: String(triageInput.revision).padStart(3, "0") }, payload: triaged.toJSON() }]);
   value.flowManager.updateStepStatus(
     { stepId: "spec-triage", requestedStatus: "done" },
     { specId: value.specId, canonicalCommandResult: triageResult },
   );
   value.flow.activate("spec-repair");
+  return value;
+}
+
+function prepareSpecTriageFixture() {
+  const value = fixture("spec-review", { specRecord: validSpec() });
+  const initial = value.flowManager.readCurrentSpecReviewInput({
+    specId: value.specId,
+    consumerNodeId: "spec-review",
+  });
+  const reviewDelta = new SpecReviewDelta({
+    version: 2,
+    stage: "spec-review",
+    identity: initial.review.identity.toJSON(),
+    baseReviewDigest: initial.review.digest,
+    operations: [],
+    findings: [
+      {
+        findingId: "F-valid",
+        kind: "blocking",
+        title: "Keep valid sibling",
+        target: "R1",
+        body: "A valid triage sibling must survive malformed siblings.",
+        issue: "The requirement needs a disposition.",
+        requiredChange: "Classify the finding.",
+        whyBlocking: "The parent must retain the independent update.",
+      },
+      {
+        findingId: "F-conflict",
+        kind: "blocking",
+        title: "Discard conflict",
+        target: "R1",
+        body: "Conflicting updates must remain auditable.",
+        issue: "The update must have one disposition.",
+        requiredChange: "Record the discard.",
+        whyBlocking: "The canonical review is the audit authority.",
+      },
+    ],
+  });
+  const reviewed = mergeSpecReviewDelta({ review: initial.review, delta: reviewDelta });
+  const reviewResult = attachCanonicalCommandResultPublications(
+    { result: "fixture spec review", artifacts: { phase: "spec" } },
+    [{
+      logicalKey: "spec.review",
+      parameters: { revision: String(initial.revision).padStart(3, "0") },
+      payload: reviewed.toJSON(),
+    }],
+  );
+  value.flowManager.updateStepStatus(
+    { stepId: "spec-review", requestedStatus: "done" },
+    { specId: value.specId, canonicalCommandResult: reviewResult },
+  );
+  value.flow.activate("spec-triage");
   return value;
 }
 
@@ -393,17 +417,19 @@ function specRepairPayload(request, { scopeExpansion = false, valid = false } = 
   const target = { entity: "requirement", id: "R1", field: "desc" };
   const rejectedReplacement = "SECRET-WORKER-REPLACEMENT";
   return {
-    version: 1,
-    baseRevision: `sha256:${request.inputRevision}`,
+    version: 2, stage: "spec-repair",
+    identity: structuredClone(request.inputs.find((entry) => entry.name === "review.json").document.identity),
+    baseReviewDigest: crypto.createHash("sha256").update(`${JSON.stringify(request.inputs.find((entry) => entry.name === "review.json").document, null, 2)}\n`).digest("hex"),
+    findings: [],
     operations: scopeExpansion || valid ? [{
-      findingId: "spec-review-blocking-1",
+      findingIds: ["spec-review-blocking-1"],
       kind: "replace-entity-field",
       target,
       expectedDigest: repairDigest("Publish a validated artifact."),
       replacement: "Publish a corrected validated artifact.",
       reason: "The reviewed requirement needs its target named.",
     }] : [{
-      findingId: "untrusted-finding",
+      findingIds: ["untrusted-finding"],
       kind: "replace-entity-field",
       target,
       expectedDigest: repairDigest("Publish a validated artifact."),
@@ -432,6 +458,10 @@ function specRepairSnapshot(value) {
 }
 
 describe("worker artifact handoff", () => {
+  it("does not expose the retired spec-repair exhaustion diagnostic", () => {
+    assert.equal(Object.hasOwn(runDispatchModule, "SpecRepairExhaustedDiagnostic"), false);
+  });
+
   it("seals through the dispatcher without resolving ambient Flow authority", async () => {
     const value = fixture();
     const request = value.coordinator.createRequest({
@@ -860,6 +890,38 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("marks malformed optional upgrade evidence as transport-retryable while keeping schema failures terminal", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const effect = new SourceWorkerEffect({
+        version: 1,
+        stepId: "implement",
+        completionStatus: "done",
+        files: [{ requirementId: "R1", paths: ["product.js"] }],
+        issues: [],
+        overview: null,
+        triage: null,
+        repair: null,
+      });
+      fs.writeFileSync(request.payloadPath("effects.json"), json(effect.toJSON()));
+      fs.writeFileSync(request.payloadPath("upgrade.result"), "{ malformed upgrade result\n");
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const upgraded = true;\n");
+      assert.throws(
+        () => seal(request),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+          && error.retryable === true,
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("quarantines an unsafe sealed artifact handoff before recovery can replay it", () => {
     const value = fixture("draft");
     try {
@@ -1253,6 +1315,79 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("retains malformed, unknown, and conflicting triage siblings in the canonical review audit", () => {
+    const value = prepareSpecTriageFixture();
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: {
+          ...value.invocation,
+          id: "dispatch-spec-triage-handoff",
+          action: {
+            ...value.invocation.action,
+            nextAction: { step: "spec-triage" },
+          },
+        },
+      });
+      const review = new CanonicalSpecReview(request.inputs.find((input) => input.name === "review.json").document);
+      fs.writeFileSync(request.payloadPath("review.delta.json"), json({
+        version: 2,
+        stage: "spec-triage",
+        identity: review.identity.toJSON(),
+        baseReviewDigest: review.digest,
+        operations: [],
+        findings: [
+          {
+            findingId: "F-valid",
+            disposition: "invalid",
+            evidence: "The valid sibling remains independently classified.",
+          },
+          {
+            findingId: "F-unknown",
+            disposition: "invalid",
+            evidence: "Unknown findings must be audited without blocking valid siblings.",
+          },
+          {
+            findingId: "F-malformed",
+            disposition: "invalid",
+            evidence: "This update carries an illegal field.",
+            illegalMutation: true,
+          },
+          {
+            findingId: "F-conflict",
+            disposition: "invalid",
+            evidence: "This conflicts with the following update.",
+          },
+          {
+            findingId: "F-conflict",
+            disposition: "already_resolved",
+            evidence: "This conflicts with the prior update.",
+          },
+        ],
+      }));
+      seal(request);
+
+      value.coordinator.reconcile({ ctx: value.ctx, request });
+
+      const published = value.flowManager.readCurrentSpecReview({
+        specId: value.specId,
+        consumerNodeId: "spec-repair",
+      }).review;
+      assert.equal(published.findings.byId("F-valid").disposition, "invalid");
+      assert.equal(published.findings.byId("F-conflict").disposition, undefined);
+      const discarded = published.audit.at(-1).discardedOperations;
+      assert.ok(discarded.some((entry) => entry.findingId === "F-malformed" && /invalid schema/.test(entry.reason)));
+      assert.ok(discarded.some((entry) => entry.findingId === "F-unknown" && entry.reason === "unknown finding"));
+      assert.equal(
+        discarded.filter((entry) => entry.findingId === "F-conflict" && entry.reason === "conflicting duplicate triage update").length,
+        2,
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("rejects direct completion of a dispatcher-owned step in every execution mode", async () => {
     for (const worktree of [true, false]) {
       const value = fixture("spec-triage", { worktree });
@@ -1266,8 +1401,8 @@ describe("worker artifact handoff", () => {
         assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_REQUIRED");
         assert.equal(findStepById(value.flowManager.load().steps, "spec-triage").status, "in_progress");
         assert.equal(
-          fs.existsSync(path.join(canonicalSpecDir(value), "spec-triage.json")),
-          false,
+          fs.existsSync(path.join(canonicalSpecDir(value), "revisions", "001", "review.json")),
+          true,
         );
       } finally {
         removeTmpDir(value.mainRoot);
@@ -2461,7 +2596,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("stops a worktree dispatcher after one missing handoff without spending semantic retries", async () => {
+  it("retries one missing handoff without spending semantic retries", async () => {
     const value = fixture();
     try {
       let calls = 0;
@@ -2492,16 +2627,84 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
-      assert.equal(result.data.classification, "missing");
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
       assert.equal(result.data.retryBudgetConsumed, false);
-      assert.equal(result.data.dispatch.dispatchCount, 1);
-      assert.equal(calls, 1);
+      assert.equal(result.data.dispatch.dispatchCount, 2);
+      assert.equal(calls, 2);
       const state = value.flowManager.load();
       assert.equal(findStepById(state.steps, "draft").status, "in_progress");
-      assert.equal(state.metrics.filter((entry) => entry.kind === "agent").length, 1);
+      assert.equal(state.metrics.filter((entry) => entry.kind === "agent").length, 2);
     } finally {
       removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("retries malformed JSON transport once and preserves ordered failure evidence on re-failure", async () => {
+    for (const scenario of [
+      { name: "recovers", secondPayload: json(draftDocument("recovered after malformed transport")), expectedCode: null },
+      { name: "exhausts", secondPayload: "{ malformed again\n", expectedCode: "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED" },
+    ]) {
+      const value = fixture("draft", { specRecord: validSpec() });
+      try {
+        let calls = 0;
+        const action = draftWorkerAction();
+        const dispatcher = new RunDispatchCommand({
+          nextAction: {
+            async run() {
+              return calls >= 2 && scenario.expectedCode === null
+                ? completedWorkerAction()
+                : structuredClone(action);
+            },
+          },
+          agent: {
+            async call(prompt, options) {
+              calls += 1;
+              const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+              const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+              const payloadPath = request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath;
+              if (calls === 1) {
+                fs.writeFileSync(payloadPath, "{ malformed\n");
+                return;
+              }
+              assert.match(prompt, /Fresh worker handoff retry feedback/);
+              fs.writeFileSync(payloadPath, scenario.secondPayload);
+              if (scenario.expectedCode === null) {
+                sealWorkerArtifactHandoff({
+                  requestPath,
+                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+                });
+              }
+            },
+          },
+          repositoryFingerprint: () => "stable-fixture",
+          leaseFactory: () => ({ acquire() {}, release() {} }),
+        });
+        dispatcher.container = {};
+
+        const result = await dispatcher.execute({
+          ...value.ctx,
+          flowState: value.flowManager.load(),
+          expectRunId: value.flowManager.load().runId,
+          expectSpec: value.specId,
+          _envelopeType: "run",
+          _envelopeKey: "dispatch",
+        });
+
+        assert.equal(calls, 2, scenario.name);
+        if (scenario.expectedCode === null) {
+          assert.equal(result.dispatch.boundary, "completed", scenario.name);
+          assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
+        } else {
+          assert.equal(result.errors[0].code, scenario.expectedCode, scenario.name);
+          assert.equal(result.data.retryExhausted, true, scenario.name);
+          assert.equal(result.data.attempts, 2, scenario.name);
+          assert.match(result.data.first.message, /malformed JSON/, scenario.name);
+          assert.match(result.data.second.message, /malformed JSON/, scenario.name);
+          assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+        }
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
     }
   });
 
@@ -2510,6 +2713,7 @@ describe("worker artifact handoff", () => {
     const originalWrite = process.stderr.write;
     const originalAccumulate = value.flowManager.accumulateAgentMetrics;
     let stderr = "";
+    let calls = 0;
     try {
       const action = {
         taskId: null,
@@ -2526,6 +2730,7 @@ describe("worker artifact handoff", () => {
         nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call() {
+            calls += 1;
             throw new Error("simulated provider failure");
           },
         },
@@ -2547,7 +2752,8 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+      assert.equal(calls, 2);
       assert.match(stderr, /metric accumulation failed: simulated metric persistence failure/);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
     } finally {
@@ -2877,7 +3083,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("retries one invalid pre-publication payload in a fresh handoff and preserves the first seal", async () => {
+  it("terminalizes an invalid pre-publication payload after one sealed handoff", async () => {
     const value = fixture("draft", { specRecord: validSpec() });
     try {
       const current = { value: draftWorkerAction() };
@@ -2900,10 +3106,7 @@ describe("worker artifact handoff", () => {
             const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             const payloadPath = request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath;
-            fs.writeFileSync(
-              payloadPath,
-              calls === 1 ? "[]\n" : json(draftDocument("retry succeeded")),
-            );
+            fs.writeFileSync(payloadPath, "[]\n");
             sealWorkerArtifactHandoff({
               requestPath,
               invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
@@ -2928,26 +3131,22 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
-      assert.equal(result.dispatch.dispatchCount, 2);
-      assert.equal(calls, 2);
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_INVALID");
+      assert.equal(calls, 1);
       assert.ok(firstHandoffDirectory);
       assert.equal(fs.existsSync(firstHandoffDirectory), true);
       assert.deepEqual(
         fs.readFileSync(path.join(firstHandoffDirectory, "payload", "draft.json")),
         firstPayloadBytes,
       );
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
-      assert.deepEqual(
-        readCatalogJson(value, "draft", "draft-questions-review"),
-        draftDocument("retry succeeded"),
-      );
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
-  it("retries a spec-test handoff with the canonical topology and exact validation feedback", async () => {
+  it("terminalizes an invalid spec-test handoff with canonical topology evidence", async () => {
     const value = fixture("test", { specRecord: validSpec() });
     try {
       const canonicalSourcePath = path.join(value.mainRoot, "src", "existing.js");
@@ -2992,17 +3191,6 @@ describe("worker artifact handoff", () => {
                 "",
               ].join("\n"));
               firstPayload = fs.readFileSync(testPath);
-            } else {
-              assert.match(prompt, /Fresh worker handoff retry feedback \(non-authoritative\):/);
-              assert.match(prompt, /FLOW_ARTIFACT_HANDOFF_INVALID/);
-              assert.match(prompt, /statically imports missing pre-implementation module/);
-              fs.writeFileSync(testPath, [
-                "// spec: R1",
-                "import test from 'node:test';",
-                `import value from '${canonicalImport}';`,
-                "test('R1: uses an existing module', () => value);",
-                "",
-              ].join("\n"));
             }
             sealWorkerArtifactHandoff({
               requestPath,
@@ -3024,22 +3212,15 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
-      assert.equal(result.dispatch.dispatchCount, 2);
-      assert.equal(calls, 2);
-      assert.equal(requests[0].actionDigest, requests[1].actionDigest);
-      assert.equal(requests[0].inputRevision, requests[1].inputRevision);
-      assert.notEqual(requests[0].dispatchInvocationId, requests[1].dispatchInvocationId);
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_INVALID");
+      assert.equal(calls, 1);
+      assert.equal(requests.length, 1);
       assert.deepEqual(
         fs.readFileSync(path.join(requests[0].payloads[0].payloadPath, "topology.test.js")),
         firstPayload,
       );
-      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "done");
-      assert.equal(
-        value.flowManager.artifactCatalog(value.specId)
-          .resolve("artifacts/tests/topology.test.js").logicalKey,
-        "tests.source",
-      );
+      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(canonicalTestRoot, "topology.test.js")), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -3115,7 +3296,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("reports retry exhaustion after the second invalid output with durable diagnostics", async () => {
+  it("terminalizes an invalid output without a semantic retry", async () => {
     const value = fixture("draft", { specRecord: validSpec() });
     try {
       const current = { value: draftWorkerAction() };
@@ -3158,15 +3339,8 @@ describe("worker artifact handoff", () => {
       });
 
       assert.equal(result.ok, false);
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
-      assert.equal(result.data.retryExhausted, true);
-      assert.equal(result.data.attempts, 2);
-      assert.equal(result.data.dispatch.dispatchCount, 2);
-      assert.equal(result.data.first.handoffDirectory, handoffDirectories[0]);
-      assert.equal(result.data.second.handoffDirectory, handoffDirectories[1]);
-      assert.notEqual(result.data.first.handoffDirectory, result.data.second.handoffDirectory);
-      assert.equal(result.data.first.classification, "invalid");
-      assert.equal(result.data.second.classification, "invalid");
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_INVALID");
+      assert.equal(calls, 1);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
       assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
 
@@ -3175,43 +3349,39 @@ describe("worker artifact handoff", () => {
         `worker-handoff-${result.data.actionDigest}-invalid`
       ));
       assert.ok(entry);
-      assert.equal(entry.diagnostic.code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
-      assert.equal(entry.diagnostic.attempts, 2);
-      assert.equal(entry.diagnostic.first.handoffDirectory, handoffDirectories[0]);
-      assert.equal(entry.diagnostic.second.handoffDirectory, handoffDirectories[1]);
+      assert.match(entry.reason, /Worker artifact handoff invalid:/);
+      assert.equal(entry.diagnostic, undefined);
+      assert.match(entry.resolution, /Correct the worker artifact payload/);
+      assert.equal(handoffDirectories.length, 1);
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
-  it("limits spec-repair correction failures to three worker calls without changing semantic Flow state", async () => {
+  it("terminalizes semantic spec-repair deltas after one worker call without changing state", async () => {
     for (const scenario of [
       {
         name: "required targets",
         scopeExpansion: false,
-        code: "FLOW_SPEC_REPAIR_CORRECTION_EXHAUSTED",
+        code: "FLOW_ARTIFACT_HANDOFF_INVALID",
       },
       {
         name: "scope expansion",
         scopeExpansion: true,
-        code: "FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED",
+        code: "FLOW_ARTIFACT_HANDOFF_INVALID",
       },
     ]) {
       const value = prepareSpecRepairFixture();
       try {
         const action = specRepairWorkerAction();
         const before = specRepairSnapshot(value);
-        const snapshotsAfterFailures = [];
         let nextActionCalls = 0;
         let workerCalls = 0;
         const dispatcher = new RunDispatchCommand({
           nextAction: {
             async run() {
               nextActionCalls += 1;
-              if (nextActionCalls === 2 || nextActionCalls === 3) {
-                snapshotsAfterFailures.push(specRepairSnapshot(value));
-              }
-              return structuredClone(action);
+              return workerCalls === 0 ? structuredClone(action) : completedWorkerAction();
             },
           },
           agent: {
@@ -3220,7 +3390,7 @@ describe("worker artifact handoff", () => {
               const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
               const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
               fs.writeFileSync(
-                request.payloads.find((entry) => entry.logicalName === "spec-repair.json").payloadPath,
+                request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath,
                 json(specRepairPayload(request, scenario)),
               );
               sealWorkerArtifactHandoff({
@@ -3243,37 +3413,14 @@ describe("worker artifact handoff", () => {
           _envelopeKey: "dispatch",
         });
 
-        assert.equal(result.ok, false, scenario.name);
-        assert.equal(result.errors[0].code, scenario.code, scenario.name);
-        assert.equal(result.data.retryExhausted, true, scenario.name);
-        assert.equal(result.data.attempts, 3, scenario.name);
-        assert.equal(result.data.dispatch.dispatchCount, 3, scenario.name);
-        assert.equal(workerCalls, 3, `${scenario.name}: no fourth worker call`);
-        assert.ok(nextActionCalls <= 4, `${scenario.name}: bounded next-action reads`);
-        assert.equal(snapshotsAfterFailures.length, 2, scenario.name);
-        assert.equal(result.data.dispatch.boundary, "blocked", `${scenario.name}: exhausted repair is blocked`);
-        assert.ok(result.data.specRepairAudit, `${scenario.name}: cumulative repair audit is retained`);
-        assert.ok(result.data.specRepairDiagnostic, `${scenario.name}: normalized exhausted diagnostic is returned`);
-        assert.equal(result.data.specRepairDiagnostic.consumedCalls, 3, `${scenario.name}: diagnostic records consumed calls`);
-        assert.ok(result.data.specRepairDiagnostic.lastError?.code, `${scenario.name}: last error is retained`);
-        assert.match(result.data.specRepairDiagnostic.resumeInstruction, /sennel flow run dispatch/, `${scenario.name}: resume instruction is executable`);
-        assert.doesNotMatch(JSON.stringify(result.data.specRepairDiagnostic), /SECRET-WORKER-REPLACEMENT/, `${scenario.name}: diagnostic excludes worker replacement values`);
-        assert.ok(result.data.specRepairDiagnostic.discardedOperations.every((entry) => (
-          !Object.hasOwn(entry, "replacement") && !Object.hasOwn(entry, "operation")
-        )), `${scenario.name}: diagnostic excludes raw operation payloads`);
-        assert.equal(result.data.specRepairAudit.attempts.length, 3, `${scenario.name}: all attempts are retained`);
-        assert.ok(result.data.specRepairAudit.attempts.every((attempt) => attempt.code), `${scenario.name}: each failed attempt retains its code`);
-        if (scenario.scopeExpansion) {
-          assert.ok(result.data.specRepairAudit.scopeExpansions.length > 0, `${scenario.name}: scope expansion details are retained`);
-        } else {
-          assert.ok(result.data.specRepairAudit.attempts.some((attempt) => attempt.missingRequiredTargets.length > 0), `${scenario.name}: missing targets are retained`);
-        }
-        const issueLog = readCatalogJson(value, "issue.log", "spec-gate");
-        const diagnosticEntry = issueLog.entries.at(-1);
-        assert.deepEqual(diagnosticEntry.diagnostic, result.data.specRepairDiagnostic, `${scenario.name}: issue-log diagnostic matches immediate output`);
-        for (const snapshot of snapshotsAfterFailures) {
-          assert.deepEqual(snapshot, before, `${scenario.name}: failed correction must be side-effect free`);
-        }
+        assert.equal(result.dispatch.boundary, "completed", scenario.name);
+        assert.equal(workerCalls, 1, `${scenario.name}: semantic delta has no correction retry`);
+        assert.ok(nextActionCalls <= 3, `${scenario.name}: confirmation performs only bounded completion reads`);
+        const review = value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-gate" }).review;
+        const audit = review.audit.at(-1);
+        assert.equal(audit.stage, "spec-repair");
+        if (scenario.scopeExpansion) assert.equal(audit.acceptedOperations.length, 1);
+        else assert.equal(audit.acceptedOperations.length, 0);
       } finally {
         removeTmpDir(value.mainRoot);
       }
@@ -3293,7 +3440,7 @@ describe("worker artifact handoff", () => {
             const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
-              request.payloads.find((entry) => entry.logicalName === "spec-repair.json").payloadPath,
+              request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath,
               json(specRepairPayload(request, { valid: true })),
             );
             sealWorkerArtifactHandoff({
@@ -3325,12 +3472,6 @@ describe("worker artifact handoff", () => {
       assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED");
       assert.equal(workerCalls, 1);
       assert.deepEqual(specRepairSnapshot(value), before);
-      assert.equal(value.flowManager.readArtifact({
-        specId: value.specId,
-        logicalKey: "spec.repair",
-        consumerNodeId: "spec-gate",
-        optional: true,
-      }), null);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -3634,7 +3775,7 @@ function repairTargetPermission(target, operationKinds) {
   return { target: structuredClone(target), operationKinds: [...operationKinds] };
 }
 
-function v1RepairSpec() {
+function canonicalRepairSpec() {
   return {
     ...validSpec(),
     background: "The original background.",
@@ -3654,18 +3795,21 @@ function v1RepairSpec() {
   };
 }
 
-function v1RepairBatch(baseRevision, operations, scopeExpansions = []) {
+function repairDelta(baseRevision, operations, scopeExpansions = []) {
   return {
-    version: 1,
-    baseRevision: `sha256:${baseRevision}`,
+    version: 2,
+    stage: "spec-repair",
+    identity: { specId: "repair-fixture", revision: 1, digest: baseRevision, byteLength: 1 },
+    baseReviewDigest: "a".repeat(64),
+    findings: [],
     operations,
     scopeExpansions,
   };
 }
 
-function v1RepairOperation({ findingId, kind, target, expectedDigest = null, replacement, reason = "The reviewed target requires correction." }) {
+function repairOperation({ findingId, kind, target, expectedDigest = null, replacement, reason = "The reviewed target requires correction." }) {
   return {
-    findingId,
+    findingIds: [findingId],
     kind,
     target: structuredClone(target),
     expectedDigest,
@@ -3674,17 +3818,13 @@ function v1RepairOperation({ findingId, kind, target, expectedDigest = null, rep
   };
 }
 
-function v1RepairTriage(items) {
-  return {
-    version: 1,
-    phase: "spec-triage",
-    sourceReview: "spec-review.json",
-    summary: "Apply reviewed bounded corrections.",
-    items,
-  };
+function triageDelta(items) {
+  return { findings: items.map(({ findingId, decision, evidence, allowedTargets }) => ({
+    findingId, disposition: decision, evidence, ...(decision === "apply" ? { allowedTargets } : {}),
+  })) };
 }
 
-function v1ApplyItem(findingId, allowedTargets, requiredTargets) {
+function applyFinding(findingId, allowedTargets) {
   return {
     findingId,
     title: "Bounded repair target",
@@ -3693,37 +3833,36 @@ function v1ApplyItem(findingId, allowedTargets, requiredTargets) {
     rationale: "The finding is actionable.",
     evidence: "The target is present in the immutable spec.",
     allowedTargets: allowedTargets.map(({ target, operationKinds }) => repairTargetPermission(target, operationKinds)),
-    requiredTargets: requiredTargets.map((target) => structuredClone(target)),
   };
 }
 
-describe("spec-repair worker v1 contract", () => {
-  it("accepts a v1 worker proposal while publishing only a CLI-owned v2 audit", () => {
+describe("spec-repair worker V2 delta contract", () => {
+  it("accepts a V2 worker delta while publishing only a CLI-owned audit", () => {
     const revision = "b".repeat(64);
     const target = { entity: "requirement", id: "R1", field: "desc" };
-    const triage = v1RepairTriage([
-      v1ApplyItem("F-v1", [repairTargetPermission(target, ["replace-entity-field"])], [target]),
+    const triage = triageDelta([
+      applyFinding("F-canonical", [repairTargetPermission(target, ["replace-entity-field"])]),
     ]);
-    const proposal = v1RepairBatch(revision, [v1RepairOperation({
-      findingId: "F-v1",
+    const proposal = repairDelta(revision, [repairOperation({
+      findingId: "F-canonical",
       kind: "replace-entity-field",
       target,
       expectedDigest: repairDigest("Publish a validated artifact."),
-      replacement: "The requirement was repaired through a bounded v1 proposal.",
+      replacement: "The requirement was repaired through a bounded canonical delta.",
     })]);
 
     const result = applySpecRepairOperations({
-      spec: v1RepairSpec(),
+      spec: canonicalRepairSpec(),
       triage,
       repair: proposal,
       inputRevision: revision,
     });
 
-    assert.equal(result.spec.requirements[0].desc, "The requirement was repaired through a bounded v1 proposal.");
+    assert.equal(result.spec.requirements[0].desc, "The requirement was repaired through a bounded canonical delta.");
     assert.equal(result.audit.version, 2);
     assert.equal(result.audit.phase, "spec-repair");
     assert.equal(result.audit.acceptedOperations[0].operation.kind, "replace-entity-field");
-    assert.equal(result.audit.acceptedOperations[0].operation.replacement, "The requirement was repaired through a bounded v1 proposal.");
+    assert.equal(result.audit.acceptedOperations[0].operation.replacement, "The requirement was repaired through a bounded canonical delta.");
     assert.equal(Object.hasOwn(result.audit, "rawResponse"), false);
     assert.equal(Object.hasOwn(result.audit, "operations"), false);
   });
@@ -3731,20 +3870,20 @@ describe("spec-repair worker v1 contract", () => {
   it("rejects full-spec and legacy repair envelopes at the worker boundary", () => {
     const revision = "c".repeat(64);
     const target = { entity: "requirement", id: "R1", field: "desc" };
-    const triage = v1RepairTriage([
-      v1ApplyItem("F-legacy", [repairTargetPermission(target, ["replace-entity-field"])], [target]),
+    const triage = triageDelta([
+      applyFinding("F-invalid-envelope", [repairTargetPermission(target, ["replace-entity-field"])]),
     ]);
     const apply = (repair) => applySpecRepairOperations({
-      spec: v1RepairSpec(), triage, repair, inputRevision: revision,
+      spec: canonicalRepairSpec(), triage, repair, inputRevision: revision,
     });
     assert.throws(
-      () => apply({ ...v1RepairBatch(revision, []), goal: "unauthorized full spec" }),
+      () => apply({ ...repairDelta(revision, []), goal: "unauthorized full spec" }),
       (error) => error.code === "FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE",
     );
     assert.throws(
       () => apply({
-        ...v1RepairBatch(revision, []),
-        version: 2,
+        ...repairDelta(revision, []),
+        version: 1,
       }),
       (error) => error.code === "FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE",
     );
@@ -3754,27 +3893,26 @@ describe("spec-repair worker v1 contract", () => {
     const revision = "d".repeat(64);
     const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
     const constraintsTarget = { collection: "constraints" };
-    const triage = v1RepairTriage([
-      v1ApplyItem(
+    const triage = triageDelta([
+      applyFinding(
         "F-permissions",
         [
           repairTargetPermission(requirementTarget, ["replace-entity-field"]),
           repairTargetPermission(constraintsTarget, ["replace-array-element"]),
         ],
-        [requirementTarget],
       ),
     ]);
     const result = applySpecRepairOperations({
-      spec: v1RepairSpec(),
+      spec: canonicalRepairSpec(),
       triage,
-      repair: v1RepairBatch(revision, [
-        v1RepairOperation({
+      repair: repairDelta(revision, [
+        repairOperation({
           findingId: "F-permissions",
           kind: "add-array-element",
           target: constraintsTarget,
           replacement: "forbidden addition",
         }),
-        v1RepairOperation({
+        repairOperation({
           findingId: "F-permissions",
           kind: "replace-entity-field",
           target: requirementTarget,
@@ -3796,50 +3934,42 @@ describe("spec-repair worker v1 contract", () => {
     const revision = "e".repeat(64);
     const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
     const backgroundTarget = { entity: "spec", field: "background" };
-    const triage = v1RepairTriage([
-      v1ApplyItem(
+    const triage = triageDelta([
+      applyFinding(
         "F-conflict",
         [
           repairTargetPermission(requirementTarget, ["replace-entity-field"]),
           repairTargetPermission(backgroundTarget, ["replace-field"]),
         ],
-        [requirementTarget],
       ),
     ]);
-    let error;
-    try {
-      applySpecRepairOperations({
-        spec: v1RepairSpec(),
+    const result = applySpecRepairOperations({
+        spec: canonicalRepairSpec(),
         triage,
-        repair: v1RepairBatch(revision, [
-          v1RepairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "first" }),
-          v1RepairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "conflicting second" }),
-          v1RepairOperation({ findingId: "F-conflict", kind: "replace-field", target: backgroundTarget, expectedDigest: repairDigest("The original background."), replacement: "independent retained correction" }),
+        repair: repairDelta(revision, [
+          repairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "first" }),
+          repairOperation({ findingId: "F-conflict", kind: "replace-entity-field", target: requirementTarget, expectedDigest: repairDigest("Publish a validated artifact."), replacement: "conflicting second" }),
+          repairOperation({ findingId: "F-conflict", kind: "replace-field", target: backgroundTarget, expectedDigest: repairDigest("The original background."), replacement: "independent retained correction" }),
         ]),
         inputRevision: revision,
       });
-    } catch (cause) {
-      error = cause;
-    }
-
-    assert.equal(error?.code, "FLOW_SPEC_REPAIR_OPERATION_CONFLICT");
-    assert.equal(error.audit.acceptedOperations.length, 1);
-    assert.equal(error.audit.acceptedOperations[0].target.field, "background");
-    assert.equal(error.audit.discardedOperations.length, 2);
-    assert.ok(error.audit.discardedOperations.every((entry) => /conflict/i.test(entry.reason)));
+    assert.equal(result.audit.acceptedOperations.length, 1);
+    assert.equal(result.audit.acceptedOperations[0].operation.target.field, "background");
+    assert.equal(result.audit.discardedOperations.length, 2);
+    assert.ok(result.audit.discardedOperations.every((entry) => /conflict/i.test(entry.reason)));
   });
 
   it("uses the optional base position to resolve a duplicate no-ID array element", () => {
     const revision = "f".repeat(64);
     const value = "duplicate element";
     const target = { collection: "constraints", position: 1 };
-    const triage = v1RepairTriage([
-      v1ApplyItem("F-position", [repairTargetPermission(target, ["replace-array-element"])], [target]),
+    const triage = triageDelta([
+      applyFinding("F-position", [repairTargetPermission(target, ["replace-array-element"])]),
     ]);
     const result = applySpecRepairOperations({
-      spec: v1RepairSpec(),
+      spec: canonicalRepairSpec(),
       triage,
-      repair: v1RepairBatch(revision, [v1RepairOperation({
+      repair: repairDelta(revision, [repairOperation({
         findingId: "F-position",
         kind: "replace-array-element",
         target,

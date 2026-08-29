@@ -103,6 +103,7 @@ import {
   StepConnectionReceipt,
 } from "./draft-completion-connector.js";
 import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
+import { CanonicalSpecReview } from "./spec-review-artifacts.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
 import {
@@ -1031,6 +1032,50 @@ export class CanonicalFlowManagerStore {
   // Gate evidence readers share the public FlowManager catalog vocabulary;
   // the Store exposes the same read-only authority for its admission checks.
   artifactCatalog(specId) { return this.catalog(specId); }
+
+  /** Read the published review only. Absence is a valid pre-review state. */
+  readCurrentSpecReview({ specId = null, consumerNodeId } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const consumer = FlowArtifactUpdater.fromActivityNodeId(
+      requiredText(consumerNodeId, "canonical review consumer nodeId"),
+    ).toString();
+    const contract = FLOW_ARTIFACT_CONTRACTS.require("spec.review");
+    if (!contract.ownership.consumers.includes(consumer)) {
+      throw new CurrentFlowStateInvariantError(
+        `canonical artifact consumer is not authorized: ${consumer}/spec.review`,
+      );
+    }
+    const artifact = this.runtime.readCurrentSpecReview(resolved);
+    if (artifact === null) return null;
+    return Object.freeze({
+      revision: artifact.revision,
+      descriptor: artifact.descriptor,
+      bytes: Buffer.from(artifact.bytes),
+      review: artifact.review,
+    });
+  }
+
+  /** Return the parent-derived review input for spec-review. This is the only
+   * place an unpersisted generation-zero review may exist. */
+  readCurrentSpecReviewInput({ specId = null, consumerNodeId } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const consumer = FlowArtifactUpdater.fromActivityNodeId(
+      requiredText(consumerNodeId, "canonical review input consumer nodeId"),
+    ).toString();
+    if (consumer !== "spec-review") {
+      throw new CurrentFlowStateInvariantError("only spec-review may consume an unpublished canonical review seed");
+    }
+    const artifact = this.runtime.readCurrentSpecReviewInput(resolved);
+    return Object.freeze({
+      revision: artifact.revision,
+      descriptor: artifact.descriptor,
+      bytes: Buffer.from(artifact.bytes),
+      review: artifact.review,
+      persisted: artifact.persisted,
+    });
+  }
 
   /** Store-owned atomic source for Definition transition facts. */
   transitionSnapshot(specId) {

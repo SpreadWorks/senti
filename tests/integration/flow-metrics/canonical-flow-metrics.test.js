@@ -8,7 +8,11 @@ import {
   aggregateReviewMetrics,
   loadReviewMetricsArtifacts,
 } from "../../../src/metrics/commands/review.js";
-import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import {
+  CanonicalCommandResultPublication,
+  attachCanonicalCommandResultPublications,
+} from "../../../src/flow/lib/canonical-command-result.js";
+import { SpecReviewDelta, mergeSpecReviewDelta } from "../../../src/flow/lib/spec-review-artifacts.js";
 import { CanonicalFlowFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
@@ -105,18 +109,36 @@ describe("CanonicalMetricsFlowIndex", () => {
     for (let count = 0; count < 5; count += 1) {
       flowManager.incrementMetric("spec", "reviewRetry", { specId: fixture.specId });
     }
-    const result = attachCanonicalCommandResultArtifact({ result: "reviewed" }, {
-      logicalKey: "spec.review",
-      payload: {
-        verdict: "REJECTED",
-        blockingFindings: [{
-          findingId: "spec-finding-1",
-          title: "Cataloged finding",
-          category: "coverage",
-          rationale: "The review result is owned by its producer.",
-        }],
-      },
+    const currentReview = flowManager.readCurrentSpecReviewInput({
+      specId: fixture.specId,
+      consumerNodeId: "spec-review",
     });
+    const delta = new SpecReviewDelta({
+      version: 2,
+      stage: "spec-review",
+      identity: currentReview.review.identity.toJSON(),
+      baseReviewDigest: currentReview.review.digest,
+      findings: [{
+        findingId: "spec-finding-1",
+        kind: "blocking",
+        title: "Cataloged finding",
+        target: "R-2",
+        body: "The review result is owned by its producer.",
+        issue: "Cataloged review evidence must remain revision scoped.",
+        requiredChange: "Preserve the canonical finding.",
+        whyBlocking: "The metric projection depends on durable producer evidence.",
+      }],
+      operations: [],
+    });
+    const nextReview = mergeSpecReviewDelta({ review: currentReview.review, delta });
+    const result = attachCanonicalCommandResultPublications({ result: "reviewed" }, [
+      new CanonicalCommandResultPublication({
+        logicalKey: "spec.review",
+        parameters: { revision: String(currentReview.revision).padStart(3, "0") },
+        mediaType: "application/json",
+        payload: nextReview.toJSON(),
+      }),
+    ]);
     flowManager.updateStepStatus(
       { stepId: "spec-review", requestedStatus: "done" },
       { specId: fixture.specId, canonicalCommandResult: result },
@@ -144,7 +166,7 @@ describe("CanonicalMetricsFlowIndex", () => {
       severity: "blocking",
       title: "Cataloged finding",
       body: "The review result is owned by its producer.",
-      category: "coverage",
+      category: "unknown",
     }]);
     assert.deepEqual(report.guardrails, [{ guardrailId: "R-2", count: 1 }]);
     assert.deepEqual(report.repairMetrics.attemptLimitSpecs, [{

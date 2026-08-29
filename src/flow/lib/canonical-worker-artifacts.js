@@ -41,7 +41,7 @@ function catalogDescriptor(value, address) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("canonical worker artifact catalog descriptor is invalid");
   }
-  if (value.logicalKey !== address.logicalKey || value.relativePath !== address.canonicalRelativePath()) {
+  if (value.logicalKey !== address.logicalKey || (!address.currentSpecReview && value.relativePath !== address.canonicalRelativePath())) {
     throw new Error(`canonical worker artifact catalog identity is invalid: ${address.workerPath}`);
   }
   if (!/^[a-f0-9]{64}$/.test(value.hash) || !Number.isSafeInteger(value.size) || value.size < 0) {
@@ -53,10 +53,10 @@ function catalogDescriptor(value, address) {
 /**
  * Catalog-resolved bytes for one stable worker-visible artifact name.
  *
- * The handoff protocol still names `draft.json` and `spec-review.json`, but
- * this value preserves the fact that those are aliases for a producer-owned
- * V1 catalog entry.  Consumers therefore cannot turn a worker name into an
- * unchecked filesystem read.
+ * Worker-visible names are parent-materialized aliases for cataloged inputs.
+ * Spec review uses `review.json`, the current revision-scoped authority;
+ * consumers therefore cannot turn a worker name into an unchecked filesystem
+ * read.
  */
 export class CanonicalWorkerArtifactInput {
   constructor({ address, descriptor, bytes } = {}) {
@@ -87,7 +87,7 @@ export class CanonicalWorkerArtifactInput {
    * unchanged handoff/prompt contract.
    */
   currentDocument(label = this.workerPath) {
-    if (this.address.artifact.contract.contentContract !== null) {
+    if (this.address.contract.contentContract !== null) {
       try {
         return CanonicalCommandAttemptArtifactHistory.fromBytes({
           logicalKey: this.address.logicalKey,
@@ -149,10 +149,21 @@ export class CanonicalWorkerTestTreeSnapshot {
 export class CanonicalWorkerArtifactAddress {
   constructor(workerPath) {
     this.workerPath = requiredPath(workerPath, "worker artifact path");
+    if (this.workerPath === "review.json") {
+      this.logicalKey = "spec.review";
+      this.parameters = Object.freeze({});
+      this.contract = FLOW_ARTIFACT_CONTRACTS.require(this.logicalKey);
+      this.artifact = null;
+      this.currentSpecReview = true;
+      Object.freeze(this);
+      return;
+    }
     if (this.workerPath.startsWith("tests/")) {
       this.logicalKey = "tests.source";
       this.parameters = Object.freeze({ testPath: this.workerPath.slice("tests/".length) });
       this.artifact = FLOW_ARTIFACT_CONTRACTS.resolve(this.logicalKey, this.parameters);
+      this.contract = this.artifact.contract;
+      this.currentSpecReview = false;
       Object.freeze(this);
       return;
     }
@@ -163,6 +174,8 @@ export class CanonicalWorkerArtifactAddress {
     this.logicalKey = target.logicalKey;
     this.parameters = Object.freeze({});
     this.artifact = FLOW_ARTIFACT_CONTRACTS.resolve(this.logicalKey);
+    this.contract = this.artifact.contract;
+    this.currentSpecReview = false;
     Object.freeze(this);
   }
 
@@ -173,7 +186,10 @@ export class CanonicalWorkerArtifactAddress {
   }
 
   /** Location-relative path used only to read an already cataloged input. */
-  canonicalRelativePath() { return this.artifact.relativePath; }
+  canonicalRelativePath() {
+    if (this.currentSpecReview) throw new Error("current Spec review has no static canonical path");
+    return this.artifact.relativePath;
+  }
 
   /**
    * Resolve this stable protocol name through the V1 catalog and authorized
@@ -182,6 +198,18 @@ export class CanonicalWorkerArtifactAddress {
    */
   read({ flowManager, specId, consumerNodeId, optional = false } = {}) {
     const manager = requiredFlowManager(flowManager);
+    if (this.currentSpecReview) {
+      try {
+        const resolved = manager.readCurrentSpecReview({
+          specId: requiredText(specId, "canonical worker artifact specId"),
+          consumerNodeId: requiredText(consumerNodeId, "canonical worker artifact consumer nodeId"),
+        });
+        return new CanonicalWorkerArtifactInput({ address: this, descriptor: resolved.descriptor, bytes: resolved.bytes });
+      } catch (cause) {
+        if (optional && /review is absent/.test(cause.message)) return null;
+        throw cause;
+      }
+    }
     const resolved = manager.readArtifact({
       specId: requiredText(specId, "canonical worker artifact specId"),
       logicalKey: this.logicalKey,
@@ -200,6 +228,17 @@ export class CanonicalWorkerArtifactAddress {
   /** Read a producer baseline from catalog metadata without opening a path. */
   catalogSnapshot({ flowManager, specId } = {}) {
     const manager = requiredFlowManager(flowManager);
+    if (this.currentSpecReview) {
+      if (typeof manager.readCurrentSpecReview !== "function") {
+        throw new Error("canonical worker artifact current review requires the FlowManager revision authority reader");
+      }
+      const current = manager.readCurrentSpecReview({
+        specId: requiredText(specId, "canonical worker artifact specId"),
+        consumerNodeId: "spec-review",
+      });
+      const normalized = catalogDescriptor(current.descriptor, this);
+      return Object.freeze({ digest: normalized.hash, byteLength: normalized.size });
+    }
     const catalog = manager.artifactCatalog(requiredText(specId, "canonical worker artifact specId"));
     const descriptor = catalog.artifacts.find((entry) => entry.relativePath === this.canonicalRelativePath()) ?? null;
     if (descriptor === null) return null;

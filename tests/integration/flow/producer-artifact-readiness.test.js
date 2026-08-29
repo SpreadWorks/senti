@@ -73,7 +73,7 @@ describe("ProducerArtifactReadiness", () => {
     const catalog = {
       artifacts: [{
         logicalKey: "spec.review",
-        relativePath: "steps/spec-review/result.json",
+        relativePath: "revisions/001/review.json",
         activityId: "confirmed-spec-review",
       }],
     };
@@ -211,7 +211,7 @@ describe("ProducerArtifactReadiness", () => {
         }),
         catalog: { artifacts: [{
           logicalKey: "spec.review",
-          relativePath: "steps/spec-review/result.json",
+          relativePath: "revisions/001/review.json",
           activityId: "published-attempt-1",
         }] },
         activities: [{
@@ -233,7 +233,7 @@ describe("ProducerArtifactReadiness", () => {
         state: state({ sequence: 2 }),
         catalog: { artifacts: [{
           logicalKey: "spec.review",
-          relativePath: "steps/spec-review/result.json",
+          relativePath: "revisions/001/review.json",
           activityId: "confirmed-spec-review",
         }] },
         activities: [
@@ -289,7 +289,7 @@ describe("ProducerArtifactReadiness", () => {
         state: historical,
         catalog: { artifacts: [{
           logicalKey: "spec.review",
-          relativePath: "steps/spec-review/result.json",
+          relativePath: "revisions/001/review.json",
           activityId: "published-spec-review-attempt-2",
         }] },
         activities: [

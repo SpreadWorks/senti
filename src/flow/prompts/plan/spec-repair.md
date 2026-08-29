@@ -1,30 +1,11 @@
+   - Read the immutable `spec.json` snapshot and the one canonical `review.json` only from `inputs[].document`.
+   - Write only `review.delta.json`, one immutable-input-bound delta, to the exact handoff `payloadPath`. Never edit `spec.json`, `review.json`, or any canonical Flow file.
+   - The parent CLI validates each proposed operation independently, merges accepted changes into the canonical review audit, and alone publishes a changed spec revision.
+   - A delta has `version: 2`, `stage: "spec-repair"`, the exact immutable `identity`, and `operations[]`.
+   - Every operation has non-empty unique `findingIds`, a structured `target`, `kind`, `expectedDigest`, a replacement when the kind requires it, and a short reason. Use only `replace-field`, `replace-entity-field`, `add-array-element`, `replace-array-element`, or `delete-array-element`. Every named finding must have an explicit canonical `apply` permission for that target and kind.
+   - Valid operations may be partial. Do not manufacture operations to cover findings. An empty operation list is a semantic no-op and the Flow continues.
+   - Preserve array add/replace/delete semantics: `expectedDigest` is the immutable target value digest for replacement/deletion and null only for array add; use an immutable-base `position` only to disambiguate duplicate array values.
+   - Do not reclassify findings or widen scope. Unknown, stale, conflicting, or unpermitted operations are rejected by the parent one operation at a time; unrelated valid operations remain eligible.
+   - Only malformed JSON or an actual missing or unreadable handoff is retryable, and it receives at most one fresh worker invocation. Parsed schema, identity, authority, and atomic-publication failures are terminal.
+   - **On complete**: run the exact handoff `sealCommand` once.
    <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
-   - Repair the existing spec after `spec-triage` classifies blocking review findings.
-   - Read `spec.json`, `spec-review.json`, and `spec-triage.json` only from their handoff `inputs[].document` snapshots. `spec.json` is immutable input context. Treat only triage `items[]` entries with `decision: "apply"` as the repair input.
-   - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.
-   - Write only `spec-repair.json` to its exact handoff `payloadPath`. Never write `spec.json`; the CLI alone applies accepted operations to the immutable snapshot, validates it, and atomically publishes the resulting canonical spec plus an audit.
-   - If an immutable input is missing or invalid, stop without writing or sealing. If there are no triage `apply` items, write an empty `operations[]`.
-   - Return only constrained operation proposals. Each proposal must use an apply item's exact `findingId`, the same canonical location as an `allowedTargets` permission, and one of that permission's `operationKinds`. Cover every `requiredTargets` entry exactly once. `kind` is one of `replace-field`, `replace-entity-field`, `add-array-element`, `replace-array-element`, or `delete-array-element`. `expectedDigest` is the lowercase SHA-256 hex digest of the UTF-8 bytes produced by `JSON.stringify(immutableTargetValue)` for every replacement, and by `JSON.stringify(immutableArrayElement)` for array replacement/deletion; it is `null` only for `add-array-element`. For duplicate no-ID array values, add `position` to the operation target, using its zero-based immutable-base position; this position narrows the authorized collection and does not expand triage authority. `scopeExpansions` is a top-level proposal list only: it is never applied by this command.
-   - Preserve every field outside accepted operations exactly, including every task `test_strategy`. Do not add arbitrary objects, replace the whole spec, mutate a task id, or choose a target not declared by triage.
-   - `spec-repair.json` shape:
-     ```json
-     {
-       "version": 1,
-       "baseRevision": "sha256:<exact handoff inputRevision>",
-       "scopeExpansions": [],
-       "operations": [
-         {
-           "findingId": "spec-review-blocking-1",
-           "target": { "entity": "requirement", "id": "R1", "field": "desc" },
-           "kind": "replace-entity-field",
-           "expectedDigest": "sha256 hex digest of the immutable requirement description",
-           "replacement": "repaired requirement description",
-           "reason": "why this direct correction resolves the finding"
-         }
-       ]
-     }
-     ```
-   - This worker writes the v1 proposal only. The CLI owns the distinct v2 `spec-repair.json` audit: it records accepted/discarded normalized operations, attempts, scope proposals, result revision, and validation outcome. Never write or imitate that audit.
-   - Do not run another `spec-review` loop from this step. The downstream `spec-gate` step remains the blocking validation step, so this repair must be small, auditable, and limited to triage `apply` items.
-   - Do not render or edit `spec.md` in this step. The approval prompt renders the human-readable `spec.md` view from the repaired `spec.json`.
-   - **On complete**: run the exact handoff `sealCommand` once after the one declared payload is complete.

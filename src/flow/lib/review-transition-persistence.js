@@ -28,6 +28,7 @@ export function reviewTransitionFacts({ flowManager, flowState, typedState = nul
 export function resolveCurrentReviewTransition({ flowManager, flowState, typedState = null, scope, stepId }) {
   const phase = scope === "task" ? "impl" : reviewPhaseForStep(stepId);
   if (phase === null) return Object.freeze({ facts: null, disposition: null });
+  if (phase === "spec") return Object.freeze({ facts: null, disposition: null });
   const facts = reviewTransitionFacts({ flowManager, flowState, typedState, scope, phase });
   return Object.freeze({
     facts,
@@ -38,6 +39,7 @@ export function resolveCurrentReviewTransition({ flowManager, flowState, typedSt
 /** Persist observed retry accounting; get-next-action owns route selection. */
 export function persistReviewTransitionFacts(ctx, result) {
   const phase = phaseFor(ctx, result);
+  if (phase === "spec") return null;
   if (flowReviewRouteForPhase(phase) === null) return null;
   const passed = result?.artifacts?.verdict === "PASS" || result?.artifacts?.verdict === "ADVISORY";
   const toolingOutcome = result?.artifacts?.toolingOutcome ?? null;

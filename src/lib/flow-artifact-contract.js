@@ -9,7 +9,7 @@ const ROOT_ARTIFACT_KEYS = new Set([
   "flow.state", "flow.activities", "spec.record", "issue.log", "artifact.catalog", "issue.snapshot",
 ]);
 const RETENTIONS = new Set(["permanent", "transient"]);
-const PLACEMENT_CATEGORIES = new Set(["root-authority", "step-owner", "step-shared", "independent-deliverable", "transient"]);
+const PLACEMENT_CATEGORIES = new Set(["root-authority", "revision-authority", "step-owner", "step-shared", "independent-deliverable", "transient"]);
 const MUTATION_POLICIES = new Set(["replaceable", "immutable"]);
 const SWITCH_TARGET_ACTIONS = new Set(["switch", "new", "remove"]);
 const INVENTORY_EXCLUSION_CATEGORIES = new Set(["user-deliverable", "historical-temporary"]);
@@ -142,6 +142,12 @@ export class FlowArtifactPlacement {
         throw new Error("root authority placement requires one of the six permanent root artifacts");
       }
       if (cataloged !== (key !== "artifact.catalog")) throw new Error("root authority catalog membership must match the catalog self-exception");
+      return;
+    } else if (this.value === "revision-authority") {
+      if (!new Set(["spec.snapshot", "spec.review"]).has(key)
+        || !target.startsWith("revisions/:{revision}/") || lifetime !== "permanent" || cataloged !== true) {
+        throw new Error("revision authority placement requires a cataloged permanent revisions/:{revision}/ artifact");
+      }
       return;
     }
     if (this.value === "independent-deliverable") {
@@ -1445,6 +1451,7 @@ export class FlowArtifactRegistry {
 
 const FLOW_ARTIFACT_PLACEMENTS = new Map([
   ...["flow.state", "flow.activities", "spec.record", "issue.log", "artifact.catalog", "issue.snapshot"].map((key) => [key, new FlowArtifactPlacement("root-authority")]),
+  ...["spec.snapshot", "spec.review"].map((key) => [key, new FlowArtifactPlacement("revision-authority")]),
   ...["report", "ideas", "tests.source", "plugin.lifecycle.artifact", "retry.recovery.baseline", "retry.recovery.receipt"].map((key) => [key, new FlowArtifactPlacement("independent-deliverable")]),
   ...["upgrade.result", "completion.overrides", "retry.recovery", "flow.findings", "nonblocking.handoffs"].map((key) => [key, new FlowArtifactPlacement("step-shared")]),
   ...[
@@ -1458,7 +1465,7 @@ const FLOW_ARTIFACT_PLACEMENTS = new Map([
   ...[
     "draft", "draft.questions.review", "draft.questions.triage", "draft.questions.repair",
     "draft.coverage.review", "draft.coverage.triage", "draft.coverage.repair", "draft.gate.source", "draft.gate",
-    "spec.review", "spec.triage", "spec.repair", "spec.gate.source", "spec.gate", "scenario.validity",
+    "spec.gate.source", "spec.gate", "scenario.validity",
     "test.review", "test.execute", "test.result.review", "impl.review", "impl.triage", "impl.repair",
     "impl.gate.source", "impl.gate", "retro", "acceptance.review", "acceptance.review.evidence", "acceptance.decision", "final.regression",
     "file.map", "placeholder.permission", "gate.memory", "repair.fingerprint", "repair.delta", "repair.migration",
@@ -1468,12 +1475,13 @@ const FLOW_ARTIFACT_PLACEMENTS = new Map([
 ]);
 
 const FLOW_ARTIFACT_MUTATION_POLICIES = new Map([
+  ["spec.snapshot", new FlowArtifactMutationPolicy("immutable")],
   ["review.evidence", new FlowArtifactMutationPolicy("immutable")],
   ["activity.evidence", new FlowArtifactMutationPolicy("immutable")],
 ]);
 
 const FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS = new Set([
-  "draft.questions.review", "draft.coverage.review", "spec.review", "scenario.validity",
+  "draft.questions.review", "draft.coverage.review", "scenario.validity",
   "test.review", "test.execute", "test.result.review", "impl.review", "task.review",
   // Gates are ordinary producer Steps, not a mutable side file.  Retaining
   // each completed gate evaluation here gives retry/recovery the same
@@ -1504,9 +1512,6 @@ const FLOW_ARTIFACT_OWNER_STEP_BY_KEY = new Map([
   ["draft.coverage.repair", "draft-coverage-repair"],
   ["draft.gate.source", "draft-gate"],
   ["draft.gate", "draft-gate"],
-  ["spec.review", "spec-review"],
-  ["spec.triage", "spec-triage"],
-  ["spec.repair", "spec-repair"],
   ["spec.gate.source", "spec-gate"],
   ["spec.gate", "spec-gate"],
   ["scenario.validity", "scenario-validity"],
@@ -1592,6 +1597,22 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
     "test-result-review", "implement", "impl-review", "impl-triage", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision",
     "final-regression", "report", "finalize-merge", "task-impl", "task-review", "task-gate",
   ])),
+  // A Spec record is the current authority. Each byte-changing publication
+  // creates one immutable revision snapshot; the optional canonical review is
+  // created only when that revision enters the review funnel (or a repair
+  // publication explicitly carries the prior review). They are collection
+  // artifacts because the revision number is part of their identity, never a
+  // mutable field on the root record.
+  contract("spec.snapshot", "revisions/:{revision}/spec.json", "spec-snapshot", "repository-metadata", "system", own(
+    ["system", "prepare-spec", "spec", "spec-repair", "approval", "implement", "task-impl"],
+    ["system", "prepare-spec", "spec", "spec-repair", "approval", "implement", "task-impl"],
+    NORMAL_FLOW_STEP_ACTORS,
+  ), "permanent", "collection"),
+  contract("spec.review", "revisions/:{revision}/review.json", "spec-review", "canonical-flow-artifacts", "system", own(
+    ["system", "spec-review", "spec-triage", "spec-repair"],
+    ["system", "spec-review", "spec-triage", "spec-repair"],
+    ["system", "spec-review", "spec-triage", "spec-repair", "spec-gate"],
+  ), "permanent", "collection"),
   // Issue-log entries are durable facts produced by the active Flow leaf.
   // The catalog descriptor is therefore associated with that leaf's Activity
   // even when this is the first entry (there is no system-only bootstrap
@@ -1622,9 +1643,6 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   contract("draft.coverage.repair", "steps/draft-coverage-repair/result.json", "draft-coverage-repair", "canonical-flow-artifacts", "system", own("draft-coverage-repair", ["system", "draft-coverage-repair"], ["draft-gate", "acceptance-review"])),
   contract("draft.gate.source", "steps/draft-gate/source.json", "draft-gate-source", "canonical-flow-artifacts", "draft-gate", own("draft-gate", ["draft-gate"], ["draft-gate", "spec"])),
   contract("draft.gate", "steps/draft-gate/result.json", "draft-gate", "canonical-flow-artifacts", "draft-gate", own("draft-gate", ["draft-gate"], ["spec"])),
-  contract("spec.review", "steps/spec-review/result.json", "spec-review", "canonical-flow-artifacts", "spec-review", own("spec-review", ["spec-review"], ["system", "spec-triage", "spec-repair", "spec-gate"])),
-  contract("spec.triage", "steps/spec-triage/result.json", "spec-triage", "canonical-flow-artifacts", "system", own("spec-triage", ["system", "spec-triage"], ["spec-repair", "spec-gate"])),
-  contract("spec.repair", "steps/spec-repair/result.json", "spec-repair", "canonical-flow-artifacts", "system", own("spec-repair", ["system", "spec-repair"], ["spec-gate", "acceptance-review"])),
   contract("spec.gate.source", "steps/spec-gate/source.json", "spec-gate-source", "canonical-flow-artifacts", "spec-gate", own("spec-gate", ["spec-gate"], ["spec-gate", "approval"])),
   contract("spec.gate", "steps/spec-gate/result.json", "spec-gate", "canonical-flow-artifacts", "spec-gate", own("spec-gate", ["spec-gate"], ["approval"])),
   contract("scenario.validity", "steps/scenario-validity/result.json", "scenario-validity", "canonical-flow-artifacts", "scenario-validity", own("scenario-validity", ["scenario-validity"], ["test", "test-review", "implement", "acceptance-review"])),
@@ -1755,6 +1773,8 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("flow.state", ["flow.json"], "flow.json", "prepare-spec", "prepare-spec"),
   newTarget("flow.activities", "activities.jsonl", "prepare-spec", "prepare-spec"),
   target("spec.record", ["spec.json"], "spec.json", "prepare-spec", "spec"),
+  newTarget("spec.snapshot", "revisions/:{revision}/spec.json", "prepare-spec", "spec"),
+  newTarget("spec.review", "revisions/:{revision}/review.json", "system", "spec-review"),
   target("issue.log", ["issue-log.json", "redolog.json"], "issue-log.json", "prepare-spec", "impl-gate"),
   newTarget("artifact.catalog", "artifact-catalog.json", "prepare-spec", "prepare-spec"),
   target("issue.snapshot", ["issue.md"], "issue.md", "prepare-spec", "draft"),
@@ -1767,9 +1787,6 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("draft.coverage.repair", ["draft-coverage-repair.json"], "steps/draft-coverage-repair/result.json", "draft-coverage-repair", "draft-gate"),
   target("draft.gate.source", ["draft-gate-source.json"], "steps/draft-gate/source.json", "draft-gate", "draft-gate"),
   target("draft.gate", ["draft-gate-result.json"], "steps/draft-gate/result.json", "draft-gate", "spec"),
-  target("spec.review", ["spec-review.json"], "steps/spec-review/result.json", "spec-review", "spec-triage"),
-  target("spec.triage", ["spec-triage.json"], "steps/spec-triage/result.json", "spec-triage", "spec-repair"),
-  target("spec.repair", ["spec-repair.json"], "steps/spec-repair/result.json", "spec-repair", "spec-gate"),
   target("spec.gate.source", ["spec-gate-source.json"], "steps/spec-gate/source.json", "spec-gate", "spec-gate"),
   target("spec.gate", ["spec-gate-result.json"], "steps/spec-gate/result.json", "spec-gate", "approval"),
   target("scenario.validity", ["scenario-validity-result.json"], "steps/scenario-validity/result.json", "scenario-validity", "test-review"),
@@ -1849,12 +1866,13 @@ const knownNew = (logicalKey, canonicalPath) => new FlowArtifactKnownFile({ logi
 export const FLOW_ARTIFACT_NORMAL_FLOW_FILES = Object.freeze([
   known("flow.state", "switch", "flow.json"), knownNew("flow.activities", "activities.jsonl"),
   known("spec.record", "switch", "spec.json"), known("issue.log", "switch", "issue-log.json"), known("issue.log", "switch", "redolog.json"),
+  knownNew("spec.snapshot", "revisions/:{revision}/spec.json"), knownNew("spec.review", "revisions/:{revision}/review.json"),
   knownNew("artifact.catalog", "artifact-catalog.json"), known("issue.snapshot", "switch", "issue.md"),
   known("draft", "switch", "draft.json"), known("draft.questions.review", "switch", "draft-review-questions.json"),
   known("draft.questions.triage", "switch", "draft-questions-triage.json"), known("draft.questions.repair", "switch", "draft-questions-repair.json"),
   known("draft.coverage.review", "switch", "draft-review-coverage.json"), known("draft.coverage.triage", "switch", "draft-coverage-triage.json"), known("draft.coverage.repair", "switch", "draft-coverage-repair.json"),
   known("draft.gate.source", "switch", "draft-gate-source.json"), known("draft.gate", "switch", "draft-gate-result.json"),
-  known("spec.review", "switch", "spec-review.json"), known("spec.triage", "switch", "spec-triage.json"), known("spec.repair", "switch", "spec-repair.json"), known("spec.gate.source", "switch", "spec-gate-source.json"), known("spec.gate", "switch", "spec-gate-result.json"),
+  known("spec.gate.source", "switch", "spec-gate-source.json"), known("spec.gate", "switch", "spec-gate-result.json"),
   known("scenario.validity", "switch", "scenario-validity-result.json"), known("test.review", "switch", "test-review.json"), known("test.review", "switch", "test-coverage.json"), known("test.execute", "switch", "test-execute-result.json"), known("test.result.review", "switch", "test-result-review.json"),
   known("impl.review", "switch", "impl-review.json"), known("impl.triage", "switch", "impl-triage.json"), known("impl.repair", "switch", "impl-repair.json"), known("impl.gate.source", "switch", "impl-gate-source.json"), known("impl.gate", "switch", "impl-gate-result.json"), known("retro", "switch", "retro.json"),
   known("acceptance.review", "switch", "acceptance-review.json"), known("acceptance.review.evidence", "switch", "acceptance-review-evidence.json"), knownNew("acceptance.decision", "steps/acceptance-decision/result.json"), known("final.regression", "switch", "final-regression-result.json"), known("report", "switch", "report.json"), known("ideas", "switch", "ideas.json"), known("ideas", "switch", "plugin-artifacts/workflow/ideas.json"), knownPattern("plugin.lifecycle.artifact", "switch", new FlowArtifactLegacyPattern("plugin-artifacts/:{pluginArtifactPath}", { excludedPrefixes: ["plugin-artifacts/workflow/ideas.json"] })), known("file.map", "switch", "file-map.json"),

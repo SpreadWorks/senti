@@ -20,6 +20,10 @@ import {
   parseSpecReviewOutput,
   parseTestReviewOutput,
 } from "../../../src/flow/lib/run-review.js";
+import {
+  CanonicalSpecReview,
+  SpecReviewDelta,
+} from "../../../src/flow/lib/spec-review-artifacts.js";
 
 const roots = [];
 
@@ -56,7 +60,7 @@ describe("ReviewWorkUnit", () => {
     for (const [phase, taskId, basename] of [
       ["draft-questions", null, "draft-review-questions.json"],
       ["draft-coverage", null, "draft-review-coverage.json"],
-      ["spec", null, "spec-review.json"],
+      ["spec", null, "review.delta.json"],
       ["test", null, "test-review.json"],
       ["impl", null, "impl-review.json"],
       ["impl", "task-1", "impl-review.json"],
@@ -214,7 +218,30 @@ describe("ReviewWorkUnit", () => {
         const surface = workUnit.finalize();
         const blockingFindings = verdict === "REJECTED" ? [{ id: "blocked", summary: "Must fix." }] : [];
         const advisoryFindings = verdict === "ADVISORY" ? [{ id: "advice", summary: "Optional." }] : [];
-        fs.writeFileSync(surface.outputPath, `${JSON.stringify({ verdict, blockingFindings, advisoryFindings, nonBlockingImprovements: advisoryFindings }, null, 2)}\n`);
+        const specReview = phase === "spec" ? new CanonicalSpecReview({
+          version: 2,
+          identity: { specId: "001-review-work-unit", revision: 1, digest: "c".repeat(64), byteLength: 1 },
+          generation: 0,
+          findings: [],
+          audit: [],
+        }) : null;
+        const workerOutput = phase === "spec"
+          ? new SpecReviewDelta({
+            version: 2,
+            stage: "spec-review",
+            identity: specReview.identity.toJSON(),
+            baseReviewDigest: specReview.digest,
+            findings: verdict === "REJECTED" ? [{
+              kind: "blocking", findingId: "blocked", title: "Must fix.", target: "R1", body: "Must fix.",
+              issue: "A required behavior is not specified.", requiredChange: "Specify it.", whyBlocking: "It cannot be tested.",
+            }] : verdict === "ADVISORY" ? [{
+              kind: "improvement", findingId: "advice", title: "Optional.", target: "R1", body: "Optional.",
+              improvement: "Clarify this behavior.", whyNonBlocking: "Implementation can proceed.",
+            }] : [],
+            operations: [],
+          }).toJSON()
+          : { verdict, blockingFindings, advisoryFindings, nonBlockingImprovements: advisoryFindings };
+        fs.writeFileSync(surface.outputPath, `${JSON.stringify(workerOutput, null, 2)}\n`);
         ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath }).seal();
         const promotion = new CanonicalReviewPromotion({
           workUnit: ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath }),
@@ -222,6 +249,7 @@ describe("ReviewWorkUnit", () => {
           taskId,
           treeSha: "a".repeat(40),
           targetStateDigest: "b".repeat(64),
+          ...(specReview === null ? {} : { specReviewSource: { revision: 1, review: specReview } }),
         });
         const recovered = promotion.resultFromSealedArtifact();
         const count = verdict === "PASS" ? 0 : 1;

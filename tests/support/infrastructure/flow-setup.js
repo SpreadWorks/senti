@@ -8,7 +8,12 @@ import { CurrentFlowSpecRecord, FlowExecution } from "../../../src/flow/lib/curr
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { createLifecycleStepTransition } from "../../../src/flow/lib/lifecycle-step-transition.js";
 import { NormalStepTransition } from "../../../src/flow/lib/step-transition-policy.js";
-import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import {
+  CanonicalCommandResultPublication,
+  attachCanonicalCommandResultArtifact,
+  attachCanonicalCommandResultPublications,
+} from "../../../src/flow/lib/canonical-command-result.js";
+import { SpecReviewDelta, mergeSpecReviewDelta } from "../../../src/flow/lib/spec-review-artifacts.js";
 import { attemptHistoryTargetForNode } from "../../../src/flow/lib/producer-artifact-readiness.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 import { FlowArtifactCatalog } from "../../../src/lib/flow-version.js";
@@ -260,6 +265,33 @@ function fixtureFinalRegressionResult(flowManager, specId) {
  * fabricating optional handoff artifacts with unrelated payload semantics.
  */
 export function canonicalFixtureProducerResult(_state, nodeId, { flowManager = null, specId = null } = {}) {
+  if (nodeId === "spec-review") {
+    const resolvedSpecId = specId ?? _state?.specId ?? null;
+    if (flowManager === null || typeof resolvedSpecId !== "string" || resolvedSpecId === "") {
+      throw new Error("canonical spec-review fixture result requires FlowManager and specId");
+    }
+    // The first fixture completion models the real spec-review confirmation:
+    // its base may be the Store-derived, unpersisted generation-zero seed.
+    const current = flowManager.readCurrentSpecReviewInput({ specId: resolvedSpecId, consumerNodeId: "spec-review" });
+    const delta = new SpecReviewDelta({
+      version: 2,
+      stage: "spec-review",
+      identity: current.review.identity.toJSON(),
+      baseReviewDigest: current.review.digest,
+      findings: [],
+      operations: [],
+    });
+    const next = mergeSpecReviewDelta({ review: current.review, delta });
+    const result = { result: "fixture spec-review result" };
+    attachCanonicalCommandResultArtifact(result, { logicalKey: "spec.review", payload: delta.toJSON() });
+    attachCanonicalCommandResultPublications(result, [new CanonicalCommandResultPublication({
+      logicalKey: "spec.review",
+      parameters: { revision: String(current.revision).padStart(3, "0") },
+      mediaType: "application/json",
+      payload: next.toJSON(),
+    })]);
+    return result;
+  }
   const target = attemptHistoryTargetForNode(nodeId);
   if (target === null) return null;
   if (flowManager !== null) {

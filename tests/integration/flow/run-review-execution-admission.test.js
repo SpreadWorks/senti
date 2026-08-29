@@ -3,6 +3,7 @@ import { afterEach, describe, it } from "node:test";
 
 import { Envelope } from "../../../src/lib/flow-envelope.js";
 import { RunReviewCommand } from "../../../src/flow/lib/run-review.js";
+import { CanonicalSpecReview } from "../../../src/flow/lib/spec-review-artifacts.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 const roots = [];
@@ -29,6 +30,14 @@ class BlockingReviewCommand extends RunReviewCommand {
 }
 
 function reviewContext(root) {
+  const review = new CanonicalSpecReview({
+    version: 2,
+    identity: { specId: "review-admission-spec", revision: 1, digest: "a".repeat(64), byteLength: 0 },
+    generation: 0,
+    findings: [],
+    audit: [],
+  });
+  const bytes = Buffer.from(`${JSON.stringify(review.toJSON(), null, 2)}\n`, "utf8");
   const state = {
     runId: "review-admission-run",
     current: ["spec-review"],
@@ -51,6 +60,12 @@ function reviewContext(root) {
       canonicalState: () => state,
       loadReadOnly: () => flowState,
       activityLedger: () => [],
+      readCurrentSpecReview: () => ({
+        revision: 1,
+        review,
+        bytes,
+        descriptor: { logicalKey: "spec.review", relativePath: "revisions/001/review.json", hash: review.digest, size: bytes.length },
+      }),
       readArtifact: () => null,
       readProducerArtifact: () => null,
       publishArtifacts: () => { throw new Error("admission must not publish artifacts"); },

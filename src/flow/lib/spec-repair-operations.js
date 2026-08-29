@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
-import { checkSpecGateReadiness } from "./spec-gate-readiness.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SHA256_REVISION = /^sha256:([a-f0-9]{64})$/;
@@ -24,6 +23,19 @@ function requiredText(value, field) {
 function clone(value) { return structuredClone(value); }
 function stableBytes(value) { return Buffer.byteLength(JSON.stringify(value)); }
 function valueDigest(value) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+/** Finds the actual edit, independent of worker prose or which finding named it. */
+function semanticOperationDigest(operation) {
+  const json = operation.toJSON?.() ?? operation;
+  return crypto.createHash("sha256").update(canonicalJson({
+    kind: json.kind, target: json.target, expectedDigest: json.expectedDigest,
+    ...(Object.hasOwn(json, "replacement") ? { replacement: json.replacement } : {}),
+  })).digest("hex");
+}
 function revisionFor(inputRevision) { return `sha256:${inputRevision}`; }
 function exactKeys(value, expected, field) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${field} must be an object`);
@@ -53,7 +65,7 @@ function fallbackAttemptAudit(baseRevision = null) {
     version: 2, phase: "spec-repair", baseRevision,
     attempts: [], acceptedOperations: [], discardedOperations: [], scopeExpansions: [], appliedFindings: [],
     operationDigest: valueDigest({ accepted: [], discarded: [] }), resultRevision: null,
-    audit: { missingRequiredTargets: [] },
+    audit: {},
   };
 }
 function commandOwnedAttemptFailure(audit, code, message) {
@@ -65,7 +77,7 @@ function commandOwnedAttemptFailure(audit, code, message) {
   return frozen({
     ...source,
     audit: {
-      ...(source.audit ?? { missingRequiredTargets: [] }),
+      ...(source.audit ?? {}),
       error: { code, message: bounded },
       ...(validationSummary === null ? {} : { validationSummary }),
     },
@@ -80,7 +92,7 @@ function auditTarget(value) {
 function discardedOperation(value, reason) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : null;
   return Object.freeze({
-    findingId: typeof source?.findingId === "string" ? source.findingId : null,
+    findingIds: Array.isArray(source?.findingIds) ? source.findingIds.filter((id) => typeof id === "string") : [],
     kind: typeof source?.kind === "string" ? source.kind : null,
     target: auditTarget(source?.target),
     operationDigest: valueDigest(value),
@@ -96,16 +108,8 @@ export class SpecRepairOperationsError extends Error {
   }
 }
 export class SpecRepairOperationValidationError extends SpecRepairOperationsError {
-  constructor(message, { audit = null } = {}) { super("FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE", message, { retryable: true, audit }); this.name = "SpecRepairOperationValidationError"; }
+  constructor(message, { audit = null } = {}) { super("FLOW_SPEC_REPAIR_OPERATION_VALIDATION_FAILURE", message, { retryable: false, audit }); this.name = "SpecRepairOperationValidationError"; }
 }
-export class SpecRepairRequiredTargetsError extends SpecRepairOperationsError {
-  constructor(missing, audit) { super("FLOW_SPEC_REPAIR_REQUIRED_TARGETS_MISSING", `spec repair is missing required targets: ${missing.map(formatMissingTarget).join(", ")}`, { retryable: true, audit }); this.name = "SpecRepairRequiredTargetsError"; this.missing = Object.freeze([...missing]); }
-}
-/** A conflict is recorded per operation. It never aborts independent staging. */
-export class SpecRepairConflictError extends SpecRepairOperationsError {
-  constructor(target, audit) { super("FLOW_SPEC_REPAIR_OPERATION_CONFLICT", `spec repair contains conflicting operations for ${target}`, { retryable: true, audit }); this.name = "SpecRepairConflictError"; }
-}
-
 /** Structured target classes own decoding and later resolution behavior. */
 export class SpecRepairTarget {
   static fromJSON(value, field) {
@@ -172,10 +176,17 @@ export class SpecRepairPermission {
 
 export class SpecRepairOperation {
   constructor(input, index, { replacementRequired = true } = {}) {
-    const keys = ["findingId", "kind", "target", "expectedDigest", "reason"];
+    const keys = ["findingIds", "kind", "target", "expectedDigest", "reason"];
     if (replacementRequired) keys.push("replacement");
     exactKeys(input, keys, `spec-repair.operations[${index}]`);
-    this.findingId = requiredText(input.findingId, `spec-repair.operations[${index}].findingId`);
+    if (!Array.isArray(input.findingIds) || input.findingIds.length === 0 || new Set(input.findingIds).size !== input.findingIds.length) {
+      throw new Error(`spec-repair.operations[${index}].findingIds must be a non-empty unique array`);
+    }
+    const findingIds = input.findingIds.map((id, findingIndex) => requiredText(id, `spec-repair.operations[${index}].findingIds[${findingIndex}]`));
+    if (findingIds.some((id, findingIndex) => findingIndex > 0 && findingIds[findingIndex - 1] > id)) {
+      throw new Error(`spec-repair.operations[${index}].findingIds must use canonical stable order`);
+    }
+    this.findingIds = Object.freeze(findingIds);
     this.kind = requiredText(input.kind, `spec-repair.operations[${index}].kind`);
     this.target = SpecRepairTarget.fromJSON(input.target, `spec-repair.operations[${index}].target`);
     this.reason = requiredText(input.reason, `spec-repair.operations[${index}].reason`);
@@ -187,7 +198,7 @@ export class SpecRepairOperation {
   }
   toJSON() {
     return {
-      findingId: this.findingId, kind: this.kind, target: this.target.toJSON(), expectedDigest: this.expectedDigest,
+      findingIds: [...this.findingIds], kind: this.kind, target: this.target.toJSON(), expectedDigest: this.expectedDigest,
       ...(this.replacementRequired ? { replacement: clone(this.replacement) } : {}), reason: this.reason,
     };
   }
@@ -235,18 +246,19 @@ OPERATION_TYPES.set("delete-array-element", SpecRepairArrayDelete);
 export class SpecRepairOperationBatch {
   constructor(document) {
     try {
-      exactKeys(document, ["version", "baseRevision", "operations", "scopeExpansions"], "spec-repair.json");
-      if (document.version !== 1) throw new Error("spec-repair.json version must be 1");
-      if (typeof document.baseRevision !== "string" || !SHA256_REVISION.test(document.baseRevision)) throw new Error("spec-repair.json baseRevision must be sha256:<digest>");
-      if (!Array.isArray(document.scopeExpansions) || document.scopeExpansions.some((proposal) => typeof proposal !== "string" || proposal.trim() === "")) throw new Error("spec-repair.json scopeExpansions must be a string array");
-      if (!Array.isArray(document.operations) || document.operations.length > MAX_OPERATIONS) throw new Error("spec-repair.json operations are invalid");
+      optionalExactKeys(document, ["version", "stage", "identity", "baseReviewDigest", "findings", "operations"], ["scopeExpansions"], "review.delta.json");
+      if (document.version !== 2 || document.stage !== "spec-repair") throw new Error("review.delta.json must be a spec-repair v2 delta");
+      if (!document.identity || typeof document.identity !== "object" || !SHA256.test(document.identity.digest ?? "")) throw new Error("review.delta.json identity digest is invalid");
+      if (!Array.isArray(document.findings) || document.findings.length !== 0) throw new Error("review.delta.json spec-repair findings must be an empty array");
+      if (!Array.isArray(document.operations) || document.operations.length > MAX_OPERATIONS) throw new Error("review.delta.json operations are invalid");
+      if (document.scopeExpansions !== undefined && (!Array.isArray(document.scopeExpansions) || document.scopeExpansions.length > MAX_OPERATIONS)) throw new Error("review.delta.json scopeExpansions are invalid");
     } catch (cause) {
-      const baseRevision = typeof document?.baseRevision === "string" && SHA256_REVISION.test(document.baseRevision)
-        ? document.baseRevision
+      const baseRevision = typeof document?.identity?.digest === "string" && SHA256.test(document.identity.digest)
+        ? revisionFor(document.identity.digest)
         : null;
       throw new SpecRepairOperationValidationError(`spec-repair envelope is invalid: ${cause.message}`, { audit: fallbackAttemptAudit(baseRevision) });
     }
-    this.baseRevision = document.baseRevision;
+    this.baseRevision = revisionFor(document.identity.digest);
     const operations = [];
     const discardedOperations = [];
     document.operations.forEach((operation, index) => {
@@ -256,7 +268,27 @@ export class SpecRepairOperationBatch {
         operations.push(new Type(operation, index));
       } catch (cause) { discardedOperations.push(discardedOperation(operation, cause.message)); }
     });
-    this.operations = Object.freeze(operations); this.discardedOperations = Object.freeze(discardedOperations); this.scopeExpansions = Object.freeze([...document.scopeExpansions]); Object.freeze(this);
+    this.operations = Object.freeze(operations);
+    this.discardedOperations = Object.freeze(discardedOperations);
+    // Scope is definition-owned. A worker may describe a proposed expansion,
+    // but it can never make an operation authorised. Keep it only as bounded
+    // command-owned audit evidence and continue the independent operations.
+    const scopeExpansions = [];
+    const discardedScopeExpansions = [];
+    (document.scopeExpansions ?? []).forEach((proposal, index) => {
+      try {
+        const value = frozen(proposal);
+        if (stableBytes(value) > MAX_VALUE_BYTES) throw new Error(`spec-repair scope expansion ${index} is oversized`);
+        scopeExpansions.push(value);
+      } catch (cause) {
+        // A scope proposal is audit-only and must not poison independent
+        // repair operations. Keep only bounded discard metadata.
+        discardedScopeExpansions.push(discardedOperation(proposal, cause.message));
+      }
+    });
+    this.scopeExpansions = Object.freeze(scopeExpansions);
+    this.discardedScopeExpansions = Object.freeze(discardedScopeExpansions);
+    Object.freeze(this);
   }
 }
 
@@ -324,82 +356,44 @@ function targetExists(spec, target) {
 }
 function triageMap(triage, spec) {
   const values = new Map();
-  for (const [index, item] of (triage.items ?? []).entries()) {
-    if (item.decision !== "apply") continue;
+  for (const [index, item] of (triage.findings ?? []).entries()) {
+    if (item.disposition !== "apply") continue;
     const findingId = requiredText(item.findingId, `spec-triage apply item ${index}.findingId`);
     try {
       if (!Array.isArray(item.allowedTargets) || item.allowedTargets.length === 0) throw new Error("must declare allowedTargets");
-      if (!Array.isArray(item.requiredTargets) || item.requiredTargets.length === 0) throw new Error("must declare requiredTargets");
       const permissions = item.allowedTargets.map((permission, permissionIndex) => new SpecRepairPermission(permission, `spec-triage apply item ${findingId}.allowedTargets[${permissionIndex}]`));
-      const requiredTargets = item.requiredTargets.map((target, targetIndex) => SpecRepairTarget.fromJSON(target, `spec-triage apply item ${findingId}.requiredTargets[${targetIndex}]`));
       if (!unique(permissions.map((permission) => permission.target.permissionKey()))) throw new Error("has duplicate allowed target permissions");
-      if (!unique(requiredTargets.map((target) => target.permissionKey()))) throw new Error("has duplicate required targets");
-      if (requiredTargets.some((target) => !permissions.some((permission) => permission.target.permissionKey() === target.permissionKey()))) throw new Error("has required targets outside allowed target permissions");
-      if (spec != null && [...permissions.map((permission) => permission.target), ...requiredTargets].some((target) => !targetExists(spec, target))) throw new Error("declares impossible targets");
-      values.set(findingId, Object.freeze({ permissions: Object.freeze(permissions), requiredTargets: Object.freeze(requiredTargets) }));
+      if (spec != null && permissions.map((permission) => permission.target).some((target) => !targetExists(spec, target))) throw new Error("declares impossible targets");
+      values.set(findingId, Object.freeze({ permissions: Object.freeze(permissions) }));
     } catch (cause) { throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_TRIAGE_TARGETS_INVALID", `spec-triage apply item ${findingId} ${cause.message}`, { retryable: false }); }
   }
   return values;
 }
 export function validateSpecRepairTriageTargets(triage, spec) { triageMap(triage, spec); }
-
-function historicalAcceptedOperations(history) {
-  if (!(history instanceof SpecRepairCorrectionHistory)) return [];
-  const values = [];
-  for (const attempt of history.attempts) for (const entry of attempt.audit?.acceptedOperations ?? []) {
-    const operation = entry.operation ?? entry;
-    try { const Type = OPERATION_TYPES.get(operation?.kind); if (!Type) throw new Error("invalid"); values.push(new Type(operation, 0)); } catch { throw new Error("parent correction history contains an invalid accepted operation"); }
-  }
-  const seen = new Set();
-  return values.filter((operation) => { const digest = valueDigest(operation.toJSON()); if (seen.has(digest)) return false; seen.add(digest); return true; });
+/** Validate one triage update so an invalid capability cannot poison siblings. */
+export function validateSpecRepairTriageFinding(update, spec) {
+  if (update?.disposition !== "apply") return;
+  triageMap({ findings: [update] }, spec);
 }
+
 function operationAudit(operation, attempt) { const json = operation.operation ?? operation.toJSON?.() ?? operation; return Object.freeze({ operation: clone(json), operationDigest: operation.operationDigest ?? valueDigest(json), attempt }); }
 function discardedAudit(entry, attempt) {
   return Object.freeze({
-    findingId: entry.findingId ?? null, kind: entry.kind ?? null, target: entry.target ?? null,
+    findingIds: entry.findingIds ?? [], kind: entry.kind ?? null, target: entry.target ?? null,
     operationDigest: entry.operationDigest ?? valueDigest(entry), reason: entry.reason ?? "discarded operation", attempt,
   });
 }
-function commandOwnedAudit(batch, accepted, discarded, missing, scopeExpansions = []) {
+function commandOwnedAudit(batch, accepted, discarded, scopeExpansions = []) {
   return Object.freeze({
     version: 2, phase: "spec-repair", baseRevision: batch.baseRevision, attempts: Object.freeze([]),
     acceptedOperations: Object.freeze(accepted.map((operation) => operation.toJSON())), discardedOperations: Object.freeze(discarded), scopeExpansions: Object.freeze([...scopeExpansions]),
-    appliedFindings: Object.freeze([...new Set(accepted.map((operation) => operation.findingId))]), operationDigest: valueDigest({ accepted: accepted.map((operation) => operation.toJSON()), discarded }), resultRevision: null,
-    audit: Object.freeze({ missingRequiredTargets: Object.freeze([...missing]) }),
+    appliedFindings: Object.freeze([...new Set(accepted.flatMap((operation) => operation.findingIds))].sort()), operationDigest: valueDigest({ accepted: accepted.map((operation) => operation.toJSON()), discarded }), resultRevision: null,
+    audit: Object.freeze({}),
   });
 }
-/** Parent-owned evidence cannot be represented or overwritten by worker JSON. */
-export class SpecRepairCorrectionHistory {
-  constructor(attempts = []) { if (!Array.isArray(attempts)) throw new Error("spec repair correction history requires attempts"); this.attempts = Object.freeze(attempts.map((entry, index) => new SpecRepairCorrectionAttempt(entry, index + 1))); Object.freeze(this); }
-  appendFailure(error) { if (!error || typeof error.code !== "string") throw new Error("spec repair correction history requires an error code"); return new SpecRepairCorrectionHistory([...this.attempts, { status: "rejected", code: error.code, audit: error.data?.specRepairAudit ?? error.audit ?? null }]); }
-  aggregate(successAudit = null) {
-    const entries = successAudit === null ? this.attempts : [...this.attempts, new SpecRepairCorrectionAttempt({ status: "accepted", audit: successAudit }, this.attempts.length + 1)];
-    const acceptedOperations = []; const discardedOperations = []; const scopeExpansions = [];
-    const attempts = entries.map((entry, index) => {
-      const attempt = index + 1; const audit = entry.audit;
-      const accepted = (audit?.acceptedOperations ?? []).map((operation) => operationAudit(operation, attempt));
-      const discarded = (audit?.discardedOperations ?? []).map((discard) => discardedAudit(discard, attempt));
-      const expansions = (audit?.scopeExpansions ?? []).map((proposal) => Object.freeze({ proposal: clone(proposal), attempt }));
-      const error = entry.status === "rejected"
-        ? frozen(audit?.audit?.error ?? { code: entry.code, message: "command-owned spec repair attempt rejected" })
-        : null;
-      acceptedOperations.push(...accepted); discardedOperations.push(...discarded); scopeExpansions.push(...expansions);
-      return Object.freeze({ attempt, status: entry.status, ...(entry.code === null ? {} : { code: entry.code }), ...(error === null ? {} : { error }), baseRevision: audit?.baseRevision ?? null, acceptedOperations: Object.freeze(accepted), discardedOperations: Object.freeze(discarded), scopeExpansions: Object.freeze(expansions), missingRequiredTargets: Object.freeze([...(audit?.audit?.missingRequiredTargets ?? [])]), ...(audit?.audit?.validationSummary ? { validationSummary: audit.audit.validationSummary } : {}) });
-    });
-    const finalAudit = successAudit ?? entries.at(-1)?.audit ?? null;
-    return Object.freeze({ version: 2, phase: "spec-repair", baseRevision: finalAudit?.baseRevision ?? null, attempts: Object.freeze(attempts), acceptedOperations: Object.freeze(acceptedOperations), discardedOperations: Object.freeze(discardedOperations), scopeExpansions: Object.freeze(scopeExpansions), appliedFindings: Object.freeze([...new Set(acceptedOperations.map((entry) => entry.operation.findingId))]), operationDigest: valueDigest({ acceptedOperations, discardedOperations }), resultRevision: finalAudit?.resultRevision ? frozen(finalAudit.resultRevision) : null, audit: frozen(finalAudit?.audit ?? { missingRequiredTargets: [] }) });
-  }
+function authorized(findings, operation) {
+  return operation.findingIds.every((findingId) => findings.get(findingId)?.permissions.some((permission) => permission.allows(operation)) ?? false);
 }
-class SpecRepairCorrectionAttempt {
-  constructor({ status, code = null, audit = null }, index) {
-    if (status !== "rejected" && status !== "accepted") throw new Error(`spec repair correction attempt ${index} has invalid status`);
-    if (status === "rejected" && typeof code !== "string") throw new Error(`spec repair correction attempt ${index} requires an error code`);
-    this.status = status; this.code = code; this.audit = audit === null ? null : frozen(audit); Object.freeze(this);
-  }
-}
-function authorized(finding, operation) { return finding?.permissions.some((permission) => permission.allows(operation)) ?? false; }
-function missingTarget(findingId, target) { return frozen({ findingId, target: target.toJSON() }); }
-function formatMissingTarget(entry) { return `${entry.findingId}:${JSON.stringify(entry.target)}`; }
 function currentAttemptConflictKeys(operations) {
   const groups = new Map();
   for (const operation of operations) {
@@ -413,71 +407,78 @@ function currentAttemptConflictKeys(operations) {
     .map(([key]) => key));
 }
 
-export function applySpecRepairOperations({ spec, triage, repair, inputRevision, correctionHistory = null }) {
+export function applySpecRepairOperations({ spec, triage, repair, inputRevision }) {
   const batch = repair instanceof SpecRepairOperationBatch ? repair : new SpecRepairOperationBatch(repair);
-  if (batch.baseRevision !== revisionFor(inputRevision)) throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_BASE_REVISION_MISMATCH", "spec-repair operations do not match the immutable handoff revision", { retryable: true, audit: commandOwnedAudit(batch, [], [], []) });
+  if (batch.baseRevision !== revisionFor(inputRevision)) throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_BASE_REVISION_MISMATCH", "spec-repair operations do not match the immutable handoff revision", { retryable: false, audit: commandOwnedAudit(batch, [], []) });
   const permissions = triageMap(triage, spec);
-  const candidate = clone(spec); const context = new SpecRepairApplicationContext(candidate, frozen(spec));
-  const accepted = []; const acceptedThisAttempt = []; const discarded = [...batch.discardedOperations]; const touched = new Map();
-  const historicalOperations = historicalAcceptedOperations(correctionHistory);
-  const historicalDigests = new Set(historicalOperations.map((operation) => valueDigest(operation.toJSON())));
-  const currentOperations = batch.operations.filter((operation) => {
-    if (!historicalDigests.has(valueDigest(operation.toJSON()))) return true;
-    discarded.push(discardedOperation(operation.toJSON(), "already accepted in a prior correction")); return false;
-  });
+  let candidate = clone(spec); let context = new SpecRepairApplicationContext(candidate, frozen(spec));
+  const accepted = []; const acceptedThisAttempt = []; const discarded = [...batch.discardedOperations, ...batch.discardedScopeExpansions]; const touched = new Map();
+  const replayAcceptedOperations = () => {
+    candidate = clone(spec);
+    context = new SpecRepairApplicationContext(candidate, frozen(spec));
+    for (const acceptedOperation of accepted) {
+      if (acceptedOperation.apply(context).status !== "ok") {
+        throw new Error("accepted operation could not be replayed against its immutable base");
+      }
+    }
+  };
   // Authorization is a per-operation decision.  An unauthorized proposal must
   // not poison an otherwise valid operation merely because it names the same
   // location; only authorized operations participate in conflict detection.
-  const authorizedCurrentOperations = currentOperations.filter((operation) => {
-    if (authorized(permissions.get(operation.findingId), operation)) return true;
+  const authorizedCurrentOperations = batch.operations.filter((operation) => {
+    if (authorized(permissions, operation)) return true;
     discarded.push(discardedOperation(operation.toJSON(), "unauthorized operation"));
     return false;
   });
-  const conflictingCurrentKeys = currentAttemptConflictKeys(authorizedCurrentOperations);
-  // A current operation may supersede one historical operation, but an
-  // internally conflicting current group has no authority to erase a prior
-  // accepted correction merely by being present.
-  const priorOperations = historicalOperations.filter((prior) => !authorizedCurrentOperations.some((current) => (
-    !conflictingCurrentKeys.has(current.conflictKey())
-    && current.conflictKey() === prior.conflictKey()
-    && current.findingId === prior.findingId
-    && !current.isComposableWith(prior)
-  )));
-  for (const [operation, isPrior] of [...priorOperations.map((operation) => [operation, true]), ...authorizedCurrentOperations.map((operation) => [operation, false])]) {
-    if (!isPrior && conflictingCurrentKeys.has(operation.conflictKey())) {
+  const uniqueCurrentOperations = [];
+  const sameContentOperations = new Map();
+  for (const operation of authorizedCurrentOperations) {
+    const operationDigest = semanticOperationDigest(operation);
+    const existing = sameContentOperations.get(operationDigest);
+    if (!existing) {
+      sameContentOperations.set(operationDigest, operation);
+      uniqueCurrentOperations.push(operation);
+      continue;
+    }
+    const findingIds = [...new Set([...existing.findingIds, ...operation.findingIds])].sort();
+    const Type = OPERATION_TYPES.get(existing.kind);
+    const merged = new Type({ ...existing.toJSON(), findingIds }, 0);
+    const index = uniqueCurrentOperations.indexOf(existing);
+    uniqueCurrentOperations[index] = merged;
+    sameContentOperations.set(operationDigest, merged);
+  }
+  const conflictingCurrentKeys = currentAttemptConflictKeys(uniqueCurrentOperations);
+  for (const operation of uniqueCurrentOperations) {
+    if (conflictingCurrentKeys.has(operation.conflictKey())) {
       discarded.push(discardedOperation(operation.toJSON(), "conflicting operation"));
       continue;
     }
-    const finding = permissions.get(operation.findingId);
-    if (!authorized(finding, operation)) {
-      if (isPrior) throw new Error("parent correction history contains an unauthorized accepted operation");
-      discarded.push(discardedOperation(operation.toJSON(), "unauthorized operation")); continue;
-    }
+    if (!authorized(permissions, operation)) { discarded.push(discardedOperation(operation.toJSON(), "unauthorized operation")); continue; }
     const conflict = touched.get(operation.conflictKey());
     if (conflict && !operation.isComposableWith(conflict)) {
-      if (isPrior) throw new Error("parent correction history contains conflicting accepted operations");
       conflictingCurrentKeys.add(operation.conflictKey());
       discarded.push(discardedOperation(operation.toJSON(), "conflicting operation")); continue;
     }
     const result = operation.apply(context);
     if (result.status !== "ok") {
-      if (isPrior) throw new Error(`parent correction history contains a ${result.status} accepted operation`);
       discarded.push(discardedOperation(operation.toJSON(), result.status === "conflict" ? "conflicting target resolution" : "stale target digest")); continue;
     }
-    touched.set(operation.conflictKey(), operation); accepted.push(operation); if (!isPrior) acceptedThisAttempt.push(operation);
+    try {
+      validateSpecJsonObject(candidate);
+    } catch {
+      // Array lineages carry immutable-base positions. Replaying accepted work
+      // rebuilds that lineage; cloning only the candidate would reinterpret
+      // later positions after a prior delete.
+      replayAcceptedOperations();
+      discarded.push(discardedOperation(operation.toJSON(), "operation produces an invalid Spec schema"));
+      continue;
+    }
+    touched.set(operation.conflictKey(), operation); accepted.push(operation); acceptedThisAttempt.push(operation);
   }
-  const missing = [];
-  for (const [findingId, finding] of permissions) for (const target of finding.requiredTargets) {
-    if (!accepted.some((operation) => operation.findingId === findingId && operation.target.permissionKey() === target.permissionKey())) missing.push(missingTarget(findingId, target));
-  }
-  const audit = commandOwnedAudit(batch, acceptedThisAttempt, discarded, missing, batch.scopeExpansions);
-  if (batch.scopeExpansions.length > 0) throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_SCOPE_EXPANSION_REQUIRED", "spec repair proposes a scope expansion requiring an explicit route", { retryable: true, audit });
-  if (conflictingCurrentKeys.size > 0) throw new SpecRepairConflictError([...conflictingCurrentKeys].join(", "), audit);
-  if (missing.length > 0) throw new SpecRepairRequiredTargetsError(missing, audit);
-  try { validateSpecJsonObject(candidate); } catch (cause) { throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_RESULT_SCHEMA_INVALID", cause.message, { retryable: true, audit }); }
-  const readiness = checkSpecGateReadiness(candidate);
-  if (readiness.length > 0) throw new SpecRepairOperationsError("FLOW_SPEC_REPAIR_GATE_READY_INVALID", readiness.join("; "), { retryable: true, audit });
-  const finalAudit = Object.freeze({ ...audit, resultRevision: Object.freeze({ digest: valueDigest(candidate), byteLength: stableBytes(candidate) }), acceptedOperations: Object.freeze(acceptedThisAttempt.map((operation) => operationAudit(operation, 1))), discardedOperations: Object.freeze(discarded.map((entry) => discardedAudit(entry, 1))) });
-  const history = correctionHistory instanceof SpecRepairCorrectionHistory ? correctionHistory : new SpecRepairCorrectionHistory();
-  return Object.freeze({ spec: Object.freeze(candidate), audit: history.aggregate(finalAudit) });
+  const audit = commandOwnedAudit(batch, acceptedThisAttempt, discarded, batch.scopeExpansions);
+  // Repair is a filter, not a completeness solver. A valid partial or empty
+  // operation batch remains a successful handoff; the subsequent spec-gate
+  // owns readiness/completeness decisions for the resulting canonical Spec.
+  const finalAudit = Object.freeze({ ...audit, resultRevision: Object.freeze({ digest: valueDigest(candidate), byteLength: stableBytes(candidate) }), acceptedOperations: Object.freeze(acceptedThisAttempt.map((operation) => operationAudit(operation, 1))), discardedOperations: Object.freeze(discarded.map((entry) => discardedAudit(entry, 1))), scopeExpansions: Object.freeze(batch.scopeExpansions.map((proposal) => Object.freeze({ proposal, attempt: 1 }))) });
+  return Object.freeze({ spec: Object.freeze(candidate), audit: finalAudit });
 }

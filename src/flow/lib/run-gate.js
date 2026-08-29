@@ -1679,9 +1679,8 @@ const PLAN_GATE_EVIDENCE_LOGICAL_KEYS = Object.freeze({
   ]),
   spec: Object.freeze([
     "spec.record",
+    "spec.snapshot",
     "spec.review",
-    "spec.triage",
-    "spec.repair",
   ]),
 });
 

@@ -261,6 +261,16 @@ function sourceLogicalKey(sourceArtifact) {
 }
 
 function sourcePayload({ logicalKey, bytes }) {
+  if (logicalKey === "spec.review") {
+    const review = jsonFromArtifact(bytes, "canonical spec review");
+    const findings = Array.isArray(review.findings) ? review.findings : [];
+    return {
+      verdict: findings.some((finding) => finding?.kind === "blocking") ? "REJECTED" : "PASS",
+      blockingFindings: findings.filter((finding) => finding?.kind === "blocking"),
+      nonBlockingImprovements: findings.filter((finding) => finding?.kind !== "blocking"),
+      canonicalReview: review,
+    };
+  }
   try {
     return CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey, bytes }).current.payload;
   } catch {
@@ -336,6 +346,20 @@ export class CanonicalFlowFindingsStore {
 
   sourceArtifact(sourceArtifact) {
     const logicalKey = sourceLogicalKey(sourceArtifact);
+    if (logicalKey === "spec.review") {
+      const current = this.flowManager.readCurrentSpecReview({
+        specId: this.flowState.specId,
+        consumerNodeId: this.nodeId,
+      });
+      const bytes = Buffer.from(current.bytes);
+      return Object.freeze({
+        logicalKey,
+        relativePath: current.descriptor.relativePath,
+        descriptor: current.descriptor,
+        bytes,
+        payload: sourcePayload({ logicalKey, bytes }),
+      });
+    }
     const contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
     const taskArtifact = new Set(["task.review", "task.gate"]).has(logicalKey);
     const parameters = taskArtifact

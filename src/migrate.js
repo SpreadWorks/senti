@@ -47,7 +47,7 @@ function parseTarget(value) {
 export function parseMigrateArgs(argv) {
   const [component, ...rest] = argv;
   if (!COMPONENTS.has(component)) {
-    throw new Error("Usage: sennel migrate <layout|specs> --to 1 [--dry-run]");
+    throw new Error("Usage: sennel migrate <layout|specs> --to <revision> [--dry-run]");
   }
   let to = null;
   let dryRun = false;
@@ -80,7 +80,7 @@ function printHelp(component = null) {
     return;
   }
   if (component === "specs") {
-    console.log("Usage: sennel migrate specs --to 1 [--dry-run]\n\nMigrate legacy Flow specifications to a target revision.");
+    console.log("Usage: sennel migrate specs --to 2 [--dry-run]\n\nMigrate Flow specifications to a target revision.");
     return;
   }
   console.log("Usage: sennel migrate <layout|specs> --to 1 [--dry-run]");
@@ -98,27 +98,33 @@ function registry() {
   const specsRevision = new MigrationRevision({
       component: "specs",
       revision: 1,
-      apply: async ({ root, dryRun, output }) => {
+      apply: async ({ root, dryRun, output, targetRevision = 1 }) => {
         const { SpecsMigrationRevisionOne } = await import("./lib/specs-migration.js");
-        return new SpecsMigrationRevisionOne(root, { dryRun, logger: output }).run();
+        return new SpecsMigrationRevisionOne(root, { dryRun, logger: output, targetRevision }).run();
       },
     });
-  const executeOnlyRevisionOne = async ({ plan, revision, ...context }) => {
-    if (plan.revisions.length !== 1 || plan.revisions[0] !== revision) {
-      throw new Error(`${plan.component} migration executor does not implement an atomic route beyond revision 1`);
-    }
-    return revision.apply(context);
-  };
+  const specsRevisionTwo = new MigrationRevision({
+    component: "specs",
+    revision: 2,
+    apply: async () => ({ complete: true }),
+  });
+  const executeSpecsRoute = ({ plan, ...context }) => specsRevision.apply({
+    ...context,
+    targetRevision: plan.toRevision,
+  });
   return new MigrationRegistry({
-    revisions: [layoutRevision, specsRevision],
+    revisions: [layoutRevision, specsRevision, specsRevisionTwo],
     executors: [
       new MigrationComponentExecutor({
         component: "layout",
-        executePlan: ({ plan, ...context }) => executeOnlyRevisionOne({ plan, revision: layoutRevision, ...context }),
+        executePlan: ({ plan, ...context }) => {
+          if (plan.revisions.length !== 1 || plan.revisions[0] !== layoutRevision) throw new Error("layout migration executor only supports revision 1");
+          return layoutRevision.apply(context);
+        },
       }),
       new MigrationComponentExecutor({
         component: "specs",
-        executePlan: ({ plan, ...context }) => executeOnlyRevisionOne({ plan, revision: specsRevision, ...context }),
+        executePlan: ({ plan, ...context }) => executeSpecsRoute({ plan, ...context }),
       }),
     ],
   });

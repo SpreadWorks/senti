@@ -3,13 +3,12 @@
    - Blocking findings are limited to concrete failures: contradiction with verified existing behavior, missing implementation target/integration point required by codebase context, missing observable acceptance/test basis, omitted mandatory error/data/compatibility path, or conflicting spec fields that change what should be implemented.
    - Do not treat clearer wording, extra rationale, additional related-file mentions, or optional alternatives as blocking. Those are non-blocking improvements when they are useful at all.
    - `whyBlocking` must state the concrete implementation, testing, safety, or compatibility failure caused by leaving the spec unchanged.
-   - Results are saved to spec-review.md for operator reading and spec-review.json for structured review memory.
-   - The next review run receives spec-review.json as previous review memory and should not repeat acknowledged non-blocking improvements unless they became blocking.
+   - Read the immutable `spec.json` snapshot and canonical `review.json` from `inputs[].document`; write only one v2 `spec-review` delta to the exact handoff payload path.
+   - The parent CLI alone validates and merges that delta into `revisions/<n>/review.json`. The next review receives that canonical review as its full immutable input and should not repeat acknowledged non-blocking improvements unless they became blocking.
    - The review does NOT modify spec.md or spec.json directly.
-   - The CLI post-hook advances this review step after every verdict.
-   - **If verdict=PASS** (no findings or improvements): display "Review found no required fixes." The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
-   - **If verdict=ADVISORY** (non-blocking improvements only): record that the improvements are non-blocking and do not rewrite the spec only to satisfy them. The post-hook marks `spec-review`, `spec-triage`, and `spec-repair` done.
-   - **If verdict=REJECTED** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `spec-review` done and leaves `spec-triage` pending; the next step classifies findings before one-pass repair.
-   - At semantic retry exhaustion, unresolved blocking findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition before final-regression.
-   - Non-semantic failures such as tooling, parser, malformed artifact, or schema failures are not deferred. Recover them with changed evidence and a retry reset before re-review.
-   - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.
+   - Parent confirmation advances a valid delta into the next funnel stage; workers never advance Flow state themselves.
+   - **If verdict=PASS** or **ADVISORY**: emit a valid (possibly empty) delta. This is not a retry or stop condition.
+   - **If verdict=REJECTED**: emit findings but do not edit the spec. The following funnel stages may classify or repair any subset.
+   - Return only the immutable-input-bound `review.delta.json`.
+   - Only malformed JSON or an actual missing or unreadable handoff is retryable, and it receives at most one fresh worker invocation. Parsed schema, identity, authority, and atomic-publication failures are terminal.
+   - There is no semantic completeness retry: valid partial, empty, and no-op deltas remain canonical funnel input for the following stages.

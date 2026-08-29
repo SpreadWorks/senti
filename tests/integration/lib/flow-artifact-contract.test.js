@@ -70,7 +70,7 @@ describe("Flow artifact contract registry", () => {
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
       [
-        "flow.activities", "artifact.catalog", "acceptance.decision",
+        "flow.activities", "spec.snapshot", "spec.review", "artifact.catalog", "acceptance.decision",
         "retry.recovery.baseline", "retry.recovery.receipt",
         "task.review", "activity.evidence", "runtime.step-metadata",
       ],
@@ -134,7 +134,7 @@ describe("Flow artifact contract registry", () => {
     for (const key of ["upgrade.result"]) {
       assert.equal(FLOW_ARTIFACT_CONTRACTS.require(key).ownership.consumers.includes("acceptance-review"), true, key);
     }
-    for (const key of ["draft.questions.repair", "draft.coverage.repair", "spec.repair"]) {
+    for (const key of ["draft.questions.repair", "draft.coverage.repair"]) {
       assert.equal(FLOW_ARTIFACT_CONTRACTS.require(key).ownership.consumers.includes("acceptance-review"), true, key);
     }
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("draft.questions.triage").ownership.consumers.includes("draft-gate"), true);
@@ -190,6 +190,14 @@ describe("Flow artifact contract registry", () => {
       "system", "draft", "draft-questions-repair", "draft-refine", "draft-coverage-repair",
     ]);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("spec.record").ownership.updaters.includes("spec-repair"), true);
+    assert.deepEqual(
+      FLOW_ARTIFACT_CONTRACTS.require("spec.review").ownership.producers,
+      ["system", "spec-review", "spec-triage", "spec-repair"],
+    );
+    assert.deepEqual(
+      FLOW_ARTIFACT_CONTRACTS.require("spec.review").ownership.updaters,
+      ["system", "spec-review", "spec-triage", "spec-repair"],
+    );
 
     const logicalKeyByInput = new Map([
       ["draft.json", "draft"],
@@ -198,8 +206,7 @@ describe("Flow artifact contract registry", () => {
       ["draft-review-coverage.json", "draft.coverage.review"],
       ["draft-coverage-triage.json", "draft.coverage.triage"],
       ["spec.json", "spec.record"],
-      ["spec-review.json", "spec.review"],
-      ["spec-triage.json", "spec.triage"],
+      ["review.json", "spec.review"],
       ["scenario-validity-result.json", "scenario.validity"],
       ["test-review.json", "test.review"],
     ]);
@@ -210,8 +217,7 @@ describe("Flow artifact contract registry", () => {
       ["draft-coverage-triage.json", "draft.coverage.triage"],
       ["draft-coverage-repair.json", "draft.coverage.repair"],
       ["spec.json", "spec.record"],
-      ["spec-triage.json", "spec.triage"],
-      ["spec-repair.json", "spec.repair"],
+      ["review.delta.json", null],
       ["spec-tests", "tests.source"],
     ]);
     for (const stepId of WORKER_ARTIFACT_HANDOFF_STEPS) {
@@ -229,6 +235,10 @@ describe("Flow artifact contract registry", () => {
       for (const payload of policy.payloads) {
         const logicalKey = logicalKeyByPayload.get(payload.logicalName);
         assert.notEqual(logicalKey, undefined, `${stepId}/${payload.logicalName}`);
+        if (logicalKey === null) {
+          assert.equal(["spec-triage", "spec-repair"].includes(stepId), true, `${stepId} owns only a transient review delta`);
+          continue;
+        }
         const ownership = FLOW_ARTIFACT_CONTRACTS.require(logicalKey).ownership;
         assert.equal(
           ownership.producers.includes(stepId) || ownership.updaters.includes(stepId),
@@ -649,7 +659,6 @@ describe("Flow artifact contract registry", () => {
     for (const [logicalKey, reviewStep] of [
       ["draft.questions.review", "draft-questions-review"],
       ["draft.coverage.review", "draft-coverage-review"],
-      ["spec.review", "spec-review"],
       ["test.review", "test-review"],
       ["impl.review", "impl-review"],
     ]) {
@@ -659,6 +668,7 @@ describe("Flow artifact contract registry", () => {
       ));
       assert.equal(evidenceDirectory, resultDirectory, reviewStep);
     }
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("spec.review").canonicalPath.toString(), "revisions/:{revision}/review.json");
     const taskResultDirectory = path.posix.dirname(
       FLOW_ARTIFACT_CONTRACTS.resolve("task.review", { taskId: "T-1" }).relativePath,
     );

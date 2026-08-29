@@ -9,6 +9,7 @@ import {
   FLOW_ARTIFACT_CONTRACTS,
   FLOW_ARTIFACT_SWITCH_TARGETS,
 } from "../../lib/flow-artifact-contract.js";
+import { FlowSpecRevision } from "../../lib/flow-version.js";
 import { CurrentFlowStateInvariantError } from "./current-flow-state.js";
 import { validateAcceptanceReviewArtifact } from "./acceptance-review-artifacts.js";
 
@@ -27,7 +28,6 @@ const ATTEMPT_HISTORY_ARTIFACTS = new Map([
   ["draft-questions-review", "draft.questions.review"],
   ["draft-coverage-review", "draft.coverage.review"],
   ["draft-gate", "draft.gate"],
-  ["spec-review", "spec.review"],
   ["spec-gate", "spec.gate"],
   ["scenario-validity", "scenario.validity"],
   ["test-review", "test.review"],
@@ -42,6 +42,9 @@ const ATTEMPT_HISTORY_ARTIFACTS = new Map([
 
 export function attemptHistoryTargetForNode(nodeId) {
   const normalized = requiredText(nodeId, "canonical attempt history nodeId");
+  // The spec review has a typed revision-scoped source below; it must not be
+  // parsed by the generic task suffix grammar.
+  if (normalized === "spec-review") return null;
   const logicalKey = ATTEMPT_HISTORY_ARTIFACTS.get(normalized);
   if (logicalKey !== undefined) return Object.freeze({ logicalKey, parameters: Object.freeze({}) });
   const task = normalized.match(/^(.+)-(review|gate)$/);
@@ -50,6 +53,46 @@ export function attemptHistoryTargetForNode(nodeId) {
     logicalKey: task[2] === "review" ? "task.review" : "task.gate",
     parameters: Object.freeze({ taskId: task[1] }),
   });
+}
+
+/** The review producer publishes the current revision's one review ledger,
+ * rather than an attempt-history file.  This target resolves that collection
+ * through its catalog descriptor and binds it to the exact review Attempt. */
+class RevisionScopedSpecReviewReadinessTarget {
+  constructor({ producerNodeId, consumerNodeId } = {}) {
+    if (producerNodeId !== "spec-review" || consumerNodeId !== "spec-triage") {
+      throw new CurrentFlowStateInvariantError("revision-scoped review readiness has an invalid route");
+    }
+    this.logicalKey = "spec.review";
+    this.parameters = Object.freeze({});
+    Object.freeze(this);
+  }
+
+  descriptor(catalog) {
+    const matches = catalog.artifacts
+      .filter((entry) => entry.logicalKey === this.logicalKey)
+      .map((entry) => ({ entry, match: entry.relativePath.match(/^revisions\/(\d+)\/review\.json$/) }))
+      .filter(({ match }) => match !== null)
+      .sort((left, right) => Number(right.match[1]) - Number(left.match[1]));
+    return matches[0]?.entry ?? null;
+  }
+
+  publicationMatches(artifact) {
+    const target = artifact?.artifact ?? artifact;
+    if (target?.logicalKey !== this.logicalKey) return false;
+    // Admission runs before the Store resolves a command publication to its
+    // catalog path.  At that boundary the typed revision parameter is the
+    // only authoritative address; after resolution the exact path remains
+    // accepted for already-materialized writes.
+    if (/^revisions\/\d+\/review\.json$/.test(target.relativePath ?? "")) return true;
+    const revision = target.parameters?.revision;
+    if (typeof revision !== "string" || !/^\d+$/.test(revision)) return false;
+    try {
+      return revision === new FlowSpecRevision(Number(revision)).pathSegment;
+    } catch {
+      return false;
+    }
+  }
 }
 
 function taskNode(nodeId, role) {
@@ -92,6 +135,9 @@ function isConnectorConsumerHandoff(producerNodeId, consumerNodeId) {
 }
 
 function producerHandoffs(producerNodeId, consumerNodeId) {
+  if (producerNodeId === "spec-review" && consumerNodeId === "spec-triage") {
+    return [new RevisionScopedSpecReviewReadinessTarget({ producerNodeId, consumerNodeId })];
+  }
   const primary = attemptHistoryTargetForNode(producerNodeId);
   if (primary === null) return [];
   const switchTarget = FLOW_ARTIFACT_SWITCH_TARGETS.find((candidate) => (
@@ -220,9 +266,11 @@ export class ProducerArtifactReadiness {
       }
     }
     for (const handoff of this.handoffs) {
-      const descriptor = catalog.artifacts.find((entry) => (
-        entry.relativePath === handoff.relativePath && entry.logicalKey === handoff.logicalKey
-      )) ?? null;
+      const descriptor = handoff instanceof RevisionScopedSpecReviewReadinessTarget
+        ? handoff.descriptor(catalog)
+        : catalog.artifacts.find((entry) => (
+          entry.relativePath === handoff.relativePath && entry.logicalKey === handoff.logicalKey
+        )) ?? null;
       if (descriptor === null) {
         throw this.#missing(`catalog lacks ${handoff.logicalKey}`);
       }
@@ -300,6 +348,7 @@ export class ProducerArtifactReadiness {
       const published = artifactWrites.some((write) => {
         const artifact = write?.artifact ?? write;
         if (artifact?.logicalKey !== handoff.logicalKey) return false;
+        if (handoff instanceof RevisionScopedSpecReviewReadinessTarget) return handoff.publicationMatches(artifact);
         const relativePath = artifact.relativePath
           ?? FLOW_ARTIFACT_CONTRACTS.resolve(
             artifact.logicalKey,
@@ -532,6 +581,7 @@ export function producerArtifactReadinessesForProducer({ producerNodeId } = {}) 
       .map((target) => consumerNodeForTarget(target, producer))
       .filter(Boolean),
   );
+  if (producer === "spec-review") consumers.add("spec-triage");
   return Object.freeze([...consumers]
     .map((consumerNodeId) => producerArtifactReadiness({ producerNodeId: producer, consumerNodeId }))
     .filter(Boolean));

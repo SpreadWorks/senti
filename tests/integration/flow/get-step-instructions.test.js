@@ -68,42 +68,44 @@ describe("getStepInstructions (loader contract)", () => {
       }
     });
 
-    it("spec-triage records apply/drop decisions and evidence for every blocking finding", () => {
+    it("spec-triage emits a bounded V2 classification delta for canonical findings", () => {
       const content = getStepInstructions("plan.spec-triage");
 
-      assert.match(content, /handoff `inputs\[\]\.document` snapshots/);
-      assert.match(content, /Write `spec-triage\.json` only to its exact handoff `payloadPath`/);
+      assert.match(content, /immutable `spec\.json` snapshot and the one canonical `review\.json` only from `inputs\[\]\.document`/);
+      assert.match(content, /Write one delta, and only one delta, to the exact handoff `payloadPath`/);
+      assert.match(content, /`version: 2`, `stage: "spec-triage"`, the exact immutable `identity`, and `findings\[\]`/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
       assert.doesNotMatch(content, /sennel flow set step spec-triage done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
-      assert.match(content, /Do not edit `spec\.json`/);
-      assert.match(content, /For every `blockingFindings\[\]` entry/);
-      assert.match(content, /`decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
-      assert.match(content, /Use `apply` only when the finding is still blocking/);
-      assert.match(content, /Do not defer review findings to gate/);
-      assert.match(content, /"phase": "spec-triage"/);
+      assert.match(content, /Never edit canonical files/);
+      assert.match(content, /one stable `findingId`, a disposition \(`apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`\), evidence/);
+      assert.match(content, /Classify only findings supplied in the immutable canonical review/);
+      assert.match(content, /Do not require a finding to be classified, do not invent findings, and do not remove unhandled findings/);
+      assert.match(content, /permissions are explicit `\{ target, operationKinds \}` capabilities/);
+      assert.match(content, /valid empty delta is a semantic no-op and the Flow continues/);
+      assert.doesNotMatch(content, /spec-triage\.json/);
     });
 
-    it("spec-repair applies only triaged apply items", () => {
+    it("spec-repair emits only immutable-input-bound V2 operations", () => {
       const content = getStepInstructions("plan.spec-repair");
 
-      assert.match(content, /handoff `inputs\[\]\.document` snapshots/);
-      assert.match(content, /Write only `spec-repair\.json` to its exact handoff `payloadPath`/);
-      assert.match(content, /Never write `spec\.json`; the CLI alone applies accepted operations/);
+      assert.match(content, /immutable `spec\.json` snapshot and the one canonical `review\.json` only from `inputs\[\]\.document`/);
+      assert.match(content, /Write only `review\.delta\.json`, one immutable-input-bound delta, to the exact handoff `payloadPath`/);
+      assert.match(content, /Never edit `spec\.json`, `review\.json`, or any canonical Flow file/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
       assert.doesNotMatch(content, /sennel flow set step spec-repair done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
-      assert.match(content, /Treat only triage `items\[\]` entries with `decision: "apply"` as the repair input/);
-      assert.match(content, /Do not re-triage review findings in this step/);
-      assert.match(content, /Return only constrained operation proposals/);
-      assert.match(content, /`findingId`/);
-      assert.match(content, /same canonical location as an `allowedTargets` permission/);
-      assert.match(content, /`operationKinds`/);
-      assert.match(content, /`requiredTargets`/);
-      assert.match(content, /"version": 1/);
-      assert.match(content, /must be small, auditable, and limited to triage `apply` items/);
+      assert.match(content, /`version: 2`, `stage: "spec-repair"`, the exact immutable `identity`, and `operations\[\]`/);
+      assert.match(content, /non-empty unique `findingIds`/);
+      assert.match(content, /explicit canonical `apply` permission for that target and kind/);
+      assert.match(content, /`review\.delta\.json`/);
+      assert.match(content, /Valid operations may be partial/);
+      assert.match(content, /empty operation list is a semantic no-op and the Flow continues/);
+      assert.match(content, /Do not reclassify findings or widen scope/);
+      assert.doesNotMatch(content, /spec-repair\.json/);
+      assert.doesNotMatch(content, /requiredTargets/);
     });
 
     it("draft repair prompts request operation proposals, never a replacement draft", () => {
@@ -125,12 +127,12 @@ describe("getStepInstructions (loader contract)", () => {
       assert.doesNotMatch(content, /draft-coverage-repair.*responsible for setting draft approval/);
     });
 
-    it("spec-repair prompt exposes the v1 proposal and structured permission contract", () => {
+    it("spec-repair prompt preserves V2 operation and immutable-base array semantics", () => {
       const content = getStepInstructions("plan.spec-repair");
 
-      assert.match(content, /proposal contract.*version.*1|"version": 1/i);
-      assert.match(content, /structured target|target.*entity.*id.*field/i);
-      assert.match(content, /operationKinds/);
+      assert.match(content, /`version: 2`, `stage: "spec-repair"`/);
+      assert.match(content, /structured `target`, `kind`, `expectedDigest`/);
+      assert.match(content, /findingIds/);
       assert.match(content, /replace-field/);
       assert.match(content, /replace-entity-field/);
       assert.match(content, /add-array-element/);
@@ -138,7 +140,26 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /delete-array-element/);
       assert.match(content, /replacement/);
       assert.match(content, /position/);
-      assert.doesNotMatch(content, /"version": 2/);
+      assert.match(content, /immutable-base `position`/);
+      assert.doesNotMatch(content, /"version": 1/);
+    });
+
+    it("spec-review prompt rejects retired post-hook and semantic retry language", () => {
+      const content = getStepInstructions("plan.spec-review");
+      assert.match(content, /Parent confirmation advances a valid delta/);
+      assert.match(content, /malformed JSON.*missing or unreadable handoff.*at most one fresh worker invocation/i);
+      assert.match(content, /There is no semantic completeness retry/);
+      assert.doesNotMatch(content, /CLI post-hook/);
+      assert.doesNotMatch(content, /retry reset/);
+      assert.doesNotMatch(content, /semantic review limit/);
+    });
+
+    it("spec funnel worker prompts share the bounded transport retry contract", () => {
+      for (const key of ["plan.spec-review", "plan.spec-triage", "plan.spec-repair"]) {
+        const content = getStepInstructions(key);
+        assert.match(content, /malformed JSON.*missing or unreadable handoff.*at most one fresh worker invocation/i, key);
+        assert.match(content, /schema, identity, authority, and atomic-publication failures are terminal/i, key);
+      }
     });
 
     it("spec gate instructions keep gate fixes separate from design review", () => {

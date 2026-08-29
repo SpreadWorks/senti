@@ -26,6 +26,8 @@ import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
+import { attachCanonicalCommandResultPublications } from "../../../src/flow/lib/canonical-command-result.js";
+import { CanonicalSpecReview, SpecReviewDelta, mergeSpecReviewDelta } from "../../../src/flow/lib/spec-review-artifacts.js";
 import {
   canonicalFixtureProducerResult,
   canonicalImplReviewArtifact,
@@ -159,12 +161,13 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
   }
   if (stepId === "spec-triage") {
     const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
-    fs.writeFileSync(payloadPath(request, "spec-triage.json"), workerArtifactJson({
-      version: 1, phase: "spec-triage", sourceReview: "spec-review.json", summary: "Apply the finding.",
-      items: [{ findingId: "spec-review-blocking-1", title: "Bind publication", target: "requirements[0]", decision: "apply", rationale: "The finding is valid.", evidence: "The requirement owns publication.", allowedTargets: [
+    const current = new CanonicalSpecReview(inputDocument(request, "review.json"));
+    fs.writeFileSync(payloadPath(request, "review.delta.json"), workerArtifactJson({
+      version: 2, stage: "spec-triage", identity: current.identity.toJSON(), baseReviewDigest: current.digest, operations: [],
+      findings: [{ findingId: "spec-review-blocking-1", disposition: "apply", evidence: "The requirement owns publication.", allowedTargets: [
         { target: requirementTarget, operationKinds: ["replace-entity-field"] },
         { target: { entity: "spec", field: "background" }, operationKinds: ["replace-field"] },
-      ], requiredTargets: [requirementTarget, { entity: "spec", field: "background" }] }],
+      ] }],
     }));
     return;
   }
@@ -175,12 +178,12 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
     const previous = specRepairAttempt === 1
       ? "Publish a validated artifact."
       : "The worker cannot write canonical Flow artifacts.";
-    fs.writeFileSync(payloadPath(request, "spec-repair.json"), workerArtifactJson({
-      version: 1,
-      baseRevision: `sha256:${request.inputRevision}`, scopeExpansions: [],
+    const current = new CanonicalSpecReview(inputDocument(request, "review.json"));
+    fs.writeFileSync(payloadPath(request, "review.delta.json"), workerArtifactJson({
+      version: 2, stage: "spec-repair", identity: current.identity.toJSON(), baseReviewDigest: current.digest, findings: [], scopeExpansions: [],
       operations: specRepairAttempt === 1
-        ? [{ findingId: "spec-review-blocking-1", kind: "replace-entity-field", target, expectedDigest: repairValueDigest(previous), replacement: "The requirement retains publication authority.", reason: "The requirement is explicit." }]
-        : [{ findingId: "spec-review-blocking-1", kind: "replace-field", target, expectedDigest: repairValueDigest(previous), replacement: "The background retains publication authority.", reason: "The remaining required target is explicit." }],
+        ? [{ findingIds: ["spec-review-blocking-1"], kind: "replace-entity-field", target, expectedDigest: repairValueDigest(previous), replacement: "The requirement retains publication authority.", reason: "The requirement is explicit." }]
+        : [{ findingIds: ["spec-review-blocking-1"], kind: "replace-field", target, expectedDigest: repairValueDigest(previous), replacement: "The background retains publication authority.", reason: "The remaining required target is explicit." }],
     }));
     return;
   }
@@ -249,10 +252,25 @@ function commandArtifacts(stepId, flowManager, specId, implReviewRuns, histories
       }, histories);
   }
   if (stepId === "spec-review") {
-    publishAttemptArtifact(flowManager, specId, stepId, "spec.review", {
-      version: 1, phase: "spec", generatedAt: "2026-08-14T00:00:00.000Z", verdict: "REJECTED",
-      blockingFindings: [{ findingId: "spec-review-blocking-1", title: "Bind publication", target: "requirements[0]" }], nonBlockingImprovements: [],
-    }, histories);
+    const current = flowManager.readCurrentSpecReviewInput({ specId, consumerNodeId: "spec-review" });
+    const delta = new SpecReviewDelta({
+      version: 2, stage: "spec-review", identity: current.review.identity.toJSON(), baseReviewDigest: current.review.digest,
+      findings: [{
+        findingId: "spec-review-blocking-1", kind: "blocking", title: "Bind publication", target: "requirements[0]",
+        body: "The publication authority must be bound to this Spec requirement.",
+        issue: "The requirement needs the publication authority stated explicitly.",
+        requiredChange: "Bind the requirement to the canonical publication authority.",
+        whyBlocking: "Without the binding the worker handoff cannot prove ownership.",
+      }], operations: [],
+    });
+    const next = mergeSpecReviewDelta({ review: current.review, delta });
+    return attachCanonicalCommandResultPublications({
+      result: "fixture spec review",
+      artifacts: { phase: "spec", verdict: "REJECTED", canonicalVerdict: "REJECTED", proposalCount: 1 },
+    }, [{
+      logicalKey: "spec.review", parameters: { revision: String(current.revision).padStart(3, "0") },
+      mediaType: "application/json", payload: next.toJSON(),
+    }]);
   }
   if (stepId === "impl-review") {
     const finding = {
@@ -277,6 +295,7 @@ function commandArtifacts(stepId, flowManager, specId, implReviewRuns, histories
       },
     ), histories);
   }
+  return null;
 }
 
 function actionFor(route) {
@@ -377,7 +396,7 @@ describe("deterministic full Flow worker handoff", () => {
         if (entry.taskId !== null && entry.stepId === "task-impl") flowManager.startTask(entry.taskId, { specId });
         else flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId });
       };
-      const advance = (entry) => {
+      const advance = (entry, suppliedCommandResult = null) => {
         const nodeId = routeNodeId(entry);
         const active = flowManager.load();
         const current = active.currentNodeId;
@@ -396,9 +415,9 @@ describe("deterministic full Flow worker handoff", () => {
           if (entry.stepId === "task-gate" || entry.stepId === "impl-gate") {
             confirmCanonicalFixtureStep(flowManager, specId, nodeId);
           } else {
-            const canonicalCommandResult = commandPublishedPrimaryArtifact.has(entry.stepId)
+            const canonicalCommandResult = suppliedCommandResult ?? (commandPublishedPrimaryArtifact.has(entry.stepId)
               ? null
-              : canonicalFixtureProducerResult(active, nodeId, { flowManager, specId });
+              : canonicalFixtureProducerResult(active, nodeId, { flowManager, specId }));
             flowManager.updateStepStatus(
               { stepId: nodeId, requestedStatus: "done" },
               { specId, ...(canonicalCommandResult === null ? {} : { canonicalCommandResult }) },
@@ -472,8 +491,8 @@ describe("deterministic full Flow worker handoff", () => {
           assert.equal(entry.stepId, command.commandName === "review" ? entry.stepId : entry.stepId);
           parentCommands.push(entry.stepId);
           if (entry.stepId === "impl-review") implReviewRuns += 1;
-          commandArtifacts(entry.stepId, flowManager, specId, implReviewRuns, commandArtifactHistories);
-          advance(entry);
+          const commandResult = commandArtifacts(entry.stepId, flowManager, specId, implReviewRuns, commandArtifactHistories);
+          advance(entry, commandResult);
           return command.commandName === "finalize-cleanup"
             ? { ok: true, data: { status: "done", assurance: { completed: true } }, errors: [] }
             : { ok: true, data: {}, errors: [] };
@@ -517,8 +536,8 @@ describe("deterministic full Flow worker handoff", () => {
       assert.equal(completed.dispatch?.boundary, "completed", JSON.stringify(completed));
       assert.deepEqual(new Set(artifactWorkers), new Set(WORKER_ARTIFACT_HANDOFF_STEPS));
       assert.deepEqual(new Set(sourceWorkers), new Set(WORKER_SOURCE_HANDOFF_STEPS));
-      assert.equal(specRepairCalls, 2, "the constrained repair must make one correction call");
-      assert.equal(handoffCount, WORKER_ARTIFACT_HANDOFF_STEPS.length + WORKER_SOURCE_HANDOFF_STEPS.length + 1);
+      assert.equal(specRepairCalls, 1, "one valid repair delta is confirmed without a correction loop");
+      assert.equal(handoffCount, WORKER_ARTIFACT_HANDOFF_STEPS.length + WORKER_SOURCE_HANDOFF_STEPS.length);
       assert.equal(workerSteps.some((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), false);
       assert.equal(parentCommands.every((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), true);
       assert.equal(
@@ -554,12 +573,22 @@ describe("deterministic full Flow worker handoff", () => {
         handoffCount + parentCommands.length + 1,
         "dispatch count must include each worker/parent action and the parent Spec-approval continuation, but not user-boundary prompts",
       );
-      const repairAudit = JSON.parse(flowManager.readArtifact({ specId, logicalKey: "spec.repair", consumerNodeId: "spec-gate" }).bytes.toString("utf8"));
-      assert.deepEqual(repairAudit.attempts.map((attempt) => attempt.status), ["rejected", "accepted"]);
-      assert.equal(repairAudit.acceptedOperations.length, 2);
+      const repairPublication = flowManager.activityLedger(specId).find((activity) => (
+        activity.reviewPublication?.stage === "spec-repair"
+      ));
+      assert.ok(repairPublication, "spec-repair confirmation must retain its revision-scoped Activity fact");
+      const repairReview = JSON.parse(flowManager.readArtifact({
+        specId, logicalKey: "spec.review",
+        parameters: { revision: String(repairPublication.reviewPublication.identity.revision).padStart(3, "0") },
+        consumerNodeId: "spec-gate",
+      }).bytes.toString("utf8"));
+      const repairAudit = repairReview.audit.at(-1);
+      assert.equal(repairAudit.stage, "spec-repair");
+      assert.equal(repairAudit.acceptedOperations.length, 1);
+      assert.deepEqual(repairAudit.appliedFindings, ["spec-review-blocking-1"]);
       const repairedSpec = JSON.parse(flowManager.readArtifact({ specId, logicalKey: "spec.record", consumerNodeId: "approval" }).bytes.toString("utf8"));
       assert.equal(repairedSpec.requirements.find((requirement) => requirement.id === "R1").desc, "The requirement retains publication authority.");
-      assert.equal(repairedSpec.background, "The background retains publication authority.");
+      assert.equal(repairedSpec.background, "The worker cannot write canonical Flow artifacts.");
       const draftRepairAudit = JSON.parse(flowManager.readArtifact({
         specId,
         logicalKey: "draft.questions.repair",

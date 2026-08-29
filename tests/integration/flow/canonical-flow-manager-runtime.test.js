@@ -15,6 +15,7 @@ import {
 } from "../../../src/lib/flow-artifact-contract.js";
 import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow-manager-store.js";
 import {
+  ActivityReviewPublication,
   CurrentFlowSpecRecord,
   CurrentFlowStateStore,
 } from "../../../src/flow/lib/current-flow-state.js";
@@ -103,6 +104,11 @@ import { decisionContextForActiveFlow } from "../../../src/flow/lib/nonblocking.
 import { readCurrentTestChainTransitionFacts } from "../../../src/flow/lib/test-chain-transition-facts.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { ReviewFindingFingerprint } from "../../../src/flow/lib/finding-disposition-policy.js";
+import {
+  CanonicalSpecReview,
+  SpecReviewDelta,
+  mergeSpecReviewDelta,
+} from "../../../src/flow/lib/spec-review-artifacts.js";
 
 const roots = [];
 
@@ -116,6 +122,101 @@ function initializeReviewSource(rootPath) {
   fs.writeFileSync(path.join(rootPath, "README.md"), "review checkout fixture\n");
   initGitRepo(rootPath);
   commitAll(rootPath, "review source");
+}
+
+function writeSpecReviewDeltaOutput(options, findings = []) {
+  const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+  const reviewSource = JSON.parse(options.env.SENNEL_REVIEW_SPEC_REVIEW_SOURCE);
+  const review = new CanonicalSpecReview(JSON.parse(fs.readFileSync(reviewSource.sourcePath, "utf8")));
+  const delta = new SpecReviewDelta({
+    version: 2,
+    stage: "spec-review",
+    identity: review.identity.toJSON(),
+    baseReviewDigest: review.digest,
+    findings,
+    operations: [],
+  });
+  fs.writeFileSync(path.join(outputDirectory, "review.delta.json"), `${JSON.stringify(delta.toJSON(), null, 2)}\n`);
+}
+
+function reviewPublicationWrite(review, stage) {
+  const delta = new SpecReviewDelta({
+    version: 2,
+    stage,
+    identity: review.identity.toJSON(),
+    baseReviewDigest: review.digest,
+    findings: [],
+    operations: [],
+  });
+  const next = mergeSpecReviewDelta({ review, delta });
+  return {
+    next,
+    write: {
+      logicalKey: "spec.review",
+      parameters: { revision: review.identity.revision.toString() },
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(next.toJSON(), null, 2)}\n`, "utf8"),
+    },
+  };
+}
+
+function noOpSpecReviewCommandResult(review) {
+  const publication = reviewPublicationWrite(review, "spec-review");
+  return attachCanonicalCommandResultPublications({
+    result: "ok",
+    artifacts: { phase: "spec", verdict: "PASS" },
+  }, [new CanonicalCommandResultPublication({
+    logicalKey: "spec.review",
+    parameters: { revision: review.identity.revision.toString() },
+    mediaType: "application/json",
+    payload: JSON.parse(publication.write.bytes.toString("utf8")),
+  })]);
+}
+
+function currentSpecRevisionAuthority(manager, specId) {
+  const location = manager.specLocation(specId);
+  const current = manager.readCurrentSpecReview({ specId, consumerNodeId: "spec-review" });
+  const revisions = fs.readdirSync(location.resolve("revisions"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^[0-9]{3,}$/.test(entry.name))
+    .map((entry) => Number(entry.name));
+  const revision = current?.revision ?? Math.max(...revisions);
+  const revisionText = String(revision).padStart(3, "0");
+  const root = fs.readFileSync(location.specFile);
+  const snapshot = fs.readFileSync(location.artifact("spec.snapshot", { revision: revisionText }));
+  assert.deepEqual(root, snapshot, "root spec.json must be byte-identical to its immutable current snapshot");
+  if (current !== null) {
+    assert.equal(current.review.identity.specId, specId);
+    assert.equal(current.review.identity.revision.value, current.revision);
+    assert.equal(current.review.identity.digest, crypto.createHash("sha256").update(root).digest("hex"));
+    assert.equal(current.review.identity.byteLength, root.length);
+    assert.equal(current.review.digest, current.descriptor.hash);
+    assert.equal(current.descriptor.size, current.bytes.length);
+  }
+  return Object.freeze({
+    revision,
+    root: Buffer.from(root),
+    snapshot: Buffer.from(snapshot),
+    review: current?.review ?? null,
+    descriptor: current?.descriptor ?? null,
+  });
+}
+
+function assertSpecRevisionAdvanced(before, after) {
+  assert.equal(after.revision, before.revision + 1, "a changed root Spec publication must create exactly one new revision");
+  assert.notDeepEqual(after.root, before.root, "a revision increment requires changed root Spec bytes");
+}
+
+function rootSpecPublicationBytes(location, revision) {
+  const currentRevision = String(revision).padStart(3, "0");
+  return Object.freeze({
+    root: fs.readFileSync(location.specFile),
+    snapshot: fs.readFileSync(location.artifact("spec.snapshot", { revision: currentRevision })),
+    review: fs.existsSync(location.artifact("spec.review", { revision: currentRevision }))
+      ? fs.readFileSync(location.artifact("spec.review", { revision: currentRevision })) : null,
+    state: fs.readFileSync(location.flowStateFile),
+    activities: fs.readFileSync(location.activitiesFile),
+    catalog: fs.readFileSync(location.catalogFile),
+  });
 }
 
 function rejectedTestReviewCommand(onOutputDirectory) {
@@ -538,6 +639,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(fs.existsSync(location.specFile), true);
     assert.equal(fs.existsSync(location.catalogFile), true);
     assert.equal(fs.existsSync(path.join(location.directory, ".runtime")), true);
+    assert.equal(manager.readCurrentSpecReview({ specId: created.specId, consumerNodeId: "spec-review" }), null);
+    assert.equal(fs.existsSync(location.artifact("spec.review", { revision: "001" })), false);
     assert.ok(leaves(created.steps).every((step) => step.status === "pending"));
 
     manager.addActiveFlow(created.specId, "direct");
@@ -726,6 +829,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     confirmFixtureStep(manager, "branch");
     manager.updateStepStatus({ stepId: "prepare-spec", requestedStatus: "in_progress" });
     confirmFixtureStep(manager, "prepare-spec");
+    const beforeTaskAdmission = currentSpecRevisionAuthority(manager, "001-canonical-manager");
     manager.addTask({
       id: "T-1",
       key: "implement-task",
@@ -752,6 +856,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(fs.existsSync(taskLocation.gateDirectory), true);
     const persistedSpec = JSON.parse(fs.readFileSync(location.specFile, "utf8"));
     assert.equal(persistedSpec.tasks[0].id, "T-1");
+    assertSpecRevisionAdvanced(beforeTaskAdmission, currentSpecRevisionAuthority(manager, "001-canonical-manager"));
 
     const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     assert.deepEqual(
@@ -2232,32 +2337,29 @@ describe("FlowManager canonical Version-1 runtime", () => {
     for (const entry of ordered.slice(0, reviewIndex)) {
       confirmFixtureStep(manager, entry.id);
     }
+    const beforeReview = manager.readCurrentSpecReviewInput({
+      specId: created.specId,
+      consumerNodeId: "spec-review",
+    }).review;
     manager.updateStepStatus(
       { stepId: "spec-review", requestedStatus: "done" },
       {
-        canonicalCommandResult: {
-          result: "ok",
-          artifacts: { phase: "spec", verdict: "PASS" },
-        },
+        canonicalCommandResult: noOpSpecReviewCommandResult(beforeReview),
       },
     );
 
-    const resolved = manager.readArtifact({
+    const resolved = manager.readCurrentSpecReview({
       specId: created.specId,
-      logicalKey: "spec.review",
       consumerNodeId: "spec-triage",
     });
-    const history = JSON.parse(resolved.bytes.toString("utf8"));
-    const catalog = manager.artifactCatalog(created.specId);
-    const descriptor = catalog.resolve("steps/spec-review/result.json");
 
-    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1]);
-    assert.equal(history.attempts[0].result.artifacts.verdict, "PASS");
-    assert.equal(descriptor.activityId !== null, true);
+    assert.equal(resolved.review.generation, 1);
+    assert.equal(resolved.review.audit.at(-1).stage, "spec-review");
+    assert.equal(resolved.review.audit.at(-1).outcome, "no-op");
+    assert.equal(resolved.descriptor.activityId !== null, true);
     assert.throws(
-      () => manager.readArtifact({
+      () => manager.readCurrentSpecReview({
         specId: created.specId,
-        logicalKey: "spec.review",
         consumerNodeId: "report",
       }),
       /consumer is not authorized/,
@@ -2658,12 +2760,17 @@ describe("FlowManager canonical Version-1 runtime", () => {
             consumerNodeId: "spec-review",
           }).bytes.toString("utf8")),
         );
+        const reviewSource = JSON.parse(options.env.SENNEL_REVIEW_SPEC_REVIEW_SOURCE);
+        const currentReview = manager.readCurrentSpecReviewInput({
+          specId: created.specId,
+          consumerNodeId: "spec-review",
+        });
+        assert.equal(reviewSource.logicalPath, "review.json");
+        assert.deepEqual(fs.readFileSync(reviewSource.sourcePath), currentReview.bytes);
+        assert.equal(crypto.createHash("sha256").update(fs.readFileSync(reviewSource.sourcePath)).digest("hex"), crypto.createHash("sha256").update(currentReview.bytes).digest("hex"));
         assert.equal(options.env.SENNEL_REVIEW_FILE_MAP_SOURCE, undefined);
-        fs.writeFileSync(path.join(outputDirectory, "spec-review.json"), JSON.stringify({
-          verdict: "PASS",
-          blockingFindings: [],
-          nonBlockingImprovements: [],
-        }, null, 2) + "\n");
+        assert.equal(fs.existsSync(path.join(outputDirectory, "spec-review.json")), false);
+        writeSpecReviewDeltaOutput(options);
         ReviewWorkUnit.fromEnvironment(options.env).seal();
         return {
           ok: true,
@@ -2740,29 +2847,270 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(invocation.options.env.GIT_CONFIG_NOSYSTEM, undefined);
     assert.equal(result.artifacts.phase, "spec");
     assert.equal(result.artifacts.evidenceDigest.length, 64);
-    assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "spec.review");
-    assert.equal(attachedCanonicalCommandResultPublications(result)[0].logicalKey, "review.evidence");
+    assert.equal(attachedCanonicalCommandResultArtifact(result), null);
+    assert.equal(attachedCanonicalCommandResultPublications(result)[0].logicalKey, "spec.review");
+    assert.deepEqual(attachedCanonicalCommandResultPublications(result)[0].parameters, { revision: "001" });
 
     await FLOW_COMMANDS.run.review.post(ctx, result);
     const transientWorkUnit = invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR;
     assert.equal(fs.existsSync(transientWorkUnit), false);
 
     const location = manager.specLocation(created.specId);
-    const history = JSON.parse(manager.readArtifact({
+    const canonicalReview = manager.readCurrentSpecReview({
       specId: created.specId,
-      logicalKey: "spec.review",
       consumerNodeId: "spec-triage",
-    }).bytes.toString("utf8"));
-    const evidencePath = `steps/spec-review/evidence/${result.artifacts.evidenceDigest}.json`;
-    const evidence = manager.artifactCatalog(created.specId).resolve(evidencePath);
+    });
     const state = manager.load(created.specId);
 
-    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1]);
-    assert.equal(history.attempts[0].artifact.payload.canonicalEvidence.disposition, "PASS");
-    assert.equal(evidence.relativePath, evidencePath);
+    assert.equal(canonicalReview.review.generation, 1);
+    assert.equal(canonicalReview.review.audit.at(-1).stage, "spec-review");
+    assert.equal(canonicalReview.review.audit.at(-1).relation, "revision-scoped-canonical-review");
+    const publicationActivity = manager.activityLedger(created.specId)
+      .find((activity) => activity.id === canonicalReview.descriptor.activityId);
+    assert.ok(publicationActivity);
+    assert.deepEqual(publicationActivity.reviewPublication, {
+      generation: canonicalReview.review.generation,
+      identity: canonicalReview.review.identity.toJSON(),
+      reviewDigest: canonicalReview.review.digest,
+      relation: "revision-scoped-canonical-review",
+      stage: "spec-review",
+      outcome: canonicalReview.review.audit.at(-1).outcome,
+    });
+    assert.equal(publicationActivity.id, canonicalReview.descriptor.activityId);
+    assert.equal(publicationActivity.reviewPublication.reviewDigest, canonicalReview.descriptor.hash);
     assert.equal(leaves(state.steps).find((entry) => entry.id === "spec-review").status, "done");
     assert.equal(fs.existsSync(path.join(location.directory, "spec-review.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "review-history")), false);
+  });
+
+  it("records triage and repair review receipts in their confirmation Activities", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-review-publication-receipts"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec-triage");
+
+    const triageInput = manager.readCurrentSpecReview({
+      specId: created.specId,
+      consumerNodeId: "spec-triage",
+    }).review;
+    const triage = reviewPublicationWrite(triageInput, "spec-triage");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      artifactWrites: [triage.write],
+    });
+
+    manager.updateStepStatus({ stepId: "spec-repair", requestedStatus: "in_progress" }, { specId: created.specId });
+    const repairInput = manager.readCurrentSpecReview({
+      specId: created.specId,
+      consumerNodeId: "spec-repair",
+    }).review;
+    const repair = reviewPublicationWrite(repairInput, "spec-repair");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      artifactWrites: [repair.write],
+    });
+
+    const current = manager.readCurrentSpecReview({
+      specId: created.specId,
+      consumerNodeId: "spec-repair",
+    });
+    const facts = manager.activityLedger(created.specId)
+      .map((activity) => activity.reviewPublication)
+      .filter((fact) => fact !== null);
+    assert.deepEqual(facts.map((fact) => fact.stage), ["spec-review", "spec-triage", "spec-repair"]);
+    assert.deepEqual(facts.map((fact) => fact.generation), [1, 2, 3]);
+    assert.equal(facts.at(-1).reviewDigest, current.descriptor.hash);
+    assert.deepEqual(facts.at(-1).identity, current.review.identity.toJSON());
+    assert.equal(current.review.audit.at(-1).stage, "spec-repair");
+  });
+
+  it("rejects a review publication receipt whose generation differs from its review bytes", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-review-publication-generation-tamper"));
+    const current = manager.readCurrentSpecReviewInput({ specId: created.specId, consumerNodeId: "spec-review" }).review;
+    const publication = reviewPublicationWrite(current, "spec-review");
+    const bytes = publication.write.bytes;
+    const receipt = new ActivityReviewPublication({
+      generation: publication.next.generation + 1,
+      identity: publication.next.identity.toJSON(),
+      reviewDigest: publication.next.digest,
+      relation: "revision-scoped-canonical-review",
+      stage: "spec-review",
+      outcome: publication.next.audit.at(-1).outcome,
+    });
+    assert.throws(
+      () => receipt.assertReview(publication.next, { specId: created.specId, revision: 1, bytes }),
+      /publication fact does not match canonical review bytes/,
+    );
+  });
+
+  it("rebases the merged spec-repair review onto exactly one changed Spec revision", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-spec-repair-revision"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec-repair");
+    const before = currentSpecRevisionAuthority(manager, created.specId);
+    const document = JSON.parse(before.root.toString("utf8"));
+    document.goal = "Publish the repaired revision with its canonical review audit.";
+    const repair = reviewPublicationWrite(before.review, "spec-repair");
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      specRecord: new CurrentFlowSpecRecord(document, { specId: created.specId }),
+      artifactWrites: [repair.write],
+    });
+    const after = currentSpecRevisionAuthority(manager, created.specId);
+    assertSpecRevisionAdvanced(before, after);
+    assert.equal(after.review.audit.at(-1).stage, "spec-repair");
+    assert.equal(after.review.generation, repair.next.generation);
+    assert.deepEqual(after.review.findings.findings, repair.next.findings.findings);
+  });
+
+  it("publishes exactly one revision for an approval Spec update", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-approval-revision"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "approval");
+    const before = currentSpecRevisionAuthority(manager, created.specId);
+    manager.updateSpecApproval({
+      specId: created.specId,
+      approval: { confirmedAt: "2026-08-29T00:00:00.000Z", notes: "Revision test approval." },
+    });
+    const after = currentSpecRevisionAuthority(manager, created.specId);
+    assertSpecRevisionAdvanced(before, after);
+    assert.equal(JSON.parse(after.root.toString("utf8")).user_approval.approved, true);
+  });
+
+  it("rejects caller-injected revision snapshots and non-current review destinations before mutation", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-revision-write-injection"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec");
+    const location = manager.specLocation(created.specId);
+    const revisedSpec = JSON.parse(fs.readFileSync(location.specFile, "utf8"));
+    revisedSpec.goal = "Create an immutable second revision.";
+    manager.confirmCurrentAttempt({
+      specId: created.specId,
+      specRecord: new CurrentFlowSpecRecord(revisedSpec, { specId: created.specId }),
+    });
+    assert.equal(manager.readCurrentSpecReview({ specId: created.specId, consumerNodeId: "spec-review" }), null);
+    manager.updateStepStatus({ stepId: "spec-review", requestedStatus: "in_progress" }, { specId: created.specId });
+    const before = () => ({
+      state: manager.load(created.specId),
+      activities: manager.activityLedger(created.specId),
+      catalog: manager.artifactCatalog(created.specId).toJSON(),
+      revisionOneSnapshot: fs.readFileSync(location.artifact("spec.snapshot", { revision: "001" }), "utf8"),
+      revisionTwoSnapshot: fs.readFileSync(location.artifact("spec.snapshot", { revision: "002" }), "utf8"),
+      review: fs.existsSync(location.artifact("spec.review", { revision: "002" }))
+        ? fs.readFileSync(location.artifact("spec.review", { revision: "002" }), "utf8") : null,
+    });
+    const baseline = before();
+    const snapshot = Buffer.from(fs.readFileSync(location.artifact("spec.snapshot", { revision: "001" })));
+    for (const parameters of [{ revision: "001" }, { revision: "002" }]) {
+      assert.throws(
+        () => manager.confirmCurrentAttempt({
+          specId: created.specId,
+          artifactWrites: [{ logicalKey: "spec.snapshot", parameters, mediaType: "application/json", bytes: snapshot }],
+        }),
+        /spec\.snapshot.*generated only/i,
+      );
+      assert.deepEqual(before(), baseline);
+    }
+    const current = manager.readCurrentSpecReviewInput({ specId: created.specId, consumerNodeId: "spec-review" }).review;
+    const injected = reviewPublicationWrite(current, "spec-review").write;
+    injected.parameters = { revision: "999" };
+    assert.throws(
+      () => manager.confirmCurrentAttempt({ specId: created.specId, artifactWrites: [injected] }),
+      /verified current Spec revision/i,
+    );
+    assert.deepEqual(before(), baseline);
+    const currentWrite = reviewPublicationWrite(current, "spec-review").write;
+    assert.throws(
+      () => manager.confirmCurrentAttempt({
+        specId: created.specId,
+        artifactWrites: [currentWrite],
+        artifactBaselines: [{
+          logicalKey: "spec.review",
+          parameters: { revision: "002" },
+          digest: "f".repeat(64),
+          byteLength: currentWrite.bytes.length,
+        }],
+      }),
+      /baseline|changed|digest/i,
+    );
+    assert.deepEqual(before(), baseline, "a stale review descriptor CAS must not append an Activity or mutate any revision bytes");
+  });
+
+  it("fails closed when the current review bytes or catalog descriptor are tampered", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const byteTampered = manager.createFresh(request("001-revision-review-bytes"));
+    manager.addActiveFlow(byteTampered.specId, "direct");
+    advanceTo(manager, byteTampered.specId, "spec-triage");
+    const byteLocation = manager.specLocation(byteTampered.specId);
+    const reviewFile = byteLocation.artifact("spec.review", { revision: "001" });
+    fs.writeFileSync(reviewFile, `${JSON.stringify(JSON.parse(fs.readFileSync(reviewFile, "utf8")))}\n`);
+    assert.throws(
+      () => manager.readCurrentSpecReview({ specId: byteTampered.specId, consumerNodeId: "spec-review" }),
+      /review.*(serialization|identity)|descriptor|catalog/i,
+    );
+
+    const descriptorTampered = manager.createFresh(request("001-revision-review-descriptor", {
+      runId: "revision-review-descriptor-run",
+      flowId: "revision-review-descriptor-flow",
+      flowVersionId: "revision-review-descriptor-flow-v1",
+    }));
+    manager.addActiveFlow(descriptorTampered.specId, "direct");
+    advanceTo(manager, descriptorTampered.specId, "spec-triage");
+    const descriptorLocation = manager.specLocation(descriptorTampered.specId);
+    const catalog = JSON.parse(fs.readFileSync(descriptorLocation.catalogFile, "utf8"));
+    catalog.artifacts.find((entry) => entry.relativePath === "revisions/001/review.json").hash = "f".repeat(64);
+    fs.writeFileSync(descriptorLocation.catalogFile, `${JSON.stringify(catalog, null, 2)}\n`);
+    const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    assert.throws(
+      () => reloaded.readCurrentSpecReview({ specId: descriptorTampered.specId, consumerNodeId: "spec-review" }),
+      /review.*(serialization|identity)|descriptor|catalog/i,
+    );
+  });
+
+  it("rechecks catalog-first authority for a same-bytes Spec publication without creating a revision", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-same-bytes-revision-authority"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec");
+    const location = manager.specLocation(created.specId);
+    const same = new CurrentFlowSpecRecord(
+      JSON.parse(fs.readFileSync(location.specFile, "utf8")),
+      { specId: created.specId },
+    );
+    manager.confirmCurrentAttempt({ specId: created.specId, specRecord: same });
+    assert.equal(manager.readCurrentSpecReview({ specId: created.specId, consumerNodeId: "spec-review" }), null);
+    assert.equal(fs.readdirSync(location.resolve("revisions")).length, 1);
+
+    const tampered = manager.createFresh(request("001-same-bytes-revision-tampered", {
+      runId: "same-bytes-revision-tampered-run",
+      flowId: "same-bytes-revision-tampered-flow",
+      flowVersionId: "same-bytes-revision-tampered-flow-v1",
+    }));
+    manager.addActiveFlow(tampered.specId, "direct");
+    advanceTo(manager, tampered.specId, "spec");
+    const tamperedLocation = manager.specLocation(tampered.specId);
+    const beforeJournal = fs.readFileSync(tamperedLocation.activitiesFile);
+    const current = new CurrentFlowSpecRecord(
+      JSON.parse(fs.readFileSync(tamperedLocation.specFile, "utf8")),
+      { specId: tampered.specId },
+    );
+    fs.writeFileSync(tamperedLocation.artifact("spec.snapshot", { revision: "001" }), "{}\n");
+    assert.throws(
+      () => manager.confirmCurrentAttempt({ specId: tampered.specId, specRecord: current }),
+      /catalog|snapshot|revision/i,
+    );
+    assert.deepEqual(fs.readFileSync(tamperedLocation.activitiesFile), beforeJournal);
   });
 
   it("rejects review evidence when the execution checkout changes during the review", async () => {
@@ -2776,11 +3124,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const review = new RunReviewCommand({
       runCommand(_command, _args, options) {
         const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
-        fs.writeFileSync(path.join(outputDirectory, "spec-review.json"), `${JSON.stringify({
-          verdict: "PASS",
-          blockingFindings: [],
-          nonBlockingImprovements: [],
-        }, null, 2)}\n`);
+        writeSpecReviewDeltaOutput(options);
         ReviewWorkUnit.fromEnvironment(options.env).seal();
         fs.writeFileSync(path.join(repository, "README.md"), "changed while review was running\n");
         return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
@@ -2803,14 +3147,15 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "STALE_REVIEW_TARGET");
     assert.equal(manager.activityLedger(created.specId).length, before);
+    assert.equal(
+      manager.activityLedger(created.specId).some((activity) => activity.reviewPublication !== null),
+      false,
+      "an unconfirmed stale review must not append a publication receipt",
+    );
     assert.equal(manager.canonicalState(created.specId).current.at(-1), "spec-review");
     assert.notEqual(manager.canonicalState(created.specId).attempt, null);
-    assert.equal(manager.readProducerArtifact({
-      specId: created.specId,
-      nodeId: "spec-review",
-      logicalKey: "spec.review",
-      optional: true,
-    }), null);
+    assert.equal(manager.readCurrentSpecReview({ specId: created.specId, consumerNodeId: "spec-triage" }), null,
+      "a stale worker cannot publish the initially absent revision review");
   });
 
   it("materializes draft review input from the catalog without exposing the Version root", async () => {
@@ -4287,23 +4632,27 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowManager: manager,
       flowState: manager.load(created.specId),
     };
-    await FLOW_COMMANDS.run.review.post(ctx, {
-      result: "ok",
-      artifacts: { phase: "spec", verdict: "PASS", command: "run-review" },
-    });
+    const beforeReview = manager.readCurrentSpecReviewInput({
+      specId: created.specId,
+      consumerNodeId: "spec-review",
+    }).review;
+    const result = noOpSpecReviewCommandResult(beforeReview);
+    result.artifacts.command = "run-review";
+    await FLOW_COMMANDS.run.review.post(ctx, result);
 
     const state = manager.load(created.specId);
-    const history = JSON.parse(manager.readArtifact({
+    const canonicalReview = manager.readCurrentSpecReview({
       specId: created.specId,
-      logicalKey: "spec.review",
       consumerNodeId: "spec-triage",
-    }).bytes.toString("utf8"));
+    });
     const leafState = new Map(leaves(state.steps).map((entry) => [entry.id, entry.status]));
-    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1]);
+    assert.equal(canonicalReview.review.generation, 1);
+    assert.equal(canonicalReview.review.audit.at(-1).stage, "spec-review");
+    assert.equal(canonicalReview.review.audit.at(-1).outcome, "no-op");
     assert.equal(leafState.get("spec-review"), "done");
-    assert.equal(leafState.get("spec-triage"), "done");
-    assert.equal(leafState.get("spec-repair"), "done");
-    assert.equal(state.metrics.some((entry) => entry.counter === "reviewRetry" && entry.reset === true), true);
+    assert.equal(leafState.get("spec-triage"), "pending");
+    assert.equal(leafState.get("spec-repair"), "pending");
+    assert.equal(state.metrics.some((entry) => entry.phase === "spec" && entry.counter === "reviewRetry"), false);
   });
 
   it("reloads and resumes the same Version Store after process restart in every execution mode", () => {
@@ -4933,6 +5282,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         decisions: ["Overview contributions use the Version Store."],
       }),
     };
+    const beforeOverview = currentSpecRevisionAuthority(manager, created.specId);
     const first = await command.execute(context);
     assert.equal(first.ok, true, JSON.stringify(first.errors));
     assert.equal(first.data.applied, true);
@@ -4952,6 +5302,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(activities().at(-1).transition.operation, "update_spec_record");
     assert.equal(activities().at(-1).type, "spec_record_updated");
     assert.equal(activities().at(-1).nodeId, "T-1-impl");
+    const afterOverview = currentSpecRevisionAuthority(manager, created.specId);
+    assertSpecRevisionAdvanced(beforeOverview, afterOverview);
     assert.equal(fs.existsSync(path.join(repository, "specs", created.specId, "spec.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "spec.md")), false);
 
@@ -4960,7 +5312,131 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(repeated.ok, true);
     assert.equal(repeated.data.applied, false);
     assert.equal(activities().length, beforeRepeat, "recovery must not duplicate a matching overview contribution");
+    assert.equal(currentSpecRevisionAuthority(manager, created.specId).revision, afterOverview.revision);
     assert.doesNotThrow(() => manager.artifactCatalog(created.specId).verify(location));
+  });
+
+  it("advances one revision for a source-worker Task implementation Spec completion", () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request("001-source-task-implementation-revision"));
+    manager.addTask({
+      id: "T-1",
+      title: "Source worker implementation",
+      goal: "Publish the source worker's overview contribution.",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }, { specId: created.specId });
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "T-1-impl");
+    const before = currentSpecRevisionAuthority(manager, created.specId);
+    manager.confirmSourceWorkerHandoff({
+      specId: created.specId,
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: [],
+        issues: [],
+        overview: {
+          modules: ["src/flow/lib/source-worker-spec-completion.js"],
+          data_flow: ["source worker handoff -> immutable Spec revision"],
+          decisions: ["Task implementation publications use the Version Store."],
+        },
+        triage: null,
+        repair: null,
+      }),
+      handoffDigest: "a".repeat(64),
+      result: {
+        outcome: "passed",
+        summary: "Source worker Task implementation completed.",
+        confirmedAt: "2026-08-29T00:00:00.000Z",
+        artifactRefs: [],
+      },
+    });
+    const after = currentSpecRevisionAuthority(manager, created.specId);
+    assertSpecRevisionAdvanced(before, after);
+    assert.equal(JSON.parse(after.root.toString("utf8")).overview.modules.at(-1).added_by_task, "T-1");
+  });
+
+  it("advances one revision for the flow-level source worker Spec completion", () => {
+    const repository = root();
+    const specId = "001-source-flow-implementation-revision";
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({
+        ...validWorkerHandoffSpec(),
+        requirements: [{ id: "R1", desc: "Publish a validated artifact.", status: "done" }],
+        tasks: [],
+      }, { specId }),
+    }));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "implement");
+    const before = currentSpecRevisionAuthority(manager, created.specId);
+    manager.confirmSourceWorkerHandoff({
+      specId: created.specId,
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "implement",
+        completionStatus: "done",
+        files: [],
+        issues: [],
+        overview: null,
+        triage: null,
+        repair: null,
+      }),
+      handoffDigest: "b".repeat(64),
+      result: {
+        outcome: "passed",
+        summary: "Flow-level source worker implementation completed.",
+        confirmedAt: "2026-08-29T00:00:00.000Z",
+        artifactRefs: [],
+      },
+    });
+    const after = currentSpecRevisionAuthority(manager, created.specId);
+    assertSpecRevisionAdvanced(before, after);
+    assert.equal(Object.hasOwn(JSON.parse(after.root.toString("utf8")).requirements[0], "status"), false);
+  });
+
+  it("rolls back root Spec, revisions, state, Activity, and catalog as one interrupted publication", () => {
+    const repository = root();
+    let interrupt = false;
+    let catalogFile = null;
+    const manager = new FlowManager({
+      root: repository,
+      mainRoot: repository,
+      inWorktree: false,
+      versionStoreFaultInjector: ({ phase, filePath }) => {
+        if (interrupt && phase === "before-json-rename" && filePath === catalogFile) {
+          throw new Error("injected root Spec publication interruption");
+        }
+      },
+    });
+    const created = manager.createFresh(request("001-root-spec-publication-rollback"));
+    manager.addActiveFlow(created.specId, "direct");
+    advanceTo(manager, created.specId, "spec");
+    const location = manager.specLocation(created.specId);
+    catalogFile = location.catalogFile;
+    const before = rootSpecPublicationBytes(location, 1);
+    const changed = JSON.parse(before.root.toString("utf8"));
+    changed.goal = "This changed root Spec must roll back completely after interruption.";
+    interrupt = true;
+    assert.throws(() => manager.confirmCurrentAttempt({
+      specId: created.specId,
+      specRecord: new CurrentFlowSpecRecord(changed, { specId: created.specId }),
+    }), /injected root Spec publication interruption/);
+    const after = rootSpecPublicationBytes(location, 1);
+    assert.deepEqual(after, before);
+    assert.equal(
+      crypto.createHash("sha256").update(after.catalog).digest("hex"),
+      crypto.createHash("sha256").update(before.catalog).digest("hex"),
+      "interrupted publication must leave the catalog hash unchanged",
+    );
+    assert.equal(fs.existsSync(location.artifact("spec.snapshot", { revision: "002" })), false);
+    assert.equal(fs.existsSync(location.artifact("spec.review", { revision: "002" })), false);
+    assert.equal(currentSpecRevisionAuthority(manager, created.specId).revision, 1);
   });
 
   it("does not recreate the retired task-gate overview outbox after a V1 Task gate", async () => {
@@ -6527,15 +7003,15 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId: "001-record-failure",
       runId: "run-record-failure",
       request: "Record an exhausted definition failure.",
-      targetStep: "spec-review",
+      targetStep: "impl-review",
     }).create();
-    // A semantic producer failure remains distinct from a tooling failure:
-    // the review result has already been canonically published, so its
-    // definition-owned record continuation has valid consumer input.
+    // Spec review now has a revision-scoped confirmation ledger, so this
+    // generic definition-settlement fixture uses the independent impl-review
+    // attempt history rather than resurrecting retired spec.review history.
     recordManager.publishCurrentAttemptResult({
       specId: "001-record-failure",
       commandResult: attachCanonicalCommandResultArtifact({ result: "rejected" }, {
-        logicalKey: "spec.review",
+        logicalKey: "impl.review",
         payload: { verdict: "REJECTED", proposalCount: 1 },
       }),
     });

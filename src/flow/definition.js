@@ -2211,6 +2211,10 @@ export function resolveReviewTransition({
   const phase = stepId === "task-review" ? "impl" : reviewPhaseForFlowStepId(stepId);
   if (phase === null || !(facts instanceof ReviewTransitionFacts)) return null;
   if (facts.phase !== phase) throw new Error("review transition facts phase does not match step");
+  // The Spec funnel is deliberately not a semantic retry/recovery loop. Its
+  // three workers always advance the same revision-scoped review in order;
+  // transport recovery remains at the execution boundary.
+  if (phase === "spec") return null;
   if (flowState?.policy?.nonblocking?.enabled === true) return null;
   if (facts.toolingOutcome) {
     return new DefinitionReviewDisposition({ operation: "external-blocked", phase });
@@ -2437,22 +2441,9 @@ function resolvePlanReviewLifecycle(input) {
   // the persistence adapter deliberately does not consume semantic budget.
   const recordRetry = true;
   if (phase === "spec") {
-    if (input.flowState?.policy?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) return [];
-    if (rejectedFlowReviewReachesExhaustion(input, phase, "spec-review")) {
-      return [
-        new PersistReviewResult(),
-        new IncrementMetric({ phase, counter: "reviewRetry" }),
-      ];
-    } else if (verdict === "PASS" || verdict === "ADVISORY") {
-      actions.push(
-        new SetStepStatus({ step: "spec-review", status: "done" }),
-        new SetStepStatus({ step: "spec-triage", status: "done" }),
-        new SetStepStatus({ step: "spec-repair", status: "done" }),
-      );
-    } else if (verdict === "REJECTED") {
+    if (["PASS", "ADVISORY", "REJECTED"].includes(verdict)) {
       actions.push(new SetStepStatus({ step: "spec-review", status: "done" }));
     }
-    if (recordRetry) actions.unshift(new IncrementMetric({ phase, counter: "reviewRetry" }));
     return actions;
   }
   if (phase === "test") {
@@ -3464,7 +3455,7 @@ export function buildCurrentFlowDefinition() {
     "branch",
     "draft-questions-triage", "draft-questions-repair",
     "draft-coverage-triage", "draft-coverage-repair",
-    "spec-triage", "spec-repair", "impl-triage", "impl-repair",
+    "impl-triage", "impl-repair",
     "acceptance-decision",
   ]);
   // These two leaves may be bypassed only by the fixed,

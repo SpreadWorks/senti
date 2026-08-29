@@ -19,6 +19,7 @@ import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { container } from "../../../../src/lib/container.js";
 import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
 import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-review-artifacts.js";
+import { CanonicalSpecReview } from "../../../../src/flow/lib/spec-review-artifacts.js";
 import {
   REVIEW_WORK_UNIT_MANIFEST_ENV,
 } from "../../../../src/flow/lib/review-work-unit.js";
@@ -51,12 +52,10 @@ import FlowReviewCommand, {
   buildDraftReviewAuthorityText,
   buildSpecSummaryMarkdown,
   buildSpecReviewPrompt,
-  buildSpecReviewRepairPrompt,
   buildDraftSystemPrompt,
-  formatSpecReviewJson,
+  formatSpecReviewDelta,
   formatSpecReviewMd,
   parseSpecReviewFindings,
-  parseSpecReviewFindingsWithRepair,
   parseImplReviewFindings,
   filterImplReviewFindingsByScope,
   formatImplReviewMd,
@@ -1798,26 +1797,25 @@ describe("spec review classification helpers", () => {
     assert.doesNotMatch(combined, /\*\*File:\*\* `<path>`/);
   });
 
-  it("injects previous spec-review.json memory into the next prompt", () => {
-    const previousReview = JSON.parse(formatSpecReviewJson({
-      verdict: "ADVISORY",
-      blocking: [],
-      improvements: [{
+  it("injects immutable canonical review memory into the next prompt", () => {
+    const previousReview = new CanonicalSpecReview({
+      version: 2,
+      identity: { specId: "001-review", revision: 1, digest: "a".repeat(64), byteLength: 1 },
+      generation: 1,
+      findings: [{
+        kind: "improvement",
+        findingId: "spec-review-improvement-1",
         title: "Mention nearby helper",
-        body: [
-          "**Target:** src/lib/example.js",
-          "**Improvement:** Mention this helper as related context.",
-          "**Why non-blocking:** Implementation can proceed without it.",
-        ].join("\n"),
+        target: "src/lib/example.js",
+        body: "Mention this helper as related context.",
+        improvement: "Mention this helper as related context.",
+        whyNonBlocking: "Implementation can proceed without it.",
       }],
-    }));
+      audit: [],
+    });
     const prompt = buildSpecReviewPrompt("# Requirements\n- R1 [must]: Do x", [], {
       toPromptMemory() {
-        return {
-          verdict: previousReview.verdict,
-          counts: previousReview.counts,
-          acknowledgedNonBlockingImprovements: previousReview.nonBlockingImprovements,
-        };
+        return previousReview.toJSON();
       },
     });
 
@@ -1869,54 +1867,13 @@ describe("spec review classification helpers", () => {
     assert.equal(improvementsOnly.improvements.length, 0);
   });
 
-  it("repairs schema-invalid parsed spec review output with one bounded retry", async () => {
-    let repairCalls = 0;
-    const findings = await parseSpecReviewFindingsWithRepair(
-      JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
-      async ({ rawResponse, validationError, repairPrompt }) => {
-        repairCalls += 1;
-        assert.match(rawResponse, /not-array/);
-        assert.match(validationError.message, /blockingFindings/);
-        assert.match(repairPrompt.userPrompt, /Rewrite the existing spec-review response/);
-        return JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] });
-      },
-    );
-
-    assert.equal(repairCalls, 1);
-    assert.equal(findings.blocking.length, 0);
-    assert.equal(findings.improvements.length, 0);
-  });
-
-  it("rejects invalid spec review repair output", async () => {
-    await assert.rejects(
-      parseSpecReviewFindingsWithRepair(
+  it("terminalizes schema-invalid parsed spec review output without correction retry", () => {
+    assert.throws(
+      () => parseSpecReviewFindings(
         JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
-        async () => JSON.stringify({ blockingFindings: "still-not-array", nonBlockingImprovements: [] }),
       ),
-      /spec review output failed schema validation|blockingFindings/,
+      /spec review output failed schema validation.*blockingFindings/,
     );
-
-    await assert.rejects(
-      parseSpecReviewFindingsWithRepair(
-        JSON.stringify({ blockingFindings: "not-array", nonBlockingImprovements: [] }),
-        async () => "not json",
-      ),
-      /spec review output failed schema validation: repair response is invalid JSON/,
-    );
-  });
-
-  it("builds a schema-repair-only spec review prompt", () => {
-    const prompt = buildSpecReviewRepairPrompt(
-      JSON.stringify({ blockingFindings: "not-array" }),
-      new Error("blockingFindings must be array"),
-    );
-    const combined = `${prompt.systemPrompt || ""}\n${prompt.userPrompt || ""}\n${prompt.fmtFallback || ""}`;
-
-    assert.ok(prompt.jsonSchema);
-    assert.match(combined, /Rewrite the existing spec-review response/);
-    assert.match(combined, /Do not re-review the spec/i);
-    assert.match(combined, /blockingFindings must be array/);
-    assert.match(combined, /Always include both top-level arrays/);
   });
 
   it("rejects markdown proposal output instead of treating it as blocking", () => {
@@ -1942,9 +1899,16 @@ describe("spec review classification helpers", () => {
     assert.match(md, /Helpful detail/);
   });
 
-  it("renders structured spec-review.json with counts and targets", () => {
-    const json = JSON.parse(formatSpecReviewJson({
-      verdict: "REJECTED",
+  it("renders a full-input-bound review.delta.json with stable findings", () => {
+    const review = new CanonicalSpecReview({
+      version: 2,
+      identity: { specId: "001-review", revision: 1, digest: "a".repeat(64), byteLength: 1 },
+      generation: 0,
+      findings: [],
+      audit: [],
+    });
+    const json = formatSpecReviewDelta({
+      review,
       blocking: [{
         title: "Missing acceptance condition",
         body: [
@@ -1962,14 +1926,16 @@ describe("spec review classification helpers", () => {
           "**Why non-blocking:** Implementation can proceed without it.",
         ].join("\n"),
       }],
-    }));
+    });
 
-    assert.equal(json.version, 1);
-    assert.equal(json.phase, "spec");
-    assert.equal(json.verdict, "REJECTED");
-    assert.deepEqual(json.counts, { blocking: 1, nonBlocking: 1, total: 2 });
-    assert.equal(json.blockingFindings[0].target, "R1");
-    assert.equal(json.nonBlockingImprovements[0].target, "src/lib/example.js");
+    assert.equal(json.version, 2);
+    assert.equal(json.stage, "spec-review");
+    assert.deepEqual(json.identity, review.identity.toJSON());
+    assert.equal(json.baseReviewDigest, review.digest);
+    assert.equal(json.findings.length, 2);
+    assert.equal(json.findings[0].target, "R1");
+    assert.equal(json.findings[1].target, "src/lib/example.js");
+    assert.deepEqual(json.operations, []);
   });
 });
 

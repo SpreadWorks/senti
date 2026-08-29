@@ -754,8 +754,8 @@ describe("flow dispatch CLI", () => {
     assert.notEqual(second.status, 0);
     assert.equal(second.envelope.errors[0].code, "FLOW_DISPATCH_BUSY");
     assert.notEqual(firstResult.status, 0, firstResult.stderr);
-    assert.equal(firstResult.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(firstResult.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     assert.equal(fs.existsSync(worker.overlap), false);
   });
 
@@ -775,8 +775,8 @@ describe("flow dispatch CLI", () => {
     const envelope = JSON.parse(result.stdout);
 
     assert.notEqual(result.status, 0);
-    assert.equal(envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
   });
 
   it("rejects next-action data that omits or changes the captured binding", () => {
@@ -880,8 +880,8 @@ describe("flow dispatch CLI", () => {
     const result = invoke(scenario);
 
     assert.notEqual(result.status, 0);
-    assert.equal(result.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(result.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
   });
 
   it("returns an approval boundary without starting a worker", () => {
@@ -951,7 +951,7 @@ describe("flow dispatch CLI", () => {
     const resumed = approveApprovalBoundary(root, boundary);
 
     assert.notEqual(resumed.status, 0, "the capture worker deliberately fails after approval continuation");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     assert.deepEqual(
       decisionSnapshot(location).approvalReceipts.map((receipt) => receipt.approvalToken),
       [boundary.envelope.data.dispatch.approvalToken],
@@ -971,7 +971,7 @@ describe("flow dispatch CLI", () => {
     const result = invoke(scenario);
 
     assert.notEqual(result.status, 0, "the capture worker deliberately fails after auto approval continuation");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     assert.equal(scenario.manager.canonicalState(scenario.state.specId).current.at(-1), "test");
     assert.deepEqual(decisionSnapshot(scenario.fixture.location()).approvalReceipts, []);
   });
@@ -1172,7 +1172,7 @@ describe("flow dispatch CLI", () => {
     assert.equal(boundary.status, 0, boundary.stderr);
     const first = approveApprovalBoundary(root, boundary);
     assert.notEqual(first.status, 0, "the fixture worker deliberately fails after the first approved handoff");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     const firstReceipts = decisionSnapshot(scenario.fixture.location()).approvalReceipts;
     assert.deepEqual(firstReceipts.map((receipt) => receipt.approvalToken), [
       boundary.envelope.data.dispatch.approvalToken,
@@ -1188,7 +1188,7 @@ describe("flow dispatch CLI", () => {
 
     assert.notEqual(retry.status, 0, "the retry reaches the deliberately failing worker without a second approval");
     assert.notEqual(retry.envelope.data?.dispatch?.boundary, "approval_required");
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "4");
     const retriedReceipts = decisionSnapshot(scenario.fixture.location()).approvalReceipts;
     assert.deepEqual(retriedReceipts, firstReceipts);
     const exposedRetryToken = retry.envelope.data?.dispatch?.approvalToken;
@@ -1243,7 +1243,7 @@ describe("flow dispatch CLI", () => {
     assert.equal(boundary.status, 0, boundary.stderr);
     const first = approveApprovalBoundary(root, boundary);
     assert.notEqual(first.status, 0);
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     const activitiesFile = scenario.fixture.location().activitiesFile;
     const activitiesBefore = fs.readFileSync(activitiesFile, "utf8");
     fs.writeFileSync(scenario.fixture.location().flowStateFile, "{ invalid canonical Flow state\n");
@@ -1258,7 +1258,7 @@ describe("flow dispatch CLI", () => {
 
     assert.notEqual(corrupt.status, 0);
     assert.ok(corrupt.envelope, corrupt.stderr);
-    assert.equal(fs.readFileSync(worker.count, "utf8"), "1");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "2");
     assert.equal(fs.readFileSync(activitiesFile, "utf8"), activitiesBefore);
   });
 

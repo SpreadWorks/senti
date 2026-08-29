@@ -47,6 +47,10 @@ import {
 import { CanonicalFileMap } from "../lib/canonical-file-map.js";
 import { CanonicalReviewInputDescriptor } from "../lib/review-work-unit-input.js";
 import {
+  CanonicalSpecReview,
+  SpecReviewDelta,
+} from "../lib/spec-review-artifacts.js";
+import {
   REVIEW_WORK_UNIT_MANIFEST_ENV,
   ReviewWorkUnit,
 } from "../lib/review-work-unit.js";
@@ -158,6 +162,7 @@ const REVIEW_TEST_ARTIFACT_REVISION_ENV = PRODUCT.env("REVIEW_TEST_ARTIFACT_REVI
 const REVIEW_TASK_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_SPEC_SOURCE");
 const REVIEW_DRAFT_SOURCE_ENV = PRODUCT.env("REVIEW_DRAFT_SOURCE");
 const REVIEW_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_SPEC_SOURCE");
+const REVIEW_SPEC_REVIEW_SOURCE_ENV = PRODUCT.env("REVIEW_SPEC_REVIEW_SOURCE");
 const REVIEW_FILE_MAP_SOURCE_ENV = PRODUCT.env("REVIEW_FILE_MAP_SOURCE");
 
 function configuredReviewDirectory() {
@@ -253,6 +258,16 @@ function canonicalReviewSpec() {
     logicalKey: "spec.record",
     logicalPath: "spec.json",
   }).readJsonObject();
+}
+
+function canonicalSpecReviewInput() {
+  const source = canonicalReviewInput({
+    variable: REVIEW_SPEC_REVIEW_SOURCE_ENV,
+    logicalKey: "spec.review",
+    logicalPath: "review.json",
+    optional: true,
+  });
+  return source === null ? null : source.readJsonObject();
 }
 
 function canonicalReviewFileMap(spec, { required = false } = {}) {
@@ -3430,28 +3445,6 @@ function buildSpecReviewPrompt(specText, contextEntries, previousReview = null) 
   return pb.build();
 }
 
-function buildSpecReviewRepairPrompt(rawResponse, validationError) {
-  return new PromptBuilder()
-    .setRole("You repair spec-review JSON response shape. Do not re-review the spec and do not add new findings.")
-    .setRules([
-      "Rewrite the existing spec-review response into the required JSON shape.",
-      "Return JSON only. No markdown, no preamble, no commentary.",
-      "Always include both top-level arrays: blockingFindings[] and nonBlockingImprovements[].",
-      "Preserve every existing finding exactly when its fields already match the schema.",
-      "Use empty arrays only for missing categories that have no findings.",
-      "Do not invent findings, remove valid findings, or change blocking/advisory classification.",
-    ].join("\n"))
-    .setJsonSchema(SPEC_REVIEW_RESPONSE_SCHEMA)
-    .setFmtFallback(SPEC_REVIEW_FMT_FALLBACK)
-    .addUserPrompt(
-      "## Repair task",
-      "Rewrite the existing spec-review response into the required JSON shape. Do not re-review the spec.",
-    )
-    .addUserPrompt("## Existing spec-review response", rawResponse)
-    .addUserPrompt("## Validation error", validationError?.message || String(validationError || ""))
-    .build();
-}
-
 function extractMarkdownField(body, label) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = String(body || "").match(new RegExp(`^\\*\\*${escaped}:\\*\\*\\s*(.+)$`, "im"));
@@ -3550,53 +3543,6 @@ function specReviewFindingId(kind, item) {
   return `spec-review-${digest.slice(0, 32)}`;
 }
 
-class SpecReviewArtifact {
-  constructor({ verdict, blocking = [], improvements = [], generatedAt = new Date().toISOString() }) {
-    this.version = 1;
-    this.phase = "spec";
-    this.generatedAt = generatedAt;
-    this.verdict = verdict;
-    this.blockingFindings = blocking.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("blocking", item));
-    this.nonBlockingImprovements = improvements.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("improvement", item));
-    const findingIds = [
-      ...this.blockingFindings,
-      ...this.nonBlockingImprovements,
-    ].map((item) => item.findingId);
-    if (findingIds.some((id) => typeof id !== "string" || id.trim() === "")) {
-      throw new Error("spec review findings require stable findingId values");
-    }
-    if (new Set(findingIds).size !== findingIds.length) {
-      throw new Error("spec review findings must not duplicate findingId values");
-    }
-    this.counts = Object.freeze({
-      blocking: this.blockingFindings.length,
-      nonBlocking: this.nonBlockingImprovements.length,
-      total: this.blockingFindings.length + this.nonBlockingImprovements.length,
-    });
-  }
-
-  toPromptMemory() {
-    return {
-      verdict: this.verdict,
-      counts: this.counts,
-      previousBlockingFindings: this.blockingFindings.map((item) => item.toPromptMemory()),
-      acknowledgedNonBlockingImprovements: this.nonBlockingImprovements.map((item) => item.toPromptMemory()),
-    };
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      phase: this.phase,
-      generatedAt: this.generatedAt,
-      verdict: this.verdict,
-      counts: this.counts,
-      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
-      nonBlockingImprovements: this.nonBlockingImprovements.map((item) => item.toJSON()),
-    };
-  }
-}
-
 function extractJsonObjectCandidate(raw) {
   let text = String(raw || "").trim();
   const fenceMatch = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
@@ -3657,41 +3603,22 @@ function parseSpecReviewFindings(text) {
   };
 }
 
-async function parseSpecReviewFindingsWithRepair(raw, repairResponseProvider) {
-  try {
-    return parseSpecReviewFindings(raw);
-  } catch (err) {
-    if (!(err instanceof SpecReviewSchemaValidationError)) throw err;
-    if (typeof repairResponseProvider !== "function") throw err;
-    const repairPrompt = buildSpecReviewRepairPrompt(raw, err);
-    const repairedRaw = await repairResponseProvider({
-      rawResponse: raw,
-      validationError: err,
-      repairPrompt,
-    });
-    try {
-      return parseSpecReviewFindings(repairedRaw);
-    } catch (repairErr) {
-      if (repairErr instanceof SpecReviewSchemaValidationError) throw repairErr;
-      throw new Error(`spec review output failed schema validation: repair response is invalid JSON: ${repairErr.message}`);
-    }
-  }
-}
-
-function formatSpecReviewJson({ blocking = [], improvements = [], verdict = "PASS" } = {}) {
-  const artifact = new SpecReviewArtifact({ verdict, blocking, improvements });
-  return JSON.stringify(artifact, null, 2) + "\n";
-}
-
-function loadSpecReviewArtifact(reviewJsonPath) {
-  if (!fs.existsSync(reviewJsonPath)) return null;
-  const data = JSON.parse(fs.readFileSync(reviewJsonPath, "utf8"));
-  return new SpecReviewArtifact({
-    verdict: data.verdict || "PASS",
-    generatedAt: data.generatedAt,
-    blocking: Array.isArray(data.blockingFindings) ? data.blockingFindings : [],
-    improvements: Array.isArray(data.nonBlockingImprovements) ? data.nonBlockingImprovements : [],
-  });
+/** Build the sole worker result for spec-review.  The provider response is
+ * transient parser input; this V2 delta is bound to the immutable canonical
+ * review snapshot that the parent materialized for this Attempt. */
+function formatSpecReviewDelta({ review, blocking = [], improvements = [] } = {}) {
+  const current = review instanceof CanonicalSpecReview ? review : new CanonicalSpecReview(review);
+  return new SpecReviewDelta({
+    version: 2,
+    stage: "spec-review",
+    identity: current.identity.toJSON(),
+    baseReviewDigest: current.digest,
+    findings: [
+      ...blocking.map((item) => item instanceof SpecReviewItem ? item.toJSON() : new SpecReviewItem("blocking", item).toJSON()),
+      ...improvements.map((item) => item instanceof SpecReviewItem ? item.toJSON() : new SpecReviewItem("improvement", item).toJSON()),
+    ],
+    operations: [],
+  }).toJSON();
 }
 
 function formatPhaseReviewMd(title, history, verdict, finalIssues) {
@@ -3779,49 +3706,28 @@ async function runSpecReview(root, flow, spec, config, dryRun) {
     }
   }
   const reviewDir = reviewOutputDirectory();
-  const reviewPath = path.join(reviewDir, "spec-review.md");
-  const reviewJsonPath = path.join(reviewDir, "spec-review.json");
+  const reviewDeltaPath = path.join(reviewDir, "review.delta.json");
   let previousReview = null;
-  try {
-    previousReview = loadSpecReviewArtifact(reviewJsonPath);
-  } catch (e) {
-    console.error(`  [spec-review] Warning: failed to load previous review memory: ${e.message}`);
+  const canonicalReviewDocument = canonicalSpecReviewInput();
+  if (canonicalReviewDocument === null) {
+    throw new Error("spec-review requires an immutable revision-scoped canonical review input");
   }
-
+  const canonicalReview = new CanonicalSpecReview(canonicalReviewDocument);
+  // The response parser remains transient worker implementation detail; the
+  // reviewer receives canonical review bytes, never a local prior artifact.
+  previousReview = Object.freeze({ toPromptMemory: () => canonicalReview.toJSON() });
   const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries, previousReview);
   const proposeRaw = await callReviewAgent(proposeAgent, proposePrompt, "flow.spec.review.propose");
 
-  const findings = await parseSpecReviewFindingsWithRepair(proposeRaw, async ({ repairPrompt }) => {
-    console.error("  [spec-review] Repairing response schema...");
-    return callReviewAgent(proposeAgent, repairPrompt, "flow.spec.review.repair");
-  });
+  const findings = parseSpecReviewFindings(proposeRaw);
   const blockingCount = findings.blocking.length;
   const improvementCount = findings.improvements.length;
   const proposalCount = blockingCount + improvementCount;
   const verdict = blockingCount > 0 ? "REJECTED" : improvementCount > 0 ? "ADVISORY" : "PASS";
 
-  const specReviewArtifact = { ...findings, verdict };
-  const attemptNumber = reviewHistoryAttemptNumber(reviewDir, "spec");
-  writeReviewAttemptHistory({
-    specDir: reviewDir,
-    phase: "spec",
-    latestBasename: "spec-review.md",
-    attemptNumber,
-    content: formatSpecReviewMd(specReviewArtifact),
-    findings: [
-      ...findingsWithSeverity(findings.blocking, "blocking"),
-      ...findingsWithSeverity(findings.improvements, "non-blocking"),
-    ],
-  });
-  writeReviewAttemptHistory({
-    specDir: reviewDir,
-    phase: "spec",
-    latestBasename: "spec-review.json",
-    attemptNumber,
-    artifact: JSON.parse(formatSpecReviewJson(specReviewArtifact)),
-  });
-  console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [spec-review] JSON saved to ${path.relative(root, reviewJsonPath)}`);
+  const delta = formatSpecReviewDelta({ review: canonicalReview, ...findings });
+  writeJsonArtifact(reviewDeltaPath, delta);
+  console.error(`  [spec-review] Delta saved to ${path.relative(root, reviewDeltaPath)}`);
   console.error(`  [spec-review] blockingCount=${blockingCount} improvementCount=${improvementCount} proposalCount=${proposalCount}`);
 
   console.error(`  [spec-review] verdict=${verdict} proposalCount=${proposalCount}`);
@@ -4559,8 +4465,8 @@ export {
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   buildTestReviewPrompt, parseTestReviewFindings,
   TEST_REVIEW_PROMPT_CHAR_LIMIT, assertTestReviewPromptWithinLimit, runTestReviewWithDependencies,
-  extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, buildSpecReviewRepairPrompt,
-  formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings, parseSpecReviewFindingsWithRepair,
+  extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt,
+  formatSpecReviewMd, formatSpecReviewDelta, parseSpecReviewFindings,
   buildImplReviewPrompt, parseImplReviewFindings, filterImplReviewFindingsByScope,
   formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory, priorImplReviewFingerprintCounts,
   runImplReview,

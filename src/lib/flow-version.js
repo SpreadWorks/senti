@@ -54,6 +54,11 @@ const FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS = new Set([
   "flow.state",
   "flow.activities",
   "spec.record",
+  // A task-owned Spec contribution publishes a new immutable global
+  // revision. Snapshots and their canonical review ledger are revision-wide,
+  // not task-local implementation deliverables.
+  "spec.snapshot",
+  "spec.review",
   "issue.log",
   // Task Review can defer semantic findings to the one flow-wide acceptance
   // handoff without manufacturing a task-local copy.
@@ -383,6 +388,21 @@ export class FlowVersion {
   toString() { return String(this.value); }
 }
 
+/** Positive revision identity for the immutable canonical Spec collection. */
+export class FlowSpecRevision {
+  constructor(value) {
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new Error("Spec revision must be a positive safe integer");
+    }
+    this.value = value;
+    Object.freeze(this);
+  }
+  static from(value) { return value instanceof FlowSpecRevision ? value : new FlowSpecRevision(value); }
+  get pathSegment() { return String(this.value).padStart(3, "0"); }
+  toJSON() { return this.value; }
+  toString() { return this.pathSegment; }
+}
+
 /** Repository-relative identity of one canonical Flow Version. */
 export class FlowVersionRelativeLocation {
   constructor({ specRoot = "specs", specId, version } = {}) {
@@ -664,6 +684,8 @@ export class FlowVersionLocation {
   get issueLogFile() { return this.artifact("issue.log"); }
   get issueSnapshotFile() { return this.artifact("issue.snapshot"); }
   get reportFile() { return this.artifact("report"); }
+  specSnapshotFile(revision) { return this.artifact("spec.snapshot", { revision: FlowSpecRevision.from(revision).pathSegment }); }
+  specReviewFile(revision) { return this.artifact("spec.review", { revision: FlowSpecRevision.from(revision).pathSegment }); }
   taskArtifactLocation(taskId) {
     return new FlowTaskArtifactLocation({ versionLocation: this, taskId });
   }
@@ -2136,6 +2158,18 @@ export class FlowVersionMigrationFixture {
     const location = this.plan.classification.target;
     location.assertAuthority();
     if (fs.existsSync(location.directory)) throw new Error("migration fixture target must be absent before materialization");
+    // The production Current Flow semantic boundary owns revision-scoped
+    // authority publication.  A fixture that claims to materialize a current
+    // Flow must use that boundary too; emitting the retired pre-revision tree
+    // and asking the normal runtime to accept it would be a fallback.
+    if (typeof this.semanticValidator.materializeCurrentFixture === "function") {
+      const catalog = this.semanticValidator.materializeCurrentFixture({
+        location,
+        state: structuredClone(this.#state),
+        spec: this.spec,
+      });
+      return new FlowVersionMigrationMaterialization({ location, catalog });
+    }
     let ownsVersionRoot = false;
     try {
       fs.mkdirSync(path.dirname(location.directory), { recursive: true, mode: 0o755 });

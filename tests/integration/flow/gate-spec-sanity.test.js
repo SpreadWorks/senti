@@ -2,8 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { checkSpecJson } from "../../../src/flow/lib/run-gate.js";
 import {
-  validateSpecRepairDocument,
-  validateSpecTriageDocument,
+  CanonicalSpecReview,
+  SpecReviewDelta,
+  mergeSpecReviewDelta,
 } from "../../../src/flow/lib/spec-review-artifacts.js";
 import { checkSpecGateReadiness } from "../../../src/flow/lib/spec-gate-readiness.js";
 
@@ -153,177 +154,71 @@ describe("shared spec gate readiness identity checks", () => {
   });
 });
 
-describe("spec review repair document contracts", () => {
-  const failReview = {
-    verdict: "REJECTED",
-    blockingFindings: [
-      {
-        findingId: "spec-review-blocking-1",
-        title: "Missing implementation target",
-        target: "R1",
-        issue: "Spec omits the existing helper touched by this behavior.",
-        requiredChange: "Name the helper.",
-        whyBlocking: "Implementation may skip required code.",
-      },
-    ],
-    nonBlockingImprovements: [],
-  };
-
-  function triageArtifact(items) {
-    return {
-      version: 1,
-      phase: "spec-triage",
-      sourceReview: "spec-review.json",
-      summary: "Triaged blocking review findings.",
-      items,
-    };
-  }
-
-  function applyTriageItem(overrides = {}) {
-    return {
-      findingId: "spec-review-blocking-1",
-      title: "Missing implementation target",
-      target: "R1",
-      decision: "apply",
-      rationale: "The finding is still blocking and can be fixed in spec requirements.",
-      evidence: "spec.json requirements[0].desc does not name the helper yet.",
-      allowedTargets: [{
-        target: { entity: "requirement", id: "R1", field: "desc" },
-        operationKinds: ["replace-entity-field"],
+describe("revision-scoped canonical spec review delta contracts", () => {
+  function review() {
+    return new CanonicalSpecReview({
+      version: 2,
+      identity: { specId: "001-gate", revision: 1, digest: "a".repeat(64), byteLength: 123 },
+      generation: 0,
+      findings: [{
+        kind: "blocking", findingId: "spec-review-blocking-1", title: "Missing implementation target", target: "R1",
+        body: "The requirement does not identify the implementation target.", issue: "Implementation may skip required code.",
+        requiredChange: "Name the helper.", whyBlocking: "The behavior cannot be verified.",
       }],
-      requiredTargets: [{ entity: "requirement", id: "R1", field: "desc" }],
-      ...overrides,
-    };
-  }
-
-  function repairArtifact(operations) {
-    return {
-      version: 1,
-      baseRevision: `sha256:${"b".repeat(64)}`,
-      scopeExpansions: [],
-      operations,
-    };
-  }
-
-  function repairOperation(overrides = {}) {
-    return {
-      findingId: "spec-review-blocking-1",
-      kind: "replace-entity-field",
-      target: { entity: "requirement", id: "R1", field: "desc" },
-      expectedDigest: "a".repeat(64),
-      replacement: "The referenced helper is an implementation target.",
-      reason: "The referenced helper is in scope and now appears in requirements.",
-      ...overrides,
-    };
-  }
-
-  it("accepts triage decisions plus repair entries for apply items", () => {
-    assert.doesNotThrow(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([repairOperation()]),
-    }));
-  });
-
-  it("accepts triage-only drops with an empty repair artifact", () => {
-    const { allowedTargets, requiredTargets, ...nonApply } = applyTriageItem({
-      decision: "downgraded_to_non_blocking",
-      rationale: "The finding is helpful context but does not block implementation.",
-      evidence: "The current requirement already has a testable acceptance path.",
+      audit: [],
     });
-    assert.doesNotThrow(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([nonApply]),
-      repair: repairArtifact([]),
-    }));
-  });
+  }
 
-  it("rejects triage entries without evidence", () => {
-    assert.throws(() => validateSpecTriageDocument({
-      review: failReview,
-      triage: triageArtifact([{
-        title: "Missing implementation target",
-        target: "R1",
-        decision: "apply",
-        rationale: "Apply this finding.",
-      }]),
-    }), /spec-triage: items\[0\]\.evidence must be non-empty/);
-  });
-
-  it("rejects unknown triage decisions", () => {
-    assert.throws(() => validateSpecTriageDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem({ decision: "unsupported" })]),
-    }), /spec-triage: items\[0\]\.decision must be one of/);
-  });
-
-  it("rejects legacy full-spec repair payloads", () => {
-    assert.throws(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem()]),
-      repair: { version: 2, baseRevision: `sha256:${"b".repeat(64)}`, operations: [], scopeExpansions: [] },
-    }), /invalid schema|version must be 1/);
-  });
-
-  it("retains an operation without a reason for command-owned discard audit", () => {
-    assert.doesNotThrow(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([repairOperation({ reason: "" })]),
-    }));
-  });
-
-  it("keeps unauthorized operation decisions for command-owned audit", () => {
-    assert.doesNotThrow(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([repairOperation({
-        decision: "unsupported",
-      })]),
-    }));
-  });
-
-  it("rejects deferred repair decisions because review findings cannot be delegated to gate", () => {
-    assert.throws(() => validateSpecTriageDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem({ decision: "deferred_to_gate" })]),
-    }), /spec-triage: items\[0\]\.decision must be one of/);
-  });
-
-  it("rejects triage entries that do not match the source finding", () => {
-    const { allowedTargets, requiredTargets, ...nonApply } = applyTriageItem({
-      title: "Different finding",
-      decision: "invalid",
+  function delta(current, stage, values = {}) {
+    return new SpecReviewDelta({
+      version: 2, stage, identity: current.identity.toJSON(), baseReviewDigest: current.digest,
+      findings: [], operations: [], ...values,
     });
-    assert.throws(() => validateSpecTriageDocument({
-      review: failReview,
-      triage: triageArtifact([nonApply]),
-    }), /title must match the identified canonical blocking finding title/);
+  }
+
+  it("merges a typed apply triage update without changing review finding content", () => {
+    const current = review();
+    const next = mergeSpecReviewDelta({ review: current, delta: delta(current, "spec-triage", {
+      findings: [{ findingId: "spec-review-blocking-1", disposition: "apply", evidence: "Requirement R1 is missing the helper.", allowedTargets: [{ target: { entity: "requirement", id: "R1", field: "desc" }, operationKinds: ["replace-entity-field"] }] }],
+    }) });
+    assert.equal(next.findings.byId("spec-review-blocking-1").title, "Missing implementation target");
+    assert.equal(next.findings.byId("spec-review-blocking-1").disposition, "apply");
+    assert.equal(next.audit.at(-1).stage, "spec-triage");
   });
 
-  it("rejects triage logs that do not cover every blocking finding", () => {
-    const review = {
-      ...failReview,
-      blockingFindings: [
-        ...failReview.blockingFindings,
-        { findingId: "spec-review-blocking-2", title: "Second finding", target: "R2", issue: "x", requiredChange: "y", whyBlocking: "z" },
+  it("accepts partial and empty triage/repair deltas without completeness retries", () => {
+    const current = review();
+    const triaged = mergeSpecReviewDelta({ review: current, delta: delta(current, "spec-triage") });
+    const repaired = mergeSpecReviewDelta({ review: triaged, delta: delta(triaged, "spec-repair") });
+    assert.equal(triaged.audit.at(-1).outcome, "no-op");
+    assert.equal(repaired.audit.at(-1).outcome, "no-op");
+  });
+
+  it("discards malformed and unknown triage entries while retaining valid siblings", () => {
+    const current = review();
+    const next = mergeSpecReviewDelta({ review: current, delta: delta(current, "spec-triage", {
+      findings: [
+        { findingId: "spec-review-blocking-1", disposition: "invalid", evidence: "Already covered." },
+        { findingId: "unknown", disposition: "reject", evidence: "Bad disposition." },
       ],
-    };
-    assert.throws(() => validateSpecTriageDocument({
-      review,
-      triage: triageArtifact([applyTriageItem({
-        decision: "invalid",
-        rationale: "The target is already covered by existing scope.",
-        evidence: "spec.json scope.in already covers the implementation target.",
-      })]),
-    }), /spec-triage\.json items length 1 does not match blockingFindings length 2/);
+    }) });
+    assert.equal(next.findings.byId("spec-review-blocking-1").disposition, "invalid");
+    assert.equal(next.audit.at(-1).discardedOperations.length, 1);
   });
 
-  it("permits an incomplete proposal so the command can request only the required shortfall", () => {
-    assert.doesNotThrow(() => validateSpecRepairDocument({
-      review: failReview,
-      triage: triageArtifact([applyTriageItem()]),
-      repair: repairArtifact([]),
-    }));
+  it("forbids worker self-triage during the spec-review stage", () => {
+    const current = review();
+    const parsed = delta(current, "spec-review", { findings: [{
+      kind: "blocking", findingId: "self-authorized", title: "Bad", target: "R1", body: "Bad.", issue: "Bad.", requiredChange: "Bad.", whyBlocking: "Bad.",
+      disposition: "apply", evidence: "No.", allowedTargets: [{ target: { entity: "requirement", id: "R1", field: "desc" }, operationKinds: ["replace-entity-field"] }],
+    }] });
+    assert.equal(parsed.findings.findings.length, 0);
+    assert.equal(parsed.discardedFindings.length, 1);
+  });
+
+  it("rejects V1 and stale V2 envelopes at the typed boundary", () => {
+    const current = review();
+    assert.throws(() => new SpecReviewDelta({ version: 1, stage: "spec-repair", identity: current.identity.toJSON(), baseReviewDigest: current.digest, findings: [], operations: [] }));
+    assert.throws(() => mergeSpecReviewDelta({ review: current, delta: new SpecReviewDelta({ version: 2, stage: "spec-repair", identity: current.identity.toJSON(), baseReviewDigest: "b".repeat(64), findings: [], operations: [] }) }), /stale/);
   });
 });
