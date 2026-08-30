@@ -25,6 +25,9 @@ const rawArgs = process.argv.slice(2);
 const worktreeCliExitCode = executeWorktreeLocalCli({ argv: rawArgs });
 if (worktreeCliExitCode != null) process.exit(worktreeCliExitCode);
 const [subCmd, ...rest] = rawArgs;
+const recoveryWithoutFlowAttribution = subCmd === "flow"
+  && rest[0] === "run"
+  && rest[1] === "abort";
 let agentWorkDirOverride = null;
 const enableFinalizeCleanupDurablePaths = FinalizeCleanupRoute
   .fromCliArgs(rawArgs)
@@ -82,7 +85,7 @@ if (definition && isHelpRequest(rest) && coreCommandRegistry.find(sharedHelpTopi
 initContainer({
   entryCommand: rawArgs.join(" "),
   agentWorkDirOverride,
-  flowAttribution: subCmd === "docs" ? "none" : "ambient",
+  flowAttribution: subCmd === "docs" || recoveryWithoutFlowAttribution ? "none" : "ambient",
   finalizeCleanupDurablePaths: enableFinalizeCleanupDurablePaths,
   allowInvalidConfig: definition?.allowInvalidConfig === true || !definition,
 });

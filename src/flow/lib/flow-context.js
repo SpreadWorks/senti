@@ -96,11 +96,55 @@ function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, exp
   };
 }
 
+function recoveryTargetExpectation(container, baseFlowManager, expectation) {
+  if (!container.get("inWorktree") || baseFlowManager.usesWorktreeFlowBinding() === false) {
+    return expectation;
+  }
+  const identity = baseFlowManager.resolveWorktreeBinding(expectation);
+  return new FlowTargetExpectation({
+    expectRunId: identity.runId,
+    expectSpec: identity.specId,
+    ...(identity.issue === null ? { expectNoIssue: true } : { expectIssue: identity.issue }),
+  });
+}
+
+function resolveRecoveryAuthorityFlowState(container, baseFlowManager, options = {}) {
+  let expectation = options.targetExpectation;
+  try {
+    expectation = recoveryTargetExpectation(container, baseFlowManager, expectation);
+    const target = baseFlowManager.resolveFlowRecoveryTarget(expectation);
+    const flowManager = baseFlowManager.forRoot(target.authorityRoot, { specId: target.specId });
+    return {
+      flowManager,
+      flowState: target.state,
+      preparingFlowState: null,
+      authorityRoot: target.authorityRoot,
+      flowResolutionError: null,
+    };
+  } catch (error) {
+    if (!options.allowMissingActive && !options.captureTargetResolutionError) throw error;
+    return {
+      flowManager: baseFlowManager,
+      flowState: null,
+      preparingFlowState: null,
+      authorityRoot: null,
+      flowResolutionError: error,
+    };
+  }
+}
+
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
   const targetExpectation = options.targetExpectation instanceof FlowTargetExpectation
     ? options.targetExpectation
     : flowTargetExpectation(options);
+  if (options.recoveryTargetResolution === true) {
+    return resolveRecoveryAuthorityFlowState(
+      container,
+      baseFlowManager,
+      { ...options, targetExpectation },
+    );
+  }
   const worktreeAuthority = boundWorktreeAuthority(
     container,
     baseFlowManager,
@@ -246,6 +290,7 @@ export function buildFlowCommandHookContext(container, entry, input = {}) {
     captureTargetResolutionError: true,
     explicitTargetResolution: entry.explicitTargetResolution === true,
     mismatchTargetResolution: entry.mismatchTargetResolution === true,
+    recoveryTargetResolution: entry.recoveryTargetResolution === true,
     positionalRunIdTarget: entry.positionalRunIdTarget === true,
     preparingRunIdSelection: entry.preparingRunIdSelection !== false,
     input: targetInput,

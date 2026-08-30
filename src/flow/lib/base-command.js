@@ -30,6 +30,7 @@ export class FlowCommand extends Command {
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
    * @param {boolean} [options.explicitTargetResolution=false] - Resolve guarded targets before ambient cwd authority
    * @param {boolean} [options.mismatchTargetResolution=false] - Resolve an identity match before reporting stale binding authority
+   * @param {boolean} [options.recoveryTargetResolution=false] - Resolve only management identity/state for recovery commands
    * @param {boolean} [options.positionalRunIdTarget=false] - Treat a positional runId as the target when no runId guard is supplied
    * @param {boolean} [options.specOptionAsTarget=false] - Treat a command's --spec selector as its explicit Flow target
    * @param {boolean} [options.skipAmbientFlowContext=false] - Run without resolving ambient Flow state or target context
@@ -39,6 +40,7 @@ export class FlowCommand extends Command {
     targetGuard = true,
     explicitTargetResolution = false,
     mismatchTargetResolution = false,
+    recoveryTargetResolution = false,
     positionalRunIdTarget = false,
     specOptionAsTarget = false,
     skipAmbientFlowContext = false,
@@ -48,6 +50,7 @@ export class FlowCommand extends Command {
     this.targetGuard = targetGuard;
     this.explicitTargetResolution = explicitTargetResolution;
     this.mismatchTargetResolution = mismatchTargetResolution;
+    this.recoveryTargetResolution = recoveryTargetResolution;
     this.positionalRunIdTarget = positionalRunIdTarget;
     this.specOptionAsTarget = specOptionAsTarget;
     this.skipAmbientFlowContext = skipAmbientFlowContext;
@@ -94,6 +97,7 @@ export class FlowCommand extends Command {
         allowMissingActive: !this.requiresFlow,
         explicitTargetResolution: this.explicitTargetResolution,
         mismatchTargetResolution: this.mismatchTargetResolution,
+        recoveryTargetResolution: this.recoveryTargetResolution,
         positionalRunIdTarget: this.positionalRunIdTarget,
         preparingRunIdSelection: this.positionalRunIdTarget ? false : undefined,
         input,

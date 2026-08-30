@@ -48,7 +48,11 @@ class FlowAbortJournal {
       || this.value.featureBranch !== state.featureBranch
       || this.value.baseBranch !== state.baseBranch
       || !ABORT_PHASES.includes(this.value.phase)
-      || !GIT_OBJECT_ID.test(String(this.value.featureSha))
+      || (
+        state.featureBranch === null
+          ? this.value.featureSha !== null
+          : !GIT_OBJECT_ID.test(String(this.value.featureSha))
+      )
     ) {
       throw new Error("flow abort journal does not match the selected flow");
     }
@@ -83,7 +87,7 @@ function outsideTargetSpec(filePath, relativeSpecDirectory) {
 
 export class RunAbortCommand extends FlowCommand {
   constructor() {
-    super({ explicitTargetResolution: true });
+    super({ explicitTargetResolution: true, recoveryTargetResolution: true });
   }
 
   async execute(ctx) {
@@ -99,6 +103,7 @@ export class RunAbortCommand extends FlowCommand {
         state,
         worktreePath,
         featureSha: fs.existsSync(FlowAbortJournal.pathFor(repositoryRoot, state.specId))
+          || state.featureBranch === null
           ? null
           : branchSha(repositoryRoot, state.featureBranch),
       });

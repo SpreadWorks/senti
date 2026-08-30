@@ -73,15 +73,15 @@ export class DefinitionLifecycleAttemptBinding {
       || typeof hookCtx.flowManager.canonicalState !== "function"
       || typeof hookCtx.flowManager.failCurrentAttemptIfCurrent !== "function"
       || !hookCtx?.specId
+      || !(registryFailureOwnership instanceof DefinitionFailureOwnership)
+      || !registryFailureOwnership.allowsDispatcherFallback()
     ) return null;
     const state = hookCtx.flowManager.canonicalState(hookCtx.specId);
     const action = lifecycleActionFor(state);
     if (
       action === null
       || action.commandName !== envelopeKey
-      || !(registryFailureOwnership instanceof DefinitionFailureOwnership)
       || !registryFailureOwnership.equals(action.action.failureOwnership)
-      || !registryFailureOwnership.allowsDispatcherFallback()
     ) return null;
     return new DefinitionLifecycleAttemptBinding({
       specId: state.specId,

@@ -34,6 +34,7 @@ import {
   FlowTargetIdentityAuthority,
   FlowTargetRecoveryError,
 } from "./flow-target-identity-authority.js";
+import { FlowRecoveryTarget } from "./flow-recovery-target.js";
 
 const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "direct"]);
 
@@ -1152,6 +1153,19 @@ export class FlowManager {
     ));
     const target = this.#loadTargetIdentity(resolveUniqueFlowTarget(expectation, candidates));
     return target;
+  }
+
+  /** Resolve only the identity and management fields required for safe abort. */
+  resolveFlowRecoveryTarget(expectation = new FlowTargetExpectation()) {
+    if (!(expectation instanceof FlowTargetExpectation)) {
+      throw new Error("Flow recovery target expectation is invalid");
+    }
+    const identities = this.#targetIdentityEntries("active");
+    const matches = expectation.empty
+      ? identities
+      : identities.filter((identity) => identity.matches(expectation));
+    const identity = resolveUniqueFlowTarget(expectation, matches);
+    return FlowRecoveryTarget.load({ identity, mainRoot: this._mainRoot });
   }
 
   #resolveExplicitIdentity(expectation, lifecycle = null) {

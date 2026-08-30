@@ -14,9 +14,11 @@ import { buildFlowCommandHookContext } from "./flow/lib/flow-context.js";
 import { coreCommandRegistry } from "./lib/command-registry.js";
 import { dispatch } from "./lib/dispatcher.js";
 
-initContainer();
-
 const args = process.argv.slice(2);
+initContainer({
+  flowAttribution: args[0] === "run" && args[1] === "abort" ? "none" : "ambient",
+});
+
 const group = args[0];
 const rest = args.slice(1);
 const flowDefinition = coreCommandRegistry.find(["flow"]);

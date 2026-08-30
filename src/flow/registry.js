@@ -1842,6 +1842,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.abort",
       runtimeLog: { stepMetadata: false },
       explicitTargetResolution: true,
+      recoveryTargetResolution: true,
       command: () => import("./lib/run-abort.js"),
       args: { flags: withTargetGuardFlags(["--force"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
