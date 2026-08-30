@@ -38,6 +38,7 @@ import {
   CanonicalSpecReview,
   SpecReviewDelta,
   mergeSpecReviewDelta,
+  validateSpecRepairDeltaFormat,
   validateSpecTriageDeltaFormat,
 } from "./spec-review-artifacts.js";
 import {
@@ -2499,9 +2500,9 @@ export class WorkerArtifactHandoffSubmission {
   }
 }
 
-function specTriageReviewInput(request) {
+function specReviewInput(request) {
   const reviewInput = request.inputs.find((input) => input.name === "review.json");
-  if (!reviewInput) throw new Error("spec-triage handoff is missing its immutable review input");
+  if (!reviewInput) throw new Error(`${request.stepId} handoff is missing its immutable review input`);
   return new CanonicalSpecReview(reviewInput.document);
 }
 
@@ -2510,33 +2511,33 @@ function specTriageReviewInput(request) {
  * binding is checked separately so a structurally valid stale delta never
  * acquires that retry privilege.
  */
-function validateSpecTriagePayloadAtProducerBoundary(request, document) {
+function validateSpecReviewDeltaPayloadAtProducerBoundary(request, document, { format, payloadFormat }) {
   let delta;
   try {
-    delta = validateSpecTriageDeltaFormat(document);
+    delta = format(document);
   } catch (cause) {
     throw new WorkerArtifactHandoffError(
       "invalid",
       "FLOW_ARTIFACT_HANDOFF_INVALID",
-      `handoff payload review.delta.json failed spec-triage format validation: ${cause.message}`,
+      `handoff payload review.delta.json failed ${request.stepId} format validation: ${cause.message}`,
       {
         cause,
         retryable: true,
         data: {
           stepId: request.stepId,
           logicalName: "review.delta.json",
-          payloadFormat: "spec-triage-review-delta",
+          payloadFormat,
         },
       },
     );
   }
   try {
-    delta.assertCurrent(specTriageReviewInput(request));
+    delta.assertCurrent(specReviewInput(request));
   } catch (cause) {
     throw new WorkerArtifactHandoffError(
       "invalid",
       "FLOW_ARTIFACT_HANDOFF_INVALID",
-      `handoff payload review.delta.json does not bind to the immutable spec-triage review revision: ${cause.message}`,
+      `handoff payload review.delta.json does not bind to the immutable ${request.stepId} review revision: ${cause.message}`,
       {
         cause,
         retryable: false,
@@ -2548,6 +2549,20 @@ function validateSpecTriagePayloadAtProducerBoundary(request, document) {
     );
   }
   return delta;
+}
+
+function validateSpecTriagePayloadAtProducerBoundary(request, document) {
+  return validateSpecReviewDeltaPayloadAtProducerBoundary(request, document, {
+    format: validateSpecTriageDeltaFormat,
+    payloadFormat: "spec-triage-review-delta",
+  });
+}
+
+function validateSpecRepairPayloadAtProducerBoundary(request, document) {
+  return validateSpecReviewDeltaPayloadAtProducerBoundary(request, document, {
+    format: validateSpecRepairDeltaFormat,
+    payloadFormat: "spec-repair-review-delta",
+  });
 }
 
 function validateFilePayloadAtCliBoundary(request, rule, source) {
@@ -2570,8 +2585,9 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
     ) {
       validateSpecJsonObject(document);
     }
-    if (rule.logicalName === "review.delta.json" && request.stepId === "spec-triage") {
-      validateSpecTriagePayloadAtProducerBoundary(request, document);
+    if (rule.logicalName === "review.delta.json") {
+      if (request.stepId === "spec-triage") validateSpecTriagePayloadAtProducerBoundary(request, document);
+      if (request.stepId === "spec-repair") validateSpecRepairPayloadAtProducerBoundary(request, document);
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) {
@@ -3405,8 +3421,10 @@ function validatePayload(request, submission, state) {
       return;
     }
     if (request.stepId === "spec-repair") {
-      const delta = new SpecReviewDelta(payloadDocument(request, submission, "review.delta.json"));
-      if (delta.stage !== request.stepId) throw new Error("canonical review delta stage does not match the handoff Step");
+      validateSpecRepairPayloadAtProducerBoundary(
+        request,
+        payloadDocument(request, submission, "review.delta.json"),
+      );
       return;
     }
     if (request.stepId === "test") {

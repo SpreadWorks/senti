@@ -97,8 +97,10 @@ describe("getStepInstructions (loader contract)", () => {
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
       assert.doesNotMatch(content, /sennel flow set step spec-repair done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
-      assert.match(content, /`version: 2`, `stage: "spec-repair"`, the exact immutable `identity`, and `operations\[\]`/);
+      assert.match(content, /`version: 2`, `stage: "spec-repair"`, the exact immutable `identity` copied from `review\.json`/);
+      assert.match(content, /`baseReviewDigest` copied from the `digest` of the handoff `inputs\[\]` entry named `review\.json`, `findings: \[\]`/);
       assert.match(content, /non-empty unique `findingIds`/);
+      assert.match(content, /canonical stable ascending order/);
       assert.match(content, /explicit canonical `apply` permission for that target and kind/);
       assert.match(content, /`review\.delta\.json`/);
       assert.match(content, /Valid operations may be partial/);
@@ -141,6 +143,8 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /replacement/);
       assert.match(content, /position/);
       assert.match(content, /immutable-base `position`/);
+      assert.match(content, /`findings: \[\]`/);
+      assert.match(content, /`baseReviewDigest`/);
       assert.doesNotMatch(content, /"version": 1/);
     });
 
@@ -157,8 +161,13 @@ describe("getStepInstructions (loader contract)", () => {
     it("spec funnel worker prompts share the bounded transport retry contract", () => {
       for (const key of ["plan.spec-review", "plan.spec-triage", "plan.spec-repair"]) {
         const content = getStepInstructions(key);
-        assert.match(content, /malformed JSON.*missing or unreadable handoff.*at most one fresh worker invocation/i, key);
-        assert.match(content, /schema, identity, authority, and atomic-publication failures are terminal/i, key);
+        assert.match(content, /malformed JSON.*missing or unreadable handoff.*(?:at most one fresh worker invocation|retryable once with a fresh worker invocation)/i, key);
+        if (key === "plan.spec-review") {
+          assert.match(content, /schema, identity, authority, and atomic-publication failures are terminal/i, key);
+        } else {
+          assert.match(content, /payload-format\/schema failure.*retryable (?:once|with at most one)/i, key);
+          assert.match(content, /identity\/revision binding, authority, lineage, and atomic-publication failures are terminal/i, key);
+        }
       }
     });
 

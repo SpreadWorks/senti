@@ -42,6 +42,7 @@ import {
   CanonicalSpecReview,
   SpecReviewDelta,
   mergeSpecReviewDelta,
+  specRepairDeltaPayloadSchema,
   specTriageDeltaPayloadSchema,
 } from "../../../src/flow/lib/spec-review-artifacts.js";
 import {
@@ -467,6 +468,10 @@ function specRepairPayload(request, { scopeExpansion = false, valid = false } = 
     }],
     scopeExpansions: scopeExpansion ? ["A new scope proposal."] : [],
   };
+}
+
+function validSpecRepairPayload(request) {
+  return specRepairPayload(request, { valid: true });
 }
 
 function specRepairSnapshot(value) {
@@ -2805,6 +2810,171 @@ describe("worker artifact handoff", () => {
       );
     } finally {
       removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("exposes the complete spec-repair delta schema and retries old missing payload fields once", async () => {
+    const value = prepareSpecRepairFixture();
+    try {
+      const action = specRepairWorkerAction();
+      const schema = specRepairDeltaPayloadSchema();
+      assert.notDeepEqual(schema, action.output_schema);
+      assert.equal(schema.properties.stage.const, "spec-repair");
+      assert.equal(schema.properties.findings.maxItems, 0);
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "spec-repair").status === "done"
+              ? completedWorkerAction()
+              : structuredClone(action);
+          },
+        },
+        agent: {
+          async call(prompt, options) {
+            calls += 1;
+            assert.deepEqual(options.jsonSchema, action.output_schema);
+            assert.match(options.fmtFallback, /Spec repair review delta schema:/);
+            assert.doesNotMatch(options.fmtFallback, /Spec triage review delta schema:/);
+            assert.ok(options.fmtFallback.includes(JSON.stringify(schema, null, 2)));
+            assert.match(prompt, /canonical spec-repair review delta guidance when writing review\.delta\.json:/);
+            assert.doesNotMatch(prompt, /canonical spec-triage review delta guidance/i);
+            assert.ok(prompt.includes(JSON.stringify(schema, null, 2)));
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            const payloadPath = request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath;
+            if (calls === 1) {
+              const invalid = validSpecRepairPayload(request);
+              delete invalid.baseReviewDigest;
+              delete invalid.findings;
+              fs.writeFileSync(payloadPath, json(invalid));
+              assert.throws(
+                () => sealWorkerArtifactHandoff({
+                  requestPath,
+                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+                }),
+                (error) => error instanceof WorkerArtifactHandoffError && error.retryable === true,
+              );
+              return;
+            }
+            assert.match(prompt, /Fresh worker handoff retry feedback/);
+            fs.writeFileSync(payloadPath, json(validSpecRepairPayload(request)));
+            sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+      assert.equal(calls, 2);
+      assert.ok(result.dispatch, JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(findStepById(value.flowManager.load().steps, "spec-repair").status, "done");
+      assert.equal(
+        value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-gate" })
+          .review.audit.at(-1).stage,
+        "spec-repair",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("stops spec-repair after its one payload-format retry while leaving revision binding terminal", async () => {
+    const scenarios = [
+      {
+        name: "format retry exhaustion",
+        payload(request) {
+          const invalid = validSpecRepairPayload(request);
+          delete invalid.findings;
+          return invalid;
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED",
+        expectedCalls: 2,
+      },
+      {
+        name: "review binding failure",
+        payload(request) {
+          return { ...validSpecRepairPayload(request), baseReviewDigest: "f".repeat(64) };
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_INVALID",
+        expectedCalls: 1,
+      },
+      {
+        name: "identity binding failure",
+        payload(request) {
+          const invalid = validSpecRepairPayload(request);
+          invalid.identity = { ...invalid.identity, digest: "f".repeat(64) };
+          return invalid;
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_INVALID",
+        expectedCalls: 1,
+      },
+    ];
+    for (const scenario of scenarios) {
+      const value = prepareSpecRepairFixture();
+      try {
+        let calls = 0;
+        const dispatcher = new RunDispatchCommand({
+          nextAction: { async run() { return structuredClone(specRepairWorkerAction()); } },
+          agent: {
+            async call(_prompt, options) {
+              calls += 1;
+              const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+              const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+              const payloadPath = request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath;
+              fs.writeFileSync(payloadPath, json(scenario.payload(request)));
+              assert.throws(
+                () => sealWorkerArtifactHandoff({
+                  requestPath,
+                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+                }),
+                (error) => error instanceof WorkerArtifactHandoffError
+                  && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+                  && error.retryable === (scenario.expectedCalls === 2),
+              );
+            },
+          },
+          repositoryFingerprint: () => "stable-fixture",
+          leaseFactory: () => ({ acquire() {}, release() {} }),
+        });
+        dispatcher.container = {};
+
+        const result = await dispatcher.execute({
+          ...value.ctx,
+          flowState: value.flowManager.load(),
+          expectRunId: value.flowManager.load().runId,
+          expectSpec: value.specId,
+          _envelopeType: "run",
+          _envelopeKey: "dispatch",
+        });
+
+        assert.equal(calls, scenario.expectedCalls, scenario.name);
+        assert.equal(result.errors[0].code, scenario.expectedCode, scenario.name);
+        if (scenario.expectedCalls === 2) {
+          assert.equal(result.data.retryExhausted, true, scenario.name);
+          assert.equal(result.data.attempts, 2, scenario.name);
+        } else {
+          assert.equal(result.data.retryable, false, scenario.name);
+        }
+        assert.equal(findStepById(value.flowManager.load().steps, "spec-repair").status, "in_progress", scenario.name);
+        assert.equal(
+          value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-repair" })
+            .review.audit.length,
+          2,
+          scenario.name,
+        );
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
     }
   });
 

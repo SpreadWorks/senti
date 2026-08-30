@@ -4,23 +4,24 @@ import { FlowSpecRevision } from "../../lib/flow-version.js";
 const TRIAGE_DISPOSITIONS = new Set(["apply", "invalid", "already_resolved", "downgraded_to_non_blocking"]);
 const BLOCKING_FINDING_KEYS = ["body", "findingId", "issue", "kind", "requiredChange", "target", "title", "whyBlocking"];
 const IMPROVEMENT_FINDING_KEYS = ["body", "findingId", "improvement", "kind", "target", "title", "whyNonBlocking"];
+const SPEC_REVIEW_DELTA_IDENTITY_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["specId", "revision", "digest", "byteLength"],
+  properties: {
+    specId: { type: "string", pattern: "\\S" },
+    revision: { type: "integer", minimum: 1 },
+    digest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+    byteLength: { type: "integer", minimum: 0 },
+  },
+  additionalProperties: false,
+});
 const SPEC_TRIAGE_DELTA_PAYLOAD_SCHEMA = Object.freeze({
   type: "object",
   required: ["version", "stage", "identity", "baseReviewDigest", "findings", "operations"],
   properties: {
     version: { type: "integer", const: 2 },
     stage: { type: "string", const: "spec-triage" },
-    identity: {
-      type: "object",
-      required: ["specId", "revision", "digest", "byteLength"],
-      properties: {
-        specId: { type: "string", pattern: "\\S" },
-        revision: { type: "integer", minimum: 1 },
-        digest: { type: "string", pattern: "^[a-f0-9]{64}$" },
-        byteLength: { type: "integer", minimum: 0 },
-      },
-      additionalProperties: false,
-    },
+    identity: SPEC_REVIEW_DELTA_IDENTITY_SCHEMA,
     baseReviewDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
     findings: {
       type: "array",
@@ -71,6 +72,22 @@ const SPEC_TRIAGE_DELTA_PAYLOAD_SCHEMA = Object.freeze({
       },
     },
     operations: { type: "array", maxItems: 0 },
+  },
+  additionalProperties: false,
+});
+const SPEC_REPAIR_DELTA_PAYLOAD_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["version", "stage", "identity", "baseReviewDigest", "findings", "operations"],
+  properties: {
+    version: { type: "integer", const: 2 },
+    stage: { type: "string", const: "spec-repair" },
+    identity: SPEC_REVIEW_DELTA_IDENTITY_SCHEMA,
+    baseReviewDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+    findings: { type: "array", maxItems: 0 },
+    // Operation semantics are intentionally parent-owned. Invalid siblings
+    // are audited and discarded without rejecting the complete delta.
+    operations: { type: "array", items: { type: "object" } },
+    scopeExpansions: { type: "array" },
   },
   additionalProperties: false,
 });
@@ -198,6 +215,11 @@ export function specTriageDeltaPayloadSchema() {
   return structuredClone(SPEC_TRIAGE_DELTA_PAYLOAD_SCHEMA);
 }
 
+/** The repair worker receives its full immutable-input-bound envelope. */
+export function specRepairDeltaPayloadSchema() {
+  return structuredClone(SPEC_REPAIR_DELTA_PAYLOAD_SCHEMA);
+}
+
 /**
  * Validate only the producer-controlled JSON shape. Finding meaning, target
  * authority, and canonical finding membership remain parent/gate concerns.
@@ -211,6 +233,21 @@ export function validateSpecTriageDeltaFormat(document) {
     throw artifactError(["spec triage review delta must not declare repair operations or scope expansions"]);
   }
   for (const finding of document.findings) new SpecTriageFindingUpdate(finding);
+  return delta;
+}
+
+/**
+ * Validate the producer-controlled repair envelope only. Individual repair
+ * operations stay independently discardable in the parent-owned applicator.
+ */
+export function validateSpecRepairDeltaFormat(document) {
+  const delta = new SpecReviewDelta(document);
+  if (delta.stage !== "spec-repair") {
+    throw artifactError(["spec repair review delta has an invalid stage"]);
+  }
+  if (document.findings.length !== 0) {
+    throw artifactError(["spec repair review delta must not update findings"]);
+  }
   return delta;
 }
 

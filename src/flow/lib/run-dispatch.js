@@ -60,7 +60,10 @@ import { ConfirmAndAdvance, resolveDefinitionRoute, resolveDispatcherOwnedFlowAc
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { reconcileCompletedReviewWorkUnits } from "./review-work-unit.js";
 import { approvalRouteFacts } from "./definition-route-facts.js";
-import { specTriageDeltaPayloadSchema } from "./spec-review-artifacts.js";
+import {
+  specRepairDeltaPayloadSchema,
+  specTriageDeltaPayloadSchema,
+} from "./spec-review-artifacts.js";
 
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
@@ -186,6 +189,10 @@ function workerArtifactAgentOptions(stepId, outputSchema) {
     payloadName = "review.delta.json";
     schema = specTriageDeltaPayloadSchema();
     label = "Spec triage review delta";
+  } else if (stepId === "spec-repair") {
+    payloadName = "review.delta.json";
+    schema = specRepairDeltaPayloadSchema();
+    label = "Spec repair review delta";
   } else {
     return {};
   }
@@ -746,9 +753,11 @@ export class FlowDispatchWork {
     const schemaPayload = handoffContract?.payloads?.some(({ logicalName }) => logicalName === "review.delta.json")
       ? "review.delta.json"
       : "spec.json";
-    const schemaLabel = schemaPayload === "review.delta.json"
-      ? "spec-triage review delta"
-      : "spec artifact";
+    const schemaLabel = nextAction.step === "spec-repair"
+      ? "spec-repair review delta"
+      : nextAction.step === "spec-triage"
+        ? "spec-triage review delta"
+        : "spec artifact";
     const schemaInstruction = promptGuidance
       ? [
           "",
