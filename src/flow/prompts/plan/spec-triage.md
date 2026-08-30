@@ -5,6 +5,6 @@
    - Classify only findings supplied in the immutable canonical review. Do not require a finding to be classified, do not invent findings, and do not remove unhandled findings.
    - For an `apply` disposition, permissions are explicit `{ target, operationKinds }` capabilities. They authorize only the stated target/kinds; they do not require coverage and do not authorize any other target.
    - Invalid, stale, or unavailable input is a reason to stop without sealing. A valid empty delta is a semantic no-op and the Flow continues.
-   - Only malformed JSON or an actual missing or unreadable handoff is retryable, and it receives at most one fresh worker invocation. Parsed schema, identity, authority, and atomic-publication failures are terminal.
+   - Malformed JSON, an actual missing or unreadable handoff, and a `review.delta.json` payload-format/schema failure are retryable once with a fresh worker invocation. Identity/revision binding, authority, lineage, and atomic-publication failures are terminal; finding content and target permission semantics are reviewed later by the parent/gate.
    - **On complete**: run the exact handoff `sealCommand` once.
    <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->

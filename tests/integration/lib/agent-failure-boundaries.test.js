@@ -22,6 +22,7 @@ import {
   WorkUnitResumeDecision,
 } from "../../../src/flow/lib/work-unit.js";
 import { ReviewFailure } from "../../../src/flow/lib/review-failure.js";
+import { runCmdWithRetry } from "../../../src/flow/lib/run-review.js";
 import {
   ExternalBlockedOutcome,
   StepOutcome,
@@ -100,6 +101,43 @@ describe("typed agent failure boundaries", () => {
 });
 
 describe("terminal replay guards", () => {
+  it("limits schema failures to two total review subprocess attempts", async () => {
+    const failure = ReviewFailure.schemaFailure({
+      phase: "impl",
+      targetReview: "impl-review",
+      validationError: "blockingFindings must be an array",
+      maximumAttempts: 1,
+    });
+    let calls = 0;
+    const result = await runCmdWithRetry(
+      () => {
+        calls += 1;
+        return { ok: false, status: 1, stdout: "", stderr: failure.toMarkerLine() };
+      },
+      { phase: "impl", retryCount: 0, retryDelayMs: 0 },
+    );
+
+    assert.equal(calls, 2);
+    const restored = ReviewFailure.fromSubprocessResult({ phase: "impl", result });
+    assert.equal(restored.classification, "schema_failure");
+    assert.equal(restored.currentAttempt, 2);
+    assert.equal(restored.maximumAttempts, 2);
+    assert.equal(restored.shouldRetrySubprocess({ attempt: 2, maxAttempts: 2 }), false);
+  });
+
+  it("keeps the ordinary subprocess retry count unchanged", async () => {
+    let calls = 0;
+    await runCmdWithRetry(
+      () => {
+        calls += 1;
+        return { ok: false, status: 1, stdout: "", stderr: "temporary subprocess failure" };
+      },
+      { phase: "impl", retryCount: 2, retryDelayMs: 0 },
+    );
+
+    assert.equal(calls, 3);
+  });
+
   it("preserves typed failure data through review markers and stored StepOutcomes", () => {
     const source = new AgentAuthenticationFailure({ message: "OAuth token expired" })
       .recordAttempts(1, 3);

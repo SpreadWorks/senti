@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-08-30T05:00:32.716Z",
+  "analyzedAt": "2026-08-30T10:58:15.886Z",
   "package": {
     "entries": [
       {
@@ -2929,9 +2929,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "f0fa8c2139699ffffbb539d50edb18ed",
+        "hash": "86833fdaf53a1d854c037c341178e53e",
         "lines": 4511,
-        "mtime": "2026-08-30T02:22:58.793Z",
+        "mtime": "2026-08-30T08:50:33.580Z",
         "className": "review",
         "methods": [
           "canonicalLoopReviewCheckpointStore",
@@ -3212,24 +3212,24 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the flow review command across draft, test, specification, and implementation review phases. It orchestrates canonical inputs, scoped diffs, agent calls, schema validation, iterative review loops, and durable review artifacts.",
-        "detail": "The module enforces revision-scoped review work units through environment-configured directories, canonical input descriptors, artifact contracts, and write policies. It builds phase-specific prompts, filters review targets and proposals by scope, supports per-file and cross-check loop reviews, and tracks prior findings through canonical histories and fingerprints. Agent responses are parsed with JSON repair and validated against phase-specific schemas, then normalized into blocking findings, improvements, coverage records, and tooling outcomes. Results are persisted as JSON, Markdown, delta, and attempt-history artifacts, with safeguards for path traversal, malformed inputs, prompt size, retry limits, and invalid requirement references.",
+        "summary": "Implements the flow review command, coordinating draft, specification, implementation, and test reviews across canonical review work units. It validates review inputs, invokes agents, filters findings by scope, persists structured artifacts, and supports retry and loop-based review workflows.",
+        "detail": "The module uses environment-bound canonical inputs, immutable revisions, artifact contracts, and write policies to ensure review operations run against trusted, revision-scoped data. It supports multiple review phases with phase-specific prompts, guardrails, schemas, failure handling, attempt limits, and optional iterative repair or cross-check loops. Implementation review findings are normalized into typed artifacts with requirement IDs, dispositions, stable finding keys, memory limits, and persistence strategies. Test review additionally builds coverage artifacts, enforces prompt-size limits, restricts generated fixes to the test directory, and records review history. The command dispatches CLI phases, computes relevant diffs and file maps, excludes generated or out-of-scope files, and writes Markdown and JSON outputs.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-30T05:01:20.202Z",
+          "processedAt": "2026-08-30T10:58:39.644Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
+          "flow review command",
           "draft review",
+          "specification review",
           "implementation review",
-          "test coverage",
-          "diff scoping",
-          "prompt orchestration",
-          "schema validation",
-          "artifact persistence",
-          "review history"
+          "test review",
+          "review artifacts",
+          "agent orchestration",
+          "diff filtering",
+          "retry handling"
         ]
       },
       {
@@ -10354,9 +10354,9 @@
       },
       {
         "file": "src/flow/lib/review-failure.js",
-        "hash": "f14e71396885de751613f1ba08f601a9",
-        "lines": 394,
-        "mtime": "2026-08-10T16:21:08.659Z",
+        "hash": "7ceea7a05a4a9f262457555fd260f0a1",
+        "lines": 395,
+        "mtime": "2026-08-30T08:50:33.576Z",
         "className": "review-failure",
         "methods": [
           "reviewPhaseForStepId",
@@ -10380,28 +10380,27 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/flow/lib/get-next-action.js",
-          "src/flow/lib/get-status.js",
           "src/flow/lib/run-review.js"
         ],
         "id": "fcf92359",
-        "summary": "Defines a structured review failure model and classification helpers for agent, provider, schema, subprocess, and input-size failures. It also formats machine-readable retry markers and suggested recovery commands.",
-        "detail": "The module maps failures into a constrained taxonomy with validation for retryability, attempt counts, and classification-specific metadata. It contains recognizers for common provider and token-limit failures, converters from generic agent failures, and parsers for emitted failure markers embedded in output streams. Command helpers generate reset or retry commands per review phase, while phase-resolution utilities map step identifiers into review stages. Serialization methods expose JSON payloads and marker strings, and retry logic distinguishes conditions that can be retried automatically from those that need operator intervention or workarounds.",
+        "summary": "Defines the failure model used by flow reviews, including standardized classifications, retryability, failure codes, and machine-readable failure markers. It converts agent and subprocess errors into actionable review failures and generates retry guidance for each review phase.",
+        "detail": "The module centralizes validation and normalization of review failure data, requiring consistent classifications, reasons, attempt counts, and maximum-attempt metadata. It detects common provider, input-size, schema, and subprocess failure patterns from error text and agent failure objects. ReviewFailure instances expose phase-aware retry decisions, stable failure codes, serialized data, and commands for resetting or retrying review attempts. Failures can be emitted and parsed through an environment-specific marker prefix, allowing subprocess boundaries to preserve structured error information. The implementation also maps task-review steps to implementation review while delegating other step IDs to the shared review-route logic.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-14T01:23:09.377Z",
+          "processedAt": "2026-08-30T10:58:39.644Z",
           "attempts": 1
         },
         "keywords": [
           "review failure",
           "error classification",
-          "retry marker",
+          "retry policy",
           "provider failure",
           "schema failure",
-          "input size limit",
-          "agent failure",
-          "recovery command"
+          "input size failure",
+          "subprocess failure",
+          "failure markers",
+          "attempt limits"
         ]
       },
       {
@@ -11061,9 +11060,9 @@
       },
       {
         "file": "src/flow/lib/run-dispatch.js",
-        "hash": "dd577a06816d0ce227a089c731dbdbce",
-        "lines": 1880,
-        "mtime": "2026-08-29T22:42:47.630Z",
+        "hash": "f8a8397ca9f3671753ab005bfc22d676",
+        "lines": 1901,
+        "mtime": "2026-08-30T08:58:53.416Z",
         "className": "run-dispatch",
         "methods": [
           "DispatcherOwnedFlowCommand",
@@ -11079,7 +11078,7 @@
           "commandEnvelope",
           "commandFailed",
           "finalizeCleanupCompletion",
-          "specWorkerAgentOptions",
+          "workerArtifactAgentOptions",
           "freshWorkerInvocation",
           "errorMessages",
           "errorCode",
@@ -11124,7 +11123,8 @@
           "../definition.js",
           "./canonical-spec-approval.js",
           "./review-work-unit.js",
-          "./definition-route-facts.js"
+          "./definition-route-facts.js",
+          "./spec-review-artifacts.js"
         ],
         "exports": [
           "DispatcherOwnedFlowCommand",
@@ -11141,23 +11141,23 @@
         "extends": "Error",
         "usedBy": null,
         "id": "6c7fd82a",
-        "summary": "Implements the flow dispatch coordinator for executing, resuming, repairing, and recovering flow actions. It enforces authority leases, approval receipts, repository fingerprints, worker handoff contracts, and bounded retry behavior.",
-        "detail": "The module models dispatch sessions, actions, boundaries, work items, and worker-facing retry feedback as explicit value objects. It distinguishes dispatcher-owned commands from worker commands, validates next-action bindings, and routes repair or recovery commands through registered handlers. Approval continuation persists canonical receipt mutations while verifying that only approved control files changed and that the repository fingerprint remains consistent. Worker failures are converted into structured diagnostics, artifact handoff retries, issue-log entries, and deferred invocation metrics, with stalled-dispatch and non-replayable-error safeguards limiting unsafe repetition.",
-        "chapter": "project_structure",
-        "role": "lib",
+        "summary": "Coordinates Flow command dispatch, worker handoffs, approvals, retries, and recovery across repository state transitions.",
+        "detail": "The module models dispatch sessions, actions, boundaries, work items, authority leases, and worker-facing retry feedback as explicit objects. It validates command ownership, persists canonical approval receipts, and protects repository integrity with control-file checks and phase-specific fingerprints. Dispatch execution supports registered commands, dispatcher-owned repairs, blocked states, deferred metrics, and structured failure diagnostics. Worker handoffs are quarantined or retried when artifacts or authorization are invalid, while canonical FlowManager state remains parent-owned.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-29T22:44:49.069Z",
+          "processedAt": "2026-08-30T10:58:39.661Z",
           "attempts": 1
         },
         "keywords": [
           "flow dispatch",
-          "dispatcher",
-          "authority lease",
-          "approval receipt",
+          "command orchestration",
           "worker handoff",
+          "approval receipt",
+          "authority lease",
           "repository fingerprint",
           "retry recovery",
-          "command orchestration"
+          "failure diagnostics"
         ]
       },
       {
@@ -12550,9 +12550,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "3bf22bf1840148208fad2855f2f3c45c",
-        "lines": 809,
-        "mtime": "2026-08-30T02:22:58.790Z",
+        "hash": "ae69d794e3bb9fa808debb9373b3959e",
+        "lines": 811,
+        "mtime": "2026-08-30T09:05:19.944Z",
         "className": "run-review",
         "methods": [
           "appendIssueLogFromTestReviewToolingFailure",
@@ -12631,22 +12631,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4e97204",
-        "summary": "Runs and interprets review subprocesses for draft, specification, test, and implementation phases. It canonicalizes review findings, enforces target admission, retries transient subprocess failures, and publishes phase-specific review results.",
-        "detail": "The command defines phase parsers for tooling outcomes, review verdicts, counts, and implementation review artifacts. Retry behavior is bounded by normalized attempt counts and exponential-compatible delays, while tooling failures can be recorded in the issue log. Canonical finding registries assign stable IDs and fingerprints across blocking, advisory, and repair-target buckets. Review execution is admitted against the current Flow target state and review transition, then invokes the configured script with canonical spec, draft, file-map, test-revision, and task inputs.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Executes implementation, specification, draft, and test reviews while normalizing reviewer output into canonical phase-aware results.",
+        "detail": "The module parses review subprocess output, tooling failures, verdicts, counts, and implementation review artifacts with phase-specific parsers. It resolves the active review node and target authority, captures canonical repository state, and admits execution only when the persisted Flow transition is valid. Review subprocesses support bounded retries with normalized counts and delays, while failures are converted into structured envelopes and issue-log entries. Canonical finding normalization provides stable identifiers, fingerprints, blocking classifications, and downstream reset behavior for implementation review changes.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-30T05:01:20.219Z",
+          "processedAt": "2026-08-30T10:58:39.661Z",
           "attempts": 1
         },
         "keywords": [
-          "run review",
+          "review orchestration",
           "review phases",
           "subprocess retry",
-          "review verdict",
           "canonical findings",
-          "target admission",
-          "test revision"
+          "target authority",
+          "verdict parsing",
+          "tooling failure",
+          "flow transition"
         ]
       },
       {
@@ -14033,9 +14034,9 @@
       },
       {
         "file": "src/flow/lib/spec-review-artifacts.js",
-        "hash": "6d737cef4b2357969aa0694952de5f63",
-        "lines": 298,
-        "mtime": "2026-08-29T22:42:47.631Z",
+        "hash": "44495eaedccf63b6922b314c85832066",
+        "lines": 389,
+        "mtime": "2026-08-30T08:25:49.126Z",
         "className": "spec-review-artifacts",
         "methods": [
           "canonicalSpecReviewJson",
@@ -14044,6 +14045,8 @@
           "SpecReviewFinding",
           "SpecReviewAllowedTarget",
           "SpecTriageFindingUpdate",
+          "specTriageDeltaPayloadSchema",
+          "validateSpecTriageDeltaFormat",
           "SpecTriageFindingUpdateCollection",
           "SpecReviewFindingCollection",
           "SpecReviewAuditEntry",
@@ -14072,6 +14075,8 @@
           "SpecReviewFinding",
           "SpecReviewAllowedTarget",
           "SpecTriageFindingUpdate",
+          "specTriageDeltaPayloadSchema",
+          "validateSpecTriageDeltaFormat",
           "SpecTriageFindingUpdateCollection",
           "SpecReviewFindingCollection",
           "SpecReviewAuditEntry",
@@ -14086,26 +14091,27 @@
           "src/flow/lib/canonical-review-artifacts.js",
           "src/flow/lib/current-flow-state.js",
           "src/flow/lib/review-work-unit.js",
+          "src/flow/lib/run-dispatch.js",
           "src/flow/lib/worker-artifact-handoff.js"
         ],
         "id": "d7849cb7",
-        "summary": "Provides canonical data structures and merge logic for specification review artifacts. It tracks revision identity, blocking and non-blocking findings, triage updates, repair deltas, and generation-scoped audit history.",
-        "detail": "The module canonicalizes review JSON and computes SHA-256 document digests for stable artifact identity. It validates required fields, exact or optional key sets, finding collections, allowed repair targets, and unique triage updates. Delta merging deduplicates findings and updates, records discarded findings or operations, and determines whether the review content changed. Successful merges create a new generation with inherited audit entries plus revision-scoped metadata, applied findings, accepted operations, discarded operations, and operation digests.",
+        "summary": "Defines the canonical data model and validation rules for specification review findings, triage deltas, audit history, and revision-scoped merges.",
+        "detail": "The module enforces strict field schemas, non-empty text requirements, exact keys, safe revision identities, and controlled triage dispositions. It represents findings, allowed targets, finding updates, audit entries, canonical reviews, and review deltas as immutable-style value objects with serialized forms. Canonical JSON and SHA-256 digests provide stable comparison and operation identity, while duplicate or malformed updates are rejected or recorded as discarded operations. Delta merging applies accepted triage changes, preserves audit lineage, increments the review generation, and records sorted applied findings plus operation metadata.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-08-29T22:44:49.089Z",
+          "processedAt": "2026-08-30T10:58:39.661Z",
           "attempts": 1
         },
         "keywords": [
-          "spec review artifacts",
-          "canonical JSON",
+          "specification review",
+          "canonical data model",
+          "triage delta",
+          "finding validation",
           "revision identity",
-          "finding collection",
-          "triage updates",
-          "delta merge",
-          "generation audit",
-          "document digest"
+          "audit trail",
+          "SHA-256 digest",
+          "delta merge"
         ]
       },
       {
@@ -15266,9 +15272,9 @@
       },
       {
         "file": "src/flow/lib/worker-artifact-handoff.js",
-        "hash": "1da6bc34fd8db4397730a0cc5a46f53c",
-        "lines": 4470,
-        "mtime": "2026-08-29T22:42:47.632Z",
+        "hash": "710f514f57b126c4531345865090a226",
+        "lines": 4532,
+        "mtime": "2026-08-30T08:26:36.313Z",
         "className": "worker-artifact-handoff",
         "methods": [
           "WorkerArtifactHandoffError",
@@ -15341,6 +15347,8 @@
           "currentAcceptanceImplementationRepair",
           "requiresDraftWorkerContext",
           "handoffInputDigest",
+          "specTriageReviewInput",
+          "validateSpecTriagePayloadAtProducerBoundary",
           "validateFilePayloadAtCliBoundary",
           "unsealedFilePayloadError",
           "prePublicationArtifactError",
@@ -15444,24 +15452,24 @@
           "src/upgrade.js"
         ],
         "id": "58154956",
-        "summary": "Implements a versioned, validated handoff protocol for Flow worker artifacts, including request preparation, payload sealing, submission validation, publication, recovery, quarantine, and cleanup. It enforces repository authority boundaries and supports both canonical Flow artifacts and source-worker rollback workflows.",
-        "detail": "The module defines strict input, payload, manifest, policy, digest, and schema-validation contracts for worker handoffs, with bounded file sizes, normalized paths, and cryptographic integrity checks. It snapshots repository state through Git or filesystem authority mechanisms, tracks runtime-owned paths, and verifies mutations before publication or rollback. Typed request, submission, receipt, quarantine, publication-journal, and error classes provide durable state transitions and retry-aware failure handling. A coordinator reconciles canonical and source handoffs, validates specialized draft, plan-gate, test-review, acceptance, upgrade, and spec-test artifacts, then atomically publishes results and cleans completed or transient handoff directories.",
+        "summary": "Implements a secure, versioned handoff protocol for worker-produced artifacts in Flow workflows. It validates inputs and payloads, tracks repository authority, supports rollback and quarantine, and reconciles sealed submissions into canonical state transitions.",
+        "detail": "The module defines typed handoff policies, requests, input snapshots, manifests, submissions, receipts, and publication journals with strict schemas, size limits, normalized paths, and SHA-256 digests. It captures canonical workflow inputs and repository authority using Git or filesystem snapshots, including ignored runtime artifacts, file identity checks, bounded reads, and mutation detection. Worker payloads are validated against step-specific contracts for drafts, tests, source triage, repairs, upgrades, and specification evidence before publication. Source changes can be restored through ownership-aware rollback checkpoints, while rejected, consumed, orphaned, or incomplete handoffs are quarantined, cleaned up, or reconciled with retry-aware error handling.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-29T22:44:49.106Z",
+          "processedAt": "2026-08-30T10:58:39.675Z",
           "attempts": 1
         },
         "keywords": [
-          "worker handoff",
-          "artifact protocol",
+          "worker artifact handoff",
+          "Flow workflow",
           "payload validation",
+          "SHA-256 integrity",
           "repository authority",
-          "cryptographic digest",
           "rollback",
           "quarantine",
-          "atomic publication",
-          "Flow runtime"
+          "publication journal",
+          "state reconciliation"
         ]
       },
       {
@@ -21815,9 +21823,9 @@
     ],
     "summary": {
       "total": 383,
-      "totalMethods": 4059
+      "totalMethods": 4063
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-08-30T05:01:20.235Z"
+  "enrichedAt": "2026-08-30T10:58:39.675Z"
 }

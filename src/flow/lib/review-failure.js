@@ -24,6 +24,7 @@ const MARKER_CLASSIFICATIONS = Object.freeze([
   "input_size_failure",
   "schema_failure",
 ]);
+const DEFAULT_SCHEMA_FAILURE_MAX_ATTEMPTS = 2;
 
 function requireString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -198,7 +199,7 @@ export class ReviewFailure {
     targetReview,
     validationError,
     currentAttempt = 1,
-    maximumAttempts = 1,
+    maximumAttempts = DEFAULT_SCHEMA_FAILURE_MAX_ATTEMPTS,
   } = {}) {
     return new ReviewFailure({
       phase,

@@ -42,6 +42,7 @@ import {
   CanonicalSpecReview,
   SpecReviewDelta,
   mergeSpecReviewDelta,
+  specTriageDeltaPayloadSchema,
 } from "../../../src/flow/lib/spec-review-artifacts.js";
 import {
   attachCanonicalCommandResultArtifact,
@@ -266,6 +267,34 @@ function draftWorkerAction(stepId = "draft") {
     requires_approval: false,
     maxAttempts: 1,
     directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+  };
+}
+
+function specTriageWorkerAction() {
+  return {
+    taskId: null,
+    step: "spec-triage",
+    action: "write-spec",
+    instructions: { key: "plan.spec-triage", content: "Classify the immutable review findings." },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: loadWorkerArtifactHandoffSchema(),
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-spec" },
+  };
+}
+
+function validSpecTriagePayload(request, findings = []) {
+  const review = new CanonicalSpecReview(
+    request.inputs.find((entry) => entry.name === "review.json").document,
+  );
+  return {
+    version: 2,
+    stage: "spec-triage",
+    identity: review.identity.toJSON(),
+    baseReviewDigest: review.digest,
+    findings: structuredClone(findings),
+    operations: [],
   };
 }
 
@@ -1315,7 +1344,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("retains malformed, unknown, and conflicting triage siblings in the canonical review audit", () => {
+  it("retains unknown and conflicting triage siblings in the canonical review audit", () => {
     const value = prepareSpecTriageFixture();
     try {
       const request = value.coordinator.createRequest({
@@ -1349,12 +1378,6 @@ describe("worker artifact handoff", () => {
             evidence: "Unknown findings must be audited without blocking valid siblings.",
           },
           {
-            findingId: "F-malformed",
-            disposition: "invalid",
-            evidence: "This update carries an illegal field.",
-            illegalMutation: true,
-          },
-          {
             findingId: "F-conflict",
             disposition: "invalid",
             evidence: "This conflicts with the following update.",
@@ -1377,7 +1400,6 @@ describe("worker artifact handoff", () => {
       assert.equal(published.findings.byId("F-valid").disposition, "invalid");
       assert.equal(published.findings.byId("F-conflict").disposition, undefined);
       const discarded = published.audit.at(-1).discardedOperations;
-      assert.ok(discarded.some((entry) => entry.findingId === "F-malformed" && /invalid schema/.test(entry.reason)));
       assert.ok(discarded.some((entry) => entry.findingId === "F-unknown" && entry.reason === "unknown finding"));
       assert.equal(
         discarded.filter((entry) => entry.findingId === "F-conflict" && entry.reason === "conflicting duplicate triage update").length,
@@ -2702,6 +2724,174 @@ describe("worker artifact handoff", () => {
           assert.match(result.data.second.message, /malformed JSON/, scenario.name);
           assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
         }
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
+    }
+  });
+
+  it("exposes the complete spec-triage delta schema and retries old missing payload fields once", async () => {
+    const value = prepareSpecTriageFixture();
+    try {
+      const action = specTriageWorkerAction();
+      const schema = specTriageDeltaPayloadSchema();
+      assert.notDeepEqual(schema, action.output_schema);
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "spec-triage").status === "done"
+              ? completedWorkerAction()
+              : structuredClone(action);
+          },
+        },
+        agent: {
+          async call(prompt, options) {
+            calls += 1;
+            assert.deepEqual(options.jsonSchema, action.output_schema);
+            assert.match(options.fmtFallback, /Spec triage review delta schema:/);
+            assert.ok(options.fmtFallback.includes(JSON.stringify(schema, null, 2)));
+            assert.match(prompt, /canonical spec-triage review delta guidance when writing review\.delta\.json:/);
+            assert.doesNotMatch(prompt, /canonical spec artifact guidance when writing spec\.json:/);
+            assert.match(prompt, /Spec triage review delta schema:/);
+            assert.ok(prompt.includes(JSON.stringify(schema, null, 2)));
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            const payloadPath = request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath;
+            if (calls === 1) {
+              const missingFields = validSpecTriagePayload(request);
+              delete missingFields.baseReviewDigest;
+              delete missingFields.operations;
+              fs.writeFileSync(payloadPath, json(missingFields));
+              assert.throws(
+                () => sealWorkerArtifactHandoff({
+                  requestPath,
+                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+                }),
+                (error) => error instanceof WorkerArtifactHandoffError
+                  && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+                  && error.retryable === true,
+              );
+              return;
+            }
+            assert.match(prompt, /Fresh worker handoff retry feedback/);
+            fs.writeFileSync(payloadPath, json(validSpecTriagePayload(request)));
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+      assert.equal(calls, 2);
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(findStepById(value.flowManager.load().steps, "spec-triage").status, "done");
+      assert.equal(
+        value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-repair" })
+          .review.audit.at(-1).stage,
+        "spec-triage",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("stops spec-triage after its one payload-format retry while leaving revision binding terminal", async () => {
+    const scenarios = [
+      {
+        name: "format retry exhaustion",
+        payload(request) {
+          const invalid = validSpecTriagePayload(request);
+          delete invalid.operations;
+          return invalid;
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED",
+        expectedCalls: 2,
+      },
+      {
+        name: "revision binding failure",
+        payload(request) {
+          return { ...validSpecTriagePayload(request), baseReviewDigest: "f".repeat(64) };
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_INVALID",
+        expectedCalls: 1,
+      },
+      {
+        name: "identity binding failure",
+        payload(request) {
+          const invalid = validSpecTriagePayload(request);
+          invalid.identity = { ...invalid.identity, digest: "f".repeat(64) };
+          return invalid;
+        },
+        expectedCode: "FLOW_ARTIFACT_HANDOFF_INVALID",
+        expectedCalls: 1,
+      },
+    ];
+    for (const scenario of scenarios) {
+      const value = prepareSpecTriageFixture();
+      try {
+        let calls = 0;
+        const dispatcher = new RunDispatchCommand({
+          nextAction: { async run() { return structuredClone(specTriageWorkerAction()); } },
+          agent: {
+            async call(_prompt, options) {
+              calls += 1;
+              const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+              const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+              const payloadPath = request.payloads.find((entry) => entry.logicalName === "review.delta.json").payloadPath;
+              fs.writeFileSync(payloadPath, json(scenario.payload(request)));
+              assert.throws(
+                () => sealWorkerArtifactHandoff({
+                  requestPath,
+                  invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+                }),
+                (error) => error instanceof WorkerArtifactHandoffError
+                  && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+                  && error.retryable === (scenario.expectedCalls === 2),
+              );
+            },
+          },
+          repositoryFingerprint: () => "stable-fixture",
+          leaseFactory: () => ({ acquire() {}, release() {} }),
+        });
+        dispatcher.container = {};
+
+        const result = await dispatcher.execute({
+          ...value.ctx,
+          flowState: value.flowManager.load(),
+          expectRunId: value.flowManager.load().runId,
+          expectSpec: value.specId,
+          _envelopeType: "run",
+          _envelopeKey: "dispatch",
+        });
+
+        assert.equal(calls, scenario.expectedCalls, scenario.name);
+        assert.equal(result.errors[0].code, scenario.expectedCode, scenario.name);
+        if (scenario.expectedCalls === 2) {
+          assert.equal(result.data.retryExhausted, true, scenario.name);
+          assert.equal(result.data.attempts, 2, scenario.name);
+        } else {
+          assert.equal(result.data.retryable, false, scenario.name);
+        }
+        assert.equal(findStepById(value.flowManager.load().steps, "spec-triage").status, "in_progress", scenario.name);
+        assert.equal(
+          value.flowManager.readCurrentSpecReview({ specId: value.specId, consumerNodeId: "spec-triage" })
+            .review.audit.length,
+          1,
+          scenario.name,
+        );
       } finally {
         removeTmpDir(value.mainRoot);
       }

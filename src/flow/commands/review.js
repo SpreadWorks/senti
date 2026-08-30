@@ -2902,7 +2902,7 @@ function classifyReviewCommandError(err, phase) {
       targetReview: "impl-review",
       validationError: schemaFailure[1].trim(),
       currentAttempt: 1,
-      maximumAttempts: 1,
+      maximumAttempts: 2,
     });
   }
   const recoveryCommand = phase ? `sennel flow run review --phase ${phase}` : "sennel flow run review";

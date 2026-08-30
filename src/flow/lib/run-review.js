@@ -306,7 +306,7 @@ export function normalizeReviewSubprocessRetryDelayMs(value) {
  *
  * @param {function} cmdFn - Function that returns { ok, status, stdout, stderr, signal, killed }
  * @param {Object} [opts]
- * @param {number} [opts.retryCount=2] - Number of retries (total attempts = retryCount + 1)
+ * @param {number} [opts.retryCount=2] - Number of retries for ordinary subprocess failures (schema failures are capped at two total attempts)
  * @param {number} [opts.retryDelayMs=3000] - Delay between retries in milliseconds
  * @returns {Promise<{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }>}
  */
@@ -315,16 +315,19 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
   const retryDelayMs = normalizeReviewSubprocessRetryDelayMs(opts.retryDelayMs);
 
   let lastRes;
-  for (let attempt = 0; attempt <= retryCount; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     lastRes = cmdFn();
     if (lastRes.ok) return lastRes;
     const failure = ReviewFailure.fromSubprocessResult({
       phase: opts.phase || "impl",
       result: lastRes,
     });
+    const maximumAttempts = failure.classification === "schema_failure"
+      ? 2
+      : retryCount + 1;
     const failureForAttempt = failure.withAttempts({
       currentAttempt: attempt + 1,
-      maximumAttempts: retryCount + 1,
+      maximumAttempts,
     });
     if (failureForAttempt !== failure) {
       const marker = failureForAttempt.toMarkerLine();
@@ -335,17 +338,16 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
       lastRes = { ...lastRes, stderr: lines.join("\n") };
     }
 
-    if (attempt < retryCount) {
-      if (!failureForAttempt.shouldRetrySubprocess({ attempt: attempt + 1, maxAttempts: retryCount + 1 })) {
-        return lastRes;
-      }
-      const next = attempt + 2;
-      const total = retryCount + 1;
-      process.stderr.write(`[review] retry ${next}/${total} after ${retryDelayMs}ms...\n`);
-      await new Promise((r) => setTimeout(r, retryDelayMs));
+    if (attempt + 1 >= maximumAttempts || !failureForAttempt.shouldRetrySubprocess({
+      attempt: attempt + 1,
+      maxAttempts: maximumAttempts,
+    })) {
+      return lastRes;
     }
+    const next = attempt + 2;
+    process.stderr.write(`[review] retry ${next}/${maximumAttempts} after ${retryDelayMs}ms...\n`);
+    await new Promise((r) => setTimeout(r, retryDelayMs));
   }
-  return lastRes;
 }
 
 const DRAFT_REPAIR_TARGET_PHASES = new Set(["draft-questions", "draft-coverage"]);

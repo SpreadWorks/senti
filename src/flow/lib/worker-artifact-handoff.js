@@ -38,6 +38,7 @@ import {
   CanonicalSpecReview,
   SpecReviewDelta,
   mergeSpecReviewDelta,
+  validateSpecTriageDeltaFormat,
 } from "./spec-review-artifacts.js";
 import {
   applySpecRepairOperations,
@@ -2498,6 +2499,57 @@ export class WorkerArtifactHandoffSubmission {
   }
 }
 
+function specTriageReviewInput(request) {
+  const reviewInput = request.inputs.find((input) => input.name === "review.json");
+  if (!reviewInput) throw new Error("spec-triage handoff is missing its immutable review input");
+  return new CanonicalSpecReview(reviewInput.document);
+}
+
+/**
+ * Producer format defects get one fresh worker invocation. Immutable identity
+ * binding is checked separately so a structurally valid stale delta never
+ * acquires that retry privilege.
+ */
+function validateSpecTriagePayloadAtProducerBoundary(request, document) {
+  let delta;
+  try {
+    delta = validateSpecTriageDeltaFormat(document);
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `handoff payload review.delta.json failed spec-triage format validation: ${cause.message}`,
+      {
+        cause,
+        retryable: true,
+        data: {
+          stepId: request.stepId,
+          logicalName: "review.delta.json",
+          payloadFormat: "spec-triage-review-delta",
+        },
+      },
+    );
+  }
+  try {
+    delta.assertCurrent(specTriageReviewInput(request));
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `handoff payload review.delta.json does not bind to the immutable spec-triage review revision: ${cause.message}`,
+      {
+        cause,
+        retryable: false,
+        data: {
+          stepId: request.stepId,
+          logicalName: "review.delta.json",
+        },
+      },
+    );
+  }
+  return delta;
+}
+
 function validateFilePayloadAtCliBoundary(request, rule, source) {
   try {
     // Every file payload is JSON. Parsing it here keeps malformed worker
@@ -2517,6 +2569,9 @@ function validateFilePayloadAtCliBoundary(request, rule, source) {
       && ["spec", "spec-repair"].includes(request.stepId)
     ) {
       validateSpecJsonObject(document);
+    }
+    if (rule.logicalName === "review.delta.json" && request.stepId === "spec-triage") {
+      validateSpecTriagePayloadAtProducerBoundary(request, document);
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) {
@@ -3342,7 +3397,14 @@ function validatePayload(request, submission, state) {
       assertPlanGateRepairMadeProgress(request, submission, state, "spec.json");
       return;
     }
-    if (request.stepId === "spec-triage" || request.stepId === "spec-repair") {
+    if (request.stepId === "spec-triage") {
+      validateSpecTriagePayloadAtProducerBoundary(
+        request,
+        payloadDocument(request, submission, "review.delta.json"),
+      );
+      return;
+    }
+    if (request.stepId === "spec-repair") {
       const delta = new SpecReviewDelta(payloadDocument(request, submission, "review.delta.json"));
       if (delta.stage !== request.stepId) throw new Error("canonical review delta stage does not match the handoff Step");
       return;

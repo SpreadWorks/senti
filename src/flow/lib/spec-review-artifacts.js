@@ -4,6 +4,76 @@ import { FlowSpecRevision } from "../../lib/flow-version.js";
 const TRIAGE_DISPOSITIONS = new Set(["apply", "invalid", "already_resolved", "downgraded_to_non_blocking"]);
 const BLOCKING_FINDING_KEYS = ["body", "findingId", "issue", "kind", "requiredChange", "target", "title", "whyBlocking"];
 const IMPROVEMENT_FINDING_KEYS = ["body", "findingId", "improvement", "kind", "target", "title", "whyNonBlocking"];
+const SPEC_TRIAGE_DELTA_PAYLOAD_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["version", "stage", "identity", "baseReviewDigest", "findings", "operations"],
+  properties: {
+    version: { type: "integer", const: 2 },
+    stage: { type: "string", const: "spec-triage" },
+    identity: {
+      type: "object",
+      required: ["specId", "revision", "digest", "byteLength"],
+      properties: {
+        specId: { type: "string", pattern: "\\S" },
+        revision: { type: "integer", minimum: 1 },
+        digest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        byteLength: { type: "integer", minimum: 0 },
+      },
+      additionalProperties: false,
+    },
+    baseReviewDigest: { type: "string", pattern: "^[a-f0-9]{64}$" },
+    findings: {
+      type: "array",
+      items: {
+        anyOf: [
+          {
+            type: "object",
+            required: ["findingId", "disposition", "evidence", "allowedTargets"],
+            properties: {
+              findingId: { type: "string", pattern: "\\S" },
+              disposition: { type: "string", const: "apply" },
+              evidence: { type: "string", pattern: "\\S" },
+              allowedTargets: {
+                type: "array",
+                minItems: 1,
+                items: {
+                  type: "object",
+                  required: ["target", "operationKinds"],
+                  properties: {
+                    target: { type: "object", additionalProperties: true },
+                    operationKinds: {
+                      type: "array",
+                      minItems: 1,
+                      uniqueItems: true,
+                      items: { type: "string", pattern: "\\S" },
+                    },
+                  },
+                  additionalProperties: false,
+                },
+              },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: "object",
+            required: ["findingId", "disposition", "evidence"],
+            properties: {
+              findingId: { type: "string", pattern: "\\S" },
+              disposition: {
+                type: "string",
+                enum: ["invalid", "already_resolved", "downgraded_to_non_blocking"],
+              },
+              evidence: { type: "string", pattern: "\\S" },
+            },
+            additionalProperties: false,
+          },
+        ],
+      },
+    },
+    operations: { type: "array", maxItems: 0 },
+  },
+  additionalProperties: false,
+});
 
 /** Stable JSON is an identity format, rather than a presentation format. */
 export function canonicalSpecReviewJson(value) {
@@ -121,6 +191,27 @@ export class SpecTriageFindingUpdate {
     Object.freeze(this);
   }
   toJSON() { return { findingId: this.findingId, disposition: this.disposition, evidence: this.evidence, ...(this.allowedTargets === null ? {} : { allowedTargets: this.allowedTargets.map((target) => target.toJSON()) }) }; }
+}
+
+/** The worker-facing schema is stage-specific; equality with inputs is parent-owned. */
+export function specTriageDeltaPayloadSchema() {
+  return structuredClone(SPEC_TRIAGE_DELTA_PAYLOAD_SCHEMA);
+}
+
+/**
+ * Validate only the producer-controlled JSON shape. Finding meaning, target
+ * authority, and canonical finding membership remain parent/gate concerns.
+ */
+export function validateSpecTriageDeltaFormat(document) {
+  const delta = new SpecReviewDelta(document);
+  if (delta.stage !== "spec-triage") {
+    throw artifactError(["spec triage review delta has an invalid stage"]);
+  }
+  if (document.operations.length !== 0 || Object.hasOwn(document, "scopeExpansions")) {
+    throw artifactError(["spec triage review delta must not declare repair operations or scope expansions"]);
+  }
+  for (const finding of document.findings) new SpecTriageFindingUpdate(finding);
+  return delta;
 }
 
 /** The triage suffix is a value collection, not an untyped findings bag. */

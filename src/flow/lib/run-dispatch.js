@@ -60,6 +60,7 @@ import { ConfirmAndAdvance, resolveDefinitionRoute, resolveDispatcherOwnedFlowAc
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
 import { reconcileCompletedReviewWorkUnits } from "./review-work-unit.js";
 import { approvalRouteFacts } from "./definition-route-facts.js";
+import { specTriageDeltaPayloadSchema } from "./spec-review-artifacts.js";
 
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
@@ -173,17 +174,31 @@ function finalizeCleanupCompletion(result) {
   }
 }
 
-function specWorkerAgentOptions(stepId, outputSchema) {
-  if (stepId !== "spec") return {};
-  const schema = loadSpecJsonSchema();
+function workerArtifactAgentOptions(stepId, outputSchema) {
+  let payloadName;
+  let schema;
+  let label;
+  if (stepId === "spec") {
+    payloadName = "spec.json";
+    schema = loadSpecJsonSchema();
+    label = "Spec artifact";
+  } else if (stepId === "spec-triage") {
+    payloadName = "review.delta.json";
+    schema = specTriageDeltaPayloadSchema();
+    label = "Spec triage review delta";
+  } else {
+    return {};
+  }
   const schemaGuidance = [
-    "The handoff file named spec.json is the canonical spec artifact.",
+    `The handoff file named ${payloadName} is the canonical ${label.toLowerCase()} payload.`,
     "Write valid JSON that matches this schema exactly; do not add properties outside the schema.",
-    "The CLI validates the file before it can be sealed or published.",
-    "Spec artifact schema:",
+    "The CLI validates the payload before it can be sealed or published.",
+    `${label} schema:`,
     JSON.stringify(schema, null, 2),
   ].join("\n");
   return {
+    // The provider response is still the sealed-handoff report. The complete
+    // payload schema is prompt guidance for the file the worker must write.
     jsonSchema: outputSchema,
     fmtFallback: schemaGuidance,
     promptGuidance: schemaGuidance,
@@ -725,14 +740,20 @@ export class FlowDispatchWork {
           "Resolve every static relative import from each final canonical test file, not",
           "from the transient payload directory or an assumed ordinary `tests/` layout.",
           "Use a caught dynamic import for a module that implementation must create later.",
-        ].join("\n")
+      ].join("\n")
       : "";
     const sourceHandoff = this.handoffRequest?.policy?.kind === "source";
+    const schemaPayload = handoffContract?.payloads?.some(({ logicalName }) => logicalName === "review.delta.json")
+      ? "review.delta.json"
+      : "spec.json";
+    const schemaLabel = schemaPayload === "review.delta.json"
+      ? "spec-triage review delta"
+      : "spec artifact";
     const schemaInstruction = promptGuidance
       ? [
           "",
           "The provider may receive a separate response schema for this worker report.",
-          "Use the following canonical spec artifact guidance when writing spec.json:",
+          `Use the following canonical ${schemaLabel} guidance when writing ${schemaPayload}:`,
           promptGuidance,
         ].join("\n")
       : "";
@@ -1172,7 +1193,7 @@ export default class RunDispatchCommand extends FlowCommand {
       let agentError = null;
       try {
         const agent = this.agent || (this.agent = this.container.get("agent"));
-        const workerOptions = specWorkerAgentOptions(
+        const workerOptions = workerArtifactAgentOptions(
           action.nextAction.step,
           action.nextAction.output_schema,
         );
@@ -1748,10 +1769,10 @@ export default class RunDispatchCommand extends FlowCommand {
           );
         }
 
-        // Only malformed JSON or a missing or unreadable handoff transport is
-        // retried once with a new dispatch invocation and handoff directory.
-        // Parsed semantic, schema, identity, authority, and publication
-        // failures are terminal.
+        // Only malformed JSON, a missing or unreadable handoff transport, or
+        // an explicitly retryable producer payload-format failure is retried
+        // once with a new dispatch invocation and handoff directory. Parsed
+        // semantic, identity, authority, and publication failures are terminal.
         const retryCurrent = await this.fetchNextAction(target);
         if (
           retryCurrent instanceof Envelope
