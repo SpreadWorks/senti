@@ -3680,6 +3680,15 @@ function formatSpecReviewMd(input = {}) {
 async function runSpecReview(root, flow, spec, config, dryRun) {
   const specPath = relativeFlowSpecFile(flow);
   const specDir = path.dirname(specPath);
+  const reviewDir = reviewOutputDirectory();
+  // Validate the immutable child input before loading context or resolving an
+  // Agent. A missing, rebound, or modified descriptor must never reach the
+  // reviewer or create a delta/seal side effect.
+  const canonicalReviewDocument = canonicalSpecReviewInput();
+  if (canonicalReviewDocument === null) {
+    throw new Error("spec-review requires an immutable revision-scoped canonical review input");
+  }
+  const canonicalReview = new CanonicalSpecReview(canonicalReviewDocument);
 
   let analysisData = null;
   try {
@@ -3705,14 +3714,8 @@ async function runSpecReview(root, flow, spec, config, dryRun) {
       );
     }
   }
-  const reviewDir = reviewOutputDirectory();
   const reviewDeltaPath = path.join(reviewDir, "review.delta.json");
   let previousReview = null;
-  const canonicalReviewDocument = canonicalSpecReviewInput();
-  if (canonicalReviewDocument === null) {
-    throw new Error("spec-review requires an immutable revision-scoped canonical review input");
-  }
-  const canonicalReview = new CanonicalSpecReview(canonicalReviewDocument);
   // The response parser remains transient worker implementation detail; the
   // reviewer receives canonical review bytes, never a local prior artifact.
   previousReview = Object.freeze({ toPromptMemory: () => canonicalReview.toJSON() });

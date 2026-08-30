@@ -2765,9 +2765,19 @@ describe("FlowManager canonical Version-1 runtime", () => {
           specId: created.specId,
           consumerNodeId: "spec-review",
         });
+        assert.deepEqual(Object.keys(reviewSource).sort(), [
+          "byteLength", "digest", "logicalKey", "logicalPath", "sourcePath", "version",
+        ]);
+        assert.equal(reviewSource.version, 1);
+        assert.equal(reviewSource.logicalKey, "spec.review");
         assert.equal(reviewSource.logicalPath, "review.json");
+        assert.equal(reviewSource.sourcePath, path.join(outputDirectory, "inputs", "review.json"));
         assert.deepEqual(fs.readFileSync(reviewSource.sourcePath), currentReview.bytes);
-        assert.equal(crypto.createHash("sha256").update(fs.readFileSync(reviewSource.sourcePath)).digest("hex"), crypto.createHash("sha256").update(currentReview.bytes).digest("hex"));
+        assert.equal(reviewSource.byteLength, currentReview.bytes.length);
+        assert.equal(
+          reviewSource.digest,
+          crypto.createHash("sha256").update(fs.readFileSync(reviewSource.sourcePath)).digest("hex"),
+        );
         assert.equal(options.env.SENNEL_REVIEW_FILE_MAP_SOURCE, undefined);
         assert.equal(fs.existsSync(path.join(outputDirectory, "spec-review.json")), false);
         writeSpecReviewDeltaOutput(options);

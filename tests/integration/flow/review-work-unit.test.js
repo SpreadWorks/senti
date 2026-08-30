@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import {
+  CanonicalReviewWorkUnit,
   CanonicalReviewPromotion,
   canonicalReviewArtifactFilename,
 } from "../../../src/flow/lib/canonical-review-artifacts.js";
+import { CanonicalReviewInputDescriptor } from "../../../src/flow/lib/review-work-unit-input.js";
 import {
   REVIEW_WORK_UNIT_MANIFEST_ENV,
   ReviewWorkUnit,
@@ -67,6 +70,65 @@ describe("ReviewWorkUnit", () => {
     ]) {
       assert.equal(canonicalReviewArtifactFilename({ phase, taskId }), basename);
     }
+  });
+
+  it("builds a child descriptor from persisted spec.review bytes without replacing promotion metadata", () => {
+    const executionRoot = root();
+    const persistentReview = new CanonicalSpecReview({
+      version: 2,
+      identity: { specId: "001-persisted-review", revision: 2, digest: "c".repeat(64), byteLength: 1 },
+      generation: 1,
+      findings: [],
+      audit: [],
+    });
+    const bytes = Buffer.from(`${JSON.stringify(persistentReview.toJSON())}\n`, "utf8");
+    const digest = crypto.createHash("sha256").update(bytes).digest("hex");
+    const persistentDescriptor = {
+      mediaType: "application/json",
+      relativePath: "revisions/002/review.json",
+      hash: digest,
+      size: bytes.length,
+    };
+    const flowManager = {
+      readArtifact() { return null; },
+      canonicalState() {
+        return { attempt: { nodeId: "spec-review", id: "persisted-review-attempt" } };
+      },
+      readCurrentSpecReviewInput() {
+        return {
+          revision: 2,
+          descriptor: persistentDescriptor,
+          bytes,
+          review: persistentReview,
+          persisted: true,
+        };
+      },
+    };
+    const workUnit = new CanonicalReviewWorkUnit({
+      flowManager,
+      state: { schemaRevision: 3, specId: "001-persisted-review", runId: "persisted-review-run" },
+      phase: "spec",
+      executionRoot,
+      treeSha: "a".repeat(40),
+      targetStateDigest: "b".repeat(64),
+    });
+
+    const inputDescriptor = workUnit.materializeSpecReview();
+
+    assert.ok(inputDescriptor instanceof CanonicalReviewInputDescriptor);
+    assert.deepEqual(inputDescriptor.toJSON(), {
+      version: 1,
+      logicalKey: "spec.review",
+      logicalPath: "review.json",
+      sourcePath: inputDescriptor.sourcePath,
+      digest,
+      byteLength: bytes.length,
+    });
+    assert.deepEqual(inputDescriptor.readBytes(), bytes);
+    assert.equal(workUnit.specReviewSource.revision, 2);
+    assert.equal(workUnit.specReviewSource.descriptor, persistentDescriptor);
+    assert.equal(workUnit.specReviewSource.review, persistentReview);
+    assert.equal(workUnit.specReviewSource.persisted, true);
   });
 
   it("seals only an execution-checkout work unit and recovers only an exact parent contract", () => {

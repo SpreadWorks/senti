@@ -159,6 +159,18 @@ function reviewOutputFor({ phase: reviewPhase, taskId = null }) {
   return ReviewWorkUnitOutput.forReview({ phase: reviewPhase, taskId });
 }
 
+/** Build the child-facing descriptor from the exact work-unit write receipt. */
+function reviewInputDescriptor({ logicalKey, logicalPath, written }) {
+  return new CanonicalReviewInputDescriptor({
+    version: 1,
+    logicalKey,
+    logicalPath,
+    sourcePath: written.sourcePath,
+    digest: written.digest,
+    byteLength: written.byteLength,
+  });
+}
+
 function normalizedVerdict(value) {
   const verdict = requiredText(value, "canonical review verdict");
   if (!new Set(["PASS", "ADVISORY", "REJECTED"]).has(verdict)) {
@@ -509,15 +521,8 @@ export class CanonicalReviewWorkUnit {
       this.workUnit.declareInput(input);
       return null;
     }
-    const sourcePath = this.workUnit.writeInput(input).sourcePath;
-    return new CanonicalReviewInputDescriptor({
-      version: 1,
-      logicalKey,
-      logicalPath,
-      sourcePath,
-      digest: resolved.descriptor.hash,
-      byteLength: resolved.descriptor.size,
-    });
+    const written = this.workUnit.writeInput(input);
+    return reviewInputDescriptor({ logicalKey, logicalPath, written });
   }
 
   /** The Spec is catalog-resolved once by the parent for every review phase. */
@@ -550,10 +555,14 @@ export class CanonicalReviewWorkUnit {
     });
     if (!write) {
       this.workUnit.declareInput(input);
-      return this.specReviewSource;
+      return null;
     }
-    const sourcePath = this.workUnit.writeInput(input).sourcePath;
-    return Object.freeze({ ...this.specReviewSource, logicalPath: "review.json", sourcePath });
+    const written = this.workUnit.writeInput(input);
+    return reviewInputDescriptor({
+      logicalKey: input.logicalKey,
+      logicalPath: input.logicalPath,
+      written,
+    });
   }
 
   /**

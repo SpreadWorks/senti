@@ -615,7 +615,7 @@ export class RunReviewCommand extends FlowCommand {
     if (sealedWorkUnit === null) {
       const prepared = workUnit.prepare();
       const specSource = workUnit.materializeSpecRecord();
-      const specReviewSource = workUnit.materializeSpecReview();
+      const specReviewInput = workUnit.materializeSpecReview();
       const fileMapSource = workUnit.materializeFileMap();
       const draftSource = workUnit.materializeDraft();
       const testSources = workUnit.materializeTestSources(prepared.directory);
@@ -635,11 +635,8 @@ export class RunReviewCommand extends FlowCommand {
         [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
         [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
         [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
-        ...(specReviewSource === null ? {} : {
-          [PRODUCT.env("REVIEW_SPEC_REVIEW_SOURCE")]: JSON.stringify({
-            logicalPath: specReviewSource.logicalPath,
-            sourcePath: specReviewSource.sourcePath,
-          }),
+        ...(specReviewInput === null ? {} : {
+          [PRODUCT.env("REVIEW_SPEC_REVIEW_SOURCE")]: JSON.stringify(specReviewInput.toJSON()),
         }),
         ...(fileMapSource === null ? {} : {
           [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),

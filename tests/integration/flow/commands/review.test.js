@@ -22,6 +22,8 @@ import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-revi
 import { CanonicalSpecReview } from "../../../../src/flow/lib/spec-review-artifacts.js";
 import {
   REVIEW_WORK_UNIT_MANIFEST_ENV,
+  ReviewWorkUnit,
+  ReviewWorkUnitOutput,
 } from "../../../../src/flow/lib/review-work-unit.js";
 import { ReviewFindingCycle } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import { Agent } from "../../../../src/lib/agent.js";
@@ -1227,6 +1229,7 @@ describe("flow run review --phase test CLI", () => {
       "SENNEL_REVIEW_TASK_SPEC_SOURCE",
       "SENNEL_REVIEW_DRAFT_SOURCE",
       "SENNEL_REVIEW_SPEC_SOURCE",
+      "SENNEL_REVIEW_SPEC_REVIEW_SOURCE",
       "SENNEL_REVIEW_FILE_MAP_SOURCE",
     ]) delete environment[variable];
 
@@ -1240,6 +1243,82 @@ describe("flow run review --phase test CLI", () => {
         return /SENNEL_REVIEW_OUTPUT_DIR is required for a canonical review work unit/.test(output);
       },
     );
+  });
+
+  it("rejects a partial spec.review descriptor before the child invokes an agent or seals output", () => {
+    tmp = createTmpDir();
+    setupFlowConfig(tmp, "en");
+    const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+    const created = flowManager.createFresh(new CanonicalFlowCreateRequest({
+      specId: "001-direct-spec-review-child",
+      runId: "direct-spec-review-child-run",
+      request: "Reject incomplete child spec-review input descriptors.",
+      execution: { mode: "direct" },
+      policy: { autoApprove: false, nonblocking: null },
+      flowId: "direct-spec-review-child-flow",
+      flowVersionId: "direct-spec-review-child-v1",
+      specRecord: new CurrentFlowSpecRecord({ ...emptySpecStub(), tasks: [] }, { specId: "001-direct-spec-review-child" }),
+    }));
+    flowManager.addActiveFlow(created.specId, "direct");
+
+    const workUnit = new ReviewWorkUnit({
+      executionRoot: tmp,
+      runId: created.runId,
+      specId: created.specId,
+      phase: "spec",
+      nodeId: "spec-review",
+      attemptId: "direct-spec-review-child-attempt",
+      target: { treeSha: "a".repeat(40), targetStateDigest: "b".repeat(64) },
+      output: ReviewWorkUnitOutput.forReview({ phase: "spec" }),
+    });
+    const spec = workUnit.writeInput({
+      logicalKey: "spec.record",
+      logicalPath: "spec.json",
+      mediaType: "application/json",
+      bytes: Buffer.from(JSON.stringify(emptySpecStub()), "utf8"),
+    });
+    const review = workUnit.writeInput({
+      logicalKey: "spec.review",
+      logicalPath: "review.json",
+      mediaType: "application/json",
+      bytes: Buffer.from("{}", "utf8"),
+    });
+    const surface = workUnit.finalize();
+    const environment = { ...process.env };
+    for (const variable of [
+      "SENNEL_REVIEW_TEST_SOURCE_DIR",
+      "SENNEL_REVIEW_TEST_ARTIFACT_REVISION",
+      "SENNEL_REVIEW_TASK_SPEC_SOURCE",
+      "SENNEL_REVIEW_DRAFT_SOURCE",
+      "SENNEL_REVIEW_FILE_MAP_SOURCE",
+    ]) delete environment[variable];
+
+    assert.throws(
+      () => execFileSync("node", [join(process.cwd(), "src/flow/commands/review.js"), "--phase", "spec"], {
+        encoding: "utf8",
+        env: {
+          ...environment,
+          SENNEL_WORK_ROOT: tmp,
+          SENNEL_REVIEW_OUTPUT_DIR: surface.directory,
+          [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath,
+          SENNEL_REVIEW_SPEC_SOURCE: JSON.stringify({
+            version: 1,
+            logicalKey: "spec.record",
+            logicalPath: "spec.json",
+            sourcePath: spec.sourcePath,
+            digest: spec.digest,
+            byteLength: spec.byteLength,
+          }),
+          SENNEL_REVIEW_SPEC_REVIEW_SOURCE: JSON.stringify({
+            logicalPath: "review.json",
+            sourcePath: review.sourcePath,
+          }),
+        },
+      }),
+      (error) => /canonical review input descriptor has invalid fields/.test(`${error.stdout || ""}${error.stderr || ""}`),
+    );
+    assert.equal(fs.existsSync(path.join(surface.directory, "review.delta.json")), false);
+    assert.equal(fs.existsSync(path.join(surface.directory, "seal.json")), false);
   });
 });
 
