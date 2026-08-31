@@ -33,7 +33,10 @@ import { DraftTransitionFacts } from "./draft-transition-facts.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
-import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
+import {
+  SpecTestBootstrapValidationError,
+  SpecTestBootstrapValidator,
+} from "./spec-test-bootstrap-validator.js";
 import {
   CanonicalSpecReview,
   SpecReviewDelta,
@@ -250,10 +253,46 @@ export class WorkerArtifactHandoffError extends Error {
   }
 }
 
+const SPEC_TEST_BOOTSTRAP_ERROR_CODE = "FLOW_SPEC_TEST_BOOTSTRAP_INVALID";
+
+/** Parent-owned authority for observing the one retried bootstrap failure. */
+export class SpecTestBootstrapObservationAuthority {
+  static fromRetryable(error) {
+    if (!(error instanceof WorkerArtifactHandoffError)
+      || error.code !== SPEC_TEST_BOOTSTRAP_ERROR_CODE
+      || error.retryable !== true) return null;
+    return new SpecTestBootstrapObservationAuthority(error);
+  }
+
+  constructor(error) {
+    if (!(error instanceof WorkerArtifactHandoffError)
+      || error.code !== SPEC_TEST_BOOTSTRAP_ERROR_CODE
+      || error.retryable !== true
+      || typeof error.data.actionDigest !== "string"
+      || typeof error.data.inputDigest !== "string"
+      || typeof error.data.inputRevision !== "string") {
+      throw new Error("spec test bootstrap observation requires retryable bootstrap handoff error");
+    }
+    this.actionDigest = error.data.actionDigest;
+    this.inputDigest = error.data.inputDigest;
+    this.inputRevision = error.data.inputRevision;
+    Object.freeze(this);
+  }
+
+  accepts(request) {
+    return request.stepId === "test"
+      && request.actionDigest === this.actionDigest
+      && request.inputDigest === this.inputDigest
+      && request.inputRevision === this.inputRevision;
+  }
+}
+
 /**
- * The worker produced an invalid payload twice. The parent must stop before
- * creating a publication journal; the canonical artifact and Flow step remain
- * untouched so a later operator retry starts from the same authority.
+ * An eligible retryable handoff failure remained invalid after its fresh
+ * worker retry. The parent must stop before creating a publication journal;
+ * the canonical artifact and Flow step remain untouched so a later operator
+ * retry starts from the same authority. Bootstrap observations are accepted
+ * by their own typed authority before this terminal boundary is reached.
  */
 export class WorkerArtifactRetryExhaustedError extends WorkerArtifactHandoffError {
   constructor({ firstError, secondError, firstRequest, secondRequest }) {
@@ -3356,7 +3395,7 @@ function assertTestReviewRepairMadeProgress(request, submission, state, logicalN
   }
 }
 
-function validatePayload(request, submission, state) {
+function validatePayload(request, submission, state, { bootstrapObservationAuthority = null } = {}) {
   try {
     if (request.policy.kind === "source") {
       const effect = SourceWorkerEffect.fromDocument(
@@ -3431,7 +3470,7 @@ function validatePayload(request, submission, state) {
       const spec = request.inputs.find((input) => input.name === "spec.json").document;
       const result = validateTestHeaders({ specDir: request.payloadDirectory, spec });
       if (!result.ok) throw new Error(formatValidationMessages(result).join("; "));
-      new SpecTestBootstrapValidator({
+      const bootstrapValidation = new SpecTestBootstrapValidator({
         payloadSpecDir: request.payloadDirectory,
         canonicalSpecDir: CanonicalWorkerTestTree.artifactRoot({
           flowManager: request.flowManager,
@@ -3439,12 +3478,36 @@ function validatePayload(request, submission, state) {
         }),
         repositoryRoot: request.mainRoot,
         executionRoot: request.executionRoot,
-      }).validate().assertValid();
+      }).validate();
+      if (!bootstrapValidation.ok && !(bootstrapObservationAuthority instanceof SpecTestBootstrapObservationAuthority
+        && bootstrapObservationAuthority.accepts(request))) {
+        bootstrapValidation.assertValid();
+      }
       assertPlanGateRepairMadeProgress(request, submission, state, "spec-tests");
       assertTestReviewRepairMadeProgress(request, submission, state, "spec-tests");
+      return bootstrapValidation.ok ? null : bootstrapValidation;
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    if (cause instanceof SpecTestBootstrapValidationError) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        SPEC_TEST_BOOTSTRAP_ERROR_CODE,
+        `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
+        {
+          cause,
+          retryable: true,
+          data: {
+            stepId: request.stepId,
+            handoffDirectory: request.directory,
+            actionDigest: request.actionDigest,
+            inputDigest: request.inputDigest,
+            inputRevision: request.inputRevision,
+            bootstrapIssues: cause.validation.issues.map((issue) => issue.toString()),
+          },
+        },
+      );
+    }
     if (cause instanceof SpecRepairOperationsError) {
       throw new WorkerArtifactHandoffError(
         "invalid",
@@ -3950,10 +4013,12 @@ function canonicalHandoffPublications(request, submission) {
   });
 }
 
-function canonicalHandoffResult(request, submission, now, { status = "done" } = {}) {
+function canonicalHandoffResult(request, submission, now, { status = "done", bootstrapValidation = null } = {}) {
   return Object.freeze({
     outcome: status === "skipped" ? "skipped" : "passed",
-    summary: `Worker handoff confirmed for ${request.stepId}.`,
+    summary: bootstrapValidation === null
+      ? `Worker handoff confirmed for ${request.stepId}.`
+      : `Worker handoff confirmed for ${request.stepId}; unresolved static test imports are deferred to scenario validity.`,
     confirmedAt: now().toISOString(),
     artifactRefs: [
       { kind: "worker-handoff", id: submission.handoffDigest },
@@ -4301,7 +4366,7 @@ export class WorkerArtifactHandoffCoordinator {
       : null;
   }
 
-  reconcile({ ctx, request, mutationAuthority = null }) {
+  reconcile({ ctx, request, mutationAuthority = null, bootstrapObservationAuthority = null }) {
     if (!(request instanceof WorkerArtifactHandoffRequest)) return null;
     // A sealed V1 payload sits in `.runtime/` until the parent accepts it.
     // Validate that untrusted surface before loading the Version Store: a
@@ -4352,10 +4417,14 @@ export class WorkerArtifactHandoffCoordinator {
           );
     }
     state ??= ctx.flowManager.load(request.specId);
-    return this.#reconcileCanonical({ ctx, request, state, submission, mutationAuthority });
+    return this.#reconcileCanonical({
+      ctx, request, state, submission, mutationAuthority, bootstrapObservationAuthority,
+    });
   }
 
-  #reconcileCanonical({ ctx, request, state, submission = null, mutationAuthority = null }) {
+  #reconcileCanonical({
+    ctx, request, state, submission = null, mutationAuthority = null, bootstrapObservationAuthority = null,
+  }) {
     const committed = canonicalHandoffReceiptForRequest(state, request, ctx.flowManager);
     if (committed !== null) {
       return {
@@ -4366,12 +4435,13 @@ export class WorkerArtifactHandoffCoordinator {
         payloadDigest: null,
       };
     }
+    let bootstrapValidation = null;
     try {
       const resolvedSubmission = submission ?? readSubmission(request);
       if (submission === null) validateSubmission(request, resolvedSubmission);
       submission = resolvedSubmission;
       request.assertCurrent(state);
-      validatePayload(request, submission, state);
+      bootstrapValidation = validatePayload(request, submission, state, { bootstrapObservationAuthority }) ?? null;
     } catch (cause) {
       throw cause instanceof WorkerArtifactHandoffError
         ? cause
@@ -4450,7 +4520,7 @@ export class WorkerArtifactHandoffCoordinator {
       if (!promotionApplied) {
         const confirmation = {
           specId: request.specId,
-          result: canonicalHandoffResult(request, submission, this.now),
+          result: canonicalHandoffResult(request, submission, this.now, { bootstrapValidation }),
           references: {
             evaluations: [],
             findings: [],

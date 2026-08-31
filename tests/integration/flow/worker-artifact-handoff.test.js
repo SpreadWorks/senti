@@ -856,6 +856,79 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("publishes the second bootstrap-invalid test handoff for scenario-validity", async () => {
+    const value = fixture("test", { specRecord: validSpec() });
+    try {
+      const action = {
+        taskId: null,
+        step: "test",
+        action: "write-tests",
+        instructions: { key: "plan.test", content: "Write the spec tests." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: {},
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-tests" },
+      };
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return calls < 2 ? structuredClone(action) : {
+              taskId: null,
+              step: null,
+              action: "completed",
+              instructions: null,
+              context: null,
+              output_schema: null,
+              requires_approval: false,
+              directive: { kind: "completed", terminal: true, requiresUserAction: false },
+            };
+          },
+        },
+        agent: {
+          async call(_prompt, options) {
+            calls += 1;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            const tests = request.payloads.find((entry) => entry.logicalName === "spec-tests").payloadPath;
+            fs.writeFileSync(
+              path.join(tests, `future-${calls}.test.js`),
+              "// spec: R1\nimport test from 'node:test';\nimport value from '../../../src/not-yet-implemented.js';\ntest('R1: future module', () => value);\n",
+            );
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result));
+      assert.equal(calls, 2);
+      const state = value.flowManager.load();
+      assert.equal(findStepById(state.steps, "test").status, "done");
+      assert.match(findStepById(state.steps, "test").result.summary, /deferred to scenario validity/);
+      assert.equal(value.flowManager.artifactCatalog(value.specId).artifacts
+        .some((entry) => entry.relativePath === "artifacts/tests/future-1.test.js"), false);
+      assert.equal(value.flowManager.artifactCatalog(value.specId).artifacts
+        .some((entry) => entry.relativePath === "artifacts/tests/future-2.test.js"), true);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("allows an artifact-worker upgrade dry-run but rejects materialization before checkout mutation", () => {
     const value = fixture("draft");
     try {
@@ -1968,7 +2041,8 @@ describe("worker artifact handoff", () => {
         () => value.coordinator.reconcile({ ctx: value.ctx, request }),
         (error) => error instanceof WorkerArtifactHandoffError
           && error.classification === "invalid"
-          && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+          && error.code === "FLOW_SPEC_TEST_BOOTSTRAP_INVALID"
+          && error.retryable === true
           && /missing pre-implementation module/.test(error.message),
       );
       assert.equal(findStepById(value.flowManager.load().steps, "test").status, "in_progress");
@@ -3506,7 +3580,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("terminalizes an invalid spec-test handoff with canonical topology evidence", async () => {
+  it("uses canonical topology feedback to regenerate an invalid spec-test handoff", async () => {
     const value = fixture("test", { specRecord: validSpec() });
     try {
       const canonicalSourcePath = path.join(value.mainRoot, "src", "existing.js");
@@ -3551,6 +3625,16 @@ describe("worker artifact handoff", () => {
                 "",
               ].join("\n"));
               firstPayload = fs.readFileSync(testPath);
+            } else {
+              assert.match(prompt, /Fresh worker handoff retry feedback/);
+              assert.match(prompt, /missing pre-implementation module/);
+              fs.writeFileSync(testPath, [
+                "// spec: R1",
+                "import test from 'node:test';",
+                `import value from '${canonicalImport}';`,
+                "test('R1: uses an existing module', () => value);",
+                "",
+              ].join("\n"));
             }
             sealWorkerArtifactHandoff({
               requestPath,
@@ -3572,15 +3656,15 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
-      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_INVALID");
-      assert.equal(calls, 1);
-      assert.equal(requests.length, 1);
+      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result));
+      assert.equal(calls, 2);
+      assert.equal(requests.length, 2);
       assert.deepEqual(
         fs.readFileSync(path.join(requests[0].payloads[0].payloadPath, "topology.test.js")),
         firstPayload,
       );
-      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "in_progress");
-      assert.equal(fs.existsSync(path.join(canonicalTestRoot, "topology.test.js")), false);
+      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "done");
+      assert.match(fs.readFileSync(path.join(canonicalTestRoot, "topology.test.js"), "utf8"), new RegExp(canonicalImport.replaceAll(".", "\\.")));
     } finally {
       removeTmpDir(value.mainRoot);
     }

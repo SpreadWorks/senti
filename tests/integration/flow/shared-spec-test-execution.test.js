@@ -140,3 +140,45 @@ test("scenario validity classifies each R-N test independently within one file",
   assert.match(summary[0].evidence.command, /--test-name-pattern=\^R1:/);
   assert.match(summary[1].evidence.command, /--test-name-pattern=\^R2:/);
 });
+
+test("scenario validity classifies an unresolved static import as an invalid test", async () => {
+  root = createTmpDir("shared-scenario-invalid-import-");
+  const repositoryRoot = path.join(root, "base");
+  const executionRoot = path.join(root, "worktree");
+  const specDir = path.join(repositoryRoot, "specs", "487-invalid-import");
+  for (const checkout of [repositoryRoot, executionRoot]) {
+    write(path.join(checkout, "package.json"), "{\"type\":\"module\"}\n");
+  }
+  const testFile = path.join(specDir, "tests", "invalid-import.test.js");
+  const source = [
+    "// spec: R1",
+    "import test from 'node:test';",
+    "import value from '../../../src/not-present.js';",
+    "test('R1: missing module', () => value);",
+    "",
+  ].join("\n");
+  write(testFile, source);
+  const testEntries = [{ file: testFile, source, firstLine: "// spec: R1" }];
+  const requirements = [{ id: "R1" }];
+  const executions = buildScenarioValidityExecutions({ testEntries, requirements });
+  const records = await runScenarioValidityTestFiles({
+    root: executionRoot,
+    repositoryRoot,
+    specDir,
+    files: [testFile],
+    executions,
+    timeoutMs: 10_000,
+  });
+  const summary = buildScenarioValiditySummary({
+    root: repositoryRoot,
+    files: [testFile],
+    testEntries,
+    fileRecords: records,
+    requirements,
+    command: "node --test",
+    range: { start_line: 1, end_line: 1 },
+  });
+
+  assert.match(records[0].rawText, /ERR_MODULE_NOT_FOUND/);
+  assert.equal(summary[0].classification, "invalid_test");
+});

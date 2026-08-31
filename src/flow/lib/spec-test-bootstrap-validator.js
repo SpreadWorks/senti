@@ -133,7 +133,18 @@ export class SpecTestBootstrapValidation {
   }
 
   assertValid() {
-    if (!this.ok) throw new Error(this.issues.map((issue) => issue.toString()).join("; "));
+    if (!this.ok) throw new SpecTestBootstrapValidationError(this);
+  }
+}
+
+export class SpecTestBootstrapValidationError extends Error {
+  constructor(validation) {
+    if (!(validation instanceof SpecTestBootstrapValidation) || validation.ok) {
+      throw new Error("spec test bootstrap validation error requires failing validation");
+    }
+    super(validation.issues.map((issue) => issue.toString()).join("; "));
+    this.name = "SpecTestBootstrapValidationError";
+    this.validation = validation;
   }
 }
 

@@ -44,6 +44,7 @@ import {
   WorkerArtifactRetryExhaustedError,
   WorkerArtifactMutationAuthoritySnapshot,
   WorkerArtifactHandoffRequest,
+  SpecTestBootstrapObservationAuthority,
   workerArtifactHandoffPolicy,
 } from "./worker-artifact-handoff.js";
 import {
@@ -254,6 +255,7 @@ export class WorkerArtifactRetryFeedback {
     this.code = error.code;
     this.classification = error.classification;
     this.message = error.message;
+    this.bootstrapObservationAuthority = SpecTestBootstrapObservationAuthority.fromRetryable(error);
     this.remainingCalls = remainingCalls;
     Object.freeze(this);
   }
@@ -1228,6 +1230,7 @@ export default class RunDispatchCommand extends FlowCommand {
           ctx,
           request: handoffRequest,
           mutationAuthority: workerArtifactAuthority,
+          bootstrapObservationAuthority: retryFeedback?.bootstrapObservationAuthority,
         });
         agentError = null;
       } catch (error) {
