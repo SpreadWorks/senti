@@ -34,6 +34,7 @@ import { TaskStepIdentity } from "./task-step-identity.js";
 import { findStepById } from "./step-tree.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import {
+  SpecTestBootstrapObservation,
   SpecTestBootstrapValidationError,
   SpecTestBootstrapValidator,
 } from "./spec-test-bootstrap-validator.js";
@@ -55,7 +56,14 @@ import {
   requiresWorkerSourceHandoff,
 } from "./flow-artifact-authority.js";
 import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
-import { canonicalTestReviewRepairForTarget } from "./test-review-repair.js";
+import {
+  canonicalTestReviewRepairForTarget,
+  canonicalTestReviewRepairProgress,
+  TestReviewRepairProgress,
+  parseWorkerVisibleTestReviewRepair,
+  testReviewRepairProgressReceiptForSelectedContract,
+} from "./test-review-repair.js";
+import { CanonicalTestArtifactStore } from "./canonical-test-artifacts.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
 import {
   CanonicalWorkerArtifactAddress,
@@ -1851,6 +1859,82 @@ function currentTestReviewRepair({ flowManager, state, stepId }) {
   return canonicalTestReviewRepairForTarget({ flowManager, state, targetStepId: stepId });
 }
 
+function currentTestReviewRepairProgress({ flowManager, state, repair }) {
+  if (repair === null) return null;
+  try {
+    return canonicalTestReviewRepairProgress({ flowManager, state, repair, consumerNodeId: "test" });
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+      `canonical test-review repair progress is invalid: ${cause.message}`, { cause },
+    );
+  }
+}
+
+/** Rebind a persisted worker-visible scope to the current parent-owned repair episode. */
+function restoredTestReviewRepairContext({ flowManager, state, stepId, workerVisibleTestReviewRepair }) {
+  const testReviewRepair = currentTestReviewRepair({ flowManager, state, stepId });
+  if (testReviewRepair === null) {
+    if (workerVisibleTestReviewRepair !== null) {
+      throw new WorkerArtifactHandoffError(
+        "stale",
+        "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+        "persisted worker repair scope has no current canonical test-review repair episode",
+      );
+    }
+    return { testReviewRepair: null, testReviewRepairProgress: null };
+  }
+  if (workerVisibleTestReviewRepair === null) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+      "persisted test-review repair request lacks its selected worker scope",
+    );
+  }
+  const selectedFindingId = workerVisibleTestReviewRepair.blockingFindings[0].findingId;
+  if (!testReviewRepair.blockingFindings.some((finding) => finding.findingId === selectedFindingId)) {
+    throw new WorkerArtifactHandoffError(
+      "stale",
+      "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+      "persisted worker repair scope is not bound to current canonical findings",
+    );
+  }
+  const testPaths = new CanonicalTestArtifactStore({ flowManager, state })
+    .testSources("test").map((source) => source.testPath);
+  const expectedWorkerScope = testReviewRepair.forFinding(selectedFindingId, testPaths);
+  if (JSON.stringify(workerVisibleTestReviewRepair.toJSON()) !== JSON.stringify(expectedWorkerScope)) {
+    throw new WorkerArtifactHandoffError(
+      "stale",
+      "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+      "persisted worker repair scope does not match the current canonical repair surface",
+    );
+  }
+  return {
+    testReviewRepair,
+    testReviewRepairProgress: currentTestReviewRepairProgress({ flowManager, state, repair: testReviewRepair }),
+  };
+}
+
+/** Rehydrate parent-private canonical inputs; request.json retains only worker capabilities. */
+function restoredCanonicalHandoffInputs({ flowManager, state, policy, testReviewRepair, storedInputs }) {
+  if (testReviewRepair === null) return storedInputs;
+  return policy.inputContract.resolve({ testReviewRepair }).map((relativePath) => {
+    const { document, snapshot } = canonicalHandoffInputSnapshot({
+      flowManager,
+      state,
+      workerPath: relativePath,
+      consumerNodeId: policy.stepId,
+      label: `restored canonical handoff input ${relativePath}`,
+    });
+    return new WorkerArtifactInputSnapshot({
+      name: path.posix.basename(relativePath),
+      targetRelativePath: relativePath,
+      snapshot,
+      document,
+    });
+  });
+}
+
 /** Immutable binding for the dedicated acceptance-review implementation-repair route. */
 class AcceptanceImplementationRepairRoute {
   constructor({ activityId, acceptanceDigest, attemptId, sequence }) {
@@ -1929,6 +2013,9 @@ export class WorkerArtifactHandoffRequest {
     inputDigest,
     inputRevision: revision,
     generatedAt,
+    testReviewRepair = null,
+    testReviewRepairProgress = null,
+    workerVisibleTestReviewRepair = null,
     canonicalLocation = null,
     flowManager = null,
   }) {
@@ -1959,6 +2046,12 @@ export class WorkerArtifactHandoffRequest {
       : "canonical-flow-artifacts";
     this.inputDigest = requiredDigest(inputDigest, "handoff inputDigest");
     this.inputRevision = requiredDigest(revision, "handoff inputRevision");
+    if (testReviewRepair !== null && !(testReviewRepairProgress instanceof TestReviewRepairProgress)) {
+      throw new Error("test-review repair handoff requires canonical progress");
+    }
+    this.testReviewRepair = testReviewRepair;
+    this.testReviewRepairProgress = testReviewRepairProgress;
+    this.workerVisibleTestReviewRepair = workerVisibleTestReviewRepair;
     this.inputs = Object.freeze(inputs);
     if (contextSnapshot != null && !(contextSnapshot instanceof DraftWorkerContextSnapshot)) {
       throw new Error("handoff contextSnapshot must be a DraftWorkerContextSnapshot or null");
@@ -2020,6 +2113,17 @@ export class WorkerArtifactHandoffRequest {
     }
     const planGateRepair = currentPlanGateRepair({ flowManager, state, stepId: policy.stepId });
     const testReviewRepair = currentTestReviewRepair({ flowManager, state, stepId: policy.stepId });
+    const testReviewRepairProgress = currentTestReviewRepairProgress({
+      flowManager, state, repair: testReviewRepair,
+    });
+    if (testReviewRepairProgress?.complete) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_TEST_REVIEW_REPAIR_PROGRESS_COMPLETE",
+        "all canonical test-review repair findings are complete but the test step was not finalized",
+        { retryable: false, recoveryPossible: true },
+      );
+    }
     const acceptanceRepairRoute = currentAcceptanceImplementationRepair({ flowManager, state, stepId: policy.stepId });
     const inputs = policy.inputContract.resolve({ planGateRepair, testReviewRepair, acceptanceRepairRoute }).map((relativePath) => {
       const { document, snapshot } = canonicalHandoffInputSnapshot({
@@ -2067,6 +2171,12 @@ export class WorkerArtifactHandoffRequest {
         baselineEntries: baseline?.entries ?? null,
       });
     });
+    const selectedRepairContract = testReviewRepair === null
+      ? null
+      : testReviewRepair.forFinding(
+        testReviewRepairProgress.nextFinding(testReviewRepair).findingId,
+        new CanonicalTestArtifactStore({ flowManager, state }).testSources("test").map((source) => source.testPath),
+      );
     return new WorkerArtifactHandoffRequest({
       mainRoot,
       executionRoot,
@@ -2084,6 +2194,9 @@ export class WorkerArtifactHandoffRequest {
         acceptanceRepairRoute,
       }),
       generatedAt: now().toISOString(),
+      testReviewRepair,
+      testReviewRepairProgress,
+      workerVisibleTestReviewRepair: selectedRepairContract,
       canonicalLocation: flowManager.specLocation(state.specId),
       flowManager,
     });
@@ -2096,18 +2209,7 @@ export class WorkerArtifactHandoffRequest {
     const stored = requestFromStored(path.join(journal.handoffDirectory, "request.json"));
     const policy = workerArtifactHandoffPolicy(stored.stepId);
     const baselineByName = new Map(journal.targetBaselines.map((entry) => [entry.logicalName, entry]));
-    const request = new WorkerArtifactHandoffRequest({
-      mainRoot,
-      executionRoot: stored.executionRoot,
-      state,
-      invocation: {
-        id: stored.dispatchInvocationId,
-        action: { digest: stored.actionDigest },
-      },
-      policy,
-      inputs: stored.inputs,
-      contextSnapshot: stored.contextSnapshot,
-      payloads: policy.payloads.map((rule) => {
+    const payloads = policy.payloads.map((rule) => {
         const baseline = baselineByName.get(rule.logicalName);
         if (!baseline || baseline.kind !== rule.kind || baseline.targetRelativePath !== rule.targetRelativePath) {
           throw new Error(`publication baseline is invalid for ${rule.logicalName}`);
@@ -2118,12 +2220,9 @@ export class WorkerArtifactHandoffRequest {
           baselineByteLength: baseline.byteLength,
           baselineEntries: baseline.entries,
         });
-      }),
-      inputDigest: stored.inputDigest,
-      inputRevision: stored.inputRevision,
-      generatedAt: stored.generatedAt,
-      canonicalLocation,
-      flowManager,
+    });
+    const request = restoredStoredHandoffRequest({
+      mainRoot, executionRoot: stored.executionRoot, state, stored, policy, payloads, canonicalLocation, flowManager,
     });
     if (
       request.directory !== journal.handoffDirectory
@@ -2136,7 +2235,10 @@ export class WorkerArtifactHandoffRequest {
         "pending worker artifact publication request no longer matches its journal",
       );
     }
-    return request;
+    if (canonicalHandoffReceiptForRequest(state, request, flowManager) !== null) return request;
+    return reboundRestoredHandoffRequest({
+      identityRequest: request, mainRoot, executionRoot: stored.executionRoot, state, stored, policy, payloads, canonicalLocation, flowManager,
+    });
   }
 
   payloadPath(logicalName) {
@@ -2148,6 +2250,16 @@ export class WorkerArtifactHandoffRequest {
   }
 
   toJSON() {
+    const selectedFinding = this.testReviewRepair === null
+      ? null
+      : this.testReviewRepairProgress.nextFinding(this.testReviewRepair);
+    const testPaths = this.testReviewRepair === null
+      ? []
+      : new CanonicalTestArtifactStore({ flowManager: this.flowManager, state: this.state })
+        .testSources("test").map((source) => source.testPath);
+    const visibleRepair = this.workerVisibleTestReviewRepair ?? (selectedFinding === null
+      ? null
+      : this.testReviewRepair.forFinding(selectedFinding.findingId, testPaths));
     return {
       version: this.version,
       runId: this.runId,
@@ -2160,7 +2272,13 @@ export class WorkerArtifactHandoffRequest {
       targetAuthority: this.targetAuthority,
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
-      inputs: this.inputs.map((input) => input.toJSON()),
+      // request.json is an untrusted worker capability. The complete rejected
+      // review stays parent-private in the canonical store; only the selected
+      // repair surface is serialised into the worker-readable request.
+      inputs: this.inputs
+        .filter((input) => !(this.testReviewRepair && input.name === "test-review.json"))
+        .map((input) => input.toJSON()),
+      testReviewRepair: visibleRepair?.toJSON?.() ?? visibleRepair,
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
       payloads: this.payloads.map(({ rule, baselineDigest, baselineByteLength }) => ({
         logicalName: rule.logicalName,
@@ -2192,9 +2310,39 @@ export class WorkerArtifactHandoffRequest {
         ensureRealDirectory(this.payloadPath(payload.rule.logicalName), this.handoffRoot);
       }
     }
+    this.#materializeCanonicalRepairTests();
     new AtomicFile(this.requestPath, { phaseNamespace: "worker-handoff-request" })
       .write(`${JSON.stringify(this.toJSON(), null, 2)}\n`);
     return this;
+  }
+
+  #materializeCanonicalRepairTests() {
+    if (this.stepId !== "test" || this.testReviewRepair === null) return;
+    const root = this.payloadPath("spec-tests");
+    const store = new CanonicalTestArtifactStore({ flowManager: this.flowManager, state: this.state });
+    for (const source of store.testSources("test")) {
+      const target = path.resolve(root, source.testPath);
+      if (!isWithin(root, target)) {
+        throw new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_ARTIFACT_HANDOFF_INVALID",
+          "canonical repair test source escapes the payload root",
+        );
+      }
+      ensureRealDirectory(path.dirname(target), root);
+      if (fs.existsSync(target)) {
+        const existing = readRegularFile(target, `repair payload ${source.testPath}`);
+        if (existing.digest !== digest(source.bytes)) {
+          throw new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            `repair payload already differs from canonical test ${source.testPath}`,
+          );
+        }
+      } else {
+        new AtomicFile(target, { phaseNamespace: "test-review-repair-payload" }).write(source.bytes);
+      }
+    }
   }
 
   toWorkerJSON() {
@@ -2214,7 +2362,12 @@ export class WorkerArtifactHandoffRequest {
       payloads: this.toJSON().payloads,
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
-      inputs: this.inputs.map((input) => input.toJSON()),
+      ...(this.toJSON().testReviewRepair && { testReviewRepair: this.toJSON().testReviewRepair }),
+      inputs: this.inputs
+        // The parent retains the complete rejected review as canonical
+        // evidence; a repair worker receives only the selected finding above.
+        .filter((input) => !(this.testReviewRepair && input.name === "test-review.json"))
+        .map((input) => input.toJSON()),
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
       ...(this.stepId === "test" && {
         specTestTopology: CanonicalSpecTestTopology.fromWorkerTestTree({
@@ -2719,7 +2872,7 @@ function requestFromStored(filePath) {
   const { document } = boundedJson(resolvedRequestPath, "worker artifact handoff request");
   exactObjectKeys(document, [
     "version", "runId", "specId", "issue", "stepId", "taskId", "actionDigest", "dispatchInvocationId",
-    "targetAuthority", "inputDigest", "inputRevision", "inputs", "contextSnapshot",
+    "targetAuthority", "inputDigest", "inputRevision", "inputs", "testReviewRepair", "contextSnapshot",
     "payloads", "generatedAt",
   ], "worker artifact handoff request");
   if (document.version !== WORKER_ARTIFACT_HANDOFF_VERSION) {
@@ -2805,6 +2958,7 @@ function requestFromStored(filePath) {
         document: input?.document,
       })
     )),
+    testReviewRepair: document.testReviewRepair === null ? null : parseWorkerVisibleTestReviewRepair(document.testReviewRepair),
     contextSnapshot: document.contextSnapshot == null
       ? null
       : DraftWorkerContextSnapshot.fromStored(document.contextSnapshot),
@@ -2831,13 +2985,8 @@ function requestFromStored(filePath) {
   return Object.freeze(request);
 }
 
-function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored, canonicalLocation, flowManager }) {
-  if (state?.schemaRevision !== 3) {
-    throw new Error("canonical handoff restore requires a Version-1 Flow state");
-  }
-  const policy = workerArtifactHandoffPolicy(stored.stepId);
-  if (!policy) throw new Error(`unsupported canonical worker handoff step: ${stored.stepId}`);
-  const request = new WorkerArtifactHandoffRequest({
+function restoredStoredHandoffRequest({ mainRoot, executionRoot, state, stored, policy, payloads, canonicalLocation, flowManager }) {
+  return new WorkerArtifactHandoffRequest({
     mainRoot,
     executionRoot,
     state,
@@ -2854,17 +3003,71 @@ function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored
     policy,
     inputs: stored.inputs,
     contextSnapshot: stored.contextSnapshot,
-    payloads: stored.payloads,
+    payloads,
     inputDigest: stored.inputDigest,
     inputRevision: stored.inputRevision,
     generatedAt: stored.generatedAt,
+    workerVisibleTestReviewRepair: stored.testReviewRepair,
     canonicalLocation,
     flowManager,
   });
-  if (request.directory !== stored.directory || request.requestDigest !== stored.requestDigest) {
-    throw new Error("canonical handoff request does not reproduce its persisted identity");
+}
+
+function reboundRestoredHandoffRequest({ identityRequest, mainRoot, executionRoot, state, stored, policy, payloads, canonicalLocation, flowManager }) {
+  const { testReviewRepair, testReviewRepairProgress } = restoredTestReviewRepairContext({
+    flowManager, state, stepId: policy.stepId, workerVisibleTestReviewRepair: stored.testReviewRepair,
+  });
+  const request = new WorkerArtifactHandoffRequest({
+    mainRoot,
+    executionRoot,
+    state,
+    invocation: {
+      id: stored.dispatchInvocationId,
+      action: {
+        digest: stored.actionDigest,
+        nextAction: { step: stored.stepId, taskId: stored.taskId },
+      },
+      ...(stored.contextSnapshot === null ? {} : {
+        target: { digest: stored.contextSnapshot.binding.targetDigest },
+      }),
+    },
+    policy,
+    inputs: restoredCanonicalHandoffInputs({
+      flowManager, state, policy, testReviewRepair, storedInputs: stored.inputs,
+    }),
+    contextSnapshot: stored.contextSnapshot,
+    payloads,
+    inputDigest: stored.inputDigest,
+    inputRevision: stored.inputRevision,
+    generatedAt: stored.generatedAt,
+    testReviewRepair,
+    testReviewRepairProgress,
+    workerVisibleTestReviewRepair: stored.testReviewRepair,
+    canonicalLocation,
+    flowManager,
+  });
+  if (request.requestDigest !== identityRequest.requestDigest) {
+    throw new Error("canonical handoff rebound request does not reproduce persisted identity");
   }
   return request;
+}
+
+function restoreExecutionHandoffRequest({ mainRoot, executionRoot, state, stored, canonicalLocation, flowManager }) {
+  if (state?.schemaRevision !== 3) {
+    throw new Error("canonical handoff restore requires a Version-1 Flow state");
+  }
+  const policy = workerArtifactHandoffPolicy(stored.stepId);
+  if (!policy) throw new Error(`unsupported canonical worker handoff step: ${stored.stepId}`);
+  const identityRequest = restoredStoredHandoffRequest({
+    mainRoot, executionRoot, state, stored, policy, payloads: stored.payloads, canonicalLocation, flowManager,
+  });
+  if (identityRequest.directory !== stored.directory || identityRequest.requestDigest !== stored.requestDigest) {
+    throw new Error("canonical handoff request does not reproduce its persisted identity");
+  }
+  if (canonicalHandoffReceiptForRequest(state, identityRequest, flowManager) !== null) return identityRequest;
+  return reboundRestoredHandoffRequest({
+    identityRequest, mainRoot, executionRoot, state, stored, policy, payloads: stored.payloads, canonicalLocation, flowManager,
+  });
 }
 
 /**
@@ -4013,7 +4216,55 @@ function canonicalHandoffPublications(request, submission) {
   });
 }
 
-function canonicalHandoffResult(request, submission, now, { status = "done", bootstrapValidation = null } = {}) {
+/** Typed publication for the latest bootstrap validation of a canonical test tree. */
+class CanonicalSpecTestBootstrapObservationPublication {
+  constructor({ request, submission, validation }) {
+    if (request.stepId !== "test") {
+      throw new Error("bootstrap observation publication requires the test step");
+    }
+    this.observation = new SpecTestBootstrapObservation({
+      actionDigest: request.actionDigest,
+      inputDigest: request.inputDigest,
+      inputRevision: request.inputRevision,
+      handoffDigest: submission.handoffDigest,
+      issues: validation?.issues ?? [],
+    });
+    this.bytes = Buffer.from(`${JSON.stringify(this.observation.toJSON(), null, 2)}\n`, "utf8");
+    this.artifactDigest = digest(this.bytes);
+    Object.freeze(this);
+  }
+
+  artifactWrite() {
+    return Object.freeze({
+      logicalKey: "test.bootstrap.observation",
+      parameters: {},
+      mediaType: "application/json",
+      bytes: this.bytes,
+    });
+  }
+
+  artifactReference() {
+    return Object.freeze({ kind: "test-bootstrap-observation", id: this.artifactDigest });
+  }
+}
+
+function withBootstrapObservationPublication(publications, request, submission, bootstrapValidation) {
+  if (request.stepId !== "test") return { publications, bootstrapObservation: null };
+  const bootstrapObservation = new CanonicalSpecTestBootstrapObservationPublication({
+    request, submission, validation: bootstrapValidation,
+  });
+  return {
+    publications: Object.freeze({
+      ...publications,
+      artifactWrites: Object.freeze([...publications.artifactWrites, bootstrapObservation.artifactWrite()]),
+    }),
+    bootstrapObservation,
+  };
+}
+
+function canonicalHandoffResult(request, submission, now, {
+  status = "done", bootstrapValidation = null, bootstrapObservation = null,
+} = {}) {
   return Object.freeze({
     outcome: status === "skipped" ? "skipped" : "passed",
     summary: bootstrapValidation === null
@@ -4023,7 +4274,47 @@ function canonicalHandoffResult(request, submission, now, { status = "done", boo
     artifactRefs: [
       { kind: "worker-handoff", id: submission.handoffDigest },
       { kind: "worker-handoff-request", id: request.requestDigest },
+      ...(bootstrapObservation === null ? [] : [bootstrapObservation.artifactReference()]),
     ],
+  });
+}
+
+function testReviewRepairProgressPublication(request, submission, publications) {
+  if (request.testReviewRepair === null || request.testReviewRepairProgress === null) return null;
+  const finding = request.testReviewRepairProgress.nextFinding(request.testReviewRepair);
+  if (finding === null) {
+    throw new WorkerArtifactHandoffError("invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID", "test-review repair has no pending canonical finding");
+  }
+  const next = request.testReviewRepairProgress.markComplete(request.testReviewRepair, finding.findingId, {
+    handoffDigest: submission.handoffDigest,
+    requestDigest: request.requestDigest,
+    payloadDigest: manifestDigest(submission.payloadManifest),
+  });
+  const previous = request.flowManager.readArtifact({
+    specId: request.specId,
+    logicalKey: "test.review.repair.progress",
+    consumerNodeId: "test",
+    optional: true,
+  });
+  const artifactBaselines = [...publications.artifactBaselines];
+  if (previous !== null) {
+    artifactBaselines.push(new CanonicalFlowArtifactBaseline({
+      logicalKey: "test.review.repair.progress",
+      digest: previous.descriptor.hash,
+      byteLength: previous.descriptor.size,
+    }));
+  }
+  return Object.freeze({
+    progress: next,
+    publications: Object.freeze({
+      ...publications,
+      artifactWrites: Object.freeze([...publications.artifactWrites, {
+        logicalKey: "test.review.repair.progress",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(next.toJSON(), null, 2)}\n`, "utf8"),
+      }]),
+      artifactBaselines: Object.freeze(artifactBaselines),
+    }),
   });
 }
 
@@ -4045,6 +4336,31 @@ function canonicalHandoffReceipt(request, submission, now) {
 }
 
 function canonicalHandoffReceiptForRequest(state, request, flowManager = null) {
+  const selectedRepair = request.workerVisibleTestReviewRepair;
+  if (request.stepId === "test" && selectedRepair !== null && flowManager !== null) {
+    try {
+      const progress = flowManager.readArtifact({
+        specId: request.specId,
+        logicalKey: "test.review.repair.progress",
+        consumerNodeId: "test",
+        optional: true,
+      });
+      if (progress !== null) {
+        const handoffDigest = testReviewRepairProgressReceiptForSelectedContract({
+          state,
+          progressDocument: JSON.parse(progress.bytes.toString("utf8")),
+          selectedContract: selectedRepair,
+          requestDigest: request.requestDigest,
+        });
+        if (handoffDigest !== null) return { id: handoffDigest };
+      }
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+        `canonical test-review repair receipt cannot be read: ${cause.message}`, { cause },
+      );
+    }
+  }
   const step = request.taskId === null
     ? findStepById(state?.steps || [], request.stepId)
     : findStepById(state?.tasks?.find((task) => task.id === request.taskId)?.steps || [], `${request.taskId}-impl`);
@@ -4469,6 +4785,7 @@ export class WorkerArtifactHandoffCoordinator {
       );
     }
     let publications;
+    let bootstrapObservation = null;
     try {
       publications = canonicalHandoffPublications(request, submission);
     } catch (cause) {
@@ -4479,7 +4796,23 @@ export class WorkerArtifactHandoffCoordinator {
             "FLOW_ARTIFACT_HANDOFF_INVALID",
             `canonical worker artifact publication cannot be resolved: ${cause.message}`,
             { cause, retryable: false },
-          );
+        );
+    }
+    ({ publications, bootstrapObservation } = withBootstrapObservationPublication(
+      publications,
+      request,
+      submission,
+      bootstrapValidation,
+    ));
+    let repairCheckpoint = null;
+    try {
+      repairCheckpoint = testReviewRepairProgressPublication(request, submission, publications);
+      if (repairCheckpoint !== null) publications = repairCheckpoint.publications;
+    } catch (cause) {
+      throw cause instanceof WorkerArtifactHandoffError ? cause : new WorkerArtifactHandoffError(
+        "invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
+        `test-review repair progress could not be prepared: ${cause.message}`, { cause },
+      );
     }
     try {
       let promotionApplied = false;
@@ -4518,14 +4851,41 @@ export class WorkerArtifactHandoffCoordinator {
         }
       }
       if (!promotionApplied) {
+        if (repairCheckpoint !== null && !repairCheckpoint.progress.complete) {
+          ctx.flowManager.publishArtifacts({
+            specId: request.specId,
+            nodeId: request.stepId,
+            artifactWrites: publications.artifactWrites,
+            artifactRemovals: publications.artifactRemovals,
+            artifactBaselines: publications.artifactBaselines,
+            testSourceBaseline: publications.testSourceBaseline,
+          });
+          const receipt = canonicalHandoffReceipt(request, submission, this.now);
+          cleanupCompletedHandoff(request.handoffRoot, receipt, this.faultInjector);
+          return {
+            completed: true,
+            partial: true,
+            replayed: false,
+            stepId: request.stepId,
+            handoffDigest: receipt.handoffDigest,
+            payloadDigest: receipt.payloadDigest,
+            remainingFindings: repairCheckpoint.progress.entries.filter((entry) => entry.status === "pending").length,
+          };
+        }
         const confirmation = {
           specId: request.specId,
-          result: canonicalHandoffResult(request, submission, this.now, { bootstrapValidation }),
+          result: canonicalHandoffResult(request, submission, this.now, { bootstrapValidation, bootstrapObservation }),
           references: {
             evaluations: [],
             findings: [],
             repairs: [],
-            artifacts: [{ id: submission.handoffDigest, label: request.stepId }],
+            artifacts: [
+              { id: submission.handoffDigest, label: request.stepId },
+              ...(bootstrapObservation === null ? [] : [{
+                id: bootstrapObservation.artifactDigest,
+                label: "test.bootstrap.observation",
+              }]),
+            ],
           },
           specRecord: publications.specRecord,
           artifactWrites: publications.artifactWrites,

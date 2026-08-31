@@ -6,6 +6,7 @@ import {
   DEFAULT_AGENT_PROCESS_TREE_GRACE_MS,
   OUTER_AGENT_PROCESS_TREE_TIMEOUT_ALLOWANCE_MS,
 } from "../../../src/lib/agent-timeout.js";
+import { FlowDispatchDeadlineReserve, testReviewRepairDeadlineReserveFor } from "../../../src/flow/lib/run-dispatch.js";
 
 describe("AgentTimeout", () => {
   it("keeps the canonical default in seconds and converts only at the API boundary", () => {
@@ -33,5 +34,19 @@ describe("AgentTimeout", () => {
 
   it("rejects non-positive durations", () => {
     assert.throws(() => new AgentTimeout(0), /positive number of seconds/);
+  });
+
+  it("derives a test-review repair episode deadline from AGENT_TIMEOUT", () => {
+    const now = 1_000_000;
+    const reserve = testReviewRepairDeadlineReserveFor({
+      configured: new FlowDispatchDeadlineReserve({ reserveMs: 5_000, now: () => now }),
+      agentConfig: { timeout: 42 },
+      now: () => now,
+    });
+
+    assert.equal(reserve.deadline, now + 42_000);
+    assert.equal(reserve.reserveMs, 5_000);
+    assert.equal(reserve.reached(), false);
+    assert.equal(new FlowDispatchDeadlineReserve({ deadline: now + 5_000, reserveMs: 5_000, now: () => now }).reached(), true);
   });
 });

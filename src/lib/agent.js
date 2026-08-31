@@ -417,7 +417,9 @@ class Agent {
   }
 
   async _callOnce(resolved, prompt, options) {
-    const { provider, profile, providerKey, profileKey, timeoutMs } = resolved;
+    const { provider, profile, providerKey, profileKey, timeoutMs: configuredTimeoutMs } = resolved;
+    const timeoutMs = options.timeoutMs ?? configuredTimeoutMs;
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("agent per-call timeoutMs must be a positive number");
     const { finalArgs, env, stdinContent, pendingSchemaWrite } = this._buildInvocation(resolved, prompt, options);
     // A provider work-directory flag is an optional provider optimization,
     // not the execution-boundary mechanism.  An explicit per-call directory
@@ -505,6 +507,12 @@ class Agent {
           error.stderr = stderr;
           reject(error);
         }, (err) => {
+          // The supervisor owns timeout rejection after stdout/stderr listeners
+          // have accumulated lexical process output. Preserve that evidence.
+          if (err instanceof AgentTimeoutError) {
+            err.stdout = stdout;
+            err.stderr = stderr;
+          }
           reject(formatSpawnError(err, {
             command: profile.command,
             env,

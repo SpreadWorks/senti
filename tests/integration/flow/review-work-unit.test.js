@@ -23,6 +23,7 @@ import {
   parseSpecReviewOutput,
   parseTestReviewOutput,
 } from "../../../src/flow/lib/run-review.js";
+import { parseTestReviewFindings } from "../../../src/flow/commands/review.js";
 import {
   CanonicalSpecReview,
   SpecReviewDelta,
@@ -363,5 +364,63 @@ describe("ReviewWorkUnit", () => {
       targetStateDigest: "b".repeat(64),
     });
     assert.throws(() => promotion.resultFromSealedArtifact(), /verdict is required/);
+  });
+
+  it("keeps test-review repair scope in the sealed artifact while canonical evidence remains identity-only", () => {
+    const executionRoot = root();
+    const workUnit = createWorkUnit(executionRoot, {
+      phase: "test",
+      nodeId: "test-review",
+      attemptId: "test-review-repair-binding",
+      output: new ReviewWorkUnitOutput({
+        logicalKey: "test.review",
+        basename: "test-review.json",
+        mediaType: "application/json",
+      }),
+    });
+    const surface = workUnit.finalize();
+    const parsed = parseTestReviewFindings(JSON.stringify({
+      blockingFindings: [{
+        origin: "test-coverage",
+        failureKind: "header_without_test_name",
+        title: "Header requirement has no test",
+        target: "a.test.js:R1",
+        issue: "The header declares R1 but there is no matching test name.",
+        requiredChange: "Add an R1 test name to a.test.js.",
+        whyBlocking: "Coverage evidence is inconsistent.",
+      }, {
+        title: "AI found an incomplete behavior",
+        target: "GLOBAL",
+        issue: "The test suite omits an observable behavior.",
+        requiredChange: "Add the missing behavior assertion.",
+        whyBlocking: "The acceptance premise is not executable.",
+      }],
+      advisoryFindings: [],
+    }));
+    fs.writeFileSync(surface.outputPath, `${JSON.stringify({
+      verdict: "REJECTED",
+      blockingFindings: parsed.blocking.map((finding) => finding.toJSON()),
+      advisoryFindings: [],
+    })}\n`);
+    ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath }).seal();
+    const promotion = new CanonicalReviewPromotion({
+      workUnit: ReviewWorkUnit.fromEnvironment({ [REVIEW_WORK_UNIT_MANIFEST_ENV]: surface.manifestPath }),
+      phase: "test",
+      treeSha: "a".repeat(40),
+      targetStateDigest: "b".repeat(64),
+    });
+    const sealed = promotion.sealedArtifact();
+    assert.deepEqual(sealed.artifact.blockingFindings.map((finding) => finding.target), ["a.test.js:R1", "GLOBAL"]);
+    assert.deepEqual(sealed.artifact.blockingFindings.map((finding) => finding.requiredChange), [
+      "Add an R1 test name to a.test.js.",
+      "Add the missing behavior assertion.",
+    ]);
+    const evidenceFindings = sealed.evidence.toJSON().blockingFindings;
+    for (const [index, evidenceFinding] of evidenceFindings.entries()) {
+      assert.equal(Object.hasOwn(evidenceFinding, "target"), false);
+      assert.equal(Object.hasOwn(evidenceFinding, "requiredChange"), false);
+      assert.equal(evidenceFinding.findingId, sealed.artifact.blockingFindings[index].findingId);
+      assert.equal(evidenceFinding.fingerprint, sealed.artifact.blockingFindings[index].fingerprint);
+    }
   });
 });

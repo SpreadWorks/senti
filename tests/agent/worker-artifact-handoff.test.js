@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 import GetNextActionCommand from "../../src/flow/lib/get-next-action.js";
 import RunClaimNextActionCommand from "../../src/flow/lib/run-claim-next-action.js";
 import RunDispatchCommand from "../../src/flow/lib/run-dispatch.js";
+import RunRepairTestReviewCommand from "../../src/flow/lib/run-repair-test-review.js";
+import { CanonicalTestArtifactStore } from "../../src/flow/lib/canonical-test-artifacts.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 import { WorkerArtifactHandoffCoordinator } from "../../src/flow/lib/worker-artifact-handoff.js";
 import { Agent } from "../../src/lib/agent.js";
@@ -103,6 +105,27 @@ function specWorkerAction() {
     requires_approval: false,
     maxAttempts: 1,
     directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-spec" },
+  };
+}
+
+function testReviewRepairWorkerAction() {
+  return {
+    taskId: null,
+    step: "test",
+    action: "repair-tests",
+    instructions: {
+      key: "plan.test",
+      content: [
+        "Read the worker handoff request and its testReviewRepair workerScope.",
+        "Edit only the stated target file beneath the declared spec-tests payload root.",
+        "Make the required assertion change, then run the exact sealCommand from the request once.",
+      ].join(" "),
+    },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA, "utf8")),
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "repair-tests" },
   };
 }
 
@@ -335,6 +358,76 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         downstreamRequest.inputs[0].document,
         draftHandoffPayload("Parent publication is canonical."),
       );
+    } finally {
+      process.env.PATH = originalPath;
+      removeTmpDir(mainRoot);
+    }
+  });
+
+  it("has a real Codex CLI repair one scoped test-review finding from canonical payload bytes", async () => {
+    const mainRoot = createTmpDir("worker-handoff-agent-test-review-main-");
+    const originalPath = process.env.PATH;
+    try {
+      const executionRoot = path.join(mainRoot, "execution");
+      fs.mkdirSync(executionRoot, { recursive: true });
+      initGitRepo(executionRoot);
+      fs.writeFileSync(path.join(executionRoot, "README.md"), "test review repair fixture\n");
+      commitAll(executionRoot, "test review repair fixture");
+      process.env.PATH = `${installSennelWrapper(executionRoot)}${path.delimiter}${originalPath}`;
+
+      const specId = "503-worker-handoff-agent-test-review";
+      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+      const fixture = new CanonicalFlowFixture({
+        flowManager, specId, runId: "run-worker-handoff-agent-test-review",
+        request: "Exercise a real scoped test review repair handoff.",
+        execution: { mode: "worktree", baseBranch: "main", featureBranch: "feature/worker-handoff-agent-test-review" },
+        specRecord: { goal: "Repair a reviewed test", requirements: [{ id: "R1", desc: "Preserve a test assertion." }] },
+      }).create().registerActive();
+      const original = Buffer.from("// spec: R1\nimport test from 'node:test';\ntest('R1: original assertion', () => {});\n", "utf8");
+      fixture.activate("test");
+      flowManager.publishArtifacts({
+        specId, nodeId: "test", artifactWrites: [{
+          logicalKey: "tests.source", parameters: { testPath: "requirement.test.js" },
+          mediaType: "text/javascript", bytes: original,
+        }],
+      });
+      fixture.settle("test").activate("test-review");
+      const sourceRevision = new CanonicalTestArtifactStore({ flowManager, state: flowManager.load() })
+        .testSourceRevision().toJSON();
+      const finding = {
+        findingId: "real-agent-finding", fingerprint: "f".repeat(64), target: "requirement.test.js",
+        requiredChange: "Add one explicit assertion that preserves R1 behavior.", disposition: "must-fix", rationale: "The review requires an observable assertion.",
+      };
+      publishAttemptArtifact(flowManager, specId, "test-review", "test.review", {
+        phase: "test", verdict: "REJECTED", blockingFindings: [finding], advisoryFindings: [],
+        sourceTestArtifactRevision: sourceRevision,
+        canonicalEvidence: { disposition: "REJECTED", blockingFindings: [finding], advisoryFindings: [], identity: { evidenceDigest: "e".repeat(64) } },
+      });
+      const context = { root: executionRoot, executionRoot, mainRoot, specId, flowManager, flowState: flowManager.load() };
+      assert.equal(new RunRepairTestReviewCommand().execute(context).ok, true);
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() {
+          return findStepById(flowManager.load().steps, "test").status === "done"
+            ? action(null) : testReviewRepairWorkerAction();
+        } },
+        agent: realCodexAgent({ mainRoot, executionRoot, flowManager }),
+        repositoryFingerprint: () => "real-agent-test-review-repair",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...context, flowState: flowManager.load(), expectRunId: flowManager.load().runId, expectSpec: specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 1);
+      const completed = flowManager.load();
+      assert.equal(findStepById(completed.steps, "test").status, "done");
+      const repaired = flowManager.readArtifact({
+        specId, logicalKey: "tests.source", parameters: { testPath: "requirement.test.js" }, consumerNodeId: "test-review",
+      }).bytes;
+      assert.match(repaired.toString("utf8"), /assert|strict/);
+      assert.equal(flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "test.review.repair.progress"), true);
     } finally {
       process.env.PATH = originalPath;
       removeTmpDir(mainRoot);

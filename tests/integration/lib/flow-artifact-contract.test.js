@@ -70,7 +70,7 @@ describe("Flow artifact contract registry", () => {
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
       [
-        "flow.activities", "spec.snapshot", "spec.review", "artifact.catalog", "acceptance.decision",
+        "flow.activities", "spec.snapshot", "spec.review", "artifact.catalog", "test.review.repair.progress", "test.bootstrap.observation", "acceptance.decision",
         "retry.recovery.baseline", "retry.recovery.receipt",
         "task.review", "activity.evidence", "runtime.step-metadata",
       ],
@@ -79,6 +79,12 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("spec.gate.source"), "steps/spec-gate/source.json");
     assert.equal(paths.has("test.coverage"), false);
     assert.equal(paths.get("test.review"), "steps/test-review/result.json");
+    assert.equal(paths.get("test.review.repair.progress"), "steps/test/repair-progress.json");
+    assert.equal(paths.get("test.bootstrap.observation"), "steps/test/bootstrap-observation.json");
+    assert.deepEqual(
+      FLOW_ARTIFACT_CONTRACTS.require("test.bootstrap.observation").ownership.consumers,
+      ["test", "scenario-validity", "test-review"],
+    );
     assert.equal(paths.get("placeholder.permission"), "steps/test/permission.json");
     assert.equal(paths.get("acceptance.review.evidence"), "steps/acceptance-review/dispositions.json");
     assert.equal(paths.get("repair.fingerprint"), "steps/impl/repair/fingerprint.json");
@@ -120,7 +126,7 @@ describe("Flow artifact contract registry", () => {
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("test.execute.raw-log").ownership.consumers, ["test-execute", "test-result-review", "impl-gate"]);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("final.regression.raw-log").ownership.consumers, ["final-regression"]);
     const testsSource = FLOW_ARTIFACT_CONTRACTS.require("tests.source");
-    assert.deepEqual(testsSource.ownership.consumers, ["scenario-validity", "test-review", "implement", "test-execute", "final-regression"]);
+    assert.deepEqual(testsSource.ownership.consumers, ["test", "scenario-validity", "test-review", "implement", "test-execute", "final-regression"]);
     assert.deepEqual(testsSource.ownership.updaters, ["system", "test"]);
     for (const actor of ["scenario-validity", "test-execute", "acceptance-review", "retro"]) {
       assert.equal(FLOW_ARTIFACT_CONTRACTS.require("spec.record").ownership.consumers.includes(actor), true, actor);

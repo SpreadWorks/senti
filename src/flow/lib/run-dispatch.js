@@ -15,6 +15,7 @@ import { loadSpecJsonSchema } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
+import { AgentTimeout } from "../../lib/agent-timeout.js";
 import { DeferredAgentInvocationMetric } from "../../lib/agent-invocation-metric.js";
 import { flowCommands } from "../../lib/command-registry.js";
 import { dispatch } from "../../lib/dispatcher.js";
@@ -68,6 +69,7 @@ import {
 
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
+const DEFAULT_DISPATCH_DEADLINE_RESERVE_MS = 5_000;
 const DISPATCH_LOCK_KIND = "flow-dispatch";
 const RESUMABLE_DISPATCH_BOUNDARIES = new Set([
   "approval_required",
@@ -91,6 +93,62 @@ const NON_REPLAYABLE_HANDOFF_ERROR_CODES = new Set([
   "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION",
   "FLOW_SOURCE_HANDOFF_CANONICAL_PATH_VIOLATION",
 ]);
+
+/**
+ * Provider-neutral deadline guard. The dispatcher reserves parent-owned time
+ * for sealing/reconciliation and caps each worker to the remaining generation
+ * budget before declining to start work that cannot finish safely.
+ */
+export class FlowDispatchDeadlineReserve {
+  constructor({ deadline = null, reserveMs = DEFAULT_DISPATCH_DEADLINE_RESERVE_MS, now = () => Date.now() } = {}) {
+    this.deadline = deadline === null ? null : Number(deadline);
+    if (this.deadline !== null && (!Number.isFinite(this.deadline) || this.deadline <= 0)) throw new Error("flow dispatch deadline is invalid");
+    if (!Number.isSafeInteger(reserveMs) || reserveMs < 0) throw new Error("flow dispatch deadline reserve is invalid");
+    this.reserveMs = reserveMs;
+    this.now = now;
+    Object.freeze(this);
+  }
+
+  reached() { return this.deadline !== null && this.deadline - this.now() <= this.reserveMs; }
+  toJSON() { return { deadline: this.deadline, reserveMs: this.reserveMs, remainingMs: this.deadline === null ? null : Math.max(0, this.deadline - this.now()) }; }
+}
+
+/** A deadline policy is deliberately limited to one selected test-review repair. */
+export class TestReviewRepairDeadlinePolicy {
+  constructor({ reserve, nextAction } = {}) {
+    if (!(reserve instanceof FlowDispatchDeadlineReserve)) throw new Error("test-review repair deadline requires a typed reserve");
+    if (!TestReviewRepairDeadlinePolicy.appliesTo(nextAction)) throw new Error("test-review repair deadline requires a selected repair action");
+    this.reserve = reserve;
+    Object.freeze(this);
+  }
+
+  static appliesTo(nextAction) {
+    return nextAction?.step === "test" && nextAction?.context?.testReviewRepair != null;
+  }
+
+  reached() { return this.reserve.reached(); }
+  budget(agentConfig) { return workerExecutionBudget(this.reserve, agentConfig); }
+  toJSON() { return this.reserve.toJSON(); }
+}
+
+/** Lazily derive one test-review repair episode deadline from Agent timeout. */
+export function testReviewRepairDeadlineReserveFor({ configured = null, agentConfig = {}, now = () => Date.now() } = {}) {
+  if (configured instanceof FlowDispatchDeadlineReserve && configured.deadline !== null) return configured;
+  const reserveMs = configured?.reserveMs ?? DEFAULT_DISPATCH_DEADLINE_RESERVE_MS;
+  const clock = configured instanceof FlowDispatchDeadlineReserve ? configured.now : now;
+  return new FlowDispatchDeadlineReserve({
+    deadline: clock() + AgentTimeout.fromConfig(agentConfig).toMilliseconds(),
+    reserveMs,
+    now: clock,
+  });
+}
+
+function workerExecutionBudget(deadlineReserve, agentConfig) {
+  const configuredTimeoutMs = AgentTimeout.fromConfig(agentConfig).toMilliseconds();
+  if (deadlineReserve.deadline === null) return { workerTimeoutMs: configuredTimeoutMs };
+  const remainingMs = deadlineReserve.deadline - deadlineReserve.now();
+  return { workerTimeoutMs: Math.min(configuredTimeoutMs, remainingMs - deadlineReserve.reserveMs) };
+}
 /**
  * Definition-backed command invocation owned by the dispatcher.  This keeps
  * command selection as typed definition data, rather than asking a sandboxed
@@ -868,7 +926,27 @@ function workerHandoffFailureData(ctx, target, error, request, dispatchCount, ag
     actionDigest,
     dispatchInvocationId,
     ...(error.data || {}),
+    ...(request && {
+      payload: {
+        directory: request.payloadDirectory,
+        requestPath: request.requestPath,
+        submissionPath: request.submissionPath,
+        sealed: fs.existsSync(request.submissionPath),
+      },
+    }),
+    ...(agentError instanceof AgentFailure && {
+      lastProgress: {
+        dispatchCount,
+        stepId,
+        handoffDirectory: request?.directory ?? null,
+        supervisorEvent: agentError.supervisorEvents?.at(-1) ?? null,
+      },
+    }),
     ...(agentError instanceof AgentFailure ? { agentFailure: agentError.toJSON() } : {}),
+    ...(Array.isArray(error.agentFailures) && { agentFailures: error.agentFailures.map((failure, index) => ({
+      attempt: index + 1,
+      ...(failure instanceof AgentFailure ? failure.toJSON() : { unavailable: "agent failure was not capturable" }),
+    })) }),
     ...(issueLogError ? { issueLogError } : {}),
   };
 }
@@ -915,6 +993,7 @@ export default class RunDispatchCommand extends FlowCommand {
     maxStalledDispatches = DEFAULT_MAX_STALLED_DISPATCHES,
     leaseFactory = (session) => new FlowDispatchLease(session),
     handoffCoordinator = new WorkerArtifactHandoffCoordinator(),
+    deadlineReserve = new FlowDispatchDeadlineReserve(),
     repairCommandRunner = null,
     commandRunner = null,
   } = {}) {
@@ -926,6 +1005,8 @@ export default class RunDispatchCommand extends FlowCommand {
     this.maxStalledDispatches = maxStalledDispatches;
     this.leaseFactory = leaseFactory;
     this.handoffCoordinator = handoffCoordinator;
+    if (!(deadlineReserve instanceof FlowDispatchDeadlineReserve)) throw new Error("flow dispatch deadline reserve must be typed");
+    this.deadlineReserve = deadlineReserve;
     this.repairCommandRunner = repairCommandRunner;
     this.commandRunner = commandRunner;
   }
@@ -1137,7 +1218,7 @@ export default class RunDispatchCommand extends FlowCommand {
     });
   }
 
-  async runWorkerAttempt(ctx, invocation, retryFeedback = null) {
+  async runWorkerAttempt(ctx, invocation, retryFeedback = null, executionBudget = null) {
     const action = new FlowDispatchAction(invocation.action.nextAction);
     let handoffRequest = null;
     let handoffAuthority = null;
@@ -1202,6 +1283,7 @@ export default class RunDispatchCommand extends FlowCommand {
         ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
         : null;
       let agentError = null;
+      const supervisorEvents = [];
       try {
         const agent = this.agent || (this.agent = this.container.get("agent"));
         const workerOptions = workerArtifactAgentOptions(
@@ -1217,16 +1299,22 @@ export default class RunDispatchCommand extends FlowCommand {
           waitForProcessTree: true,
           executionEnvironment: work.executionEnvironment(),
           deferredMetric,
+          ...(executionBudget && { timeoutMs: executionBudget.workerTimeoutMs }),
+          onSupervisorEvent(event) {
+            supervisorEvents.push(Object.freeze({ at: new Date().toISOString(), ...event }));
+          },
           ...agentOptions,
         });
       } catch (error) {
         agentError = error;
+        if (agentError instanceof AgentFailure) agentError.supervisorEvents = Object.freeze(supervisorEvents);
       }
 
       if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
 
+      let reconciliation = null;
       try {
-        this.handoffCoordinator.reconcile({
+        reconciliation = this.handoffCoordinator.reconcile({
           ctx,
           request: handoffRequest,
           mutationAuthority: workerArtifactAuthority,
@@ -1270,15 +1358,37 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         if (!holdsSpecRepairMetric) await deferredMetric.flush();
         if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        const rejected = quarantineRejectedWorkerHandoff(this.handoffCoordinator, handoffRequest, error);
+        const reported = agentError && rejected instanceof WorkerArtifactHandoffError
+          ? new WorkerArtifactHandoffError(
+              rejected.classification,
+              rejected.code,
+              rejected.message,
+              {
+                cause: new AggregateError([rejected, agentError], "worker handoff and provider failure"),
+                data: rejected.data,
+                retryable: rejected.retryable,
+                recoveryPossible: rejected.recoveryPossible,
+              },
+            )
+          : rejected;
         return {
-          error: quarantineRejectedWorkerHandoff(this.handoffCoordinator, handoffRequest, error),
+          error: reported,
           handoffRequest,
           agentError,
+          supervisorEvents,
           deferredMetric: holdsSpecRepairMetric ? deferredMetric : null,
         };
       }
       if (!holdsSpecRepairMetric) await deferredMetric.flush();
-      return { error: null, handoffRequest, agentError, deferredMetric: holdsSpecRepairMetric ? deferredMetric : null };
+      return {
+        error: null,
+        handoffRequest,
+        agentError,
+        partialRepair: reconciliation?.partial === true,
+        supervisorEvents,
+        deferredMetric: holdsSpecRepairMetric ? deferredMetric : null,
+      };
     } finally {
       handoffAuthority?.release();
     }
@@ -1351,6 +1461,9 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async dispatchContinuation(ctx, session) {
     const { target } = session;
+    // Reserve accounting is intentionally lazy and repair-scoped. Ordinary
+    // workers retain Agent's configured timeout without a dispatcher cap.
+    let repairDeadlineReserve = null;
     let dispatchCount = 0;
     let stalledDispatches = 0;
     let suppliedApproval = ctx.approve || null;
@@ -1757,7 +1870,43 @@ export default class RunDispatchCommand extends FlowCommand {
         continue;
       }
 
-      let attempt = await this.runWorkerAttempt(ctx, invocation);
+      let repairDeadline = null;
+      if (TestReviewRepairDeadlinePolicy.appliesTo(validated)) {
+        repairDeadlineReserve ??= testReviewRepairDeadlineReserveFor({
+          configured: this.deadlineReserve,
+          agentConfig: ctx.config?.agent ?? {},
+        });
+        repairDeadline = new TestReviewRepairDeadlinePolicy({
+          reserve: repairDeadlineReserve,
+          nextAction: validated,
+        });
+      }
+      if (repairDeadline?.reached()) {
+        return this.failure(
+          ctx,
+          "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED",
+          "flow dispatch deadline reserve reached before a new worker could start",
+          {
+            ...blockedBoundary({
+              target,
+              nextAction: validated,
+              dispatchCount,
+              message: "The dispatcher preserved the active canonical resume state instead of starting work that cannot be safely sealed and reconciled.",
+            }),
+            deadlineReserve: repairDeadline.toJSON(),
+          },
+        );
+      }
+      const executionBudget = repairDeadline?.budget(ctx.config?.agent ?? {}) ?? null;
+      if (executionBudget !== null && executionBudget.workerTimeoutMs <= 0) {
+        return this.failure(
+          ctx,
+          "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED",
+          "flow dispatch deadline reserve leaves no safe worker execution budget",
+          { ...blockedBoundary({ target, nextAction: validated, dispatchCount, message: "The dispatcher retained time for seal, reconcile, and durable resume state." }), deadlineReserve: repairDeadline.toJSON() },
+        );
+      }
+      let attempt = await this.runWorkerAttempt(ctx, invocation, null, executionBudget);
       dispatchCount += 1;
       const deferredMetrics = attempt.deferredMetric ? [attempt.deferredMetric] : [];
       if (attempt.error) {
@@ -1809,10 +1958,22 @@ export default class RunDispatchCommand extends FlowCommand {
         const retryInvocation = freshWorkerInvocation(invocation, retryCurrent);
         const firstError = attempt.error;
         const firstRequest = attempt.handoffRequest;
+        const firstAgentError = attempt.agentError;
+        const retryBudget = repairDeadline?.budget(ctx.config?.agent ?? {}) ?? null;
+        if (retryBudget !== null && retryBudget.workerTimeoutMs <= 0) {
+          discardDeferredMetrics(deferredMetrics);
+          return this.failure(
+            ctx,
+            "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED",
+            "flow dispatch deadline reserve leaves no safe retry execution budget",
+            workerHandoffFailureData(ctx, target, firstError, firstRequest, dispatchCount, attempt.agentError),
+          );
+        }
         attempt = await this.runWorkerAttempt(
           ctx,
           retryInvocation,
           new WorkerArtifactRetryFeedback(firstError),
+          retryBudget,
         );
         if (attempt.deferredMetric) deferredMetrics.push(attempt.deferredMetric);
         dispatchCount += 1;
@@ -1824,8 +1985,11 @@ export default class RunDispatchCommand extends FlowCommand {
                 secondError: attempt.error,
                 firstRequest,
                 secondRequest: attempt.handoffRequest,
-              })
+            })
             : attempt.error;
+          if (exhausted instanceof WorkerArtifactHandoffError) {
+            exhausted.agentFailures = Object.freeze([firstAgentError, attempt.agentError].filter(Boolean));
+          }
           return this.failure(
             ctx,
             exhausted.code,
@@ -1844,6 +2008,8 @@ export default class RunDispatchCommand extends FlowCommand {
       }
       await flushDeferredMetrics(deferredMetrics);
       const agentError = attempt.agentError;
+
+      if (attempt.partialRepair) stalledDispatches = 0;
 
       const refreshed = await this.fetchNextAction(target);
       if (refreshed instanceof Envelope) {

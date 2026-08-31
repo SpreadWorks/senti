@@ -69,6 +69,7 @@ import {
 } from "./plan-gate-repair.js";
 import {
   canonicalTestReviewRepairForTarget,
+  canonicalTestReviewRepairProgress,
   inspectCanonicalTestReviewRepair,
 } from "./test-review-repair.js";
 import { captureRetryRecoveryBaseline, readRetryBaseline, retryEvidenceRouteForNode } from "./retry-recovery.js";
@@ -472,7 +473,16 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
     state,
     targetStepId: target.stepId,
   });
-  if (testReviewRepair) context.testReviewRepair = testReviewRepair.toWorkerJSON();
+  if (testReviewRepair) {
+    const progress = canonicalTestReviewRepairProgress({
+      flowManager: ctx.flowManager, state, repair: testReviewRepair, consumerNodeId: target.stepId,
+    });
+    const finding = progress.nextFinding(testReviewRepair);
+    if (finding === null) throw new Error("canonical test-review repair has no pending finding");
+    const testPaths = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state })
+      .testSources(target.stepId).map((source) => source.testPath);
+    context.testReviewRepair = testReviewRepair.forFinding(finding.findingId, testPaths);
+  }
   return context;
 }
 

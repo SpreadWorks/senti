@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { Container } from "../../../src/lib/container.js";
+import { AgentTimeoutFailure } from "../../../src/lib/agent-failure.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { flowCommands } from "../../../src/lib/command-registry.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
@@ -15,9 +16,14 @@ import {
   buildInitialTaskSteps,
 } from "../../../src/flow/definition.js";
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
-import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
+import {
+  FLOW_ARTIFACT_CONTRACTS,
+  FlowArtifactAttemptHistory,
+  FlowArtifactAttemptRecord,
+} from "../../../src/lib/flow-artifact-contract.js";
 import RunDispatchCommand, * as runDispatchModule from "../../../src/flow/lib/run-dispatch.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
+import RunRepairTestReviewCommand from "../../../src/flow/lib/run-repair-test-review.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
 import {
@@ -31,12 +37,14 @@ import {
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
 import {
   ApprovalTaskAdmission,
   CanonicalWorkerSpecPublication,
   CurrentFlowSpecRecord,
 } from "../../../src/flow/lib/current-flow-state.js";
 import { CanonicalSpecApproval } from "../../../src/flow/lib/canonical-spec-approval.js";
+import { readCanonicalSpecTestBootstrapObservation } from "../../../src/flow/lib/spec-test-bootstrap-validator.js";
 import { applySpecRepairOperations } from "../../../src/flow/lib/spec-repair-operations.js";
 import {
   CanonicalSpecReview,
@@ -151,6 +159,85 @@ function publishDraftBeforeTarget(value, draft) {
     }],
   });
   value.flow.settle("draft");
+}
+
+/** Drive the production repair command from a cataloged REJECTED test review. */
+function prepareCanonicalTestReviewRepair(value, { findingCount = 1 } = {}) {
+  const testBytes = Buffer.from([
+    "// spec: R1",
+    'import test from "node:test";',
+    'test("R1: keeps the premise", () => {});',
+    "",
+  ].join("\n"), "utf8");
+  value.flowManager.publishArtifacts({
+    specId: value.specId,
+    nodeId: "test",
+    artifactWrites: [{
+      logicalKey: "tests.source",
+      parameters: { testPath: "r1.test.js" },
+      mediaType: "text/javascript",
+      bytes: testBytes,
+    }],
+  });
+  value.flow.settle("test").activate("scenario-validity").settle("scenario-validity").activate("test-review");
+  const sourceRevision = new CanonicalTestArtifactStore({
+    flowManager: value.flowManager,
+    state: value.flowManager.load(value.specId),
+  }).testSourceRevision().toJSON();
+  const findings = Array.from({ length: findingCount }, (_, index) => ({
+    findingId: `header-r${index + 1}`,
+    fingerprint: String(index + 15).at(-1).repeat(64),
+    target: "r1.test.js:R1",
+    issue: "The header declares R1 but its test name is incomplete.",
+    requiredChange: `Add missing R1 assertion ${index + 1}.`,
+    title: `Header test repair ${index + 1}`,
+  }));
+  const evidenceFindings = findings.map((finding) => ({
+    findingId: finding.findingId,
+    fingerprint: finding.fingerprint,
+    summary: finding.title,
+    evidenceRefs: [`test-review.json#${finding.findingId}`],
+  }));
+  const attempt = value.flowManager.canonicalState(value.specId).attempt.sequence;
+  const history = new FlowArtifactAttemptHistory([new FlowArtifactAttemptRecord({
+    attempt,
+    payload: {
+      nodeId: "test-review",
+      outcome: "completed",
+      result: { result: "ok" },
+      artifact: {
+        logicalKey: "test.review",
+        payload: {
+          phase: "test",
+          verdict: "REJECTED",
+          blockingFindings: findings,
+          advisoryFindings: [],
+          sourceTestArtifactRevision: sourceRevision,
+          canonicalEvidence: {
+            disposition: "REJECTED",
+            blockingFindings: evidenceFindings,
+            advisoryFindings: [],
+            identity: { evidenceDigest: "e".repeat(64) },
+          },
+        },
+      },
+    },
+  })]);
+  value.flowManager.publishArtifacts({
+    specId: value.specId,
+    nodeId: "test-review",
+    artifactWrites: [{
+      logicalKey: "test.review",
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(history.toJSON())}\n`, "utf8"),
+    }],
+  });
+  const repair = new RunRepairTestReviewCommand().execute({
+    ...value.ctx,
+    flowState: value.flowManager.load(value.specId),
+    flowCommandBoundary: true,
+  });
+  assert.equal(repair.ok, true, JSON.stringify(repair));
 }
 
 function publishSpecProposal(value, proposed) {
@@ -924,6 +1011,30 @@ describe("worker artifact handoff", () => {
         .some((entry) => entry.relativePath === "artifacts/tests/future-1.test.js"), false);
       assert.equal(value.flowManager.artifactCatalog(value.specId).artifacts
         .some((entry) => entry.relativePath === "artifacts/tests/future-2.test.js"), true);
+      const observation = readCanonicalSpecTestBootstrapObservation({
+        flowManager: value.flowManager,
+        specId: value.specId,
+        consumerNodeId: "scenario-validity",
+      });
+      assert.notEqual(observation, null);
+      assert.equal(observation.deferred, true);
+      assert.equal(observation.issues.length, 1);
+      assert.deepEqual(observation.issues[0].toJSON(), {
+        relativeTestFile: "future-2.test.js",
+        specifier: "../../../src/not-yet-implemented.js",
+        line: 3,
+        expectedPath: "specs/500-worker-handoff/src/not-yet-implemented.js",
+      });
+      assert.equal(
+        readCanonicalSpecTestBootstrapObservation({
+          flowManager: value.flowManager,
+          specId: value.specId,
+          consumerNodeId: "test-review",
+        }).issues[0].toString(),
+        "future-2.test.js:3 statically imports missing pre-implementation module ../../../src/not-yet-implemented.js (specs/500-worker-handoff/src/not-yet-implemented.js)",
+      );
+      assert.equal(findStepById(state.steps, "test").result.artifactRefs
+        .some((reference) => reference.kind === "test-bootstrap-observation"), true);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -1564,6 +1675,14 @@ describe("worker artifact handoff", () => {
           .resolve("artifacts/tests/handoff.test.js").logicalKey,
         "tests.source",
       );
+      const cleanObservation = readCanonicalSpecTestBootstrapObservation({
+        flowManager: testValue.flowManager,
+        specId: testValue.specId,
+        consumerNodeId: "test-review",
+      });
+      assert.notEqual(cleanObservation, null);
+      assert.equal(cleanObservation.deferred, false);
+      assert.deepEqual(cleanObservation.issues, []);
     } finally {
       removeTmpDir(testValue.mainRoot);
     }
@@ -2765,6 +2884,10 @@ describe("worker artifact handoff", () => {
               const payloadPath = request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath;
               if (calls === 1) {
                 fs.writeFileSync(payloadPath, "{ malformed\n");
+                if (scenario.expectedCode !== null) {
+                  options.onSupervisorEvent({ type: "timeout", attempt: "first" });
+                  throw new AgentTimeoutFailure({ message: "first retryable producer timeout", cause: Object.assign(new Error("first timeout"), { stdout: "first stdout", stderr: "first stderr" }) });
+                }
                 return;
               }
               assert.match(prompt, /Fresh worker handoff retry feedback/);
@@ -2774,6 +2897,9 @@ describe("worker artifact handoff", () => {
                   requestPath,
                   invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
                 });
+              } else {
+                options.onSupervisorEvent({ type: "timeout", attempt: "second" });
+                throw new AgentTimeoutFailure({ message: "second retryable producer timeout", cause: Object.assign(new Error("second timeout"), { stdout: "second stdout", stderr: "second stderr" }) });
               }
             },
           },
@@ -2800,6 +2926,10 @@ describe("worker artifact handoff", () => {
           assert.equal(result.data.retryExhausted, true, scenario.name);
           assert.equal(result.data.attempts, 2, scenario.name);
           assert.match(result.data.first.message, /malformed JSON/, scenario.name);
+          assert.deepEqual(result.data.agentFailures.map((entry) => entry.code), ["AGENT_TIMEOUT", "AGENT_TIMEOUT"], scenario.name);
+          assert.deepEqual(result.data.agentFailures.map((entry) => entry.stdout), ["first stdout", "second stdout"], scenario.name);
+          assert.deepEqual(result.data.agentFailures.map((entry) => entry.supervisorEvents.at(-1).attempt), ["first", "second"], scenario.name);
+          assert.deepEqual(result.data.agentFailures.map((entry) => entry.cause.message), ["first timeout", "second timeout"], scenario.name);
           assert.match(result.data.second.message, /malformed JSON/, scenario.name);
           assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
         }
@@ -3575,6 +3705,243 @@ describe("worker artifact handoff", () => {
       );
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
       assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("keeps timeout diagnostics, payload state, progress, and the provider cause on a rejected handoff", async () => {
+    const value = fixture("draft", { specRecord: validSpec() });
+    try {
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return draftWorkerAction(); } },
+        agent: {
+          async call(_prompt, options) {
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath, "[]\n");
+            sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
+            const cause = Object.assign(new Error("provider timed out after sealing"), {
+              stdout: "partial worker stdout", stderr: "provider timeout stderr", timeoutMs: 42_000,
+            });
+            throw new AgentTimeoutFailure({ message: "provider timed out", cause });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx, flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_INVALID");
+      assert.equal(result.data.agentFailure.code, "AGENT_TIMEOUT");
+      assert.equal(result.data.agentFailure.attemptCount, 1);
+      assert.equal(result.data.agentFailure.stdout, "partial worker stdout");
+      assert.equal(result.data.agentFailure.stderr, "provider timeout stderr");
+      assert.equal(result.data.agentFailure.timeoutMs, 42_000);
+      assert.equal(result.data.lastProgress.stepId, "draft");
+      assert.equal(result.data.lastProgress.dispatchCount, 1);
+      assert.equal(result.data.payload.sealed, true);
+      assert.match(result.data.payload.requestPath, /request\.json$/);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("does not apply a repair deadline reserve to an ordinary draft worker", async () => {
+    const value = fixture("draft", { specRecord: validSpec() });
+    try {
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() {
+          return findStepById(value.flowManager.load().steps, "draft").status === "done"
+            ? completedWorkerAction() : draftWorkerAction();
+        } },
+        agent: { async call(_prompt, options) {
+          calls += 1;
+          const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+          const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+          fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath, json(draftDocument("ordinary deadline")));
+          sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
+        } },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({
+          deadline: Date.now(), reserveMs: 0,
+        }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx, flowState: value.flowManager.load(), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result));
+      assert.equal(calls, 1);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("keeps an ordinary worker on its configured Agent timeout despite a dispatch reserve", async () => {
+    const value = fixture("draft", { specRecord: validSpec() });
+    try {
+      let timeoutMs = null;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() {
+          return findStepById(value.flowManager.load().steps, "draft").status === "done"
+            ? completedWorkerAction() : draftWorkerAction();
+        } },
+        agent: { async call(_prompt, options) {
+          timeoutMs = options.timeoutMs;
+          const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+          const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+          fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath, json(draftDocument("deadline budget")));
+          sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
+        } },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: Date.now() + 10_000, reserveMs: 5_000 }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx, flowState: value.flowManager.load(), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result));
+      assert.equal(timeoutMs, undefined, "ordinary worker delegates timeout unchanged to Agent");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("uses the actual selected test-review repair action to stop before the reserve", async () => {
+    const value = fixture("test", { specRecord: validSpec() });
+    try {
+      prepareCanonicalTestReviewRepair(value);
+      const nextAction = new GetNextActionCommand();
+      const repairAction = await nextAction.execute({ ...value.ctx, flowState: value.flowManager.load(value.specId) });
+      assert.equal(repairAction.step, "test");
+      assert.ok(repairAction.context.testReviewRepair, "production next-action selects one repair capability");
+      let calls = 0;
+      const now = () => 10_000;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return repairAction; } },
+        agent: { async call() { calls += 1; } },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 10_000, reserveMs: 0, now }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.errors[0].code, "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED");
+      assert.equal(calls, 0);
+      assert.equal(result.data.deadlineReserve.remainingMs, 0);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("caps an actual selected test-review repair with the injected reserve clock", async () => {
+    const value = fixture("test", { specRecord: validSpec() });
+    try {
+      prepareCanonicalTestReviewRepair(value);
+      const repairAction = await new GetNextActionCommand().execute({ ...value.ctx, flowState: value.flowManager.load(value.specId) });
+      let timeoutMs = null;
+      const now = () => 10_000;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return repairAction; } },
+        agent: { async call(_prompt, options) {
+          timeoutMs = options.timeoutMs;
+          throw new Error("stop after observing repair timeout cap");
+        } },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 15_000, reserveMs: 2_000, now }),
+      });
+      dispatcher.container = {};
+      await dispatcher.execute({
+        ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(timeoutMs, 3_000, "deadline cap uses the injected clock, not wall-clock time");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("shares a repair episode reserve across findings and resumes with a fresh budget", async () => {
+    const value = fixture("test", { specRecord: validSpec() });
+    try {
+      prepareCanonicalTestReviewRepair(value, { findingCount: 2 });
+      let clock = 10_000;
+      let calls = 0;
+      const nextAction = {
+        async run() {
+          if (calls >= 2) return completedWorkerAction();
+          return new GetNextActionCommand().execute({ ...value.ctx, flowState: value.flowManager.load(value.specId) });
+        },
+      };
+      const worker = async (_prompt, options) => {
+        calls += 1;
+        const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+        const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+        const tree = request.payloads.find((entry) => entry.logicalName === "spec-tests").payloadPath;
+        fs.appendFileSync(path.join(tree, "r1.test.js"), `// repaired ${calls}\n`);
+        sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
+        if (calls === 1) clock = 14_000;
+      };
+      const first = new RunDispatchCommand({
+        nextAction,
+        agent: { call: worker },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 15_000, reserveMs: 1_000, now: () => clock }),
+      });
+      first.container = {};
+      const interrupted = await first.execute({
+        ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(interrupted.ok, false);
+      assert.equal(interrupted.errors[0].code, "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED");
+      assert.equal(calls, 1);
+      const progress = JSON.parse(value.flowManager.readArtifact({
+        specId: value.specId, logicalKey: "test.review.repair.progress", consumerNodeId: "test",
+      }).bytes);
+      assert.deepEqual(progress.entries.map((entry) => entry.status), ["done", "pending"]);
+
+      clock = 20_000;
+      const resumed = new RunDispatchCommand({
+        nextAction,
+        agent: { call: worker },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 30_000, reserveMs: 1_000, now: () => clock }),
+      });
+      resumed.container = {};
+      const completed = await resumed.execute({
+        ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
+        expectRunId: "run-worker-handoff", expectSpec: value.specId,
+        _envelopeType: "run", _envelopeKey: "dispatch",
+      });
+      assert.equal(completed.dispatch.boundary, "completed", JSON.stringify(completed));
+      assert.equal(calls, 2);
     } finally {
       removeTmpDir(value.mainRoot);
     }

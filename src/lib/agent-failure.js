@@ -102,6 +102,7 @@ export class AgentFailure extends Error {
   }
 
   toJSON() {
+    const timeoutDiagnostics = this.code === "AGENT_TIMEOUT";
     return {
       kind: this.kind,
       code: this.code,
@@ -112,6 +113,21 @@ export class AgentFailure extends Error {
       message: this.message,
       ...(this.providerExitCode != null ? { providerExitCode: this.providerExitCode } : {}),
       ...(this.signal != null ? { signal: this.signal } : {}),
+      ...(timeoutDiagnostics && this.timeoutMs != null ? { timeoutMs: this.timeoutMs } : {}),
+      ...(timeoutDiagnostics && this.graceMs != null ? { graceMs: this.graceMs } : {}),
+      ...(timeoutDiagnostics && this.finalAction != null ? { finalAction: this.finalAction } : {}),
+      ...(timeoutDiagnostics && this.stdout != null ? { stdout: this.stdout } : {}),
+      ...(timeoutDiagnostics && this.stdout == null ? { stdoutUnavailable: "provider produced no capturable stdout" } : {}),
+      ...(timeoutDiagnostics && this.stderr != null ? { stderr: this.stderr } : {}),
+      ...(timeoutDiagnostics && this.stderr == null ? { stderrUnavailable: "provider produced no capturable stderr" } : {}),
+      ...(timeoutDiagnostics && this.diagnosticLog != null ? { diagnosticLog: this.diagnosticLog } : {}),
+      ...(timeoutDiagnostics && Array.isArray(this.supervisorEvents) ? { supervisorEvents: this.supervisorEvents } : {}),
+      ...(timeoutDiagnostics && this.cause?.message ? {
+        cause: {
+          message: String(this.cause.message),
+          ...(this.cause.code != null ? { code: String(this.cause.code) } : {}),
+        },
+      } : {}),
     };
   }
 

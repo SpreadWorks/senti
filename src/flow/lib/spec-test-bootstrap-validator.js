@@ -109,21 +109,68 @@ class SpecTestStaticImport {
   }
 }
 
-class MissingSpecTestStaticImport {
-  constructor({ relativeTestFile, imported, expectedPath }) {
-    this.relativeTestFile = relativeTestFile;
-    this.imported = imported;
-    this.expectedPath = expectedPath;
+function requiredText(value, label) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${label} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requiredDigest(value, label) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error(`${label} must be a SHA-256 digest`);
+  }
+  return value;
+}
+
+function exactKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+    throw new Error(`${label} has an invalid schema`);
+  }
+}
+
+/** A single static test import which cannot resolve before implementation. */
+export class SpecTestBootstrapIssue {
+  constructor({ relativeTestFile, specifier, line, expectedPath }) {
+    this.relativeTestFile = requiredText(relativeTestFile, "bootstrap issue relativeTestFile");
+    this.specifier = requiredText(specifier, "bootstrap issue specifier");
+    if (!Number.isInteger(line) || line < 1) {
+      throw new Error("bootstrap issue line must be a positive integer");
+    }
+    this.line = line;
+    this.expectedPath = requiredText(expectedPath, "bootstrap issue expectedPath");
     Object.freeze(this);
   }
 
+  static fromJSON(value) {
+    exactKeys(value, ["relativeTestFile", "specifier", "line", "expectedPath"], "bootstrap issue");
+    return new SpecTestBootstrapIssue(value);
+  }
+
   toString() {
-    return `${this.relativeTestFile}:${this.imported.line} statically imports missing pre-implementation module ${this.imported.specifier} (${this.expectedPath})`;
+    return `${this.relativeTestFile}:${this.line} statically imports missing pre-implementation module ${this.specifier} (${this.expectedPath})`;
+  }
+
+  toJSON() {
+    return {
+      relativeTestFile: this.relativeTestFile,
+      specifier: this.specifier,
+      line: this.line,
+      expectedPath: this.expectedPath,
+    };
   }
 }
 
 export class SpecTestBootstrapValidation {
   constructor(issues) {
+    if (!Array.isArray(issues) || issues.some((issue) => !(issue instanceof SpecTestBootstrapIssue))) {
+      throw new Error("spec test bootstrap validation requires typed issues");
+    }
     this.issues = Object.freeze([...issues]);
     Object.freeze(this);
   }
@@ -135,6 +182,73 @@ export class SpecTestBootstrapValidation {
   assertValid() {
     if (!this.ok) throw new SpecTestBootstrapValidationError(this);
   }
+}
+
+/**
+ * Latest canonical observation of test bootstrap validity. A clean observation
+ * deliberately replaces a prior deferred one, preventing stale imports from
+ * being presented to scenario-validity or test-review after a later repair.
+ */
+export class SpecTestBootstrapObservation {
+  constructor({ actionDigest, inputDigest, inputRevision, handoffDigest, issues }) {
+    this.version = 1;
+    this.actionDigest = requiredDigest(actionDigest, "bootstrap observation actionDigest");
+    this.inputDigest = requiredDigest(inputDigest, "bootstrap observation inputDigest");
+    this.inputRevision = requiredDigest(inputRevision, "bootstrap observation inputRevision");
+    this.handoffDigest = requiredDigest(handoffDigest, "bootstrap observation handoffDigest");
+    if (!Array.isArray(issues) || issues.some((issue) => !(issue instanceof SpecTestBootstrapIssue))) {
+      throw new Error("bootstrap observation requires typed issues");
+    }
+    this.issues = Object.freeze([...issues]);
+    Object.freeze(this);
+  }
+
+  static fromJSON(value) {
+    exactKeys(value, ["version", "actionDigest", "inputDigest", "inputRevision", "handoffDigest", "issues"], "bootstrap observation");
+    if (value.version !== 1 || !Array.isArray(value.issues)) {
+      throw new Error("bootstrap observation has an invalid version or issues");
+    }
+    return new SpecTestBootstrapObservation({
+      ...value,
+      issues: value.issues.map((issue) => SpecTestBootstrapIssue.fromJSON(issue)),
+    });
+  }
+
+  get deferred() {
+    return this.issues.length > 0;
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      actionDigest: this.actionDigest,
+      inputDigest: this.inputDigest,
+      inputRevision: this.inputRevision,
+      handoffDigest: this.handoffDigest,
+      issues: this.issues.map((issue) => issue.toJSON()),
+    };
+  }
+}
+
+/** Read the typed, catalog-authorized observation for a downstream test step. */
+export function readCanonicalSpecTestBootstrapObservation({ flowManager, specId, consumerNodeId }) {
+  if (!flowManager || typeof flowManager.readArtifact !== "function") {
+    throw new Error("bootstrap observation reader requires a canonical Flow manager");
+  }
+  const artifact = flowManager.readArtifact({
+    specId,
+    logicalKey: "test.bootstrap.observation",
+    consumerNodeId: requiredText(consumerNodeId, "bootstrap observation consumerNodeId"),
+    optional: true,
+  });
+  if (artifact === null) return null;
+  let document;
+  try {
+    document = JSON.parse(artifact.bytes.toString("utf8"));
+  } catch (cause) {
+    throw new Error(`canonical bootstrap observation is malformed JSON: ${cause.message}`);
+  }
+  return SpecTestBootstrapObservation.fromJSON(document);
 }
 
 export class SpecTestBootstrapValidationError extends Error {
@@ -189,9 +303,10 @@ export class SpecTestBootstrapValidator {
       for (const imported of SpecTestStaticImport.fromSource(file, source)) {
         const expectedPath = this.expectedTarget(imported);
         if (existingRegularFile(expectedPath)) continue;
-        issues.push(new MissingSpecTestStaticImport({
+        issues.push(new SpecTestBootstrapIssue({
           relativeTestFile: path.relative(this.payloadTestsDir, file),
-          imported,
+          specifier: imported.specifier,
+          line: imported.line,
           expectedPath: path.relative(this.executionRoot, expectedPath),
         }));
       }

@@ -387,6 +387,24 @@ describe("Agent.call() — basic invocation", () => {
     afterTimeout.release();
   });
 
+  it("retains lexical stdout and stderr on supervisor-owned timeout rejection", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const provider = "process.stdout.write('timeout stdout'); process.stderr.write('timeout stderr'); setInterval(()=>{},1000);";
+    const agent = makeAgent(
+      { command: process.execPath, args: ["-e", provider] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") }, config: {
+        agent: { default: "test/exec", providers: { "test/exec": { command: process.execPath, args: ["-e", provider] } }, timeout: 0.2 },
+      } },
+    );
+    await assert.rejects(agent.call("", { commandId: "test", retryCount: 0, waitForProcessTree: true }), (error) => {
+      assert.equal(error.code, "AGENT_TIMEOUT");
+      assert.equal(error.stdout, "timeout stdout");
+      assert.equal(error.stderr, "timeout stderr");
+      return true;
+    });
+  });
+
   it("throws on failing command", async () => {
     const agent = makeAgent({ command: "node", args: ["-e", "process.exit(1)"] });
     await assert.rejects(agent.call("test", { commandId: "test" }));

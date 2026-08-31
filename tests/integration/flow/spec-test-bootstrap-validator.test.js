@@ -3,7 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 
-import { SpecTestBootstrapValidator } from "../../../src/flow/lib/spec-test-bootstrap-validator.js";
+import {
+  SpecTestBootstrapIssue,
+  SpecTestBootstrapObservation,
+  SpecTestBootstrapValidator,
+} from "../../../src/flow/lib/spec-test-bootstrap-validator.js";
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 
 let root;
@@ -81,6 +85,32 @@ test("rejects a missing production module before test handoff publication", () =
   assert.throws(
     () => result.assertValid(),
     /statically imports missing pre-implementation module \.\.\/\.\.\/\.\.\/src\/not-yet-implemented\.js/,
+  );
+});
+
+test("serializes exact bootstrap issues into a strict canonical observation", () => {
+  const issue = new SpecTestBootstrapIssue({
+    relativeTestFile: "future.test.js",
+    specifier: "../../../src/future.js",
+    line: 3,
+    expectedPath: "specs/001-bootstrap/src/future.js",
+  });
+  const observation = new SpecTestBootstrapObservation({
+    actionDigest: "a".repeat(64),
+    inputDigest: "b".repeat(64),
+    inputRevision: "c".repeat(64),
+    handoffDigest: "d".repeat(64),
+    issues: [issue],
+  });
+
+  assert.deepEqual(SpecTestBootstrapObservation.fromJSON(observation.toJSON()).toJSON(), observation.toJSON());
+  assert.throws(
+    () => SpecTestBootstrapObservation.fromJSON({ ...observation.toJSON(), extra: true }),
+    /invalid schema/,
+  );
+  assert.throws(
+    () => new SpecTestBootstrapObservation({ ...observation, issues: [{}] }),
+    /typed issues/,
   );
 });
 
