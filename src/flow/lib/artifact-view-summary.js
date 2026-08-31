@@ -15,8 +15,8 @@ import {
   stableArtifactViewJson,
 } from "./artifact-view-fingerprint.js";
 
-const SUMMARY_SCHEMA_REVISION = "artifact-view-summary-v2";
-const SUMMARY_CACHE_REVISION = "artifact-view-summary-cache-v2";
+const SUMMARY_SCHEMA_REVISION = "artifact-view-summary-v3";
+const SUMMARY_CACHE_REVISION = "artifact-view-summary-cache-v3";
 
 function plainText(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -143,23 +143,29 @@ export function splitArtifactViewSummary(fullView) {
   return Object.freeze(chunks);
 }
 
-function excerptSchema() {
+function excerptSchema(units) {
   return {
     type: "object",
     required: ["sourceRefs", "excerpt"],
     additionalProperties: false,
     properties: {
-      sourceRefs: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
-      excerpt: { type: "string", minLength: 1 },
+      sourceRefs: {
+        type: "array",
+        minItems: 1,
+        maxItems: 1,
+        items: { type: "string", enum: units.map((unit) => unit.id) },
+      },
+      excerpt: { type: "string", enum: units.map((unit) => unit.markdown) },
     },
   };
 }
 
-function identifiedExcerptSchema(identityName, identities, { status = false } = {}) {
+function identifiedExcerptSchema(identityName, identities, units, { status = false } = {}) {
+  const excerpt = excerptSchema(units);
   const properties = {
     [identityName]: { type: "string", enum: identities },
-    sourceRefs: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
-    excerpt: { type: "string", minLength: 1 },
+    sourceRefs: excerpt.properties.sourceRefs,
+    excerpt: excerpt.properties.excerpt,
   };
   const required = [identityName, "sourceRefs", "excerpt"];
   if (status) {
@@ -367,6 +373,7 @@ export class ArtifactViewSummaryContract {
     return [
       "Return only JSON that satisfies the supplied schema.",
       "Every returned excerpt must copy its cited source section exactly. Do not paraphrase, judge, recommend, merge, omit, or reorder items.",
+      "A source section is its complete renderer-declared Markdown range. Include its first Markdown heading and every trailing newline exactly; headings are content, not delimiters.",
       "Return only categories present in this section and retain every listed source item in order.",
       "Allowed source sections:",
       ...allowed,
@@ -389,8 +396,9 @@ function specChunkSchema(chunk) {
   const properties = {};
   const required = [];
   for (const [kind, property] of [["purpose", "purpose"], ["scope", "scope"], ["constraints", "constraints"], ["openQuestions", "openQuestions"]]) {
-    if (expectedFor(chunk, kind).length > 0) {
-      properties[property] = excerptSchema();
+    const expected = expectedFor(chunk, kind);
+    if (expected.length > 0) {
+      properties[property] = excerptSchema(expected);
       required.push(property);
     }
   }
@@ -398,7 +406,11 @@ function specChunkSchema(chunk) {
   if (requirements.length > 0) {
     properties.requirements = {
       type: "array",
-      items: identifiedExcerptSchema("requirementId", uniqueIdentities(requirements, "requirement")),
+      items: identifiedExcerptSchema(
+        "requirementId",
+        uniqueIdentities(requirements, "requirement"),
+        requirements,
+      ),
     };
     required.push("requirements");
   }
@@ -406,7 +418,7 @@ function specChunkSchema(chunk) {
   if (tasks.length > 0) {
     properties.tasks = {
       type: "array",
-      items: identifiedExcerptSchema("taskId", uniqueIdentities(tasks, "task")),
+      items: identifiedExcerptSchema("taskId", uniqueIdentities(tasks, "task"), tasks),
     };
     required.push("tasks");
   }
@@ -480,7 +492,7 @@ function acceptanceChunkSchema(chunk) {
     if (expected.length === 0) continue;
     properties[property] = {
       type: "array",
-      items: identifiedExcerptSchema(identityName, uniqueIdentities(expected, kind), { status }),
+      items: identifiedExcerptSchema(identityName, uniqueIdentities(expected, kind), expected, { status }),
     };
     required.push(property);
   }
@@ -581,32 +593,16 @@ export class SpecArtifactSummaryResult {
     const one = (kind) => entriesFor(this.entries, kind)[0].excerpt;
     const many = (kind) => entriesFor(this.entries, kind).map((entry) => entry.excerpt);
     return [
-      `# ${this.contract.title}`,
-      "",
-      `## ${this.contract.headings.purpose}`,
-      "",
+      `# ${this.contract.title}\n\n`,
       one("purpose"),
-      "",
-      `## ${this.contract.headings.scope}`,
-      "",
       one("scope"),
-      "",
-      `## ${this.contract.headings.constraints}`,
-      "",
       one("constraints"),
-      "",
-      `## ${this.contract.headings.openQuestions}`,
-      "",
       one("openQuestions"),
-      "",
-      `## ${this.contract.headings.requirements}`,
-      "",
-      ...many("requirement").flatMap((excerpt, index) => (index === 0 ? [excerpt] : ["", excerpt])),
-      "",
-      `## ${this.contract.headings.tasks}`,
-      "",
-      ...many("task").flatMap((excerpt, index) => (index === 0 ? [excerpt] : ["", excerpt])),
-    ].join("\n");
+      `## ${this.contract.headings.requirements}\n\n`,
+      ...many("requirement"),
+      `## ${this.contract.headings.tasks}\n\n`,
+      ...many("task"),
+    ].join("");
   }
 }
 

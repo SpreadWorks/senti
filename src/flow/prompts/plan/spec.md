@@ -1,6 +1,7 @@
    <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - **Before writing spec**:
      - Read `draft.json` only from the handoff `inputs[].document` snapshot and read linked GitHub issue content. Treat the draft snapshot as the primary input — do NOT re-read context already gathered in the draft phase.
+     - Write all human-readable prose in `spec.json` in the language specified by `config.lang`. Preserve code symbols, command names, paths, schema fields, and other technical identifiers exactly; `keywords` remains the explicit English-only exception below.
      - **Context gathering (supplement-first):** Only read additional context when draft + issue are insufficient.
        - If specific target files are unclear: `sennel flow get context --search "<request text or issue title>" --raw`.
        - If project structure is still unclear: `sennel flow get context <path> --raw` for specific files; `sennel flow get context --raw` only as a last resort.

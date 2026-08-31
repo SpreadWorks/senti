@@ -194,9 +194,15 @@ describe("artifact view summary", () => {
     assert.equal(agent.calls[0].options.flowAttribution, "none");
     assert.equal(agent.calls[0].options.cacheMode, "bypass");
     assert.deepEqual(agent.calls[0].options.jsonSchema.required, ["purpose", "scope", "constraints", "openQuestions", "requirements", "tasks"]);
+    assert.deepEqual(
+      agent.calls[0].options.jsonSchema.properties.purpose.properties.excerpt.enum,
+      [view.semanticUnits[0].markdown],
+    );
+    assert.match(agent.calls[0].prompt, /Include its first Markdown heading and every trailing newline exactly/);
     assert.match(result.markdown, /^# Specification summary/m);
     assert.match(result.markdown, /Keep this exact\./);
     assert.match(result.markdown, /Do the requested work\./);
+    assert.equal(result.markdown.match(/^## Purpose$/gm)?.length, 1);
     assert.equal(cache.writes.length, 1);
   });
 
