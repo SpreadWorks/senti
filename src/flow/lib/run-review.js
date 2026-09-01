@@ -649,6 +649,7 @@ export class RunReviewCommand extends FlowCommand {
         ...(testSources === null ? {} : {
           [PRODUCT.env("REVIEW_TEST_SOURCE_DIR")]: testSources.directory,
           [PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION")]: JSON.stringify(testSources.revision),
+          [PRODUCT.env("REVIEW_TEST_TOPOLOGY")]: JSON.stringify(testSources.topology),
         }),
         ...(taskSpec === null ? {} : {
           [PRODUCT.env("REVIEW_TASK_SPEC_SOURCE")]: JSON.stringify({

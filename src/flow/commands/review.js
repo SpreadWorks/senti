@@ -132,6 +132,7 @@ import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 import { resolveMaxAttempts } from "../definition.js";
 import { flattenSteps } from "../lib/step-tree.js";
 import { WorkerArtifactRevision } from "../lib/worker-artifact-revision.js";
+import { CanonicalSpecTestTopology } from "../lib/canonical-worker-artifacts.js";
 
 const REVIEW_PHASE_NODE_MAP = {
   "draft-questions": "draft-questions-review",
@@ -159,6 +160,7 @@ let reviewArtifactWritePolicy = new ReviewArtifactWritePolicy({ enabled: true })
 const REVIEW_OUTPUT_DIRECTORY_ENV = PRODUCT.env("REVIEW_OUTPUT_DIR");
 const REVIEW_TEST_SOURCE_DIRECTORY_ENV = PRODUCT.env("REVIEW_TEST_SOURCE_DIR");
 const REVIEW_TEST_ARTIFACT_REVISION_ENV = PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION");
+const REVIEW_TEST_TOPOLOGY_ENV = PRODUCT.env("REVIEW_TEST_TOPOLOGY");
 const REVIEW_TASK_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_SPEC_SOURCE");
 const REVIEW_DRAFT_SOURCE_ENV = PRODUCT.env("REVIEW_DRAFT_SOURCE");
 const REVIEW_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_SPEC_SOURCE");
@@ -316,6 +318,20 @@ function reviewTestArtifactRevision() {
     throw new Error(`${REVIEW_TEST_ARTIFACT_REVISION_ENV} must be JSON: ${error.message}`);
   }
   return WorkerArtifactRevision.from(revision);
+}
+
+function reviewTestSourceTopology(repositoryRoot) {
+  const serialized = process.env[REVIEW_TEST_TOPOLOGY_ENV];
+  if (serialized == null || serialized.trim() === "") {
+    throw new Error(`${REVIEW_TEST_TOPOLOGY_ENV} is required for test review`);
+  }
+  let topology;
+  try {
+    topology = JSON.parse(serialized);
+  } catch (error) {
+    throw new Error(`${REVIEW_TEST_TOPOLOGY_ENV} must be JSON: ${error.message}`);
+  }
+  return CanonicalSpecTestTopology.fromJSON(topology, { repositoryRoot });
 }
 
 function reviewTaskSpecSource(logicalPath) {
@@ -2272,12 +2288,22 @@ const TEST_REVIEW_PROMPT_CHAR_LIMIT = 1_000_000;
  * @param {string} specDir - relative spec directory
  * @returns {{ name: string, content: string, source: string }[]}
  */
-function collectTestFiles(root, specDir, { sourceDirectory = null, sourcePrefix = null } = {}) {
+function collectTestFiles(root, specDir, { sourceDirectory = null, sourceTopology = null } = {}) {
   const files = new Map();
 
   const specTestDir = sourceDirectory ?? path.resolve(root, specDir, "tests");
+  const topology = sourceTopology ?? new CanonicalSpecTestTopology({
+    repositoryRoot: path.resolve(root),
+    canonicalTestRoot: path.resolve(root, specDir, "tests"),
+  });
+  if (!(topology instanceof CanonicalSpecTestTopology)) {
+    throw new Error("test review source topology must be a CanonicalSpecTestTopology");
+  }
+  if (sourceDirectory !== null && sourceTopology === null) {
+    throw new Error("materialized test review sources require their canonical topology");
+  }
   if (fs.existsSync(specTestDir)) {
-    collectTestsRecursive(specTestDir, specTestDir, files, sourcePrefix ?? `${specDir}/tests/`);
+    collectTestsRecursive(specTestDir, specTestDir, files, topology);
   }
 
   return Array.from(files.values());
@@ -2286,15 +2312,15 @@ function collectTestFiles(root, specDir, { sourceDirectory = null, sourcePrefix 
 /**
  * Recursively collect test files from a directory.
  */
-function collectTestsRecursive(dir, baseDir, fileMap, sourcePrefix) {
+function collectTestsRecursive(dir, baseDir, fileMap, topology) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      collectTestsRecursive(full, baseDir, fileMap, sourcePrefix);
+      collectTestsRecursive(full, baseDir, fileMap, topology);
     } else if (/\.(test|spec)\.(js|ts|mjs)$/.test(entry.name)) {
       const relName = path.relative(baseDir, full);
       const content = fs.readFileSync(full, "utf8");
-      fileMap.set(relName, { name: relName, content, source: sourcePrefix + relName });
+      fileMap.set(relName, { name: relName, content, source: topology.sourcePath(relName) });
     }
   }
 }
@@ -3097,6 +3123,7 @@ async function runTestReview(root, flow, spec, config, dryRun) {
   const specDir = path.dirname(specPath);
   const outputDirectory = reviewOutputDirectory();
   const testSourceDirectory = reviewTestSourceDirectory();
+  const testSourceTopology = reviewTestSourceTopology(root);
   const sourceTestArtifactRevision = reviewTestArtifactRevision();
   sourceTestArtifactRevision.assertFlow(flow);
   if (sourceTestArtifactRevision.stepId !== "test") {
@@ -3154,7 +3181,7 @@ async function runTestReview(root, flow, spec, config, dryRun) {
 
   const testFiles = collectTestFiles(root, specDir, {
     sourceDirectory: path.join(testSourceDirectory, "tests"),
-    sourcePrefix: `${specDir}/tests/`,
+    sourceTopology: testSourceTopology,
   });
   let aiFindings;
   try {

@@ -27,6 +27,7 @@ import {
 } from "./review-convergence.js";
 import { DraftReviewEvidenceSet } from "./draft-review-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
+import { CanonicalSpecTestTopology } from "./canonical-worker-artifacts.js";
 import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
 import { draftReviewSourceStepIds } from "./draft-review-routes.js";
 import { ReviewWorkUnit, ReviewWorkUnitOutput, ReviewWorkUnitOutputReceipt } from "./review-work-unit.js";
@@ -669,6 +670,11 @@ export class CanonicalReviewWorkUnit {
         catalog,
         activities: ledger,
       }).toJSON(),
+      topology: CanonicalSpecTestTopology.fromWorkerTestTree({
+        flowManager: this.flowManager,
+        specId: this.state.specId,
+        repositoryRoot: this.workUnit.executionRoot,
+      }),
     });
   }
 

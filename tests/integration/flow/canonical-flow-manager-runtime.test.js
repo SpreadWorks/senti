@@ -234,7 +234,7 @@ function rejectedTestReviewCommand(onOutputDirectory) {
     resolveTargetStateDigest: () => "b".repeat(64),
     runCommand(_command, _args, options) {
       const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
-      onOutputDirectory(outputDirectory);
+      onOutputDirectory(outputDirectory, options.env);
       fs.writeFileSync(path.join(outputDirectory, "test-review.json"), `${JSON.stringify({
         version: 1,
         phase: "test",
@@ -4761,7 +4761,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
       },
     });
     let outputDirectory = null;
-    const review = rejectedTestReviewCommand((directory) => { outputDirectory = directory; });
+    let testTopology = null;
+    const review = rejectedTestReviewCommand((directory, environment) => {
+      outputDirectory = directory;
+      testTopology = JSON.parse(environment.SENNEL_REVIEW_TEST_TOPOLOGY);
+    });
     const ctx = {
       root: repository,
       mainRoot: repository,
@@ -4775,6 +4779,13 @@ describe("FlowManager canonical Version-1 runtime", () => {
     };
     const result = await review.execute(ctx);
     assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "test.review");
+    assert.deepEqual(testTopology, {
+      canonicalTestRoot: path.relative(
+        repository,
+        path.join(manager.specLocation(created.specId).directory, "artifacts", "tests"),
+      ).split(path.sep).join("/"),
+      staticRelativeImportBase: "each canonical test file",
+    });
 
     await FLOW_COMMANDS.run.review.post(ctx, result);
 

@@ -385,6 +385,35 @@ export class CanonicalSpecTestTopology {
     });
   }
 
+  static fromJSON(value, { repositoryRoot } = {}) {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("canonical spec test topology descriptor must be an object");
+    }
+    const keys = Object.keys(value).sort();
+    if (JSON.stringify(keys) !== JSON.stringify(["canonicalTestRoot", "staticRelativeImportBase"])) {
+      throw new Error("canonical spec test topology descriptor has invalid fields");
+    }
+    if (value.staticRelativeImportBase !== "each canonical test file") {
+      throw new Error("canonical spec test topology descriptor has an invalid import base");
+    }
+    const relativeRoot = requiredPath(value.canonicalTestRoot, "canonical spec test topology root");
+    const root = requiredText(repositoryRoot, "canonical spec test topology repository root");
+    if (!path.isAbsolute(root)) {
+      throw new Error("canonical spec test topology repository root must be absolute");
+    }
+    return new CanonicalSpecTestTopology({
+      repositoryRoot: root,
+      canonicalTestRoot: path.resolve(root, ...relativeRoot.split("/")),
+    });
+  }
+
+  sourcePath(relativeTestPath) {
+    return path.posix.join(
+      this.canonicalTestRoot,
+      requiredPath(relativeTestPath, "canonical spec test relative path"),
+    );
+  }
+
   toJSON() {
     return {
       canonicalTestRoot: this.canonicalTestRoot,

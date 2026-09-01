@@ -19,6 +19,7 @@ import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { container } from "../../../../src/lib/container.js";
 import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
 import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-review-artifacts.js";
+import { CanonicalSpecTestTopology } from "../../../../src/flow/lib/canonical-worker-artifacts.js";
 import { CanonicalSpecReview } from "../../../../src/flow/lib/spec-review-artifacts.js";
 import {
   REVIEW_WORK_UNIT_MANIFEST_ENV,
@@ -1177,6 +1178,13 @@ describe("canonical test review work-unit inputs", () => {
       "export const reviewInput = true;\n",
     );
     assert.equal(fs.existsSync(path.join(prepared.directory, "tests", "r1.test.js")), false);
+    assert.deepEqual(sources.topology.toJSON(), {
+      canonicalTestRoot: path.relative(
+        targetRoot,
+        path.join(fixture.location().directory, "artifacts", "tests"),
+      ).split(path.sep).join("/"),
+      staticRelativeImportBase: "each canonical test file",
+    });
   });
 });
 
@@ -1226,6 +1234,7 @@ describe("flow run review --phase test CLI", () => {
       "SENNEL_REVIEW_OUTPUT_DIR",
       "SENNEL_REVIEW_TEST_SOURCE_DIR",
       "SENNEL_REVIEW_TEST_ARTIFACT_REVISION",
+      "SENNEL_REVIEW_TEST_TOPOLOGY",
       "SENNEL_REVIEW_TASK_SPEC_SOURCE",
       "SENNEL_REVIEW_DRAFT_SOURCE",
       "SENNEL_REVIEW_SPEC_SOURCE",
@@ -1288,6 +1297,7 @@ describe("flow run review --phase test CLI", () => {
     for (const variable of [
       "SENNEL_REVIEW_TEST_SOURCE_DIR",
       "SENNEL_REVIEW_TEST_ARTIFACT_REVISION",
+      "SENNEL_REVIEW_TEST_TOPOLOGY",
       "SENNEL_REVIEW_TASK_SPEC_SOURCE",
       "SENNEL_REVIEW_DRAFT_SOURCE",
       "SENNEL_REVIEW_FILE_MAP_SOURCE",
@@ -1365,6 +1375,48 @@ describe("test-review spec-local file scope", () => {
     assert.ok(!files.some((f) => f.content === "helper module"));
     assert.ok(!files.some((f) => f.content === "text file"));
     assert.ok(!files.some((f) => f.content === "markdown file"));
+  });
+
+  it("renders materialized tests at their canonical artifact paths without leaking the work unit", () => {
+    tmp = createTmpDir();
+    const physicalTestRoot = join(tmp, ".sennel/review-work-units/test-review/attempt/inputs/tests");
+    write(".sennel/review-work-units/test-review/attempt/inputs/tests/example.test.js", [
+      "import support from '../../../../../tests/support/example.js';",
+      "test('R1: uses support', () => support());",
+    ].join("\n"));
+    write(".sennel/review-work-units/test-review/attempt/inputs/tests/nested/example.spec.js", [
+      "import support from '../../../../../../tests/support/example.js';",
+      "test('R1: nested support', () => support());",
+    ].join("\n"));
+    const topology = CanonicalSpecTestTopology.fromJSON(new CanonicalSpecTestTopology({
+      repositoryRoot: tmp,
+      canonicalTestRoot: join(tmp, "specs/demo/001/artifacts/tests"),
+    }).toJSON(), { repositoryRoot: tmp });
+
+    const files = collectTestFiles(tmp, "specs/demo/001", {
+      sourceDirectory: physicalTestRoot,
+      sourceTopology: topology,
+    });
+    const coverageArtifact = {
+      toPromptSummary() {
+        return {
+          requirements: [{ id: "R1", status: "covered", files: ["tests/example.test.js"] }],
+          files: [{ file: "tests/example.test.js", headerIds: ["R1"], testNameIds: ["R1"] }],
+        };
+      },
+    };
+    const prompt = buildTestReviewPrompt("- R1: Resolve repository support.", coverageArtifact, files);
+    const combined = `${prompt.systemPrompt}\n${prompt.userPrompt}`;
+
+    assert.match(combined, /### specs\/demo\/001\/artifacts\/tests\/example\.test\.js/);
+    assert.match(combined, /### specs\/demo\/001\/artifacts\/tests\/nested\/example\.spec\.js/);
+    assert.doesNotMatch(combined, /specs\/demo\/001\/tests\/example\.test\.js/);
+    assert.doesNotMatch(combined, new RegExp(physicalTestRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(combined, /"file": "tests\/example\.test\.js"/);
+    assert.equal(
+      path.resolve(tmp, path.dirname(files.find((file) => file.name === "example.test.js").source), "../../../../../tests/support/example.js"),
+      join(tmp, "tests/support/example.js"),
+    );
   });
 
   it("keeps test design in systemPrompt for gap-analysis and fix prompts", () => {
