@@ -10,6 +10,7 @@ import {
   CanonicalFlowArtifactBaseline,
   CanonicalWorkerSpecPublication,
   CurrentAttemptIdentity,
+  CurrentFlowIdentity,
 } from "./current-flow-state.js";
 import {
   captureRegularFile,
@@ -1346,11 +1347,169 @@ export class WorkerArtifactRepositoryMutationSnapshot {
   }
 }
 
+/**
+ * The only canonical Version advance that a source worker may coexist with.
+ *
+ * A worker can invoke the regular CLI while it is writing source files. The
+ * CLI records its usage as an append-only metric Activity, which changes the
+ * Version bytes but not the source handoff's semantic inputs. This value
+ * captures the already-validated Activity prefix at worker start and proves
+ * that the later Version is exactly that prefix plus metric observations.
+ */
+export class SourceWorkerCanonicalObservationAdvance {
+  constructor({ activityPrefix, activityBytes, mutablePaths, addedActivities = [] }) {
+    if (!Array.isArray(activityPrefix) || !Array.isArray(mutablePaths) || !Array.isArray(addedActivities)) {
+      throw new Error("source worker canonical observation advance requires Activity arrays");
+    }
+    if (!Buffer.isBuffer(activityBytes)) {
+      throw new Error("source worker canonical observation advance requires Activity journal bytes");
+    }
+    this.activityPrefix = Object.freeze(activityPrefix.map((activity) => stableStringify(activity)));
+    this.activityBytes = Buffer.from(activityBytes);
+    this.mutablePaths = Object.freeze(mutablePaths.map((entry) => normalizedRelativePath(
+      entry,
+      "source worker canonical observation path",
+    )));
+    this.addedActivities = Object.freeze(addedActivities.map((activity) => Object.freeze(structuredClone(activity))));
+    Object.freeze(this);
+  }
+
+  static capture({ flowManager, specId }) {
+    try {
+      const location = flowManager.specLocation(specId);
+      const activityPrefix = flowManager.activityLedger(specId);
+      const activityBytes = fs.readFileSync(location.activitiesFile);
+      return new SourceWorkerCanonicalObservationAdvance({
+        activityPrefix,
+        activityBytes,
+        mutablePaths: [
+          path.relative(location.directory, location.flowStateFile),
+          path.relative(location.directory, location.activitiesFile),
+          path.relative(location.directory, location.catalogFile),
+        ].map((entry) => entry.split(path.sep).join("/")),
+      });
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        `canonical Version is unreadable before source worker handoff: ${cause.message}`,
+        { cause, retryable: false },
+      );
+    }
+  }
+
+  assertAllowed({ flowManager, specId, canonicalSnapshot }) {
+    if (!(canonicalSnapshot instanceof WorkerArtifactRepositoryMutationSnapshot)) {
+      throw new Error("source worker canonical observation validation requires a canonical repository snapshot");
+    }
+    let current;
+    let location;
+    try {
+      // These readers validate the Version Store's catalog/state/journal
+      // consistency. Do not inspect raw files here: a readable Version is the
+      // only authority for deciding whether an observation is legitimate.
+      if (flowManager.load(specId) === null) {
+        throw new Error("canonical Version no longer exists");
+      }
+      current = flowManager.activityLedger(specId);
+      location = flowManager.specLocation(specId);
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        `canonical Version is unreadable after source worker handoff: ${cause.message}`,
+        { cause, retryable: false },
+      );
+    }
+    if (current.length < this.activityPrefix.length) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        "canonical Activity ledger no longer contains the worker-start prefix",
+        { retryable: false },
+      );
+    }
+    const prefixChanged = this.activityPrefix.some((activity, index) => (
+      stableStringify(current[index]) !== activity
+    ));
+    if (prefixChanged) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        "canonical Activity ledger changed before the worker-start prefix completed",
+        { retryable: false },
+      );
+    }
+    const addedActivities = current.slice(this.activityPrefix.length);
+    if (addedActivities.some((activity) => activity.transition?.operation !== "record_metric")) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        "canonical source handoff permits only appended record_metric Activities",
+        { retryable: false },
+      );
+    }
+    let currentSnapshot;
+    let activityBytes;
+    try {
+      currentSnapshot = WorkerArtifactRepositoryMutationSnapshot.capture({
+        root: canonicalSnapshot.root,
+        authorities: canonicalSnapshot.authorities,
+        ignoredDirectories: canonicalSnapshot.ignoredDirectories,
+        runtimeLocks: canonicalSnapshot.runtimeLocks,
+      });
+      activityBytes = fs.readFileSync(location.activitiesFile);
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        `canonical Version changed outside its validated Activity ledger: ${cause.message}`,
+        { cause, retryable: false },
+      );
+    }
+    const changedPaths = canonicalSnapshot.allChangedPaths(currentSnapshot);
+    const unexpectedPaths = changedPaths.filter((entry) => !this.mutablePaths.includes(entry));
+    const activityTail = Buffer.from(addedActivities.map((activity) => `${JSON.stringify(activity)}\n`).join(""), "utf8");
+    const exactJournalAppend = activityBytes.length >= this.activityBytes.length
+      && activityBytes.subarray(0, this.activityBytes.length).equals(this.activityBytes)
+      && activityBytes.subarray(this.activityBytes.length).equals(activityTail);
+    const unexplainedCanonicalChange = addedActivities.length === 0 && changedPaths.length > 0;
+    if (unexpectedPaths.length > 0 || !exactJournalAppend || unexplainedCanonicalChange) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+        "canonical source handoff contains a direct Version mutation outside record_metric publication",
+        {
+          retryable: false,
+          data: { changedPaths: changedPaths.slice(0, 20) },
+        },
+      );
+    }
+    return new SourceWorkerCanonicalObservationAdvance({
+      activityPrefix: current,
+      activityBytes,
+      mutablePaths: this.mutablePaths,
+      addedActivities,
+    });
+  }
+
+  toJSON() {
+    return {
+      kind: "source-worker-canonical-observation-advance",
+      addedActivityIds: this.addedActivities.map((activity) => activity.id),
+    };
+  }
+}
+
 export class WorkerArtifactMutationAuthoritySnapshot {
-  constructor({ specId, repositories, sourceMode = false }) {
+  constructor({ specId, repositories, sourceMode = false, canonicalObservationAdvance = null }) {
     this.specId = requiredString(specId, "worker artifact mutation authority specId");
     this.repositories = Object.freeze(repositories);
     this.sourceMode = sourceMode === true;
+    if (canonicalObservationAdvance !== null && !(canonicalObservationAdvance instanceof SourceWorkerCanonicalObservationAdvance)) {
+      throw new Error("source worker mutation authority requires a canonical observation baseline");
+    }
+    this.canonicalObservationAdvance = canonicalObservationAdvance;
     this.sourceRollbackCheckpoint = this.sourceMode
       ? new WorkerArtifactSourceRollbackCheckpoint(this.repositories)
       : null;
@@ -1397,6 +1556,12 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       return new WorkerArtifactMutationAuthoritySnapshot({
         specId: request.specId,
         sourceMode: request.policy.kind === "source",
+        canonicalObservationAdvance: request.policy.kind === "source"
+          ? SourceWorkerCanonicalObservationAdvance.capture({
+              flowManager: request.flowManager,
+              specId: request.specId,
+            })
+          : null,
         repositories: [...roots].map(([root, scope]) => (
           WorkerArtifactRepositoryMutationSnapshot.capture({
             root,
@@ -1438,6 +1603,56 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         },
       );
     }
+  }
+
+  assertSourceCanonicalTransaction(request) {
+    if (!this.sourceMode || !(request instanceof WorkerArtifactHandoffRequest)) {
+      throw new Error("source canonical transaction validation requires a source worker handoff request");
+    }
+    if (this.canonicalObservationAdvance === null) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+        "source worker handoff lacks its canonical observation baseline",
+        { retryable: false, recoveryPossible: false },
+      );
+    }
+    for (const captured of this.repositories) {
+      if (captured.authorities.includes("execution") || captured.authorities.includes("canonical")) continue;
+      const current = WorkerArtifactRepositoryMutationSnapshot.capture({
+        root: captured.root,
+        authorities: captured.authorities,
+        ignoredDirectories: captured.ignoredDirectories,
+        runtimeLocks: captured.runtimeLocks,
+      });
+      if (current.digest === captured.digest) continue;
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
+        "repository content changed outside the worker's dedicated handoff payload authority",
+        {
+          data: {
+            specId: this.specId,
+            authorities: captured.authorities,
+            changedPaths: captured.changedPaths(current),
+          },
+        },
+      );
+    }
+    const canonicalSnapshot = this.repositories.find((captured) => captured.authorities.includes("canonical"));
+    if (canonicalSnapshot === undefined) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+        "source worker handoff lacks its canonical Version authority snapshot",
+        { retryable: false, recoveryPossible: false },
+      );
+    }
+    return this.canonicalObservationAdvance.assertAllowed({
+      flowManager: request.flowManager,
+      specId: request.specId,
+      canonicalSnapshot,
+    });
   }
 
   assertSourceDiff({ stepId, completionStatus, effect }) {
@@ -1815,44 +2030,77 @@ class WorkerArtifactSourceRollbackCheckpoint {
   }
 }
 
+export class WorkerArtifactSemanticInputRevision {
+  constructor({
+    inputDigest,
+    flowIdentity,
+    attempt,
+    planGateRepair = null,
+    testReviewRepair = null,
+    acceptanceRepairRoute = null,
+  } = {}) {
+    this.inputDigest = requiredDigest(inputDigest, "worker artifact semantic input digest");
+    if (!(flowIdentity instanceof CurrentFlowIdentity)) {
+      throw new Error("worker artifact semantic input revision requires a canonical Flow identity");
+    }
+    this.flowIdentity = flowIdentity;
+    this.attempt = CurrentAttemptIdentity.from(attempt);
+    const baseRevision = digest(stableStringify({
+      inputDigest: this.inputDigest,
+      flowIdentity: this.flowIdentity.toJSON(),
+      attempt: this.attempt.toJSON(),
+    }));
+    if (acceptanceRepairRoute !== null) {
+      this.value = digest(stableStringify({ baseRevision, acceptanceRepairRoute: acceptanceRepairRoute.toJSON() }));
+    } else if (testReviewRepair !== null) {
+      this.value = digest(stableStringify({ baseRevision, testReviewRepair: testReviewRepair.toJSON() }));
+    } else if (planGateRepair !== null) {
+      this.value = digest(stableStringify({ baseRevision, planGateRepair: planGateRepair.toJSON() }));
+    } else {
+      this.value = baseRevision;
+    }
+    Object.freeze(this);
+  }
+
+  toString() {
+    return this.value;
+  }
+}
+
+function canonicalSemanticInputIdentity({ flowManager, state }) {
+  const canonical = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  if (!(canonical?.identity instanceof CurrentFlowIdentity)) {
+    throw new Error("worker handoff requires a canonical Flow identity");
+  }
+  if (canonical.attempt == null || canonical.attempt.failure !== null) {
+    throw new Error("worker handoff requires an active unfailed Attempt");
+  }
+  return Object.freeze({
+    flowIdentity: canonical.identity,
+    attempt: CurrentAttemptIdentity.from(canonical.attempt),
+  });
+}
+
 function inputRevision(inputDigest, {
-  attempt,
+  semanticIdentity,
   planGateRepair = null,
   testReviewRepair = null,
   acceptanceRepairRoute = null,
 } = {}) {
-  const baseRevision = digest(stableStringify({
+  return new WorkerArtifactSemanticInputRevision({
     inputDigest,
-    attempt: CurrentAttemptIdentity.from(attempt).toJSON(),
-  }));
-  if (acceptanceRepairRoute !== null) {
-    return digest(stableStringify({ baseRevision, acceptanceRepairRoute: acceptanceRepairRoute.toJSON() }));
-  }
-  if (testReviewRepair) {
-    return digest(stableStringify({
-      baseRevision,
-      testReviewRepair: testReviewRepair.toJSON(),
-    }));
-  }
-  if (!planGateRepair) return baseRevision;
-  return digest(stableStringify({
-    baseRevision,
-    planGateRepair: planGateRepair.toJSON(),
-  }));
+    flowIdentity: semanticIdentity.flowIdentity,
+    attempt: semanticIdentity.attempt,
+    planGateRepair,
+    testReviewRepair,
+    acceptanceRepairRoute,
+  }).toString();
 }
 
 function currentPlanGateRepair({ flowManager, state, stepId }) {
   return canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId: stepId });
-}
-
-function canonicalAttempt({ flowManager, state }) {
-  const canonical = typeof flowManager.canonicalState === "function"
-    ? flowManager.canonicalState(state.specId)
-    : state;
-  if (canonical?.attempt == null || canonical.attempt.failure !== null) {
-    throw new Error("worker handoff requires an active unfailed Attempt");
-  }
-  return canonical.attempt;
 }
 
 function currentTestReviewRepair({ flowManager, state, stepId }) {
@@ -2177,6 +2425,7 @@ export class WorkerArtifactHandoffRequest {
         testReviewRepairProgress.nextFinding(testReviewRepair).findingId,
         new CanonicalTestArtifactStore({ flowManager, state }).testSources("test").map((source) => source.testPath),
       );
+    const semanticIdentity = canonicalSemanticInputIdentity({ flowManager, state });
     return new WorkerArtifactHandoffRequest({
       mainRoot,
       executionRoot,
@@ -2188,7 +2437,7 @@ export class WorkerArtifactHandoffRequest {
       payloads,
       inputDigest: inputDigestValue,
       inputRevision: inputRevision(inputDigestValue, {
-        attempt: canonicalAttempt({ flowManager, state }),
+        semanticIdentity,
         planGateRepair,
         testReviewRepair,
         acceptanceRepairRoute,
@@ -2437,9 +2686,9 @@ export class WorkerArtifactHandoffRequest {
         "worker artifact handoff no longer matches the active Flow target or step",
       );
     }
-    let currentAttempt;
+    let semanticIdentity;
     try {
-      currentAttempt = canonicalAttempt({ flowManager: this.flowManager, state });
+      semanticIdentity = canonicalSemanticInputIdentity({ flowManager: this.flowManager, state });
     } catch (cause) {
       throw new WorkerArtifactHandoffError(
         "stale",
@@ -2520,7 +2769,7 @@ export class WorkerArtifactHandoffRequest {
       byteLength: input.byteLength,
     })), this.contextSnapshot);
     const currentRevision = inputRevision(currentDigest, {
-      attempt: currentAttempt,
+      semanticIdentity,
       planGateRepair,
       testReviewRepair,
       acceptanceRepairRoute,
@@ -4732,7 +4981,16 @@ export class WorkerArtifactHandoffCoordinator {
             { cause },
           );
     }
-    state ??= ctx.flowManager.load(request.specId);
+    try {
+      state ??= ctx.flowManager.load(request.specId);
+    } catch (cause) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `canonical Version is invalid before worker artifact handoff publication: ${cause.message}`,
+        { cause, retryable: false },
+      );
+    }
     return this.#reconcileCanonical({
       ctx, request, state, submission, mutationAuthority, bootstrapObservationAuthority,
     });
@@ -4944,7 +5202,7 @@ export class WorkerArtifactHandoffCoordinator {
         { retryable: false, data: { stepId: request.stepId, handoffDirectory: request.directory } },
       );
     }
-    mutationAuthority.assertUnchanged();
+    const canonicalObservationAdvance = mutationAuthority.assertSourceCanonicalTransaction(request);
     mutationAuthority.assertSourceDiff({
       stepId: request.stepId,
       completionStatus: effect.completionStatus,
@@ -4974,6 +5232,7 @@ export class WorkerArtifactHandoffCoordinator {
       stepId: receipt.stepId,
       handoffDigest: receipt.handoffDigest,
       payloadDigest: receipt.payloadDigest,
+      canonicalObservationAdvance: canonicalObservationAdvance.toJSON(),
     };
   }
 }
