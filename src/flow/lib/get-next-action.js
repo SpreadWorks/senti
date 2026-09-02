@@ -465,7 +465,7 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
   const planGateRepair = canonicalPlanGateRepairForTarget({
     flowManager: ctx.flowManager,
     state,
-    targetStepId: target.stepId,
+    targetStepId: target.nodeId,
   });
   if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
   const testReviewRepair = canonicalTestReviewRepairForTarget({

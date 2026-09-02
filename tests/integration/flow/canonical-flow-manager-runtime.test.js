@@ -74,11 +74,13 @@ import {
   WorkerArtifactHandoffRequest,
   WorkerArtifactPublicationJournal,
   WorkerArtifactMutationAuthoritySnapshot,
+  WorkerArtifactSemanticInputRevision,
   SourceMutationManifest,
   SourceWorkerEffect,
   sealWorkerArtifactHandoff,
   sourceMutationManifestForWorker,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { canonicalPlanGateRepairForTarget } from "../../../src/flow/lib/plan-gate-repair.js";
 
 function emptySourceMutationManifest(manager, specId) {
   return new SourceMutationManifest({
@@ -7192,7 +7194,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     }, /result lineage binding is invalid/);
   });
 
-  it("repairs a Task Gate only from its current receipt and sealed lifecycle plan", () => {
+  it("repairs a Task Gate only from its current receipt and sealed lifecycle plan", async () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     new TaskLifecycleFixture({
@@ -7290,6 +7292,41 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(repaired.findNode("T-1-gate").status, "invalidated");
     assert.equal(repaired.findNode("T-2-impl").status, "pending");
     assert.equal(manager.activityLedger(specId).at(-1).transition.gateTaskLifecycle.operation, "repair-task-impl");
+
+    const context = {
+      root: repository, mainRoot: repository, executionRoot: repository,
+      specId, flowManager: manager, flowState: manager.load(specId),
+    };
+    const workerAction = await new GetNextActionCommand().execute(context);
+    assert.equal(workerAction.step, "task-impl");
+    assert.equal(workerAction.taskId, "T-1");
+    assert.equal(workerAction.context.planGateRepair.targetStepId, "T-1-impl");
+
+    const handoff = new WorkerArtifactHandoffCoordinator().createRequest({
+      ctx: context,
+      state: manager.load(specId),
+      invocation: {
+        id: "task-gate-repair-worker",
+        target: { digest: "b".repeat(64) },
+        action: {
+          digest: "a".repeat(64),
+          nextAction: { step: "task-impl", taskId: "T-1" },
+        },
+      },
+    });
+    const canonicalRepair = canonicalPlanGateRepairForTarget({
+      flowManager: manager,
+      state: manager.load(specId),
+      targetStepId: "T-1-impl",
+    });
+    const expectedRevision = new WorkerArtifactSemanticInputRevision({
+      inputDigest: handoff.inputDigest,
+      flowIdentity: repaired.identity,
+      attempt: repaired.attempt,
+      planGateRepair: canonicalRepair,
+    });
+    assert.equal(handoff.inputRevision, expectedRevision.toString());
+    assert.doesNotThrow(() => handoff.assertCurrent(manager.load(specId)));
   });
 
   it("settles only definition-owned record and rewind failure dispositions", async () => {

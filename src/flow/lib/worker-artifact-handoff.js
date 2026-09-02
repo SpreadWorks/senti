@@ -2356,7 +2356,9 @@ function inputRevision(inputDigest, {
 }
 
 function currentPlanGateRepair({ flowManager, state, stepId }) {
-  return canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId: stepId });
+  const taskStep = TaskStepIdentity.active(state);
+  const targetStepId = taskStep?.definitionId === stepId ? taskStep.nodeId : stepId;
+  return canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId });
 }
 
 function currentTestReviewRepair({ flowManager, state, stepId }) {
