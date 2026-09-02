@@ -25,6 +25,7 @@ import RunDispatchCommand, * as runDispatchModule from "../../../src/flow/lib/ru
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunRepairTestReviewCommand from "../../../src/flow/lib/run-repair-test-review.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
+import SetMetricCommand from "../../../src/flow/lib/set-metric.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
 import {
   WorkerArtifactHandoffCoordinator,
@@ -688,6 +689,126 @@ describe("worker artifact handoff", () => {
 
       assert.deepEqual(readCatalogJson(value, "upgrade.result", "impl-gate"), upgrade);
       assert.equal(value.flowManager.activityLedger(value.specId).at(-1).nodeId, "implement");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("confirms a source handoff after regular flow set metric docsRead commands", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      assert.deepEqual(new SetMetricCommand().execute({
+        ...value.ctx,
+        phase: "impl",
+        counter: "docsRead",
+      }), { phase: "impl", counter: "docsRead" });
+      assert.deepEqual(new SetMetricCommand().execute({
+        ...value.ctx,
+        phase: "impl",
+        counter: "docsRead",
+      }), { phase: "impl", counter: "docsRead" });
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+
+      const result = value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
+
+      assert.deepEqual(result.canonicalObservationAdvance, {
+        kind: "source-worker-canonical-observation-advance",
+        addedActivityIds: value.flowManager.activityLedger(value.specId).slice(-3, -1).map((activity) => activity.id),
+      });
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "done");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a non-metric canonical Activity during a source handoff", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      value.flowManager.addNote("source worker must not alter canonical observations");
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "invalid"
+          && error.code === "FLOW_SOURCE_HANDOFF_CANONICAL_MUTATION_INVALID",
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "in_progress");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a direct canonical file mutation during a source handoff", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(path.join(canonicalSpecDir(value), "worker-direct-mutation.json"), "{}\n");
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError && error.classification === "invalid",
+      );
+      fs.unlinkSync(path.join(canonicalSpecDir(value), "worker-direct-mutation.json"));
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "in_progress");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a corrupted canonical Activity ledger during a source handoff", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const activitiesPath = value.flowManager.specLocation(value.specId).activitiesFile;
+      const originalActivities = fs.readFileSync(activitiesPath);
+      fs.writeFileSync(
+        activitiesPath,
+        originalActivities.toString("utf8").replace('"confirmationOrder":2', '"confirmationOrder":99'),
+      );
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(["product.js"]).toJSON()));
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      seal(request);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
+        (error) => error instanceof WorkerArtifactHandoffError && error.classification === "invalid",
+      );
+      fs.writeFileSync(activitiesPath, originalActivities);
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "in_progress");
     } finally {
       removeTmpDir(value.mainRoot);
     }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -129,6 +130,40 @@ function testReviewRepairWorkerAction() {
   };
 }
 
+function sourceWorkerAction() {
+  return {
+    taskId: null,
+    step: "implement",
+    action: "implement-source",
+    instructions: {
+      key: "plan.implement",
+      content: [
+        "Run `sennel flow get context docs/context.md --raw` exactly once and require it to succeed.",
+        "Then replace product.js with exactly `export const value = 2;` followed by a newline.",
+        "Run `npm run lint` and require it to succeed.",
+        "Do not modify any other source file.",
+        "Write the declared effects.json handoff payload with exactly this JSON document:",
+        JSON.stringify({
+          version: 1,
+          stepId: "implement",
+          completionStatus: "done",
+          files: [{ requirementId: "R1", paths: ["product.js"] }],
+          issues: [],
+          overview: null,
+          triage: null,
+          repair: null,
+        }),
+        "Run the exact sealCommand once after the context read, source check, and payload write all succeed.",
+      ].join(" "),
+    },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA, "utf8")),
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
+  };
+}
+
 function draftHandoffPayload(goal) {
   return {
     devType: "feature",
@@ -203,6 +238,91 @@ function action(stepId) {
 }
 
 describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
+  it("keeps a source handoff valid when a real worker reads context and checks its source", async () => {
+    const temporaryRoot = createTmpDir("worker-handoff-agent-source-");
+    const originalPath = process.env.PATH;
+    try {
+      const mainRoot = path.join(temporaryRoot, "main");
+      const executionRoot = path.join(temporaryRoot, "execution");
+      fs.mkdirSync(mainRoot, { recursive: true });
+      initGitRepo(mainRoot);
+      fs.mkdirSync(path.join(mainRoot, "docs"), { recursive: true });
+      fs.writeFileSync(path.join(mainRoot, ".gitignore"), ".sennel/\n.test-bin/\n.tmp/\n");
+      fs.writeFileSync(path.join(mainRoot, "docs", "context.md"), "# Context\n\nRead by the source worker.\n");
+      fs.writeFileSync(path.join(mainRoot, "package.json"), `${JSON.stringify({
+        scripts: { lint: "node --check product.js" },
+      }, null, 2)}\n`);
+      fs.writeFileSync(path.join(mainRoot, "product.js"), "export const value = 1;\n");
+      commitAll(mainRoot, "source worker baseline");
+      execFileSync(
+        "git",
+        ["-C", mainRoot, "worktree", "add", "-q", "-b", "feature/worker-handoff-agent-source", executionRoot],
+        { stdio: ["ignore", "pipe", "pipe"] },
+      );
+      process.env.PATH = `${installSennelWrapper(executionRoot)}${path.delimiter}${originalPath}`;
+
+      const specId = "507-worker-handoff-agent-source";
+      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+      const fixture = new CanonicalFlowFixture({
+        flowManager,
+        specId,
+        runId: "run-worker-handoff-agent-source",
+        request: "Read canonical context and complete a source worker handoff.",
+        execution: {
+          mode: "worktree",
+          baseBranch: "main",
+          featureBranch: "feature/worker-handoff-agent-source",
+        },
+        specRecord: {
+          goal: "Exercise source handoff observation advances",
+          requirements: [{ id: "R1", desc: "Update the exported value." }],
+        },
+      }).create().registerActive().activate("implement");
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(flowManager.load().steps, "implement").status === "done"
+              ? action(null)
+              : sourceWorkerAction();
+          },
+        },
+        agent: realCodexAgent({ mainRoot, executionRoot, flowManager }),
+        repositoryFingerprint: () => "real-agent-source-handoff",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        root: executionRoot,
+        executionRoot,
+        mainRoot,
+        specId,
+        flowManager,
+        flowState: flowManager.load(),
+        expectRunId: flowManager.load().runId,
+        expectSpec: specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 1);
+      const completed = flowManager.load();
+      assert.equal(findStepById(completed.steps, "implement").status, "done");
+      assert.equal(fs.readFileSync(path.join(executionRoot, "product.js"), "utf8"), "export const value = 2;\n");
+      const contextMetrics = completed.metrics.filter((entry) => entry.counter === "docsRead");
+      assert.equal(contextMetrics.length, 1);
+      assert.equal(contextMetrics[0].phase, "impl");
+      assert.equal(flowManager.activityLedger(specId).some((entry) => (
+        entry.transition.operation === "record_metric"
+        && entry.metric?.counter === "docsRead"
+      )), true);
+    } finally {
+      process.env.PATH = originalPath;
+      removeTmpDir(temporaryRoot);
+    }
+  });
+
   it("has a real Codex CLI worker hand off triage and repair to a downstream command", async () => {
     const mainRoot = createTmpDir("worker-handoff-agent-main-");
     const originalPath = process.env.PATH;
