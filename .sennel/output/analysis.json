@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-09-01T04:32:53.418Z",
+  "analyzedAt": "2026-09-02T02:28:28.377Z",
   "package": {
     "entries": [
       {
@@ -15318,9 +15318,9 @@
       },
       {
         "file": "src/flow/lib/worker-artifact-handoff.js",
-        "hash": "4f7154898374bc87ea30c4e6841373c8",
-        "lines": 4980,
-        "mtime": "2026-09-01T04:32:37.961Z",
+        "hash": "ba4eaf440d7dbe04bea0d59776298305",
+        "lines": 5239,
+        "mtime": "2026-09-02T02:27:52.677Z",
         "className": "worker-artifact-handoff",
         "methods": [
           "WorkerArtifactHandoffError",
@@ -15339,7 +15339,9 @@
           "SourceRepairEffect",
           "SourceWorkerEffect",
           "WorkerArtifactRepositoryMutationSnapshot",
+          "SourceWorkerCanonicalObservationAdvance",
           "WorkerArtifactMutationAuthoritySnapshot",
+          "WorkerArtifactSemanticInputRevision",
           "WorkerArtifactHandoffRequest",
           "WorkerArtifactManifestEntry",
           "WorkerArtifactHandoffSubmission",
@@ -15387,9 +15389,9 @@
           "indexedSourceRollbackEntry",
           "indexedSourceRollbackOperation",
           "filesystemSourceRollbackOperation",
+          "canonicalSemanticInputIdentity",
           "inputRevision",
           "currentPlanGateRepair",
-          "canonicalAttempt",
           "currentTestReviewRepair",
           "currentTestReviewRepairProgress",
           "restoredTestReviewRepairContext",
@@ -15488,7 +15490,9 @@
           "SourceRepairEffect",
           "SourceWorkerEffect",
           "WorkerArtifactRepositoryMutationSnapshot",
+          "SourceWorkerCanonicalObservationAdvance",
           "WorkerArtifactMutationAuthoritySnapshot",
+          "WorkerArtifactSemanticInputRevision",
           "WorkerArtifactHandoffRequest",
           "WorkerArtifactManifestEntry",
           "WorkerArtifactHandoffSubmission",
@@ -15510,23 +15514,25 @@
           "src/upgrade.js"
         ],
         "id": "58154956",
-        "summary": "Implements a secure, versioned handoff protocol for flow workers to exchange artifacts with the coordinator. It validates inputs, payload manifests, repository authority, repair progress, and publication state while supporting retries, quarantine, rollback, cleanup, and recovery.",
-        "detail": "The module defines step-specific handoff policies, typed request and submission models, bounded file and JSON readers, normalized path checks, and SHA-256 digests for integrity and identity. It captures Git or filesystem authority snapshots, detects unauthorized mutations, and provides guarded source rollback operations that preserve repository ownership boundaries. Canonical flow, draft-review, test-bootstrap, triage, repair, and upgrade artifacts are validated against persisted state before publication. Atomic writes, quarantine receipts, publication journals, runtime-directory cleanup, and coordinator reconciliation make handoffs recoverable and resistant to partial or tampered execution.",
+        "summary": "Implements the versioned worker-artifact handoff protocol for Flow tasks, including request creation, payload validation, sealing, publication, recovery, quarantine, and cleanup. It enforces canonical inputs, repository authority boundaries, typed repair contracts, and integrity checks throughout the worker lifecycle.",
+        "detail": "The module defines step-specific handoff policies, input contracts, payload rules, typed source-worker effects, and semantic revisions for canonical Flow state. It snapshots repository authority through Git or filesystem inspection, hashes bounded file contents, tracks runtime locks, and supports mutation checkpoints with rollback operations. Handoff requests and submissions use guarded execution paths, normalized relative paths, manifests, digests, size limits, atomic writes, and strict schema validation. The coordinator reconciles canonical and source-worker handoffs, validates draft, test-review, acceptance, specification, and upgrade artifacts, records receipts or quarantine data, and safely cleans completed or transient runtime directories.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "middleware",
         "enrich": {
-          "processedAt": "2026-09-01T04:33:27.162Z",
+          "processedAt": "2026-09-02T02:28:40.252Z",
           "attempts": 1
         },
         "keywords": [
           "worker handoff",
-          "artifact validation",
-          "payload manifest",
+          "artifact protocol",
+          "Flow orchestration",
+          "payload validation",
           "repository authority",
+          "integrity digest",
           "rollback",
-          "atomic publication",
           "quarantine",
-          "retry recovery"
+          "atomic write",
+          "runtime cleanup"
         ]
       },
       {
@@ -21879,9 +21885,9 @@
     ],
     "summary": {
       "total": 383,
-      "totalMethods": 4094
+      "totalMethods": 4096
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-09-01T04:33:27.179Z"
+  "enrichedAt": "2026-09-02T02:28:40.252Z"
 }
