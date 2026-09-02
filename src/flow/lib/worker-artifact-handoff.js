@@ -53,8 +53,10 @@ import {
 } from "./spec-repair-operations.js";
 import { applyDraftRepairOperations } from "./draft-repair-operations.js";
 import {
+  flowArtifactAuthorityForStep,
   requiresWorkerArtifactHandoff,
   requiresWorkerSourceHandoff,
+  SourceMutationAuthority,
 } from "./flow-artifact-authority.js";
 import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
 import {
@@ -428,6 +430,12 @@ export class WorkerArtifactHandoffPolicy {
       throw new Error(`worker source policy is not declared by the authority matrix: ${this.stepId}`);
     }
     this.kind = kind;
+    this.sourceMutation = kind === "source"
+      ? flowArtifactAuthorityForStep(this.stepId)?.sourceMutation
+      : null;
+    if ((kind === "source") !== (this.sourceMutation instanceof SourceMutationAuthority)) {
+      throw new Error(`worker source mutation policy is not declared by the authority matrix: ${this.stepId}`);
+    }
     this.inputContract = new WorkerArtifactInputContract({
       stepId: this.stepId,
       inputs,
@@ -594,15 +602,20 @@ export class WorkerArtifactInputSnapshot {
  * declares the catalog effects the parent may commit with completion.
  */
 export class SourceFileEffect {
-  constructor({ requirementId, paths } = {}) {
+  constructor({ requirementId, mutationIds } = {}) {
     this.requirementId = requiredString(requirementId, "source worker file requirementId");
-    if (!Array.isArray(paths) || paths.length === 0 || paths.length > MAX_PAYLOAD_FILES) {
-      throw new Error("source worker file paths must be a bounded non-empty array");
+    if (!Array.isArray(mutationIds) || mutationIds.length === 0 || mutationIds.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source worker file mutationIds must be a bounded non-empty array");
     }
-    this.paths = Object.freeze(paths.map((candidate) => normalizedRelativePath(candidate, "source worker file path")));
+    this.mutationIds = Object.freeze(mutationIds.map((candidate) => requiredDigest(candidate, "source worker file mutationId")));
+    if (new Set(this.mutationIds).size !== this.mutationIds.length) throw new Error("source worker file mutationIds must not duplicate");
     Object.freeze(this);
   }
-  toJSON() { return { requirementId: this.requirementId, paths: [...this.paths] }; }
+  resolvePaths(manifest) {
+    if (!(manifest instanceof SourceMutationManifest)) throw new Error("source worker file effect requires a SourceMutationManifest");
+    return this.mutationIds.map((mutationId) => manifest.pathForMutationId(mutationId));
+  }
+  toJSON() { return { requirementId: this.requirementId, mutationIds: [...this.mutationIds] }; }
 }
 
 export class SourceIssueEffect {
@@ -691,7 +704,7 @@ export class SourceWorkerEffect {
       throw new Error("source worker effect collections must be arrays");
     }
     this.files = Object.freeze(files.map((entry) => {
-      exactObjectKeys(entry, ["requirementId", "paths"], "source worker file effect");
+      exactObjectKeys(entry, ["requirementId", "mutationIds"], "source worker file effect");
       return new SourceFileEffect(entry);
     }));
     this.issues = Object.freeze(issues.map((entry) => {
@@ -1188,6 +1201,14 @@ function authorityFileEntry(root, relativePath, budget) {
   });
 }
 
+function gitIndexComparableEntry(entry) {
+  if (entry.kind !== "file" && entry.kind !== "symlink") return entry;
+  return new WorkerArtifactRepositoryEntry({
+    ...entry.toJSON(),
+    mode: entry.kind === "symlink" ? 0o777 : (entry.mode & 0o111) === 0 ? 0o644 : 0o755,
+  });
+}
+
 function filteredIndexDigest(bytes, ignoredDirectories, runtimeLocks) {
   const hash = crypto.createHash("sha256");
   for (const record of bytes.toString("utf8").split("\u0000").filter(Boolean)) {
@@ -1329,6 +1350,30 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     }
   }
 
+  static fromStored(value, { root, authorities = ["execution"] } = {}) {
+    exactObjectKeys(value, ["mode", "head", "indexDigest", "entries", "ignoredDirectories"], "source mutation baseline snapshot");
+    if (!Array.isArray(value.entries)) throw new Error("source mutation baseline snapshot entries must be an array");
+    return new WorkerArtifactRepositoryMutationSnapshot({
+      root,
+      authorities,
+      ignoredDirectories: value.ignoredDirectories,
+      mode: value.mode,
+      head: value.head,
+      indexDigest: value.indexDigest,
+      entries: value.entries,
+    });
+  }
+
+  toJSON() {
+    return {
+      mode: this.mode,
+      head: this.head,
+      indexDigest: this.indexDigest,
+      entries: this.entries.map((entry) => entry.toJSON()),
+      ignoredDirectories: [...this.ignoredDirectories],
+    };
+  }
+
 
   changedPaths(current) {
     return this.allChangedPaths(current).slice(0, 20);
@@ -1345,6 +1390,204 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     }
     return changed;
   }
+}
+
+/** Immutable source surface captured by the parent before one Attempt starts. */
+export class SourceMutationBaseline {
+  constructor({ attempt, snapshot } = {}) {
+    this.attempt = CurrentAttemptIdentity.from(attempt);
+    if (!(snapshot instanceof WorkerArtifactRepositoryMutationSnapshot)) {
+      throw new Error("source mutation baseline requires a repository snapshot");
+    }
+    const unobservableGitDirectories = snapshot.mode === "git"
+      ? snapshot.entries.filter((entry) => entry.kind === "directory").map((entry) => entry.path)
+      : [];
+    if (unobservableGitDirectories.length > 0) {
+      throw authoritySnapshotError(
+        "source mutation baseline cannot safely fingerprint dirty Git directories",
+        null,
+        { paths: unobservableGitDirectories.slice(0, 20) },
+      );
+    }
+    this.snapshot = snapshot;
+    this.digest = digest(stableStringify(this.unsignedJSON()));
+    Object.freeze(this);
+  }
+
+  static capture({ root, attempt, ignoredDirectories = [] } = {}) {
+    return new SourceMutationBaseline({
+      attempt,
+      snapshot: WorkerArtifactRepositoryMutationSnapshot.capture({
+        root,
+        authorities: ["execution"],
+        ignoredDirectories,
+      }),
+    });
+  }
+
+  static fromStored(value, { root } = {}) {
+    exactObjectKeys(value, ["attempt", "snapshot", "digest"], "source mutation baseline");
+    const baseline = new SourceMutationBaseline({
+      attempt: value.attempt,
+      snapshot: WorkerArtifactRepositoryMutationSnapshot.fromStored(value.snapshot, { root }),
+    });
+    if (baseline.digest !== requiredDigest(value.digest, "source mutation baseline digest")) {
+      throw new Error("source mutation baseline digest does not match its content");
+    }
+    return baseline;
+  }
+
+  unsignedJSON() { return { attempt: this.attempt.toJSON(), snapshot: this.snapshot.toJSON() }; }
+  toJSON() { return { ...this.unsignedJSON(), digest: this.digest }; }
+}
+
+export class SourceMutationEntry {
+  constructor({ mutationId, path: relativePath, changeKind, beforeDigest, afterDigest } = {}) {
+    this.mutationId = requiredDigest(mutationId, "source mutation id");
+    this.path = normalizedRelativePath(relativePath, "source mutation path");
+    this.changeKind = requiredString(changeKind, "source mutation changeKind");
+    if (!new Set(["added", "deleted", "content", "mode", "type"]).has(this.changeKind)) {
+      throw new Error("source mutation changeKind is invalid");
+    }
+    this.beforeDigest = beforeDigest === null ? null : requiredDigest(beforeDigest, "source mutation beforeDigest");
+    this.afterDigest = afterDigest === null ? null : requiredDigest(afterDigest, "source mutation afterDigest");
+    Object.freeze(this);
+  }
+  toJSON() { return { mutationId: this.mutationId, path: this.path, changeKind: this.changeKind, beforeDigest: this.beforeDigest, afterDigest: this.afterDigest }; }
+}
+
+/** Canonical, Attempt-bound declaration of actual source mutations. */
+export class SourceMutationManifest {
+  constructor({ attempt, baselineDigest, mutations = [] } = {}) {
+    this.attempt = CurrentAttemptIdentity.from(attempt);
+    this.baselineDigest = requiredDigest(baselineDigest, "source mutation manifest baselineDigest");
+    if (!Array.isArray(mutations)) throw new Error("source mutation manifest mutations must be an array");
+    this.mutations = Object.freeze(mutations.map((entry) => entry instanceof SourceMutationEntry ? entry : new SourceMutationEntry(entry))
+      .sort((left, right) => left.path.localeCompare(right.path)));
+    if (new Set(this.mutations.map((entry) => entry.mutationId)).size !== this.mutations.length
+      || new Set(this.mutations.map((entry) => entry.path)).size !== this.mutations.length) {
+      throw new Error("source mutation manifest mutations must be unique");
+    }
+    this.digest = digest(stableStringify(this.unsignedJSON()));
+    Object.freeze(this);
+  }
+
+  static mutationId(attempt, relativePath) {
+    return digest(stableStringify({ attempt: CurrentAttemptIdentity.from(attempt).toJSON(), path: normalizedRelativePath(relativePath, "source mutation id path") }));
+  }
+
+  static capture({ baseline } = {}) {
+    if (!(baseline instanceof SourceMutationBaseline)) throw new Error("source mutation manifest requires a baseline");
+    const current = WorkerArtifactRepositoryMutationSnapshot.capture({
+      root: baseline.snapshot.root,
+      authorities: baseline.snapshot.authorities,
+      ignoredDirectories: baseline.snapshot.ignoredDirectories,
+      runtimeLocks: baseline.snapshot.runtimeLocks,
+    });
+    const changed = baseline.snapshot.allChangedPaths(current);
+    if (changed.includes("<HEAD>") || changed.includes("<index>")) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_FINALIZE_AUTHORITY_VIOLATION", "source worker must not commit or stage repository changes", { retryable: false, data: { changedPaths: changed.slice(0, 20) } });
+    }
+    const before = new Map(baseline.snapshot.entries.map((entry) => [entry.path, entry]));
+    const after = new Map(current.entries.map((entry) => [entry.path, entry]));
+    const indexBudget = { bytes: 0 };
+    const mutations = changed.map((relativePath) => {
+      // Git snapshots intentionally record only dirty paths. With HEAD and
+      // index proven unchanged, recover a clean tracked path from its index
+      // object so a first Attempt edit/deletion has its real before state.
+      const indexedBefore = before.get(relativePath) === undefined && baseline.snapshot.mode === "git"
+        ? indexedSourceMutationBaselineEntry(baseline.snapshot.root, relativePath, indexBudget)
+        : null;
+      const indexedAfter = after.get(relativePath) === undefined && baseline.snapshot.mode === "git"
+        ? indexedSourceMutationCurrentEntry(baseline.snapshot.root, relativePath, indexBudget)
+        : null;
+      const left = before.get(relativePath) || indexedBefore || new WorkerArtifactRepositoryEntry({ path: relativePath, kind: "missing", mode: null, digest: null });
+      const recordedAfter = after.get(relativePath);
+      const right = recordedAfter === undefined
+        ? indexedAfter || new WorkerArtifactRepositoryEntry({ path: relativePath, kind: "missing", mode: null, digest: null })
+        : indexedBefore === null
+          ? recordedAfter
+          : gitIndexComparableEntry(recordedAfter);
+      const changeKind = left.kind === "missing" ? "added"
+        : right.kind === "missing" ? "deleted"
+          : left.kind !== right.kind ? "type"
+            : left.mode !== right.mode ? "mode" : "content";
+      if ((left.kind === "directory" || right.kind === "directory") && changeKind !== "type") return null;
+      return new SourceMutationEntry({
+        mutationId: SourceMutationManifest.mutationId(baseline.attempt, relativePath),
+        path: relativePath,
+        changeKind,
+        beforeDigest: left.digest,
+        afterDigest: right.digest,
+      });
+    }).filter((entry) => entry !== null);
+    return new SourceMutationManifest({ attempt: baseline.attempt, baselineDigest: baseline.digest, mutations });
+  }
+
+  static fromStored(value) {
+    exactObjectKeys(value, ["attempt", "baselineDigest", "mutations", "digest"], "source mutation manifest");
+    const manifest = new SourceMutationManifest(value);
+    if (manifest.digest !== requiredDigest(value.digest, "source mutation manifest digest")) throw new Error("source mutation manifest digest does not match its content");
+    return manifest;
+  }
+
+  unsignedJSON() { return { attempt: this.attempt.toJSON(), baselineDigest: this.baselineDigest, mutations: this.mutations.map((entry) => entry.toJSON()) }; }
+  toJSON() { return { ...this.unsignedJSON(), digest: this.digest }; }
+  paths() { return this.mutations.map((entry) => entry.path); }
+  pathForMutationId(mutationId) {
+    const entry = this.mutations.find((candidate) => candidate.mutationId === mutationId);
+    if (!entry) throw new Error(`source mutation id is absent from the current Attempt manifest: ${mutationId}`);
+    return entry.path;
+  }
+  assertBinding(baseline) {
+    if (!(baseline instanceof SourceMutationBaseline)) {
+      throw new Error("source mutation manifest binding requires a SourceMutationBaseline");
+    }
+    if (this.baselineDigest !== baseline.digest
+      || this.attempt.id !== baseline.attempt.id
+      || this.attempt.nodeId !== baseline.attempt.nodeId
+      || this.attempt.sequence !== baseline.attempt.sequence) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_MANIFEST_BINDING_INVALID",
+        "source mutation manifest does not bind the current Attempt baseline",
+        { retryable: false },
+      );
+    }
+    return this;
+  }
+  assertMatchesCurrent(baseline) {
+    const current = SourceMutationManifest.capture({ baseline });
+    if (current.digest !== this.digest) {
+      throw new WorkerArtifactHandoffError("stale", "FLOW_SOURCE_HANDOFF_MANIFEST_STALE", "source changed after its sealed mutation manifest; regenerate the handoff", { retryable: true, data: { expectedManifestDigest: this.digest, currentManifestDigest: current.digest } });
+    }
+    return current;
+  }
+}
+
+function indexedSourceMutationBaselineEntry(root, relativePath, budget) {
+  const mode = indexedSourceRollbackEntry(root, relativePath);
+  if (mode === null) return null;
+  const bytes = boundedGitOutput(root, ["show", `:${relativePath}`], `Git index baseline content for ${relativePath}`);
+  budget.bytes += bytes.length;
+  if (budget.bytes > MAX_AUTHORITY_TOTAL_FILE_BYTES) {
+    throw authoritySnapshotError(`source mutation baseline exceeds ${MAX_AUTHORITY_TOTAL_FILE_BYTES} bytes`);
+  }
+  return new WorkerArtifactRepositoryEntry({
+    path: relativePath,
+    kind: mode === 0o120000 ? "symlink" : "file",
+    // Git reports a file-type prefix (100644/100755/120000), while the
+    // filesystem authority records only lstat permission bits. Normalize the
+    // recovered clean baseline to that authority representation before
+    // deriving the change kind.
+    mode: mode === 0o120000 ? 0o777 : mode & 0o7777,
+    digest: digest(bytes),
+  });
+}
+
+function indexedSourceMutationCurrentEntry(root, relativePath, budget) {
+  if (indexedSourceRollbackEntry(root, relativePath) === null) return null;
+  return authorityFileEntry(root, relativePath, budget);
 }
 
 /**
@@ -1502,7 +1745,7 @@ export class SourceWorkerCanonicalObservationAdvance {
 }
 
 export class WorkerArtifactMutationAuthoritySnapshot {
-  constructor({ specId, repositories, sourceMode = false, canonicalObservationAdvance = null }) {
+  constructor({ specId, repositories, sourceMode = false, canonicalObservationAdvance = null, sourceMutationBaseline = null }) {
     this.specId = requiredString(specId, "worker artifact mutation authority specId");
     this.repositories = Object.freeze(repositories);
     this.sourceMode = sourceMode === true;
@@ -1510,6 +1753,10 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       throw new Error("source worker mutation authority requires a canonical observation baseline");
     }
     this.canonicalObservationAdvance = canonicalObservationAdvance;
+    if ((this.sourceMode) !== (sourceMutationBaseline instanceof SourceMutationBaseline)) {
+      throw new Error("source worker mutation authority requires an Attempt source baseline");
+    }
+    this.sourceMutationBaseline = sourceMutationBaseline;
     this.sourceRollbackCheckpoint = this.sourceMode
       ? new WorkerArtifactSourceRollbackCheckpoint(this.repositories)
       : null;
@@ -1556,6 +1803,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       return new WorkerArtifactMutationAuthoritySnapshot({
         specId: request.specId,
         sourceMode: request.policy.kind === "source",
+        sourceMutationBaseline: request.sourceMutationBaseline,
         canonicalObservationAdvance: request.policy.kind === "source"
           ? SourceWorkerCanonicalObservationAdvance.capture({
               flowManager: request.flowManager,
@@ -1655,8 +1903,15 @@ export class WorkerArtifactMutationAuthoritySnapshot {
     });
   }
 
-  assertSourceDiff({ stepId, completionStatus, effect }) {
+  assertSourceDiff({ policy, completionStatus, effect, manifest }) {
     if (!this.sourceMode) return Object.freeze([]);
+    if (!(policy instanceof WorkerArtifactHandoffPolicy) || !(policy.sourceMutation instanceof SourceMutationAuthority)) {
+      throw new Error("source diff validation requires a typed source mutation policy");
+    }
+    const { stepId } = policy;
+    if (!(manifest instanceof SourceMutationManifest)) throw new Error("source diff validation requires a SourceMutationManifest");
+    manifest.assertBinding(this.sourceMutationBaseline);
+    manifest.assertMatchesCurrent(this.sourceMutationBaseline);
     const changes = [];
     for (const captured of this.repositories) {
       if (!captured.authorities.includes("execution")) continue;
@@ -1677,8 +1932,8 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       }
       changes.push(...changed);
     }
-    const unique = [...new Set(changes)].sort();
-    const forbidden = unique.filter((entry) => entry.startsWith(".sennel/") || entry.startsWith("specs/"));
+    const observed = [...new Set(changes)].sort();
+    const forbidden = observed.filter((entry) => entry.startsWith(".sennel/") || entry.startsWith("specs/"));
     if (forbidden.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
@@ -1687,18 +1942,19 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         { retryable: false, data: { stepId, changedPaths: forbidden.slice(0, 20) } },
       );
     }
-    const declared = new Set(effect.files.flatMap((entry) => entry.paths));
-    const undeclared = [...declared].filter((entry) => !unique.includes(entry));
-    if (undeclared.length > 0) {
+    const unknownMutationIds = effect.files.flatMap((entry) => entry.mutationIds)
+      .filter((mutationId) => !manifest.mutations.some((mutation) => mutation.mutationId === mutationId));
+    if (unknownMutationIds.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
-        "FLOW_SOURCE_HANDOFF_EFFECT_PATH_INVALID",
-        "source worker effect declares paths absent from the validated source diff",
-        { retryable: false, data: { stepId, paths: undeclared.slice(0, 20) } },
+        "FLOW_SOURCE_HANDOFF_EFFECT_MUTATION_INVALID",
+        "source worker effect declares mutation IDs absent from the current Attempt manifest",
+        { retryable: false, data: { stepId, mutationIds: unknownMutationIds.slice(0, 20) } },
       );
     }
-    const noSourceDiff = stepId === "impl-triage" || (stepId === "implement" && completionStatus === "skipped");
-    if (noSourceDiff && unique.length > 0) {
+    const unique = manifest.paths();
+    const declared = new Set(effect.files.flatMap((entry) => entry.resolvePaths(manifest)));
+    if (policy.sourceMutation.forbidsDiff(completionStatus) && unique.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
         "FLOW_SOURCE_HANDOFF_DIFF_FORBIDDEN",
@@ -1714,7 +1970,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         { retryable: false, data: { stepId } },
       );
     }
-    const required = completionStatus === "done" && new Set(["implement", "impl-repair", "task-impl"]).has(stepId);
+    const required = policy.sourceMutation.requiresDiff(completionStatus);
     if (required && unique.length === 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
@@ -2264,6 +2520,7 @@ export class WorkerArtifactHandoffRequest {
     testReviewRepair = null,
     testReviewRepairProgress = null,
     workerVisibleTestReviewRepair = null,
+    sourceMutationBaseline = null,
     canonicalLocation = null,
     flowManager = null,
   }) {
@@ -2300,6 +2557,10 @@ export class WorkerArtifactHandoffRequest {
     this.testReviewRepair = testReviewRepair;
     this.testReviewRepairProgress = testReviewRepairProgress;
     this.workerVisibleTestReviewRepair = workerVisibleTestReviewRepair;
+    if ((policy.kind === "source") !== (sourceMutationBaseline instanceof SourceMutationBaseline)) {
+      throw new Error("source worker handoff requires exactly one SourceMutationBaseline");
+    }
+    this.sourceMutationBaseline = sourceMutationBaseline;
     this.inputs = Object.freeze(inputs);
     if (contextSnapshot != null && !(contextSnapshot instanceof DraftWorkerContextSnapshot)) {
       throw new Error("handoff contextSnapshot must be a DraftWorkerContextSnapshot or null");
@@ -2337,6 +2598,7 @@ export class WorkerArtifactHandoffRequest {
     this.payloadDirectory = path.join(this.directory, "payload");
     this.requestPath = path.join(this.directory, "request.json");
     this.submissionPath = path.join(this.directory, "handoff.json");
+    this.sourceMutationManifestPath = path.join(this.directory, "source-mutation-manifest.json");
     this.quarantinePath = path.join(this.directory, "quarantine.json");
     if (!isWithin(this.handoffRoot, this.directory)) throw new Error("handoff directory escapes its runtime authority");
     Object.freeze(this);
@@ -2426,6 +2688,17 @@ export class WorkerArtifactHandoffRequest {
         new CanonicalTestArtifactStore({ flowManager, state }).testSources("test").map((source) => source.testPath),
       );
     const semanticIdentity = canonicalSemanticInputIdentity({ flowManager, state });
+    const actionDirectory = handoffActionDirectory(
+      executionHandoffRoot(executionRoot, state.specId),
+      state.runId,
+      invocation.id,
+      invocation.action.digest,
+    );
+    const sourceMutationBaseline = policy.kind !== "source" ? null : SourceMutationBaseline.capture({
+      root: executionRoot,
+      attempt: semanticIdentity.attempt,
+      ignoredDirectories: [path.relative(executionRoot, actionDirectory).split(path.sep).join("/")],
+    });
     return new WorkerArtifactHandoffRequest({
       mainRoot,
       executionRoot,
@@ -2446,6 +2719,7 @@ export class WorkerArtifactHandoffRequest {
       testReviewRepair,
       testReviewRepairProgress,
       workerVisibleTestReviewRepair: selectedRepairContract,
+      sourceMutationBaseline,
       canonicalLocation: flowManager.specLocation(state.specId),
       flowManager,
     });
@@ -2529,6 +2803,7 @@ export class WorkerArtifactHandoffRequest {
         .map((input) => input.toJSON()),
       testReviewRepair: visibleRepair?.toJSON?.() ?? visibleRepair,
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
+      sourceMutationBaseline: this.sourceMutationBaseline?.toJSON() ?? null,
       payloads: this.payloads.map(({ rule, baselineDigest, baselineByteLength }) => ({
         logicalName: rule.logicalName,
         kind: rule.kind,
@@ -2626,6 +2901,7 @@ export class WorkerArtifactHandoffRequest {
         }).toJSON(),
       }),
       effectContract: this.sourceEffectContract(),
+      ...(this.sourceMutationBaseline !== null && { sourceMutationCommand: "sennel flow run source-mutation-manifest" }),
       sealCommand: "sennel flow run seal-handoff",
       completionOwner: "parent-dispatcher",
     };
@@ -2633,7 +2909,6 @@ export class WorkerArtifactHandoffRequest {
 
   sourceEffectContract() {
     if (this.policy.kind !== "source") return null;
-    const diffRequired = this.stepId === "impl-repair" || this.stepId === "task-impl" || this.stepId === "implement";
     const acceptanceRepairRoute = this.stepId === "impl-triage"
       && this.inputs.some((input) => input.name === "acceptance-review.json");
     return Object.freeze({
@@ -2646,7 +2921,7 @@ export class WorkerArtifactHandoffRequest {
         overview: this.stepId === "task-impl" ? "required additions object" : "must be null",
         triage: this.stepId === "impl-triage" ? "required { dispositions:[{ findingKey, disposition:apply|reject, rationale }] }" : "must be null",
         repair: this.stepId === "impl-repair" ? "required { appliedFindingKeys:[...], summary }" : "must be null",
-        sourceDiff: diffRequired ? "required for done; every changed source path must occur in files[].paths" : "optional",
+        sourceDiff: this.policy.sourceMutation.effectContract(),
         triageRoute: this.stepId !== "impl-triage" ? null : acceptanceRepairRoute
           ? "acceptance repair: classify every requirement:<id> and hard-blocker:<findingId> as apply"
           : "implementation review: classify every canonical review finding exactly once",
@@ -2832,6 +3107,7 @@ export class WorkerArtifactHandoffSubmission {
       "inputDigest",
       "inputRevision",
       "payloadManifest",
+      "sourceMutationManifest",
       "generatedAt",
       "handoffDigest",
     ], "worker artifact handoff submission");
@@ -2857,6 +3133,9 @@ export class WorkerArtifactHandoffSubmission {
     )));
     const total = this.payloadManifest.reduce((sum, entry) => sum + entry.byteLength, 0);
     if (total > MAX_TOTAL_PAYLOAD_BYTES) throw new Error("handoff total payload is oversized");
+    this.sourceMutationManifest = input.sourceMutationManifest === null
+      ? null
+      : SourceMutationManifest.fromStored(input.sourceMutationManifest);
     this.generatedAt = requiredString(input.generatedAt, "handoff generatedAt");
     if (!Number.isFinite(Date.parse(this.generatedAt))) throw new Error("handoff generatedAt must be an ISO timestamp");
     this.handoffDigest = requiredDigest(input.handoffDigest, "handoff handoffDigest");
@@ -2879,6 +3158,7 @@ export class WorkerArtifactHandoffSubmission {
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
       payloadManifest: this.payloadManifest.map((entry) => entry.toJSON()),
+      sourceMutationManifest: this.sourceMutationManifest?.toJSON() ?? null,
       generatedAt: this.generatedAt,
     };
   }
@@ -2932,6 +3212,7 @@ export class WorkerArtifactHandoffSubmission {
       inputDigest: request.inputDigest,
       inputRevision: request.inputRevision,
       payloadManifest: manifest.map((entry) => entry.toJSON()),
+      sourceMutationManifest: sealedSourceMutationManifest(request)?.toJSON() ?? null,
       generatedAt: now().toISOString(),
     };
     return new WorkerArtifactHandoffSubmission({
@@ -3121,8 +3402,8 @@ function requestFromStored(filePath) {
   const { document } = boundedJson(resolvedRequestPath, "worker artifact handoff request");
   exactObjectKeys(document, [
     "version", "runId", "specId", "issue", "stepId", "taskId", "actionDigest", "dispatchInvocationId",
-    "targetAuthority", "inputDigest", "inputRevision", "inputs", "testReviewRepair", "contextSnapshot",
-    "payloads", "generatedAt",
+      "targetAuthority", "inputDigest", "inputRevision", "inputs", "testReviewRepair", "contextSnapshot",
+    "payloads", "generatedAt", "sourceMutationBaseline",
   ], "worker artifact handoff request");
   if (document.version !== WORKER_ARTIFACT_HANDOFF_VERSION) {
     throw new Error(`worker artifact handoff version must be ${WORKER_ARTIFACT_HANDOFF_VERSION}`);
@@ -3184,6 +3465,7 @@ function requestFromStored(filePath) {
     payloadDirectory,
     requestPath: resolvedRequestPath,
     submissionPath: path.join(actionDirectory, "handoff.json"),
+    sourceMutationManifestPath: path.join(actionDirectory, "source-mutation-manifest.json"),
     payloads: policy.payloads.map((rule) => {
       const stored = storedPayloads.find((entry) => entry?.logicalName === rule.logicalName);
       return Object.freeze({
@@ -3211,6 +3493,9 @@ function requestFromStored(filePath) {
     contextSnapshot: document.contextSnapshot == null
       ? null
       : DraftWorkerContextSnapshot.fromStored(document.contextSnapshot),
+    sourceMutationBaseline: document.sourceMutationBaseline === null
+      ? null
+      : SourceMutationBaseline.fromStored(document.sourceMutationBaseline, { root: executionRoot }),
     payloadPath(logicalName) {
       const rule = policy.payloads.find((entry) => entry.logicalName === logicalName);
       if (!rule) throw new Error(`unknown handoff payload: ${logicalName}`);
@@ -3226,6 +3511,9 @@ function requestFromStored(filePath) {
   }
   if (requiresDraftWorkerContext(policy) !== (request.contextSnapshot != null)) {
     throw new Error("handoff request context snapshot does not match its step contract");
+  }
+  if ((policy.kind === "source") !== (request.sourceMutationBaseline instanceof SourceMutationBaseline)) {
+    throw new Error("handoff request source mutation baseline does not match its step policy");
   }
   request.requestDigest = digest(stableStringify(document));
   if (!isWithin(handoffRoot, request.requestPath) || !isWithin(handoffRoot, payloadDirectory)) {
@@ -3257,6 +3545,7 @@ function restoredStoredHandoffRequest({ mainRoot, executionRoot, state, stored, 
     inputRevision: stored.inputRevision,
     generatedAt: stored.generatedAt,
     workerVisibleTestReviewRepair: stored.testReviewRepair,
+    sourceMutationBaseline: stored.sourceMutationBaseline,
     canonicalLocation,
     flowManager,
   });
@@ -3292,6 +3581,7 @@ function reboundRestoredHandoffRequest({ identityRequest, mainRoot, executionRoo
     testReviewRepair,
     testReviewRepairProgress,
     workerVisibleTestReviewRepair: stored.testReviewRepair,
+    sourceMutationBaseline: stored.sourceMutationBaseline,
     canonicalLocation,
     flowManager,
   });
@@ -3409,6 +3699,45 @@ export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () 
       { cause },
     );
   }
+}
+
+/** Worker CLI surface that materializes the current Attempt mutation manifest sidecar. */
+export function sourceMutationManifestForWorker({ requestPath, invocationId } = {}) {
+  try {
+    const request = requestFromStored(path.resolve(requiredString(requestPath, "handoff request path")));
+    if (request.dispatchInvocationId !== requiredString(invocationId, "handoff invocation id")) {
+      throw new WorkerArtifactHandoffError("stale", "FLOW_ARTIFACT_HANDOFF_STALE", "handoff request belongs to another dispatch invocation");
+    }
+    if (request.policy.kind !== "source" || !(request.sourceMutationBaseline instanceof SourceMutationBaseline)) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", "source mutation manifest requires a source worker handoff", { retryable: false });
+    }
+    const manifest = SourceMutationManifest.capture({ baseline: request.sourceMutationBaseline });
+    new AtomicFile(request.sourceMutationManifestPath, { phaseNamespace: "source-mutation-manifest" })
+      .write(`${JSON.stringify(manifest.toJSON(), null, 2)}\n`);
+    return manifest.toJSON();
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", `source mutation manifest could not be generated: ${cause.message}`, { cause, retryable: false });
+  }
+}
+
+function sealedSourceMutationManifest(request) {
+  if (request.policy.kind !== "source") return null;
+  let manifest;
+  try {
+    manifest = SourceMutationManifest.fromStored(
+      boundedJson(request.sourceMutationManifestPath, "source mutation manifest").document,
+    );
+  } catch (cause) {
+    throw cause instanceof WorkerArtifactHandoffError ? cause : new WorkerArtifactHandoffError(
+      "invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_MISSING",
+      `source worker must generate its mutation manifest before sealing: ${cause.message}`,
+      { cause, retryable: true },
+    );
+  }
+  manifest.assertBinding(request.sourceMutationBaseline);
+  manifest.assertMatchesCurrent(request.sourceMutationBaseline);
+  return manifest;
 }
 
 export class WorkerArtifactPublicationJournal {
@@ -3604,6 +3933,14 @@ function validateSubmission(request, submission) {
       "FLOW_ARTIFACT_HANDOFF_STALE",
       "sealed worker artifact handoff does not match the guarded action or input revision",
     );
+  }
+  if (request.policy.kind === "source") {
+    if (!(submission.sourceMutationManifest instanceof SourceMutationManifest)) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_BINDING_INVALID", "sealed source handoff lacks its source mutation manifest", { retryable: false });
+    }
+    submission.sourceMutationManifest.assertBinding(request.sourceMutationBaseline);
+  } else if (submission.sourceMutationManifest !== null) {
+    throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", "non-source handoff must not contain a source mutation manifest", { retryable: false });
   }
   assertPayloadDirectoryMatchesManifest(request, submission.payloadManifest, "sealed handoff");
   const byLogicalName = new Map();
@@ -5194,6 +5531,10 @@ export class WorkerArtifactHandoffCoordinator {
       request.stepId,
     );
     const upgradeResult = optionalUpgradeResultBytes(request, submission);
+    const manifest = submission.sourceMutationManifest;
+    if (!(manifest instanceof SourceMutationManifest)) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", "sealed source handoff lacks its SourceMutationManifest", { retryable: false });
+    }
     if (!(mutationAuthority instanceof WorkerArtifactMutationAuthoritySnapshot)) {
       throw new WorkerArtifactHandoffError(
         "recovery-required",
@@ -5204,14 +5545,16 @@ export class WorkerArtifactHandoffCoordinator {
     }
     const canonicalObservationAdvance = mutationAuthority.assertSourceCanonicalTransaction(request);
     mutationAuthority.assertSourceDiff({
-      stepId: request.stepId,
+      policy: request.policy,
       completionStatus: effect.completionStatus,
       effect,
+      manifest,
     });
     try {
       ctx.flowManager.confirmSourceWorkerHandoff({
         specId: request.specId,
         effect,
+        mutationManifest: manifest,
         handoffDigest: submission.handoffDigest,
         result: canonicalHandoffResult(request, submission, this.now, { status: effect.completionStatus }),
         ...(upgradeResult === null ? {} : { upgradeResult }),

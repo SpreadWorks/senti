@@ -13,6 +13,7 @@ import {
 import { deriveNextAction, findActiveNode } from "../../../src/flow/definition.js";
 import {
   sealWorkerArtifactHandoff,
+  sourceMutationManifestForWorker,
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import {
@@ -38,14 +39,14 @@ import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import { validWorkerHandoffSpec, workerArtifactJson } from "../../support/infrastructure/worker-artifact.js";
 
-const TASK_ID = "T1";
+const TASK_IDS = Object.freeze(["T1", "T2"]);
 const PREPARATION_LEAVES = new Set(["branch", "prepare-spec"]);
 const USER_DECISION_LEAF = "acceptance-decision";
 
-function plannedTask() {
+function plannedTask(taskId) {
   return {
-    id: TASK_ID,
-    title: "Task one",
+    id: taskId,
+    title: `Task ${taskId}`,
     goal: "Exercise task effects.",
     acceptance: ["The task effect is recorded."],
     implementation_notes: "Exercise the command-owned fixture path.",
@@ -57,7 +58,7 @@ function plannedTask() {
   };
 }
 
-function sourceEffect(stepId) {
+function sourceEffect(stepId, manifest) {
   const base = {
     version: 1,
     stepId,
@@ -71,7 +72,7 @@ function sourceEffect(stepId) {
   if (stepId === "implement") {
     return {
       ...base,
-      files: [{ requirementId: "R1", paths: ["src/implementation.js"] }],
+      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/implementation.js").mutationId] }],
     };
   }
   if (stepId === "impl-triage") {
@@ -83,14 +84,14 @@ function sourceEffect(stepId) {
   if (stepId === "impl-repair") {
     return {
       ...base,
-      files: [{ requirementId: "R1", paths: ["src/repair.js"] }],
+      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/repair.js").mutationId] }],
       repair: { appliedFindingKeys: ["F1"], summary: "Applied the reviewed implementation correction." },
     };
   }
   if (stepId === "task-impl") {
     return {
       ...base,
-      files: [{ requirementId: "R1", paths: ["src/task.js"] }],
+      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/task.js").mutationId] }],
       overview: { modules: ["Task implementation module."], data_flow: [], decisions: [] },
     };
   }
@@ -129,7 +130,7 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
   if (stepId === "spec") {
     fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson({
       ...validWorkerHandoffSpec(),
-      tasks: [plannedTask()],
+      tasks: TASK_IDS.map((taskId) => plannedTask(taskId)),
     }));
     return;
   }
@@ -191,7 +192,7 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
   fs.writeFileSync(payloadPath(request, name), workerArtifactJson({ version: 1, phase: stepId, items: [], summary: "Deterministic handoff." }));
 }
 
-function writeSourcePayload(stepId, request, executionRoot) {
+function writeSourcePayload(stepId, request, executionRoot, requestPath) {
   const changed = {
     implement: "src/implementation.js",
     "impl-repair": "src/repair.js",
@@ -199,9 +200,11 @@ function writeSourcePayload(stepId, request, executionRoot) {
   }[stepId];
   if (changed) {
     fs.mkdirSync(path.dirname(path.join(executionRoot, changed)), { recursive: true });
-    fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}\n`);
+    fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}${request.taskId === null ? "" : ` ${request.taskId}`}\n`);
   }
-  fs.writeFileSync(payloadPath(request, "effects.json"), workerArtifactJson(sourceEffect(stepId)));
+  const manifest = sourceMutationManifestForWorker({ requestPath, invocationId: request.dispatchInvocationId });
+  fs.writeFileSync(payloadPath(request, "effects.json"), workerArtifactJson(sourceEffect(stepId, manifest)));
+  return manifest;
 }
 
 function completeArtifactHandoff({ coordinator, ctx, stepId, invocationId, logicalName, payload }) {
@@ -360,7 +363,9 @@ describe("deterministic full Flow worker handoff", () => {
       const guardedAction = (entry) => ({ ...actionFor(entry), binding });
 
       const staticRoute = fixture.leaves().map((step) => step.id).filter((id) => !PREPARATION_LEAVES.has(id));
-      const taskRoute = ["task-impl", "task-review", "task-gate"].map((stepId) => ({ stepId, taskId: TASK_ID }));
+      const taskRoute = TASK_IDS.flatMap((taskId) => (
+        ["task-impl", "task-review", "task-gate"].map((stepId) => ({ stepId, taskId }))
+      ));
       const implementationIndex = staticRoute.indexOf("implement");
       const initialImplementation = staticRoute.slice(implementationIndex);
       const repairIndex = initialImplementation.indexOf("impl-repair");
@@ -379,6 +384,7 @@ describe("deterministic full Flow worker handoff", () => {
       let specRepairCalls = 0;
       let rejectedRepairSnapshot = null;
       let implReviewRuns = 0;
+      const taskMutationPaths = [];
       const commandArtifactHistories = new Map();
       const coordinator = new WorkerArtifactHandoffCoordinator();
       const commandPublishedPrimaryArtifact = new Set([
@@ -471,15 +477,19 @@ describe("deterministic full Flow worker handoff", () => {
               const current = flowManager.load();
               assert.deepEqual(
                 findActiveNode(current),
-                { scope: "task", taskId: TASK_ID, stepId: "T1-impl" },
+                { scope: "task", taskId: request.taskId, stepId: `${request.taskId}-impl` },
                 JSON.stringify({ currentNodeId: current.currentNodeId, currentTaskId: current.currentTaskId }, null, 2),
               );
             }
             workerSteps.push(stepId);
             handoffCount += 1;
             try {
-              if (WORKER_SOURCE_HANDOFF_STEPS.includes(stepId)) writeSourcePayload(stepId, request, executionRoot);
-              else writeArtifactPayload(stepId, request, stepId === "spec-repair" ? ++specRepairCalls : 1);
+              if (WORKER_SOURCE_HANDOFF_STEPS.includes(stepId)) {
+                const manifest = writeSourcePayload(stepId, request, executionRoot, requestPath);
+                if (stepId === "task-impl") {
+                  taskMutationPaths.push({ taskId: request.taskId, paths: manifest.mutations.map((mutation) => mutation.path) });
+                }
+              } else writeArtifactPayload(stepId, request, stepId === "spec-repair" ? ++specRepairCalls : 1);
               sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
             } catch (error) {
               throw new Error(`${stepId} worker fixture failed: ${error.message}`, { cause: error });
@@ -508,6 +518,7 @@ describe("deterministic full Flow worker handoff", () => {
             advance(route[position]);
             return result;
           },
+          rollbackRejectedSourceHandoff(input) { return coordinator.rollbackRejectedSourceHandoff(input); },
         },
       });
       dispatcher.container = {};
@@ -537,7 +548,17 @@ describe("deterministic full Flow worker handoff", () => {
       assert.deepEqual(new Set(artifactWorkers), new Set(WORKER_ARTIFACT_HANDOFF_STEPS));
       assert.deepEqual(new Set(sourceWorkers), new Set(WORKER_SOURCE_HANDOFF_STEPS));
       assert.equal(specRepairCalls, 1, "one valid repair delta is confirmed without a correction loop");
-      assert.equal(handoffCount, WORKER_ARTIFACT_HANDOFF_STEPS.length + WORKER_SOURCE_HANDOFF_STEPS.length);
+      assert.equal(
+        handoffCount,
+        route.filter((entry) => (
+          WORKER_ARTIFACT_HANDOFF_STEPS.includes(entry.stepId)
+          || WORKER_SOURCE_HANDOFF_STEPS.includes(entry.stepId)
+        )).length,
+      );
+      assert.deepEqual(taskMutationPaths, [
+        { taskId: "T1", paths: ["src/task.js"] },
+        { taskId: "T2", paths: ["src/task.js"] },
+      ]);
       assert.equal(workerSteps.some((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), false);
       assert.equal(parentCommands.every((stepId) => flowArtifactAuthorityForStep(stepId)?.category === "command"), true);
       assert.equal(

@@ -1369,6 +1369,19 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    "source-mutation-manifest": {
+      helpKey: "flow.run.source-mutation-manifest",
+      requiresFlow: false,
+      skipAmbientFlowContext: true,
+      runtimeLog: { stepMetadata: false, writeWhenNoFlow: false },
+      command: () => import("./lib/run-source-mutation-manifest.js"),
+      args: { options: FLOW_RUN_RUNTIME_OPTIONS },
+      help: [
+        "Usage: sennel flow run source-mutation-manifest [--agent-work-dir <path>]",
+        "",
+        "Read the current source worker Attempt mutation manifest. This command does not mutate Flow state.",
+      ].join("\n"),
+    },
     "seal-handoff": {
       helpKey: "flow.run.seal-handoff",
       requiresFlow: false,

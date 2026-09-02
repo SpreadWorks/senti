@@ -74,9 +74,19 @@ import {
   WorkerArtifactHandoffRequest,
   WorkerArtifactPublicationJournal,
   WorkerArtifactMutationAuthoritySnapshot,
+  SourceMutationManifest,
   SourceWorkerEffect,
   sealWorkerArtifactHandoff,
+  sourceMutationManifestForWorker,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
+
+function emptySourceMutationManifest(manager, specId) {
+  return new SourceMutationManifest({
+    attempt: manager.canonicalState(specId).attempt,
+    baselineDigest: "a".repeat(64),
+    mutations: [],
+  });
+}
 import {
   FlowOutboxIdentity,
   FlowOutboxRecoveryClaim,
@@ -1383,6 +1393,10 @@ describe("FlowManager canonical Version-1 runtime", () => {
       repair: null,
     });
     fs.writeFileSync(handoff.payloadPath("effects.json"), `${JSON.stringify(effect.toJSON(), null, 2)}\n`);
+    sourceMutationManifestForWorker({
+      requestPath: handoff.requestPath,
+      invocationId: handoff.dispatchInvocationId,
+    });
     sealWorkerArtifactHandoff({
       requestPath: handoff.requestPath,
       invocationId: handoff.dispatchInvocationId,
@@ -1457,6 +1471,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
             }],
           },
         }),
+        mutationManifest: emptySourceMutationManifest(manager, created.specId),
         handoffDigest,
         result: {
           outcome: "passed",
@@ -1533,6 +1548,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         version: 1, stepId: "impl-triage", completionStatus: "done", files: [], issues: [], overview: null, repair: null,
         triage: { dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
       }),
+      mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "a".repeat(64),
       result: { outcome: "passed", summary: "triage", confirmedAt: "2026-08-18T00:00:00.000Z", artifactRefs: [] },
     });
@@ -1542,6 +1558,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         version: 1, stepId: "impl-repair", completionStatus: "done", files: [], issues: [], overview: null, triage: null,
         repair: { appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
       }),
+      mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "b".repeat(64),
       result: { outcome: "passed", summary: "repair", confirmedAt: "2026-08-18T00:01:00.000Z", artifactRefs: [] },
     });
@@ -4869,6 +4886,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         files: [], issues: [], overview: null, triage: null,
         repair: { appliedFindingKeys: ["finding-1"], summary: "Applied the reviewed implementation correction." },
       }),
+      mutationManifest: emptySourceMutationManifest(manager, created.specId),
       handoffDigest: "a".repeat(64),
       result: {
         outcome: "passed", summary: "Worker handoff confirmed for impl-repair.", confirmedAt,
@@ -5625,6 +5643,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         triage: null,
         repair: null,
       }),
+      mutationManifest: emptySourceMutationManifest(manager, created.specId),
       handoffDigest: "a".repeat(64),
       result: {
         outcome: "passed",
@@ -5664,6 +5683,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         triage: null,
         repair: null,
       }),
+      mutationManifest: emptySourceMutationManifest(manager, created.specId),
       handoffDigest: "b".repeat(64),
       result: {
         outcome: "passed",

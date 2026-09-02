@@ -18,15 +18,15 @@
    - Before writing code, form a concise implementation approach for each requirement and verify the existing modules and patterns it will reuse. This worker invocation cannot obtain a user reply.
    - If a genuine user decision is required, do not edit source or Flow state; report the blocker. Otherwise proceed directly once the approved Spec and planned tests are present.
    - Aim to make tests pass.
-   - Do not call `sennel flow set files`, `set issue-log`, or `set step`. Put the changed repo-relative paths, mapped to their requirement ids, only in the sealed source-worker effect payload; the parent validates and commits that file-map with completion.
+   - Do not call `sennel flow set files`, `set issue-log`, or `set step`. After edits, run the handoff `sourceMutationCommand`; put only its current Attempt mutation IDs, mapped to requirement ids, in the sealed source-worker effect payload. The parent resolves those IDs to paths and commits the file-map with completion.
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
    - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sennel/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.
    - **Placeholder artifact permission:** do not write hand-made placeholder test artifacts to satisfy the flow. If real execution is unavailable, use the `placeholder-permission.json` contract documented in the flow skill; without explicit user permission, flow-level `impl-gate` rejects placeholder artifacts with `ARTIFACT_PLACEHOLDER`.
    - **Prepare file-map before impl-gate:** before running the flow-level `impl-gate` / integration gate, prepare `file-map.json` by recording changed files for every testable requirement.
-     - Declare the files in sealed `effects.json`; do not invoke a Flow command.
+     - Declare manifest mutation IDs in sealed `effects.json`; do not invoke a Flow state command.
      - `reqId` is a spec requirement id, such as `R1`.
-     - Each `path` is a repo-relative changed file path.
+     - Each mutation ID comes from the current Attempt manifest.
      - Record at least one file-map entry for every testable requirement before proceeding to the flow-level `impl-gate`.
    - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, add a typed issue entry to `effects.json` before adjusting the spec or applying a workaround; the parent records it canonically.
    - **On complete**:

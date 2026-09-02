@@ -60,12 +60,40 @@ class SourceWorkerUpgradePublicationClaim extends ArtifactPublicationClaim {
 const PRODUCERS = new Set(["cli", "worker", "user"]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
 const CATEGORIES = new Set(["preparation", "command", "artifact", "source", "user"]);
+const SOURCE_MUTATION_MODES = new Set(["required", "forbidden"]);
 
 function requiredString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`Flow artifact authority ${field} is required`);
   }
   return value.trim();
+}
+
+/** Source-diff behavior owned by one source handoff authority entry. */
+export class SourceMutationAuthority {
+  constructor(mode) {
+    this.mode = requiredString(mode, "sourceMutation.mode");
+    if (!SOURCE_MUTATION_MODES.has(this.mode)) {
+      throw new Error(`invalid source mutation authority mode: ${this.mode}`);
+    }
+    Object.freeze(this);
+  }
+
+  requiresDiff(completionStatus) {
+    return this.mode === "required" && completionStatus === "done";
+  }
+
+  forbidsDiff(completionStatus) {
+    return this.mode === "forbidden" || completionStatus === "skipped";
+  }
+
+  effectContract() {
+    return this.mode === "required"
+      ? "required for done; every changed source mutation must occur in files[].mutationIds"
+      : "forbidden";
+  }
+
+  toJSON() { return this.mode; }
 }
 
 export class FlowArtifactAuthorityEntry {
@@ -81,6 +109,7 @@ export class FlowArtifactAuthorityEntry {
     category,
     workerHandoff = false,
     sourceHandoff = false,
+    sourceMutation = null,
   }) {
     this.stepId = requiredString(stepId, "stepId");
     this.producer = requiredString(producer, `${this.stepId}.producer`);
@@ -108,6 +137,7 @@ export class FlowArtifactAuthorityEntry {
     if (!CATEGORIES.has(this.category)) throw new Error(`invalid category for ${this.stepId}`);
     this.workerHandoff = workerHandoff === true;
     this.sourceHandoff = sourceHandoff === true;
+    this.sourceMutation = sourceMutation === null ? null : new SourceMutationAuthority(sourceMutation);
     if (this.workerHandoff && (
       this.producer !== "worker"
       || this.writableAuthority !== "dispatcher-handoff"
@@ -124,6 +154,9 @@ export class FlowArtifactAuthorityEntry {
       || this.recoveryOwner !== "dispatcher"
     )) {
       throw new Error(`worker source handoff ownership is inconsistent for ${this.stepId}`);
+    }
+    if (this.sourceHandoff !== (this.sourceMutation instanceof SourceMutationAuthority)) {
+      throw new Error(`source mutation authority is inconsistent for ${this.stepId}`);
     }
     if ((this.workerHandoff || this.sourceHandoff) && this.category === "command") {
       throw new Error(`handoff entry cannot be a command for ${this.stepId}`);
@@ -144,6 +177,7 @@ export class FlowArtifactAuthorityEntry {
       category: this.category,
       workerHandoff: this.workerHandoff,
       sourceHandoff: this.sourceHandoff,
+      sourceMutation: this.sourceMutation?.toJSON() ?? null,
     };
   }
 }
@@ -176,7 +210,7 @@ function preparationOwned(stepId, consumer = "next Flow leaf") {
   });
 }
 
-function workerSourceOwned(stepId, consumer = "next Flow leaf") {
+function workerSourceOwned(stepId, sourceMutation, consumer = "next Flow leaf") {
   return new FlowArtifactAuthorityEntry({
     stepId,
     producer: "worker",
@@ -188,6 +222,7 @@ function workerSourceOwned(stepId, consumer = "next Flow leaf") {
     recoveryOwner: "dispatcher",
     category: "source",
     sourceHandoff: true,
+    sourceMutation,
   });
 }
 
@@ -241,12 +276,12 @@ const ENTRIES = Object.freeze([
   workerHandoffOwned("test", "scenario-validity", "spec-test manifest and coverage validator"),
   commandOwned("scenario-validity", "governed test repair or test-review"),
   commandOwned("test-review", "governed test repair or implement"),
-  workerSourceOwned("implement", "test-execute"),
+  workerSourceOwned("implement", "required", "test-execute"),
   commandOwned("test-execute", "test-result-review"),
   commandOwned("test-result-review", "impl-review"),
   commandOwned("impl-review", "impl-triage or impl-gate"),
-  workerSourceOwned("impl-triage", "impl-repair or impl-gate"),
-  workerSourceOwned("impl-repair", "test-execute"),
+  workerSourceOwned("impl-triage", "forbidden", "impl-repair or impl-gate"),
+  workerSourceOwned("impl-repair", "required", "test-execute"),
   commandOwned("impl-gate", "retro"),
   commandOwned("retro", "acceptance-review"),
   commandOwned("acceptance-review", "acceptance-decision or final-regression"),
@@ -257,7 +292,7 @@ const ENTRIES = Object.freeze([
   commandOwned("finalize-merge", "finalize-sync"),
   commandOwned("finalize-sync", "finalize-cleanup"),
   commandOwned("finalize-cleanup", "terminal Flow state"),
-  workerSourceOwned("task-impl", "task-review"),
+  workerSourceOwned("task-impl", "required", "task-review"),
   commandOwned("task-review", "task-gate"),
   commandOwned("task-gate", "next task or implement"),
 ]);

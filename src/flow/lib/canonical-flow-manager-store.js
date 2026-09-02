@@ -105,7 +105,7 @@ import {
 import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
 import { CanonicalSpecReview } from "./spec-review-artifacts.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
-import { SourceWorkerEffect } from "./worker-artifact-handoff.js";
+import { SourceMutationManifest, SourceWorkerEffect } from "./worker-artifact-handoff.js";
 import {
   captureRetryRecoveryBaseline,
   containsRetryRecoveryArtifactWrite,
@@ -2828,13 +2828,22 @@ export class CanonicalFlowManagerStore {
    * Commit a sealed source-worker effect and its Attempt confirmation in one
    * Version Store transaction. Workers never receive this surface.
    */
-  confirmSourceWorkerHandoff({ specId = null, effect, handoffDigest, result, upgradeResult = null } = {}) {
+  confirmSourceWorkerHandoff({ specId = null, effect, mutationManifest, handoffDigest, result, upgradeResult = null } = {}) {
     const resolved = this.#resolveSpecId(specId);
     if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
     if (!(effect instanceof SourceWorkerEffect)) {
       throw new CurrentFlowStateInvariantError("canonical source worker effect must be a sealed SourceWorkerEffect");
     }
+    if (!(mutationManifest instanceof SourceMutationManifest)) {
+      throw new CurrentFlowStateInvariantError("canonical source worker handoff requires a sealed SourceMutationManifest");
+    }
     const state = this.runtime.load(resolved);
+    if (state.attempt === null
+      || mutationManifest.attempt.id !== state.attempt.id
+      || mutationManifest.attempt.nodeId !== state.attempt.nodeId
+      || mutationManifest.attempt.sequence !== state.attempt.sequence) {
+      throw new CurrentFlowStateInvariantError("canonical source worker mutation manifest does not target the current Attempt");
+    }
     const nodeId = state.current?.at(-1) ?? null;
     const effectTargetsActiveNode = nodeId === effect.stepId
       || (effect.stepId === "task-impl" && taskIdForNode(state, nodeId) !== null && nodeId.endsWith("-impl"));
@@ -2864,7 +2873,7 @@ export class CanonicalFlowManagerStore {
       const existing = this.readArtifact({ specId: resolved, logicalKey: "file.map", consumerNodeId: nodeId, optional: true });
       let fileMap = existing === null ? {} : JSON.parse(existing.bytes.toString("utf8"));
       for (const change of effect.files) {
-        fileMap = new CanonicalFileMapUpdate({ requirementId: change.requirementId, paths: change.paths })
+        fileMap = new CanonicalFileMapUpdate({ requirementId: change.requirementId, paths: change.resolvePaths(mutationManifest) })
           .apply({ spec, fileMap });
       }
       artifactWrites.push({ logicalKey: "file.map", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(fileMap, null, 2)}\n`, "utf8") });
