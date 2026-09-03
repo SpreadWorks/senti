@@ -16,6 +16,7 @@ import {
   sourceMutationManifestForWorker,
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { sourceWorkerEffectJsonSchema } from "../../../src/flow/lib/source-worker-effect-schema.js";
 import {
   DraftCompletionCatalogBinding,
   DraftCompletionLineage,
@@ -79,14 +80,14 @@ function sourceEffect(stepId, manifest) {
   if (stepId === "impl-triage") {
     return {
       ...base,
-      triage: { dispositions: [{ findingKey: "F1", disposition: "apply", rationale: "The reviewed source change must be applied." }] },
+      triage: { version: 1, dispositions: [{ findingKey: "F1", disposition: "apply", rationale: "The reviewed source change must be applied." }] },
     };
   }
   if (stepId === "impl-repair") {
     return {
       ...base,
       files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/repair.js").mutationId] }],
-      repair: { appliedFindingKeys: ["F1"], summary: "Applied the reviewed implementation correction." },
+      repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed implementation correction." },
     };
   }
   if (stepId === "task-impl") {
@@ -209,8 +210,7 @@ function writeSourcePayload(stepId, request, executionRoot, requestPath) {
     fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}${request.taskId === null ? "" : ` ${request.taskId}`}\n`);
   }
   const manifest = sourceMutationManifestForWorker({ requestPath, invocationId: request.dispatchInvocationId });
-  fs.writeFileSync(payloadPath(request, "effects.json"), workerArtifactJson(sourceEffect(stepId, manifest)));
-  return manifest;
+  return { manifest, effect: sourceEffect(stepId, manifest) };
 }
 
 function completeArtifactHandoff({ coordinator, ctx, stepId, invocationId, logicalName, payload }) {
@@ -337,7 +337,11 @@ function actionFor(route) {
     step: route.stepId,
     action: derived.action,
     instructions: { key: derived.instructionsKey, content: `Execute ${route.stepId}.` },
-    context: {}, output_schema: {}, requires_approval: derived.requiresApproval === true,
+    context: {},
+    output_schema: WORKER_SOURCE_HANDOFF_STEPS.includes(route.stepId)
+      ? sourceWorkerEffectJsonSchema(route.stepId)
+      : {},
+    requires_approval: derived.requiresApproval === true,
     ...(derived.autoApproveChoiceId ? { auto_approval_choice_id: derived.autoApproveChoiceId } : {}),
     directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: derived.action },
   };
@@ -491,11 +495,13 @@ describe("deterministic full Flow worker handoff", () => {
             handoffCount += 1;
             try {
               if (WORKER_SOURCE_HANDOFF_STEPS.includes(stepId)) {
-                const manifest = writeSourcePayload(stepId, request, executionRoot, requestPath);
+                const { manifest, effect } = writeSourcePayload(stepId, request, executionRoot, requestPath);
                 if (stepId === "task-impl") {
                   taskMutationPaths.push({ taskId: request.taskId, paths: manifest.mutations.map((mutation) => mutation.path) });
                 }
-              } else writeArtifactPayload(stepId, request, stepId === "spec-repair" ? ++specRepairCalls : 1);
+                return workerArtifactJson(effect);
+              }
+              writeArtifactPayload(stepId, request, stepId === "spec-repair" ? ++specRepairCalls : 1);
               sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
             } catch (error) {
               throw new Error(`${stepId} worker fixture failed: ${error.message}`, { cause: error });

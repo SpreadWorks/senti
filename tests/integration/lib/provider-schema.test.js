@@ -14,6 +14,11 @@ import {
   adaptJsonSchemaForProvider,
   CodexJsonSchema,
 } from "../../../src/lib/provider-schema.js";
+import {
+  sourceWorkerEffectJsonSchema,
+  sourceWorkerEffectSchemaRef,
+} from "../../../src/flow/lib/source-worker-effect-schema.js";
+import { WORKER_SOURCE_HANDOFF_STEPS } from "../../../src/flow/lib/flow-artifact-authority.js";
 
 const FLOW_SCHEMA_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -168,6 +173,32 @@ describe("provider JSON schema adaptation", () => {
     assert.ok(strict.required.includes("runtimeLog"));
     assert.deepEqual(strict.properties.runtimeLog.type, ["object", "null"]);
     assert.equal(strict.properties.runtimeLog.additionalProperties, false);
+  });
+
+  it("keeps every source worker response schema artifact aligned with the registry", () => {
+    const steps = ["implement", "impl-triage", "impl-repair", "task-impl"];
+    const rootKeys = ["completionStatus", "files", "issues", "noChangeReason", "overview", "repair", "stepId", "triage", "version"];
+    for (const stepId of steps) {
+      const ref = sourceWorkerEffectSchemaRef(stepId);
+      const artifact = loadFlowSchema(ref);
+      const schema = sourceWorkerEffectJsonSchema(stepId);
+      assert.deepEqual(schema, artifact, `${stepId} registry must load its definition artifact`);
+      assert.deepEqual([...schema.required].sort(), rootKeys, `${stepId} must preserve the common effect envelope`);
+      assertCodexCompatible(adaptJsonSchemaForProvider("codex", schema));
+    }
+  });
+
+  it("uses one source step set for authority, definition, and response schemas", () => {
+    const sourceSteps = [...WORKER_SOURCE_HANDOFF_STEPS].sort();
+    assert.deepEqual(sourceSteps, ["impl-repair", "impl-triage", "implement", "task-impl"]);
+    for (const stepId of sourceSteps) {
+      const scope = stepId === "task-impl" ? "task" : "flow";
+      assert.equal(
+        deriveNextAction({ scope, stepId }).outputSchemaRef,
+        sourceWorkerEffectSchemaRef(stepId),
+        `${stepId} definition must use the registry-owned schema reference`,
+      );
+    }
   });
 
   it("recursively normalizes constrained optional values and supported combinators", () => {

@@ -1,4 +1,4 @@
    - Read the canonical `impl-triage.json` supplied as an immutable handoff input and apply only its `apply` findings.
    - Do not run tests, delete evidence, edit Flow state, compute a canonical repair fingerprint, write `impl-repair.json`, invalidate steps, or call `set step`.
-   - Edit source files only. Run the handoff `sourceMutationCommand`, then declare its changed source mutation IDs and the typed `repair` result in `effects.json`. Set `triage` and `overview` null, then run its exact `sealCommand`.
+   - Edit source files only. Run the handoff `sourceMutationCommand`, then return its changed source mutation IDs and the typed `repair` result through the action's structured output. Set `triage` and `overview` null; do not write `effects.json` or run a seal command.
    - The parent validates the source diff and uses its fixed repair/invalidation transaction to publish repair evidence and advance the Flow.

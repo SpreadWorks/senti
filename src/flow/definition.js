@@ -41,6 +41,7 @@ import {
   flowReviewRouteForPhase,
   reviewPhaseForFlowStepId,
 } from "./lib/review-route.js";
+import { sourceWorkerEffectSchemaRef } from "./lib/source-worker-effect-schema.js";
 
 import {
   GateAttemptIdentity,
@@ -3176,7 +3177,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "run-impl",
         instructionsKey: "impl.implement",
         contextKinds: ["spec", "test", "overview"],
-        outputSchemaRef: "next-action/impl.schema.json",
+        outputSchemaRef: sourceWorkerEffectSchemaRef("implement"),
         maxAttempts: 3,
       }),
       new FlowNode({
@@ -3225,7 +3226,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-impl-triage",
         instructionsKey: "impl.impl-triage",
         contextKinds: ["spec", "diff"],
-        outputSchemaRef: "next-action/impl.schema.json",
+        outputSchemaRef: sourceWorkerEffectSchemaRef("impl-triage"),
         maxAttempts: 1,
       }),
       new FlowNode({
@@ -3234,7 +3235,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "run-impl-repair",
         instructionsKey: "impl.impl-repair",
         contextKinds: ["spec", "diff"],
-        outputSchemaRef: "next-action/impl.schema.json",
+        outputSchemaRef: sourceWorkerEffectSchemaRef("impl-repair"),
         maxAttempts: 3,
       }),
       new FlowNode({
@@ -3387,7 +3388,7 @@ const TASK_DEFINITION = Object.freeze([
     action: "run-impl",
     instructionsKey: "task.task-impl",
     contextKinds: canonicalTaskContextKinds("task-impl"),
-    outputSchemaRef: "next-action/impl.schema.json",
+    outputSchemaRef: sourceWorkerEffectSchemaRef("task-impl"),
     maxAttempts: 2,
   }),
   new FlowNode({
