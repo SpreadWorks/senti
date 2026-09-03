@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { captureRegularFile } from "../../lib/regular-file-snapshot.js";
+import { CanonicalTaskContext } from "./task-canonical-context.js";
 
 const SNAPSHOT_VERSION = 1;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -314,4 +315,77 @@ export class DraftWorkerContextSnapshot {
   toJSON() {
     return { ...this.unsignedJSON(), digest: this.digest };
   }
+}
+
+/** Immutable Task context carried through claim, dispatch, and publication. */
+export class TaskWorkerContextSnapshot {
+  constructor({ binding, context, digest: expectedDigest = null } = {}) {
+    if (!(binding instanceof WorkerContextBinding)) throw new Error("Task worker context requires a WorkerContextBinding");
+    if (!(context instanceof CanonicalTaskContext)) throw new Error("Task worker context requires a CanonicalTaskContext");
+    this.version = SNAPSHOT_VERSION;
+    this.kind = "task";
+    this.binding = binding;
+    this.context = context;
+    this.digest = digest(this.unsignedJSON());
+    if (expectedDigest !== null && this.digest !== expectedDigest) throw new Error("Task worker context snapshot digest is invalid");
+    Object.freeze(this);
+  }
+
+  static materialize({ state, invocation, flowManager, sourceFingerprint } = {}) {
+    const taskId = invocation?.action?.nextAction?.taskId;
+    const source = flowManager.readArtifact({
+      specId: state.specId,
+      logicalKey: "spec.record",
+      consumerNodeId: "task-impl",
+    });
+    let spec;
+    try { spec = JSON.parse(source.bytes.toString("utf8")); }
+    catch (cause) { throw new Error(`canonical Task context spec is invalid JSON: ${cause.message}`); }
+    return new TaskWorkerContextSnapshot({
+      binding: new WorkerContextBinding({
+        runId: state.runId,
+        specId: state.specId,
+        issue: state.issue ?? null,
+        dispatchInvocationId: invocation.id,
+        actionDigest: invocation.action.digest,
+        targetDigest: invocation.target?.digest,
+      }),
+      context: new CanonicalTaskContext({
+        state: { runId: state.runId, specId: state.specId, currentTaskId: taskId },
+        spec,
+        sourceFingerprint,
+      }),
+    });
+  }
+
+  static fromStored(value) {
+    if (value?.version !== SNAPSHOT_VERSION || value?.kind !== "task") throw new Error("Task worker context snapshot schema is invalid");
+    const document = value.context;
+    const context = new CanonicalTaskContext({
+      state: { runId: document?.lineage?.runId, specId: document?.lineage?.specId, currentTaskId: document?.lineage?.taskId },
+      spec: {
+        tasks: (document?.lineage?.taskIds || []).map((id) => id === document?.lineage?.taskId ? document?.task : { id }),
+        requirements: document?.requirements,
+        overview: document?.overview,
+      },
+      sourceFingerprint: document?.lineage?.sourceFingerprint,
+    });
+    if (context.fingerprint !== document?.fingerprint) throw new Error("Task worker context fingerprint is invalid");
+    return new TaskWorkerContextSnapshot({
+      binding: WorkerContextBinding.fromStored(value.binding),
+      context,
+      digest: requireDigest(value.digest, "Task worker context digest"),
+    });
+  }
+
+  assertBinding(value) {
+    if (!this.binding.matches(value)) throw new Error("Task worker context binding is stale");
+    return this;
+  }
+
+  unsignedJSON() {
+    return { version: this.version, kind: this.kind, binding: this.binding.toJSON(), context: this.context.readOnlyInput() };
+  }
+
+  toJSON() { return { ...this.unsignedJSON(), digest: this.digest }; }
 }

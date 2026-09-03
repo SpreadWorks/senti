@@ -14,6 +14,10 @@ function taskDocument(id, parent = null) {
   return { id, title: `Task ${id}`, goal: `Complete ${id}.`, parent, origin: "plan", added_round: 0, status: "pending" };
 }
 
+function mappedSpec(...taskIds) {
+  return { requirements: [{ id: "R-tasks", desc: "Exercise explicit Task selection.", task_ids: taskIds }] };
+}
+
 describe("T-5: Task selection and explicit claim boundaries", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -47,7 +51,7 @@ describe("T-5: Task selection and explicit claim boundaries", () => {
   it("canonical Task admission records pending Tasks without mutable sync input", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-canonical-admission" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-canonical-admission", specRecord: mappedSpec("T-1", "T-2") })
       .create().addTasks([taskDocument("T-1"), taskDocument("T-2")]).registerActive();
     const state = fixture.state();
     assert.deepEqual(state.tasks.map((task) => [task.id, task.status]), [["T-1", "pending"], ["T-2", "pending"]]);
@@ -75,7 +79,7 @@ describe("T-5: Task selection and explicit claim boundaries", () => {
   it("the next pending Task is claimed only by the typed startTask transition", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-explicit-claim" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-explicit-claim", specRecord: mappedSpec("T-1") })
       .create().addTasks([taskDocument("T-1")]).registerActive();
     fixture.prepareTaskFrontier();
     fm.startTask("T-1");

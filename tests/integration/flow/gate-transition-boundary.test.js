@@ -91,6 +91,7 @@ function facts(overrides = {}) {
     taskLifecycle: scope === "task"
       ? { taskId, nextTaskId: null, integrationStepId: "test-execute" }
       : null,
+    taskBudget: scope === "task" ? { round: 1, maximumRounds: 2 } : null,
     ...overrides,
   });
 }
@@ -373,9 +374,19 @@ describe("definition-owned Gate transition boundary", () => {
       operation: "repair-task-impl", taskId: "T-1", successorStepId: "T-1-impl",
       resetStepIds: ["T-1-impl", "T-1-review", "T-1-gate"],
     });
+    const firstRoundExhausted = resolveGateTransition(facts({
+      ...task.toJSON(), result: "fail", failure: { category: "semantic", code: "GATE_REJECTED" },
+      retry: { used: 4, maximum: 4 },
+      taskLifecycle: { taskId: "T-1", nextTaskId: null, integrationStepId: "test-execute" },
+    }));
+    assert.deepEqual(firstRoundExhausted.plan.taskLifecycle.toJSON(), {
+      operation: "repair-task-impl", taskId: "T-1", successorStepId: "T-1-impl",
+      resetStepIds: ["T-1-impl", "T-1-review", "T-1-gate"],
+    });
     const finalTask = resolveGateTransition(facts({
       ...task.toJSON(), result: "fail", failure: { category: "semantic", code: "GATE_REJECTED" },
       retry: { used: 4, maximum: 4 },
+      taskBudget: { round: 2, maximumRounds: 2 },
       taskLifecycle: { taskId: "T-1", nextTaskId: null, integrationStepId: "test-execute" },
     }));
     assert.deepEqual(finalTask.plan.taskLifecycle.toJSON(), {
@@ -559,6 +570,48 @@ describe("definition-owned Gate transition boundary", () => {
     assert.ok(doneIndex >= 0);
     assert.equal(actions.length, 2);
     assert.equal(actions[1] instanceof IncrementMetric, true);
+  });
+
+  it("skips Task Gate only for a current reviewed no-change result", () => {
+    const flowState = {
+      tasks: [{ id: "T-1", steps: [{ id: "T-1-impl" }, { id: "T-1-review" }, { id: "T-1-gate" }] }],
+    };
+    const actions = resolveLifecycle({
+      event: "review:post",
+      currentStepId: "T-1-review",
+      phase: "impl",
+      flowState,
+      result: {
+        result: "ok",
+        artifacts: {
+          phase: "impl",
+          taskId: "T-1",
+          verdict: "PASS",
+          noChange: true,
+          noChangeReasons: ["The required behavior is already present."],
+          sourceFingerprint: "a".repeat(64),
+        },
+      },
+    });
+    assert.equal(actions.some((action) => action instanceof SetStepStatus && action.step === "T-1-review" && action.status === "done"), true);
+    assert.equal(actions.some((action) => action instanceof SetStepStatus && action.step === "T-1-gate" && action.status === "skipped"), true);
+    const rejected = resolveLifecycle({
+      event: "review:post",
+      currentStepId: "T-1-review",
+      phase: "impl",
+      flowState,
+      result: { result: "ok", artifacts: { phase: "impl", taskId: "T-1", verdict: "REJECTED", noChange: true, noChangeReasons: ["present"], sourceFingerprint: "a".repeat(64) } },
+    });
+    assert.equal(rejected.some((action) => action instanceof SetStepStatus && action.step === "T-1-gate"), false);
+    const repairedFourth = resolveLifecycle({
+      event: "review:post",
+      currentStepId: "T-1-review",
+      phase: "impl",
+      flowState,
+      result: { result: "ok", artifacts: { phase: "impl", taskId: "T-1", verdict: "REJECTED", reviewRepairComplete: true, repairMutationCount: 1 } },
+    });
+    assert.equal(repairedFourth.some((action) => action instanceof SetStepStatus && action.step === "T-1-review" && action.status === "done"), true);
+    assert.equal(repairedFourth.some((action) => action instanceof SetStepStatus && action.step === "T-1-gate" && action.status === "skipped"), false);
   });
 
   it("keeps decision construction and policy branches out of consumers", () => {

@@ -29,7 +29,7 @@ function specRecord(goal) {
     constraints: ["Node built-ins only."],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "Keep the human view deterministic." }],
+    requirements: [],
     acceptance_criteria: ["The renderer reads cataloged sources."],
     clarifications: [],
     alternatives_considered: [],

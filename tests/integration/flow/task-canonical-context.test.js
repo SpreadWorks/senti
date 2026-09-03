@@ -1,0 +1,417 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, it } from "node:test";
+
+import {
+  CanonicalTaskContext,
+  CanonicalTaskRequirementMap,
+  canonicalTaskContextKinds,
+} from "../../../src/flow/lib/task-canonical-context.js";
+import {
+  CurrentTaskSourceSnapshot,
+  TaskExecutionBudget,
+  TaskMutationLineage,
+  TaskMutationLineageSet,
+  TaskReviewRepairManifest,
+  captureCurrentTaskSource,
+} from "../../../src/flow/lib/task-mutation-lineage.js";
+import { SourceMutationBaseline, SourceMutationManifest, SourceWorkerEffect } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { emptySpecStub, validateSpecJsonObject } from "../../../src/lib/spec-json.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
+import { CanonicalGatePromotion } from "../../../src/flow/lib/canonical-gate-artifacts.js";
+import { CanonicalReviewWorkUnit } from "../../../src/flow/lib/canonical-review-artifacts.js";
+import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
+import { resolveGateTransition } from "../../../src/flow/definition.js";
+import { FlowDispatchSession, FlowDispatchTarget } from "../../../src/flow/lib/dispatch-invocation.js";
+import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
+import { CurrentFlowSpecRecord } from "../../../src/flow/lib/current-flow-state.js";
+import { ExecuteStepDirective } from "../../../src/flow/lib/next-action-directive.js";
+import { TaskLifecycleFixture, confirmCanonicalFixtureStep } from "../../support/infrastructure/flow-setup.js";
+
+const digest = "a".repeat(64);
+const spec = {
+  tasks: [
+    { id: "T-1", title: "First", goal: "First concern" },
+    { id: "T-2", title: "Second", goal: "Second concern" },
+  ],
+  requirements: [
+    { id: "R-1", desc: "Shared", task_ids: ["T-1", "T-2"] },
+    { id: "R-2", desc: "First only", task_ids: ["T-1"] },
+  ],
+  overview: { modules: [], data_flow: [], decisions: [] },
+};
+
+describe("canonical Task context", () => {
+  it("uses requirement task_ids as the sole Task mapping authority", () => {
+    const map = new CanonicalTaskRequirementMap(spec);
+    assert.deepEqual(map.forTask("T-1").map((requirement) => requirement.id), ["R-1", "R-2"]);
+    assert.deepEqual(map.forTask("T-2").map((requirement) => requirement.id), ["R-1"]);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      requirements: [{ id: "R", desc: "missing mapping" }],
+    }), /task_ids must be a non-empty array/);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      requirements: [{ id: "R", desc: "duplicate mapping", task_ids: ["T-1", "T-1"] }],
+    }), /task_ids must not duplicate/);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      requirements: [{ id: " ", desc: "empty identity", task_ids: ["T-1", "T-2"] }],
+    }), /requirement\[0\]\.id is required/);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      requirements: [
+        { id: "R-1", desc: "first identity", task_ids: ["T-1"] },
+        { id: "R-1", desc: "duplicate identity", task_ids: ["T-2"] },
+      ],
+    }), /Requirement ids must be unique: R-1/);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      tasks: [spec.tasks[0], { ...spec.tasks[1], id: "T-1" }],
+    }), /Task ids must be unique/);
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...spec,
+      requirements: [{ id: "R", desc: "broken", task_ids: ["T-3"] }],
+    }), /unknown Task/);
+    const splitSpec = {
+      ...spec,
+      tasks: [...spec.tasks, { id: "T-3", title: "Split", goal: "Split concern" }],
+    };
+    assert.throws(() => new CanonicalTaskRequirementMap(splitSpec), /no mapped Requirements: T-3/);
+    const mappedSplit = new CanonicalTaskRequirementMap({
+      ...splitSpec,
+      requirements: [{ ...spec.requirements[0], task_ids: ["T-1", "T-2", "T-3"] }, spec.requirements[1]],
+    });
+    assert.deepEqual(mappedSplit.forTask("T-3").map((requirement) => requirement.id), ["R-1"]);
+  });
+
+  it("keeps pre-Task scaffolding valid while rejecting incomplete canonical mappings", () => {
+    assert.doesNotThrow(() => validateSpecJsonObject(emptySpecStub()));
+    assert.throws(() => validateSpecJsonObject({
+      ...emptySpecStub(),
+      requirements: [{ id: "R-1", desc: "Cannot point at an unknown Task.", task_ids: ["T-ghost"] }],
+    }), /unknown Task/);
+    assert.throws(() => validateSpecJsonObject({
+      ...emptySpecStub(),
+      tasks: [{ id: "T-1", title: "Mapped", goal: "Mapped", origin: "plan", added_round: 0, status: "pending" }],
+      requirements: [{ id: "", desc: "Empty identities are invalid.", task_ids: ["T-1"] }],
+    }), /requirements\[0\]\.id: minLength 1/);
+    const missingTasks = emptySpecStub();
+    delete missingTasks.tasks;
+    assert.throws(() => validateSpecJsonObject(missingTasks), /tasks: required field is missing/);
+    assert.throws(() => validateSpecJsonObject({
+      ...emptySpecStub(),
+      tasks: [{
+        id: "T-1", title: "Mapped", goal: "A mapped Task", origin: "plan", added_round: 0, status: "pending",
+      }],
+      requirements: [{ id: "R-1", desc: "A mapping is mandatory." }],
+    }), /task_ids: required field is missing/);
+    assert.throws(() => new CurrentFlowSpecRecord(emptySpecStub(), { specId: "mapping-boundary" }).withTask({
+      id: "T-1", title: "Unmapped", goal: "Must not persist.",
+    }), /Task admission has no mapped Requirement: T-1/);
+    assert.throws(() => validateSpecJsonObject({
+      ...emptySpecStub(),
+      tasks: [{
+        id: "T-1", title: "Unmapped", goal: "A Task cannot be orphaned", origin: "plan", added_round: 0, status: "pending",
+      }],
+      requirements: [],
+    }), /no mapped Requirements: T-1/);
+  });
+
+  it("projects one deterministic Task context for descriptors, artifacts, prompts, and action identity", () => {
+    const context = new CanonicalTaskContext({
+      state: { runId: "run-1", specId: "spec-1", currentTaskId: "T-1" },
+      spec,
+      sourceFingerprint: digest,
+    });
+    assert.deepEqual(canonicalTaskContextKinds("task-impl"), ["task_spec", "requirements", "overview"]);
+    assert.deepEqual(canonicalTaskContextKinds("task-review"), ["task_spec", "requirements", "source"]);
+    assert.throws(() => canonicalTaskContextKinds("task-unknown"), /does not support Step/);
+    const projection = context.projectWorkerContext({ stepId: "task-impl" }).toJSON();
+    assert.deepEqual(projection.kinds, canonicalTaskContextKinds("task-impl"));
+    assert.deepEqual(projection.task, context.readOnlyInput());
+    const action = {
+      taskId: "T-1",
+      step: "task-impl",
+      action: "run-impl",
+      context: projection,
+      directive: new ExecuteStepDirective({ action: "run-impl" }).toJSON(),
+    };
+    const session = new FlowDispatchSession({
+      id: "task-context-projection",
+      target: new FlowDispatchTarget({ expectation: new FlowTargetExpectation({ expectRunId: "run-1" }) }),
+    });
+    const bound = session.captureAction(action, "repository-fingerprint");
+    const stale = session.captureAction({
+      ...action,
+      context: { ...projection, task: { ...projection.task, fingerprint: "b".repeat(64) } },
+    }, "repository-fingerprint");
+    assert.notEqual(bound.digest, stale.digest, "the worker Action identity must bind the projected canonical Task context");
+    assert.deepEqual(context.taskIds, ["T-1", "T-2"], "Task order follows tasks[] and does not require dependency metadata");
+    assert.deepEqual(context.readOnlyInput().requirements.map((requirement) => requirement.id), ["R-1", "R-2"]);
+    assert.throws(() => new CanonicalTaskContext({
+      state: { runId: "run-1", specId: "spec-1", currentTaskId: "T-3" }, spec, sourceFingerprint: digest,
+    }), /absent from spec/);
+  });
+
+  it("selects only current content declared by current-Task manifests", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-source-"));
+    fs.mkdirSync(path.join(root, "src"));
+    fs.writeFileSync(path.join(root, "src/one.js"), "export const one = 1;\n");
+    fs.writeFileSync(path.join(root, "src/two.js"), "export const two = 2;\n");
+    const attempt = { id: "attempt-1", nodeId: "T-1-impl", sequence: 1 };
+    const manifest = new SourceMutationManifest({
+      attempt,
+      baselineDigest: digest,
+      mutations: [{ mutationId: "b".repeat(64), path: "src/one.js", changeKind: "content", beforeDigest: digest, afterDigest: "c".repeat(64) }],
+    });
+    const lineage = new TaskMutationLineage({
+      runId: "run-1", specId: "spec-1", taskId: "T-1", role: "implementation", attempt,
+      budget: new TaskExecutionBudget({ round: 1, reviewAttemptSequenceAtStart: 0, gateAttemptSequenceAtStart: 0 }),
+      sourceFingerprint: manifest.digest, manifest: manifest.toJSON(),
+    });
+    const lineageSet = new TaskMutationLineageSet({ runId: "run-1", specId: "spec-1", taskId: "T-1", lineages: [lineage] });
+    const selection = CurrentTaskSourceSnapshot.capture({ root, lineageSet });
+    assert.deepEqual(selection.entries.map((file) => file.path), ["src/one.js"]);
+    assert.doesNotMatch(JSON.stringify(selection.toJSON()), /src\/two\.js/);
+    const taskBAttempt = { id: "attempt-b", nodeId: "T-2-impl", sequence: 1 };
+    const taskBManifest = new SourceMutationManifest({ attempt: taskBAttempt, baselineDigest: digest, mutations: [] });
+    const taskBLineage = new TaskMutationLineage({
+      runId: "run-1", specId: "spec-1", taskId: "T-2", role: "implementation", attempt: taskBAttempt,
+      budget: new TaskExecutionBudget({ round: 1, reviewAttemptSequenceAtStart: 0, gateAttemptSequenceAtStart: 0 }),
+      sourceFingerprint: taskBManifest.digest, manifest: taskBManifest.toJSON(), noChangeReason: "Task B is already satisfied.",
+    });
+    const taskBSource = CurrentTaskSourceSnapshot.capture({
+      root,
+      lineageSet: new TaskMutationLineageSet({ runId: "run-1", specId: "spec-1", taskId: "T-2", lineages: [taskBLineage] }),
+    });
+    assert.deepEqual(taskBSource.entries, [], "Task B must not inherit Task A's dirty path");
+    assert.throws(() => new TaskMutationLineageSet({
+      runId: "run-1", specId: "spec-1", taskId: "T-2", lineages: [lineage],
+    }), /another Task/);
+  });
+
+  it("keeps Task A dirty while Task B executes against only its own current source", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-context-flow-"));
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    const specId = "001-task-source-isolation";
+    const context = () => ({
+      root,
+      mainRoot: root,
+      executionRoot: root,
+      specId,
+      flowManager: manager,
+      flowState: manager.loadReadOnly(specId),
+    });
+    new TaskLifecycleFixture({
+      flowManager: manager,
+      specId,
+      runId: "run-task-source-isolation",
+      request: "Keep current Task source isolated.",
+      taskDocuments: [
+        { id: "T-A", title: "First", goal: "Leave Task A source dirty", parent: null, origin: "plan", added_round: 0, status: "pending" },
+        { id: "T-B", title: "Second", goal: "Read only Task B source", parent: null, origin: "plan", added_round: 0, status: "pending" },
+      ],
+      taskId: "T-A",
+      targetStep: "task-impl",
+    }).create();
+
+    const confirmTaskMutation = (taskId, requirementId, writes) => {
+      const baseline = SourceMutationBaseline.capture({ root, attempt: manager.canonicalState(specId).attempt });
+      for (const [relativePath, content] of writes) {
+        fs.writeFileSync(path.join(root, relativePath), content);
+      }
+      const manifest = SourceMutationManifest.capture({ baseline });
+      manager.confirmSourceWorkerHandoff({
+        specId,
+        mutationManifest: manifest,
+        handoffDigest: "f".repeat(64),
+        effect: new SourceWorkerEffect({
+          version: 1,
+          stepId: "task-impl",
+          completionStatus: "done",
+          files: [{ requirementId, mutationIds: manifest.mutations.map((entry) => entry.mutationId) }],
+          issues: [],
+          overview: { modules: [], data_flow: [], decisions: [] },
+          triage: null,
+          repair: null,
+        }),
+        result: {
+          outcome: "passed",
+          summary: `Fixture ${taskId} source mutation completed.`,
+          confirmedAt: "2026-09-03T00:00:00.000Z",
+          artifactRefs: [],
+        },
+      });
+    };
+
+    confirmTaskMutation("T-A", "R-T-A", [
+      ["task-a.js", "export const taskAOnly = true;\n"],
+      ["shared.js", "export const taskA = true;\n"],
+    ]);
+    manager.updateStepStatus({ stepId: "T-A-review", requestedStatus: "in_progress" }, { specId });
+    confirmCanonicalFixtureStep(manager, specId, "T-A-review");
+    manager.updateStepStatus({ stepId: "T-A-gate", requestedStatus: "in_progress" }, { specId });
+    const taskAGate = new CanonicalGatePromotion({
+      state: manager.canonicalState(specId),
+      phase: "task-impl",
+      nodeId: "T-A-gate",
+      activeTaskId: "T-A",
+    }).promote({
+      result: "pass",
+      artifacts: {
+        sourceFingerprint: captureCurrentTaskSource({ root, flowManager: manager, state: manager.loadReadOnly(specId), taskId: "T-A" }).fingerprint,
+      },
+    });
+    manager.publishCurrentAttemptResult({ specId, commandResult: taskAGate });
+    const taskAGateDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: manager,
+      flowState: manager.loadReadOnly(specId),
+      phase: "task-impl",
+    }));
+    manager.confirmCurrentAttempt({ specId, status: "done", gateTransitionDecision: taskAGateDecision });
+
+    const taskBAction = await new GetNextActionCommand().execute(context());
+    assert.equal(taskBAction.taskId, "T-B");
+    assert.equal(taskBAction.step, "task-impl");
+    assert.deepEqual(taskBAction.context.task.requirements.map((requirement) => requirement.id), ["R-T-B"]);
+    assert.doesNotMatch(JSON.stringify(taskBAction.context.task), /taskAOnly/);
+    manager.startTask("T-B", { specId });
+    const activeTaskBAction = await new GetNextActionCommand().execute(context());
+    assert.equal(activeTaskBAction.context.task.lineage.taskId, "T-B");
+
+    confirmTaskMutation("T-B", "R-T-B", [[
+      "shared.js",
+      "export const taskA = true;\nexport const taskB = true;\n",
+    ]]);
+    manager.updateStepStatus({ stepId: "T-B-review", requestedStatus: "in_progress" }, { specId });
+    const taskBReviewAction = await new GetNextActionCommand().execute(context());
+    assert.equal(taskBReviewAction.step, "task-review");
+    assert.deepEqual(taskBReviewAction.context.kinds, canonicalTaskContextKinds("task-review"));
+    assert.deepEqual(taskBReviewAction.context.source.entries.map((entry) => entry.path), ["shared.js"]);
+    assert.match(taskBReviewAction.context.source.entries[0].content, /taskA = true/);
+    assert.match(taskBReviewAction.context.source.entries[0].content, /taskB = true/);
+    assert.doesNotMatch(JSON.stringify(taskBReviewAction.context.source), /task-a\.js/);
+    const taskBSource = captureCurrentTaskSource({
+      root,
+      flowManager: manager,
+      state: manager.loadReadOnly(specId),
+      taskId: "T-B",
+    });
+    assert.deepEqual(taskBSource.entries.map((entry) => entry.path), ["shared.js"]);
+    assert.match(taskBSource.entries[0].content, /taskA = true/);
+    assert.match(taskBSource.entries[0].content, /taskB = true/);
+    assert.doesNotMatch(JSON.stringify(taskBSource.toJSON()), /task-a\.js/);
+    assert.equal(fs.existsSync(path.join(root, "task-a.js")), true, "Task A dirty source remains in the repository");
+
+    const reviewWorkUnit = new CanonicalReviewWorkUnit({
+      flowManager: manager,
+      state: manager.loadReadOnly(specId),
+      phase: "impl",
+      taskId: "T-B",
+      executionRoot: root,
+      treeSha: "a".repeat(40),
+      targetStateDigest: "b".repeat(64),
+    });
+    reviewWorkUnit.prepare();
+    reviewWorkUnit.materializeTaskSpec();
+    const taskReviewInputs = reviewWorkUnit.materializeTaskContextAndSource();
+    assert.strictEqual(reviewWorkUnit.taskWorkerProjection.context, reviewWorkUnit.taskContext);
+    assert.strictEqual(reviewWorkUnit.taskWorkerProjection.source, reviewWorkUnit.taskSource);
+    assert.deepEqual(
+      JSON.parse(fs.readFileSync(taskReviewInputs.context.sourcePath, "utf8")),
+      taskBReviewAction.context.task,
+      "the Review materialized Task context is the action-bound context projection",
+    );
+    assert.deepEqual(
+      JSON.parse(fs.readFileSync(taskReviewInputs.source.sourcePath, "utf8")),
+      taskBReviewAction.context.source,
+      "the Review prompt source is the same Task-only source projection",
+    );
+  });
+
+  it("requires an explicit no-change field in the sealed source effect", () => {
+    assert.throws(() => SourceWorkerEffect.fromDocument({
+      version: 1, stepId: "task-impl", completionStatus: "done", files: [], issues: [],
+      overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+    }, "task-impl"), /invalid schema/);
+    const effect = SourceWorkerEffect.fromDocument({
+      version: 1, stepId: "task-impl", completionStatus: "done", files: [], issues: [],
+      overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+      noChangeReason: "The requested behavior is already present.",
+    }, "task-impl");
+    assert.equal(effect.noChangeReason.text, "The requested behavior is already present.");
+  });
+
+  it("binds Task Review repairs to must-fix findings and the current Task allow-list", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-review-repair-"));
+    fs.mkdirSync(path.join(root, "src"));
+    fs.writeFileSync(path.join(root, "src/one.js"), "export const one = 1;\n");
+    fs.writeFileSync(path.join(root, "src/two.js"), "export const two = 2;\n");
+    const implementationAttempt = { id: "impl-attempt", nodeId: "T-1-impl", sequence: 1 };
+    const implementationManifest = new SourceMutationManifest({
+      attempt: implementationAttempt,
+      baselineDigest: digest,
+      mutations: [{ mutationId: "d".repeat(64), path: "src/one.js", changeKind: "content", beforeDigest: digest, afterDigest: "e".repeat(64) }],
+    });
+    const lineageSet = new TaskMutationLineageSet({
+      runId: "run-1",
+      specId: "spec-1",
+      taskId: "T-1",
+      lineages: [new TaskMutationLineage({
+        runId: "run-1",
+        specId: "spec-1",
+        taskId: "T-1",
+        role: "implementation",
+        attempt: implementationAttempt,
+        budget: new TaskExecutionBudget({ round: 1, reviewAttemptSequenceAtStart: 0, gateAttemptSequenceAtStart: 0 }),
+        sourceFingerprint: implementationManifest.digest,
+        manifest: implementationManifest.toJSON(),
+      })],
+    });
+    const reviewAttempt = { id: "review-attempt", nodeId: "T-1-review", sequence: 4 };
+    const baseline = SourceMutationBaseline.capture({ root, attempt: reviewAttempt });
+    fs.writeFileSync(path.join(root, "src/one.js"), "export const one = 3;\n");
+    const manifest = SourceMutationManifest.capture({ baseline });
+    const artifact = {
+      verdict: "REJECTED",
+      blockingFindings: [{ file: "src/one.js", disposition: "must-fix" }],
+    };
+    const fourth = new TaskReviewRepairManifest({ lineageSet, baseline, manifest, artifact, attemptCount: 4 });
+    assert.equal(fourth.complete, true);
+    assert.equal(fourth.lineage({ attempt: reviewAttempt }).role, "review-repair");
+    assert.equal(new TaskReviewRepairManifest({ lineageSet, baseline, manifest, artifact, attemptCount: 1 }).complete, false);
+
+    const unchangedBaseline = SourceMutationBaseline.capture({
+      root,
+      attempt: { id: "unchanged-review", nodeId: "T-1-review", sequence: 2 },
+    });
+    assert.throws(() => new TaskReviewRepairManifest({
+      lineageSet,
+      baseline: unchangedBaseline,
+      manifest: SourceMutationManifest.capture({ baseline: unchangedBaseline }),
+      artifact,
+      attemptCount: 2,
+    }), /must repair every must-fix finding/);
+    assert.throws(() => new TaskReviewRepairManifest({
+      lineageSet,
+      baseline: unchangedBaseline,
+      manifest: SourceMutationManifest.capture({ baseline: unchangedBaseline }),
+      artifact: { verdict: "REJECTED", blockingFindings: [{ file: null, disposition: "must-fix" }] },
+      attemptCount: 2,
+    }), /file-backed repair evidence/);
+
+    const foreignBaseline = SourceMutationBaseline.capture({ root, attempt: { id: "foreign", nodeId: "T-1-review", sequence: 5 } });
+    fs.writeFileSync(path.join(root, "src/two.js"), "export const two = 4;\n");
+    assert.throws(() => new TaskReviewRepairManifest({
+      lineageSet,
+      baseline: foreignBaseline,
+      manifest: SourceMutationManifest.capture({ baseline: foreignBaseline }),
+      artifact: { verdict: "REJECTED", blockingFindings: [{ file: "src/two.js", disposition: "must-fix" }] },
+      attemptCount: 4,
+    }), /outside the current Task allow-list/);
+  });
+});

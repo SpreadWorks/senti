@@ -232,9 +232,18 @@ function acceptanceDecisionScenario(root) {
     execution: { mode: "direct" },
     specRecord: {
       goal: "Render the cataloged acceptance review.",
-      requirements: [{ id: "R1", desc: "Show the acceptance evidence." }],
+      requirements: [{ id: "R1", desc: "Show the acceptance evidence.", task_ids: ["T1"] }],
     },
-  }).create().registerActive();
+  }).create().addTask({
+    id: "T1",
+    title: "Render acceptance evidence",
+    goal: "Keep the acceptance decision view bound to its Requirement.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+    acceptance: ["The acceptance evidence is visible."],
+  }).registerActive();
   const repairFingerprint = "a".repeat(64);
   const implReview = canonicalImplReviewArtifact(created.state(), { blockingFindings: [{
     findingKey: "source-F1",

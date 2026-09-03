@@ -28,6 +28,7 @@ import {
 } from "./lib/step-tree.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
+import { canonicalTaskContextKinds } from "./lib/task-context-kinds.js";
 import { DefinitionFailureOwnership } from "./lib/definition-failure-ownership.js";
 import { ReviewTransitionFacts } from "./lib/review-transition-facts.js";
 import { DraftTransitionFacts } from "./lib/draft-transition-facts.js";
@@ -696,6 +697,9 @@ export function resolveGateTransition(facts) {
     return gateDecision(facts, new GateRetryDisposition(GATE_TRANSITION_TOKEN), {
       retryMetric: new GateRetryMetricEffect({ operation: "increment", phase: facts.phase }),
     });
+  }
+  if (facts.scope === "task" && !facts.taskBudget.finalRound) {
+    return gateDecision(facts, new GateRepairDisposition(GATE_TRANSITION_TOKEN));
   }
   // The failed Attempt remains current until the canonical settlement command
   // records its finding.  `defer` therefore has no premature status advance.
@@ -1948,7 +1952,7 @@ export const testResultReviewTransitionDefinition = new NonGateStepDefinition({
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
 export class SetStepStatus {
-  constructor({ step, status, suppressAutoPromotion = false }) {
+  constructor({ step, status, suppressAutoPromotion = false, taskSourceFingerprint = null }) {
     this.step = requireString(step, "step");
     this.status = requireString(status, "status");
     if (!STEP_STATUSES.has(this.status)) throw new Error(`invalid status: ${this.status}`);
@@ -1956,6 +1960,10 @@ export class SetStepStatus {
       throw new Error("suppressAutoPromotion must be boolean");
     }
     this.suppressAutoPromotion = suppressAutoPromotion;
+    if (taskSourceFingerprint !== null && (this.status !== "skipped" || !/^[a-f0-9]{64}$/.test(taskSourceFingerprint))) {
+      throw new Error("Task source fingerprint is valid only for a skipped lifecycle action");
+    }
+    this.taskSourceFingerprint = taskSourceFingerprint;
     Object.freeze(this);
   }
 
@@ -1970,6 +1978,7 @@ export class SetStepStatus {
       step: scopedStep,
       status: this.status,
       suppressAutoPromotion: this.suppressAutoPromotion,
+      taskSourceFingerprint: this.taskSourceFingerprint,
     });
   }
 }
@@ -2222,6 +2231,16 @@ export function resolveReviewTransition({
   if (facts.verdict !== "REJECTED") {
     return null;
   }
+  // An empty Task mutation allow-list cannot carry a file-backed Review
+  // repair. A typed REJECTED no-change Review therefore restarts the Task's
+  // implementation leaf as its second bounded execution round. The Store
+  // re-admits the exact Review artifact and source fingerprint atomically.
+  if (facts.scope === "task" && facts.artifact?.noChange === true) {
+    if (facts.taskRound === 1) {
+      return new DefinitionReviewDisposition({ operation: "repair-no-change-task-impl", phase });
+    }
+    return new DefinitionReviewDisposition({ operation: "task-rounds-exhausted", phase, attempts: facts.taskRound, maxAttempts: 2 });
+  }
   const maxAttempts = resolveMaxAttempts({ scope: facts.scope, stepId, context: flowState }) ?? 1;
   const attempts = facts.scope === "task"
     ? facts.attemptCount
@@ -2237,6 +2256,12 @@ export function resolveReviewTransition({
       });
     }
     return new DefinitionReviewDisposition({ operation: "retry", phase });
+  }
+  // Task Review findings never enter Acceptance deferral. The Review worker
+  // must repair them inside its bounded episode; malformed or uncorrected
+  // fourth-review evidence stays blocked rather than crossing into Gate.
+  if (facts.scope === "task") {
+    return new DefinitionReviewDisposition({ operation: "blocked", phase, attempts, maxAttempts });
   }
   if (facts.deferralEvidence.available) {
     return new DefinitionReviewDisposition({
@@ -2493,6 +2518,21 @@ function resolveImplReviewLifecycle(input) {
     if (!flowScoped) {
       if (verdict === "PASS" || verdict === "ADVISORY") {
         actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
+        if (input.result?.artifacts?.noChange === true
+          && typeof input.result?.artifacts?.sourceFingerprint === "string"
+          && Array.isArray(input.result?.artifacts?.noChangeReasons)
+          && input.result.artifacts.noChangeReasons.length > 0) {
+          actions.push(new SetStepStatus({
+            step: String(input.currentStepId || "").replace(/-review$/, "-gate"),
+            status: "skipped",
+            taskSourceFingerprint: input.result.artifacts.sourceFingerprint,
+          }));
+        }
+      } else if (verdict === "REJECTED" && input.result?.artifacts?.reviewRepairComplete === true) {
+        // The fourth Task Review owns and validates its repairs. Its mutation
+        // lineage is Gate input, so a fifth Review would exceed the bounded
+        // episode without adding an independent correctness boundary.
+        actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
       }
       actions.unshift(new IncrementMetric({ phase: "impl", counter: "reviewRetry" }));
       return actions;
@@ -2733,8 +2773,8 @@ export function resolveLifecycle(input = {}) {
   });
   if (taskStep === null) return actions;
   return actions.map((action) => (
-    action instanceof SetStepStatus && action.step === definitionStepId
-      ? action.forStep(taskStep.nodeId)
+    action instanceof SetStepStatus && new Set(["task-impl", "task-review", "task-gate"]).has(action.step)
+      ? action.forStep(`${taskStep.taskId}-${action.step.slice("task-".length)}`)
       : action
   ));
 }
@@ -3346,15 +3386,16 @@ const TASK_DEFINITION = Object.freeze([
     label: "Task impl",
     action: "run-impl",
     instructionsKey: "task.task-impl",
-    contextKinds: ["task_spec", "related_summary", "overview"],
+    contextKinds: canonicalTaskContextKinds("task-impl"),
     outputSchemaRef: "next-action/impl.schema.json",
+    maxAttempts: 2,
   }),
   new FlowNode({
     id: "task-review",
     label: "Task review",
     action: "run-review",
     instructionsKey: "task.task-review",
-    contextKinds: ["task_spec", "diff", "testlog"],
+    contextKinds: canonicalTaskContextKinds("task-review"),
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts: 4,
     toolingMaxAttempts: 1,
@@ -3368,8 +3409,9 @@ const TASK_DEFINITION = Object.freeze([
     label: "Task gate",
     action: "run-gate",
     instructionsKey: "impl.impl-gate",
-    contextKinds: ["task_spec", "guardrail"],
+    contextKinds: canonicalTaskContextKinds("task-gate"),
     outputSchemaRef: "next-action/gate.schema.json",
+    skippable: true,
     maxAttempts: 5,
     failurePolicy: "block",
     definitionLifecycleOwned: true,

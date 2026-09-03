@@ -35,7 +35,14 @@ describe("draft reopen canonical authority", () => {
       execution: EXECUTION,
       issue,
       issueSnapshot: issue === null ? null : `# Issue #${issue}\nCanonical body\n`,
-      specRecord: { goal: "canonical authority", requirements: [] },
+      specRecord: {
+        goal: "canonical authority",
+        requirements: taskDocuments.map((task) => ({
+          id: `R-${task.id}`,
+          desc: `Complete canonical Task ${task.id}.`,
+          task_ids: [task.id],
+        })),
+      },
       taskDocuments,
       targetStep,
     }).create();
@@ -170,7 +177,7 @@ describe("draft reopen canonical authority", () => {
       runId: "run-task-pending",
       request: "add a task",
       execution: EXECUTION,
-      specRecord: { goal: "canonical authority", requirements: [] },
+      specRecord: { goal: "canonical authority", requirements: [{ id: "R-T-1", desc: "Complete the first Task.", task_ids: ["T-1"] }] },
       taskDocuments: [{ id: "T-1", title: "first", goal: "finish", parent: null, origin: "plan", added_round: 0, status: "pending" }],
       taskId: "T-1",
       targetStep: "task-impl",

@@ -11,6 +11,11 @@ import {
   default as RunGateCommand,
 } from "../../../src/flow/lib/run-gate.js";
 import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import {
+  SourceMutationBaseline,
+  SourceMutationManifest,
+  SourceWorkerEffect,
+} from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { container } from "../../../src/lib/container.js";
 import { CanonicalFlowFixture, makeFlowManager } from "../../support/infrastructure/flow-setup.js";
 import { commitAll, initGitRepo } from "../../support/infrastructure/git-repo.js";
@@ -265,7 +270,7 @@ function setupTaskGateRepository(root) {
     execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
     specRecord: {
       goal: "Validate task gate evidence.",
-      requirements: [{ id: "R-1", desc: "Task implementation evidence is evaluated." }],
+      requirements: [{ id: "R-1", desc: "Task implementation evidence is evaluated.", task_ids: ["T-1"] }],
       acceptance_criteria: ["R-1 task evidence is checked."],
     },
   }).create().addTask({
@@ -283,7 +288,7 @@ function setupTaskGateRepository(root) {
   return { flowManager, fixture };
 }
 
-function advanceToTaskGate(flowManager, fixture, padding = "") {
+function advanceToTaskGate(flowManager, fixture, padding = "", mutateImplementation = null) {
   flowManager.publishCurrentAttemptResult({
     specId: TASK_GATE_SPEC_ID,
     commandResult: attachCanonicalCommandResultArtifact({ result: "pass" }, {
@@ -299,7 +304,34 @@ function advanceToTaskGate(flowManager, fixture, padding = "") {
   fixture.settle("scenario-validity");
   fixture.settleBefore("T-1-impl");
   fixture.activateTask("T-1", { settlePredecessors: false });
-  fixture.settle("T-1-impl");
+  if (mutateImplementation === null) {
+    fixture.settle("T-1-impl");
+  } else {
+    const state = flowManager.canonicalState(TASK_GATE_SPEC_ID);
+    const baseline = SourceMutationBaseline.capture({ root: fixture.location().repositoryRoot, attempt: state.attempt });
+    mutateImplementation();
+    const manifest = SourceMutationManifest.capture({ baseline });
+    flowManager.confirmSourceWorkerHandoff({
+      specId: TASK_GATE_SPEC_ID,
+      mutationManifest: manifest,
+      handoffDigest: "e".repeat(64),
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: manifest.mutations.length === 0 ? [] : [{
+          requirementId: "R-1",
+          mutationIds: manifest.mutations.map((mutation) => mutation.mutationId),
+        }],
+        issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] },
+        triage: null,
+        repair: null,
+        noChangeReason: null,
+      }),
+      result: { outcome: "passed", summary: "Task source captured.", confirmedAt: "2026-09-03T00:00:00.000Z", artifactRefs: [] },
+    });
+  }
   fixture.activate("T-1-review", { settlePredecessors: false });
   fixture.settle("T-1-review");
   fixture.activate("T-1-gate", { settlePredecessors: false });
@@ -327,7 +359,7 @@ describe("task gate scenario-validity evidence through task scope", () => {
     tmp = null;
   });
 
-  it("rejects scenario-validity-only changes as no task implementation evidence", async () => {
+  it("rejects an explicitly invoked Task Gate when the Task has no source evidence", async () => {
     tmp = createTmpDir("task-gate-scenario-only-");
     const { flowManager, fixture } = setupTaskGateRepository(tmp);
     advanceToTaskGate(flowManager, fixture);
@@ -335,22 +367,20 @@ describe("task gate scenario-validity evidence through task scope", () => {
     const result = await executeTaskGate(tmp, flowManager);
 
     assert.equal(result.result, "fail");
-    assert.deepEqual(
-      result.artifacts.issues,
-      ["no changes found (committed or uncommitted) against base branch"],
-    );
+    assert.ok(result.artifacts.issues.some((issue) => /source|change/i.test(issue)));
   });
 
   it("sizes and evaluates only implementation and post-fix evidence", async () => {
     tmp = createTmpDir("task-gate-filtered-size-");
     const { flowManager, fixture } = setupTaskGateRepository(tmp);
-    advanceToTaskGate(flowManager, fixture, "x".repeat(1_100_000));
-    writeFile(tmp, "src/task-evidence.js", "export const taskEvidence = true;\n");
-    writeFile(
-      tmp,
-      "tests/task-evidence.test.js",
-      "// spec: R-1\n// post-fix tests pass\n",
-    );
+    advanceToTaskGate(flowManager, fixture, "x".repeat(1_100_000), () => {
+      writeFile(tmp, "src/task-evidence.js", "export const taskEvidence = true;\n");
+      writeFile(
+        tmp,
+        "tests/task-evidence.test.js",
+        "// spec: R-1\n// post-fix tests pass\n",
+      );
+    });
     const scenario = flowManager.readArtifact({
       specId: TASK_GATE_SPEC_ID,
       logicalKey: "scenario.validity",

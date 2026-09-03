@@ -20,7 +20,7 @@ describe("flow get prompt", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function specRecord() {
+  function specRecord(taskId = "T-1") {
     return {
       goal: "Approval view goal",
       background: "",
@@ -28,7 +28,7 @@ describe("flow get prompt", () => {
       constraints: [],
       design_principles: [],
       overview: { modules: [], data_flow: [], decisions: [] },
-      requirements: [{ id: "R1", desc: "Approve this." }],
+      requirements: [{ id: "R1", desc: "Approve this.", task_ids: [taskId] }],
       acceptance_criteria: ["Approved."],
       clarifications: [],
       alternatives_considered: [],
@@ -50,7 +50,7 @@ describe("flow get prompt", () => {
       issue,
       issueSnapshot: `Issue ${issue} immutable fixture body`,
       execution: { mode: "direct" },
-      specRecord: specRecord(),
+      specRecord: specRecord(taskId),
     }).create().addTask({
       id: taskId,
       title: "Task one",

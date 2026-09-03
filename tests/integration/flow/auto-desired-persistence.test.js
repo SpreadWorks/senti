@@ -64,7 +64,10 @@ function createFlowState(tmp, { autoApprove = false } = {}) {
     request: "add a progress bar",
     autoApprove,
     execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
-    specRecord: { goal: "auto policy fixture", requirements: [] },
+    specRecord: {
+      goal: "auto policy fixture",
+      requirements: [{ id: "R-T-1", desc: "Exercise auto policy.", task_ids: ["T-1"] }],
+    },
   }).create().addTask({
     id: "T-1",
     title: "x",

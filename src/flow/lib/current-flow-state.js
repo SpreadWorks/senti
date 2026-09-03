@@ -85,6 +85,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "rewind",
   "rewind_test_evidence",
   "repair_test_review",
+  "repair_task_no_change_review",
   "repair_scenario_validity",
   "repair_implementation",
   "triage_implementation_for_repair",
@@ -103,7 +104,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "defer_failed_gate",
 ]);
 const DRAFT_COMPLETION_TRANSITION_OPERATION = "complete_draft_completion";
-const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]);
+const REPLACEMENT_ATTEMPT_OPERATIONS = new Set(["repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]);
 const SOURCE_WORKER_COMPLETION_OPERATIONS = new Set([
   "confirm_attempt",
   "repair_implementation",
@@ -153,6 +154,7 @@ const FLOW_SUFFIX_INVALIDATION_OPERATIONS = new Set([
   "rewind_test_evidence",
   "repair_scenario_validity",
   "repair_test_review",
+  "repair_task_no_change_review",
   "repair_implementation",
   "repair_acceptance_review",
   ...APPROVAL_TASK_ADMISSION_RECOVERY_OPERATIONS,
@@ -1572,6 +1574,11 @@ export class CurrentFlowSpecRecord {
       }
       return this;
     }
+    const mapped = (Array.isArray(this.document.requirements) ? this.document.requirements : [])
+      .some((requirement) => Array.isArray(requirement?.task_ids) && requirement.task_ids.includes(id));
+    if (!mapped) {
+      throw new CurrentFlowStateInvariantError(`canonical Spec Task admission has no mapped Requirement: ${id}`);
+    }
     const next = this.toJSON();
     const document = structuredClone(task);
     delete document.key;
@@ -2816,17 +2823,17 @@ export class CurrentFailureDisposition {
 /** A definition-owned review continuation projected from persisted facts. */
 export class DefinitionReviewDisposition {
   constructor({ operation, phase = null, attempts = null, maxAttempts = null, sourceFingerprints = [] } = {}) {
-    if (!["repair-test-review", "repair-evidence-blocked", "retry", "defer", "external-blocked", "blocked"].includes(operation)) {
+    if (!["repair-test-review", "repair-evidence-blocked", "repair-no-change-task-impl", "task-rounds-exhausted", "retry", "defer", "external-blocked", "blocked"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("review disposition operation is invalid");
     }
     this.operation = operation;
     this.phase = phase == null ? null : requireString(phase, "review disposition phase");
-    if (["blocked", "defer"].includes(operation)) {
+    if (["blocked", "defer", "task-rounds-exhausted"].includes(operation)) {
       if (!Number.isSafeInteger(attempts) || attempts < 0) {
-        throw new CurrentFlowStateInvariantError("blocked review disposition attempts must be non-negative");
+      throw new CurrentFlowStateInvariantError("bounded review disposition attempts must be non-negative");
       }
       if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
-        throw new CurrentFlowStateInvariantError("blocked review disposition maxAttempts must be positive");
+        throw new CurrentFlowStateInvariantError("bounded review disposition maxAttempts must be positive");
       }
     } else if (attempts !== null || maxAttempts !== null) {
       throw new CurrentFlowStateInvariantError("non-exhausted review disposition must not include retry accounting");
@@ -3386,10 +3393,19 @@ function assertNodeLifecycle(node) {
   }
 }
 
-function assertExecutionFrontier(leaves, currentPath, definition) {
+function assertExecutionFrontier(leaves, currentPath, nodes) {
+  const taskIdByLeafId = new Map();
+  const fullyPendingTaskIds = new Set();
+  for (const node of nodes) {
+    if (!(node instanceof TaskNode)) continue;
+    const taskLeaves = collectNodes(node).filter((candidate) => candidate.steps.length === 0);
+    if (taskLeaves.every((leaf) => leaf.status === "pending")) fullyPendingTaskIds.add(node.id);
+    for (const leaf of taskLeaves) taskIdByLeafId.set(leaf.id, node.id);
+  }
   const finalizationDownstreamRoute = currentPath?.at(-1) === "finalize-merge";
   let frontier = null;
   let suffixStatus = null;
+  let taskGateRepairPendingSuffix = false;
   for (const [index, leaf] of leaves.entries()) {
     if (TERMINAL_NODE_STATUSES.has(leaf.status)) {
       if (frontier !== null) {
@@ -3408,23 +3424,37 @@ function assertExecutionFrontier(leaves, currentPath, definition) {
       continue;
     }
     if (frontier.status === "in_progress" && index === frontier.index) continue;
+    if (taskGateRepairPendingSuffix) {
+      if (leaf.status !== "pending") {
+        throw new CurrentFlowStateInvariantError("execution frontier must have one active leaf and a uniform pending or invalidated suffix");
+      }
+      continue;
+    }
     if (suffixStatus === null) suffixStatus = leaf.status;
     // A dedicated add_approval_task Activity may insert pending dynamic Tasks
     // into an invalidated definition-owned suffix. Those Tasks remain valid
     // after approval confirms and while the earlier invalidated leaves recover.
     // Generic add_task cannot create this shape because its guard is unchanged;
     // the Activity journal proves the dedicated admission route.
+    const leafTaskId = taskIdByLeafId.get(leaf.id) ?? null;
+    const frontierTaskId = taskIdByLeafId.get(leaves[frontier.index].id) ?? null;
     const approvalRecoveryTask = suffixStatus === "invalidated"
       && leaf.status === "pending"
-      && definition.isDynamicTaskNode(leaf);
-    // A sealed Task Gate repair resumes the Task impl leaf while its Review
-    // and Gate remain invalidated. Its later Task/Flow leaves stay pending;
-    // the journaled lifecycle effect is the authority for this mixed suffix.
-    const taskGateRepairSuffix = frontier.status === "in_progress"
-      && suffixStatus === "invalidated"
+      && leafTaskId !== null
+      && fullyPendingTaskIds.has(leafTaskId);
+    // A sealed Task Gate repair leaves the current Task's unfinished suffix
+    // invalidated while later Task/Flow leaves stay pending. The mixed suffix
+    // remains valid between its impl, Review, and Gate Attempts; the typed
+    // repair transition is the only operation that can create this shape.
+    const taskGateRepairSuffix = suffixStatus === "invalidated"
       && leaf.status === "pending"
-      && definition.isDynamicTaskNode(leaves[frontier.index]);
-    if (approvalRecoveryTask || taskGateRepairSuffix) continue;
+      && frontierTaskId !== null
+      && leafTaskId !== frontierTaskId;
+    if (taskGateRepairSuffix) {
+      taskGateRepairPendingSuffix = true;
+      continue;
+    }
+    if (approvalRecoveryTask) continue;
     if (!EXECUTABLE_NODE_STATUSES.has(suffixStatus) || leaf.status !== suffixStatus) {
       throw new CurrentFlowStateInvariantError("execution frontier must have one active leaf and a uniform pending or invalidated suffix");
     }
@@ -3572,7 +3602,7 @@ export class CurrentFlowState {
       }
     }
     assertNodeLifecycle(this.root);
-    assertExecutionFrontier(this.#leaves, this.current, this.definition);
+    assertExecutionFrontier(this.#leaves, this.current, this.#nodes);
     if (this.lifecycle.state === "finalized") {
       if (this.current !== null || this.attempt !== null) {
         throw new CurrentFlowStateInvariantError("finalized Flow must not retain an active Attempt");
@@ -4754,6 +4784,55 @@ export class CurrentFlowState {
   }
 
   /**
+   * A Task that declared no source mutation may be rejected because a mapped
+   * Requirement is absent. That evidence cannot be repaired inside an empty
+   * allow-list, so Definition selects this one bounded replacement attempt.
+   * It invalidates only the current Task episode and starts its implementation
+   * leaf atomically; a status patch must never manufacture this rewind.
+   */
+  repairNoChangeTaskReview({ path: targetPath, attempt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, targetPath);
+    if (!target.id.endsWith("-impl")) {
+      throw new CurrentFlowStateInvariantError("no-change Task Review repair must target its Task implementation leaf");
+    }
+    const taskId = target.id.slice(0, -"-impl".length);
+    const reviewId = `${taskId}-review`;
+    const gateId = `${taskId}-gate`;
+    if (this.current === null || this.attempt?.failure === null || this.current.at(-1) !== reviewId) {
+      throw new CurrentFlowStateInvariantError("no-change Task Review repair requires its failed active Review Attempt");
+    }
+    if (this.attempt.failure.category !== "semantic" || this.attempt.failure.code !== "REVIEW_REJECTED") {
+      throw new CurrentFlowStateInvariantError("no-change Task Review repair requires its rejected semantic Review failure");
+    }
+    const task = this.findNode(taskId);
+    if (!(task instanceof TaskNode) || !this.current.includes(taskId)) {
+      throw new CurrentFlowStateInvariantError("no-change Task Review repair requires the current materialized Task");
+    }
+    const expected = [target.id, reviewId, gateId];
+    if (JSON.stringify(task.steps.map((step) => step.id)) !== JSON.stringify(expected)
+      || this.findNode(target.id)?.status !== "done"
+      || this.findNode(reviewId)?.status !== "in_progress"
+      || this.findNode(gateId)?.status !== "pending") {
+      throw new CurrentFlowStateInvariantError("no-change Task Review repair requires the canonical Task implementation/review/gate frontier");
+    }
+    let root = this.root;
+    for (const stepId of expected) {
+      const node = findNodeInRoot(root, stepId);
+      root = replaceNode(root, stepId, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    root = reconcileInvalidatedParents(root, this.definition);
+    return this.#activateAttemptFromRoot({
+      root,
+      path: targetPath,
+      attempt,
+      allowedLeafStatuses: ["invalidated"],
+      initial: true,
+      operation: "repairNoChangeTaskReview",
+    });
+  }
+
+  /**
    * The guarded plan-gate route is an explicit recovery transition, not a
    * mutable status patch.  It may leave an active gate only after the route
    * has recorded blocking evidence in the same Version Store operation.
@@ -5568,7 +5647,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle, stepConnectionReceipt } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -5829,7 +5908,7 @@ export class ActivityTransition {
         ? state.addTask(this.task)
         : state.admitApprovalTask(this.task, { priorActivities });
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5842,6 +5921,9 @@ export class ActivityTransition {
       }
       if (this.operation === "repair_test_review") {
         return state.repairTestReview({ path: currentPath, attempt: this.attempt });
+      }
+      if (this.operation === "repair_task_no_change_review") {
+        return state.repairNoChangeTaskReview({ path: currentPath, attempt: this.attempt });
       }
       if (this.operation === "repair_scenario_validity") {
         if (activity.failure === null || activity.result === null) {
@@ -6057,6 +6139,7 @@ export class FlowActivity {
       rewind: "recovery",
       rewind_test_evidence: "recovery",
       repair_test_review: "recovery",
+      repair_task_no_change_review: "recovery",
       repair_scenario_validity: "recovery",
       repair_implementation: "recovery",
       triage_implementation_for_repair: "recovery",
@@ -6140,7 +6223,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -6457,7 +6540,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
   for (const entry of entries) {
     if (entry.transition.operation === DRAFT_COMPLETION_TRANSITION_OPERATION) {
       const receipt = entry.transition.stepConnectionReceipt;
@@ -7706,6 +7789,7 @@ export class CurrentFlowVersionStore {
       admission.assertTask({ task: activity.transition.task, taskSpec: input?.taskSpec });
     }
     const taskAddition = ["add_task", "add_approval_task"].includes(activity.transition.operation);
+    if (taskAddition) this.#assertPersistedIdentity(this.#store().load());
     const taskSpec = taskAddition
       ? this.#nextTaskSpec(activity, input?.taskSpec)
       : null;

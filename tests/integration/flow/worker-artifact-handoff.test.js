@@ -69,6 +69,7 @@ import {
 import { createTmpDir, removeTmpDir } from "../../support/builders/tmp-dir.js";
 import {
   validWorkerHandoffSpec as validSpec,
+  validWorkerHandoffTaskSpec,
   workerArtifactJson as json,
 } from "../../support/infrastructure/worker-artifact.js";
 
@@ -1648,6 +1649,7 @@ describe("worker artifact handoff", () => {
       overview: { modules: [], data_flow: [], decisions: [] },
       triage: null,
       repair: null,
+      noChangeReason: "No source mutation was required for this Task.",
     }, "task-impl");
     assert.deepEqual(effect.toJSON().overview, { modules: [], data_flow: [], decisions: [] });
     assert.throws(() => SourceWorkerEffect.fromDocument({
@@ -1659,6 +1661,7 @@ describe("worker artifact handoff", () => {
       overview: null,
       triage: null,
       repair: null,
+      noChangeReason: "No source mutation was required for this Task.",
     }, "task-impl"), /requires overview/);
   });
 
@@ -1719,7 +1722,7 @@ describe("worker artifact handoff", () => {
         ["implement", "required"],
         ["impl-triage", "forbidden"],
         ["impl-repair", "required"],
-        ["task-impl", "required"],
+        ["task-impl", "optional"],
       ],
     );
     for (const entry of FLOW_ARTIFACT_AUTHORITY_MATRIX.filter((candidate) => candidate.sourceHandoff)) {
@@ -2109,6 +2112,7 @@ describe("worker artifact handoff", () => {
     try {
       const proposed = {
         ...validSpec(),
+        requirements: [{ ...validSpec().requirements[0], task_ids: ["T1", "T2"] }],
         tasks: [
           { id: "T1", title: "First admitted Task", goal: "Exercise recovery admission.", origin: "plan", added_round: 0, status: "pending" },
           { id: "T2", title: "Second admitted Task", goal: "Exercise recovery admission.", origin: "plan", added_round: 0, status: "pending" },
@@ -2147,7 +2151,7 @@ describe("worker artifact handoff", () => {
             sourceTask: { id: "forged-approval-task", title: "Forged approval Task" },
           }),
         }),
-        /source Task changed/,
+        /source Task changed|Task admission has no mapped Requirement/,
       );
       assert.throws(
         () => value.flowManager._store.runtime.addApprovalTask({
@@ -2220,6 +2224,7 @@ describe("worker artifact handoff", () => {
     try {
       publishSpecProposal(value, {
         ...validSpec(),
+        requirements: [{ ...validSpec().requirements[0], task_ids: ["T1", "T2"] }],
         tasks: [
           { id: "T1", title: "First admitted Task", goal: "Persist before interruption.", origin: "plan", added_round: 0, status: "pending" },
           { id: "T2", title: "Second admitted Task", goal: "Resume after interruption.", origin: "plan", added_round: 0, status: "pending" },
@@ -2284,7 +2289,11 @@ describe("worker artifact handoff", () => {
 
       value.flowManager.reopenDraft({ specId: value.specId, route: "task-addition" });
       value.flow.activate("spec");
-      publishSpecProposal(value, { ...validSpec(), tasks: [first, second] });
+      publishSpecProposal(value, {
+        ...validSpec(),
+        requirements: [{ ...validSpec().requirements[0], task_ids: ["T1", "T2"] }],
+        tasks: [first, second],
+      });
       value.flow.activate("approval");
       const approval = value.flowManager.approveSpecContinuation({
         specId: value.specId,
@@ -2397,6 +2406,7 @@ describe("worker artifact handoff", () => {
 
   it("derives Task immutability from admitted Flow state rather than the prior Spec proposal", () => {
     const value = fixture("spec", {
+      specRecord: validSpec(),
       beforeActivate(fixtureValue) {
         publishDraftBeforeTarget(fixtureValue, draftDocument("draft input"));
       },
@@ -2464,6 +2474,7 @@ describe("worker artifact handoff", () => {
       status: "pending",
     };
     const value = fixture("spec", {
+      specRecord: validSpec(),
       beforeActivate(fixtureValue) {
         publishDraftBeforeTarget(fixtureValue, draftDocument("draft input"));
         fixtureValue.flow.addTask(admitted);
@@ -4484,7 +4495,10 @@ describe("worker artifact handoff", () => {
             workerPrompt = prompt;
             const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
-            fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "spec.json").payloadPath, json(validSpec()));
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "spec.json").payloadPath,
+              json(validWorkerHandoffTaskSpec()),
+            );
             sealWorkerArtifactHandoff({
               requestPath,
               invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,

@@ -10,10 +10,24 @@ export function validWorkerHandoffSpec() {
     constraints: [],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "Publish a validated artifact." }],
+    requirements: [{ id: "R1", desc: "Publish a validated artifact.", task_ids: ["T1"] }],
     acceptance_criteria: ["The canonical artifact is published."],
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+  };
+}
+
+export function validWorkerHandoffTaskSpec() {
+  return {
+    ...validWorkerHandoffSpec(),
+    tasks: [{
+      id: "T1",
+      title: "Publish guarded Spec output",
+      goal: "Keep the worker payload canonical.",
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }],
   };
 }

@@ -47,6 +47,16 @@ import {
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 import { ReviewExecutionLease } from "./review-execution-lease.js";
 import { resolveCurrentReviewTransition } from "./review-transition-persistence.js";
+import {
+  CurrentTaskSourceSnapshot,
+  TaskMutationLineageSet,
+  TaskReviewRepairManifest,
+} from "./task-mutation-lineage.js";
+import {
+  SourceMutationBaseline,
+  SourceMutationManifest,
+} from "./worker-artifact-handoff.js";
+import { CanonicalTaskContext } from "./task-canonical-context.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "REJECTED"]);
@@ -496,13 +506,31 @@ function resolveCurrentReviewRepairFingerprint(
 }
 
 /** Definition-owned admission: this command may execute only when no other Review transition is selected. */
-function reviewExecutionAdmission(ctx, { persistedPhase }) {
+function reviewExecutionAdmission(ctx, { persistedPhase, executionRoot }) {
   const specId = ctx.specId ?? ctx.flowState.specId;
   const flowState = ctx.flowManager.loadReadOnly(specId);
   const currentState = ctx.flowManager.canonicalState(specId);
   const currentTaskId = persistedPhase === IMPL_REVIEW_PHASE
     ? flowState.currentTaskId ?? null
     : null;
+  if (currentTaskId !== null) {
+    try {
+      CanonicalTaskContext.capture({
+        root: executionRoot,
+        flowManager: ctx.flowManager,
+        state: flowState,
+        taskId: currentTaskId,
+      });
+    } catch (error) {
+      return Envelope.fail(
+        "run",
+        "review",
+        "TASK_CONTEXT_INVALID",
+        `canonical Task context is invalid: ${error.message}`,
+        { taskId: currentTaskId },
+      );
+    }
+  }
   const scope = currentTaskId === null ? "flow" : "task";
   const stepId = scope === "task"
     ? "task-review"
@@ -527,6 +555,33 @@ function reviewExecutionAdmission(ctx, { persistedPhase }) {
       reviewDisposition: selection.disposition.toJSON(),
     },
   );
+}
+
+function currentTaskReviewAttemptCount(state, taskId, lineageSet) {
+  const task = state.findNode(taskId);
+  const step = task?.steps?.find((candidate) => candidate.id === `${taskId}-review`) ?? null;
+  const budget = lineageSet.currentBudget;
+  const attempts = step?.attemptSequence - budget?.reviewAttemptSequenceAtStart;
+  if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 4) {
+    throw new Error("Task Review Attempt is outside its current execution round");
+  }
+  return attempts;
+}
+
+function taskReviewTransientDirectories(executionRoot, workUnit) {
+  const reviewDirectory = path.relative(executionRoot, workUnit.workUnit.directory).split(path.sep).join("/");
+  if (reviewDirectory === "" || reviewDirectory.startsWith("../") || path.posix.isAbsolute(reviewDirectory)) {
+    throw new Error("Task Review work unit is outside its execution checkout");
+  }
+  const directories = [reviewDirectory];
+  const versionDirectory = path.relative(
+    executionRoot,
+    workUnit.flowManager.specLocation(workUnit.state.specId).directory,
+  ).split(path.sep).join("/");
+  if (versionDirectory !== "" && !versionDirectory.startsWith("../") && !path.posix.isAbsolute(versionDirectory)) {
+    directories.push(versionDirectory);
+  }
+  return directories;
 }
 
 export class RunReviewCommand extends FlowCommand {
@@ -582,7 +637,7 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
     if (!admissionChecked) {
-      const admissionFailure = reviewExecutionAdmission(ctx, { persistedPhase });
+      const admissionFailure = reviewExecutionAdmission(ctx, { persistedPhase, executionRoot });
       if (admissionFailure !== null) return admissionFailure;
     }
     if (dryRun) {
@@ -605,6 +660,7 @@ export class RunReviewCommand extends FlowCommand {
       treeSha,
       targetStateDigest,
     });
+    let taskRepairBaseline = null;
     let sealedWorkUnit;
     try {
       // Reconstruct the parent-owned input contract before inspecting any
@@ -622,7 +678,15 @@ export class RunReviewCommand extends FlowCommand {
       const draftSource = workUnit.materializeDraft();
       const testSources = workUnit.materializeTestSources(prepared.directory);
       const taskSpec = workUnit.materializeTaskSpec();
+      const taskInputs = workUnit.materializeTaskContextAndSource();
       const surface = workUnit.finalize();
+      if (taskId !== null) {
+        taskRepairBaseline = SourceMutationBaseline.capture({
+          root: executionRoot,
+          attempt: state.attempt,
+          ignoredDirectories: taskReviewTransientDirectories(executionRoot, workUnit),
+        });
+      }
       const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
       const args = [];
       if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
@@ -656,6 +720,8 @@ export class RunReviewCommand extends FlowCommand {
             logicalPath: taskSpec.logicalPath,
             sourcePath: taskSpec.sourcePath,
           }),
+          [PRODUCT.env("REVIEW_TASK_CONTEXT_SOURCE")]: JSON.stringify(taskInputs.context),
+          [PRODUCT.env("REVIEW_TASK_CURRENT_SOURCE")]: JSON.stringify(taskInputs.source),
         }),
       };
 
@@ -682,26 +748,97 @@ export class RunReviewCommand extends FlowCommand {
         return this.#canonicalFailure(ctx, persistedPhase, error);
       }
     }
-    const currentTreeSha = this.resolveTreeSha(ctx);
-    const currentTargetStateDigest = this.resolveTargetStateDigest(ctx, persistedPhase);
-    if (currentTreeSha !== treeSha || currentTargetStateDigest !== targetStateDigest) {
-      return Envelope.fail(
-        "run",
-        "review",
-        "STALE_REVIEW_TARGET",
-        "the review target tree changed before canonical evidence promotion",
-        { expectedTreeSha: treeSha, currentTreeSha, expectedTargetStateDigest: targetStateDigest, currentTargetStateDigest },
-      );
+    if (taskId !== null && taskRepairBaseline === null) {
+      taskRepairBaseline = SourceMutationBaseline.capture({
+        root: executionRoot,
+        attempt: state.attempt,
+        ignoredDirectories: taskReviewTransientDirectories(executionRoot, workUnit),
+      });
     }
-
+    let promotion;
+    let taskRepair = null;
+    let taskMutationLineage = null;
+    let resultingTaskLineageSet = null;
+    let resultingTaskSource = workUnit.taskSource;
     try {
-      const promotion = new CanonicalReviewPromotion({
+      promotion = new CanonicalReviewPromotion({
         workUnit: sealedWorkUnit,
         phase: persistedPhase,
         taskId,
         treeSha,
         targetStateDigest,
         specReviewSource: workUnit.specReviewSource,
+        taskSource: workUnit.taskSource,
+      });
+      if (taskId !== null) {
+        const lineageSet = new TaskMutationLineageSet({
+          runId: state.runId,
+          specId: state.specId,
+          taskId,
+          lineages: ctx.flowManager.taskMutationLineages({ specId: state.specId, taskId }),
+        });
+        const manifest = SourceMutationManifest.capture({ baseline: taskRepairBaseline });
+        taskRepair = new TaskReviewRepairManifest({
+          lineageSet,
+          baseline: taskRepairBaseline,
+          manifest,
+          artifact: promotion.sealedArtifact().artifact,
+          attemptCount: currentTaskReviewAttemptCount(state, taskId, lineageSet),
+        });
+        taskMutationLineage = taskRepair.lineage({ attempt: state.attempt });
+        resultingTaskLineageSet = new TaskMutationLineageSet({
+          runId: state.runId,
+          specId: state.specId,
+          taskId,
+          lineages: [...lineageSet.lineages, taskMutationLineage],
+        });
+        resultingTaskSource = CurrentTaskSourceSnapshot.capture({
+          root: executionRoot,
+          lineageSet: resultingTaskLineageSet,
+        });
+      }
+    } catch (error) {
+      return this.#canonicalFailure(ctx, persistedPhase, error);
+    }
+    const currentTreeSha = this.resolveTreeSha(ctx);
+    const currentTargetStateDigest = this.resolveTargetStateDigest(ctx, persistedPhase);
+    const currentTaskSource = resultingTaskLineageSet === null
+      ? workUnit.captureCurrentTaskSource()
+      : CurrentTaskSourceSnapshot.capture({ root: executionRoot, lineageSet: resultingTaskLineageSet });
+    const acceptedTaskRepair = taskRepair !== null && taskRepair.mutationCount > 0;
+    const expectedTaskSource = taskId === null ? workUnit.taskSource : resultingTaskSource;
+    const staleTaskSource = currentTaskSource !== null
+      && currentTaskSource.fingerprint !== expectedTaskSource?.fingerprint;
+    if ((!acceptedTaskRepair && currentTreeSha !== treeSha)
+      || (!acceptedTaskRepair && currentTargetStateDigest !== targetStateDigest)
+      || staleTaskSource) {
+      return Envelope.fail(
+        "run",
+        "review",
+        "STALE_REVIEW_TARGET",
+        "the review target tree changed before canonical evidence promotion",
+        {
+          expectedTreeSha: treeSha,
+          currentTreeSha,
+          expectedTargetStateDigest: targetStateDigest,
+          currentTargetStateDigest,
+          expectedTaskSourceFingerprint: expectedTaskSource?.fingerprint ?? null,
+          currentTaskSourceFingerprint: currentTaskSource?.fingerprint ?? null,
+        },
+      );
+    }
+
+    try {
+      promotion = new CanonicalReviewPromotion({
+        workUnit: sealedWorkUnit,
+        phase: persistedPhase,
+        taskId,
+        treeSha,
+        targetStateDigest,
+        specReviewSource: workUnit.specReviewSource,
+        taskSource: resultingTaskSource,
+        taskMutationLineage,
+        reviewRepairComplete: taskRepair?.complete ?? false,
       });
       const result = promotion.resultFromSealedArtifact();
       promotion.promote(result);
@@ -781,7 +918,7 @@ export class RunReviewCommand extends FlowCommand {
     if (state.attempt.failure !== null) {
       return this.executeCanonical(ctx, { phase, dryRun, executionRoot });
     }
-    const admissionFailure = reviewExecutionAdmission(ctx, { persistedPhase });
+    const admissionFailure = reviewExecutionAdmission(ctx, { persistedPhase, executionRoot });
     if (admissionFailure !== null) return admissionFailure;
     const lease = new ReviewExecutionLease({
       mainRoot: ctx.mainRoot || executionRoot,

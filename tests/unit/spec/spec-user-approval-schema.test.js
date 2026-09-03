@@ -31,6 +31,7 @@ function minSpec(extras = {}) {
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    tasks: [],
     ...extras,
   };
 }

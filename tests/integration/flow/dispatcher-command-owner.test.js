@@ -356,6 +356,7 @@ test("dispatcher executes materialized task review and gate commands through the
         const flow = new CanonicalFlowFixture({
           flowManager: manager, specId, runId: `run-task-${scenario.command}`,
           execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+          specRecord: { requirements: [{ id: "R-T-1", desc: "Exercise Task command ownership.", task_ids: ["T-1"] }] },
         }).create().addTask({
           id: "T-1", title: "Task command", goal: "Exercise materialized command ownership.",
           parent: null, origin: "plan", added_round: 0, status: "pending",

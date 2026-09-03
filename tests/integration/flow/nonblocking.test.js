@@ -73,7 +73,12 @@ const ELIGIBLE_CANONICAL_EVIDENCE = [
 function taskScenario(step = "review") {
   const root = createTmpDir("canonical-nonblocking-task-");
   const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
-  const fixture = new CanonicalFlowFixture({ flowManager: manager, specId: "477-nonblocking-task", runId: "run-477-task" })
+  const fixture = new CanonicalFlowFixture({
+    flowManager: manager,
+    specId: "477-nonblocking-task",
+    runId: "run-477-task",
+    specRecord: { requirements: [{ id: "R-T-1", desc: "Exercise Task nonblocking.", task_ids: ["T-1"] }] },
+  })
     .create()
     .addTask({ id: "T-1", title: "Task", goal: "Exercise task nonblocking.", parent: null, origin: "plan", added_round: 0, status: "pending" })
     .registerActive()

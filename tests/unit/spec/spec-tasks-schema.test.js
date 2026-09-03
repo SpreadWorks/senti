@@ -32,6 +32,7 @@ function minSpec(extras = {}) {
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    tasks: [],
     ...extras,
   };
 }
@@ -129,10 +130,11 @@ describe("spec.json tasks[] schema (REQ-1)", () => {
     assert.deepEqual(errors, []);
   });
 
-  it("accepts spec without tasks field (optional)", () => {
-    const spec = minSpec({});
+  it("rejects spec without the canonical tasks field", () => {
+    const spec = minSpec();
+    delete spec.tasks;
     const errors = validateSchema(spec, schema);
-    assert.deepEqual(errors, []);
+    assert.ok(errors.some((error) => error.includes("tasks") && error.includes("required")));
   });
 
   it("accepts multiple tasks with different added_round", () => {

@@ -31,7 +31,10 @@ describe("REQ-A2: canonical Flow read model validates tasks field", () => {
   it("accepts non-empty tasks array", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    new FreshFlowFixture({ flowManager: fm }).create().addTask(taskDocument()).registerActive();
+    new FreshFlowFixture({
+      flowManager: fm,
+      specRecord: { requirements: [{ id: "R-T-1", desc: "Admit the canonical Task.", task_ids: ["T-1"] }] },
+    }).create().addTask(taskDocument()).registerActive();
     const state = fm.loadReadOnly();
     assert.ok(Array.isArray(state.tasks));
     assert.ok(state.tasks.length > 0);

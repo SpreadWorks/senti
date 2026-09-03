@@ -27,11 +27,12 @@ function minimalValidSpec() {
       decisions: [],
     },
     background: "",
-    requirements: [{ id: "R1", desc: "d", priority: "must" }],
+    requirements: [{ id: "R1", desc: "d", priority: "must", task_ids: ["T1"] }],
     acceptance_criteria: ["ok"],
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    tasks: [{ id: "T1", title: "Task", goal: "g", origin: "plan", added_round: 0, status: "pending" }],
   };
 }
 

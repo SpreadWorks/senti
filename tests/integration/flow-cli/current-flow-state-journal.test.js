@@ -377,8 +377,8 @@ describe("Current Flow state filesystem lifecycle", () => {
         confirmedAt: LATER,
         artifactRefs: [
           { kind: "task_spec", id: "task-b-spec" },
-          { kind: "diff", id: "task-b-diff" },
-          { kind: "testlog", id: "task-b-testlog" },
+          { kind: "requirements", id: "task-b-requirements" },
+          { kind: "source", id: "task-b-source" },
         ],
       },
     }));

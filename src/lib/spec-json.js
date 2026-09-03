@@ -10,6 +10,7 @@
  */
 
 import fs from "node:fs";
+import { CanonicalTaskRequirementMap } from "./canonical-task-requirement-map.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateSchema } from "./schema-validate.js";
@@ -111,6 +112,7 @@ export function validateSpecJsonObject(spec) {
   if (errors.length > 0) {
     throw new Error(`spec.json failed schema validation: ${errors.join("; ")}`);
   }
+  new CanonicalTaskRequirementMap(spec);
   return spec;
 }
 
@@ -171,6 +173,7 @@ export function emptySpecStub() {
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    tasks: [],
   };
 }
 

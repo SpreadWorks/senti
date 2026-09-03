@@ -66,13 +66,14 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("task.gate.source"), "steps/impl/:{taskId}/gate/source.json");
     assert.equal(paths.has("task.impl"), false);
     assert.equal(paths.get("task.review"), "steps/impl/:{taskId}/review/result.json");
+    assert.equal(paths.get("task.mutation.lineage"), "steps/impl/:{taskId}/impl/mutation-lineage/:{attemptId}.json");
     assert.equal(paths.get("activity.evidence"), "steps/:{ownerPath}/activity-evidence/:{digest}.json");
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
       [
         "flow.activities", "spec.snapshot", "spec.review", "artifact.catalog", "test.review.repair.progress", "test.bootstrap.observation", "acceptance.decision",
         "retry.recovery.baseline", "retry.recovery.receipt",
-        "task.review", "activity.evidence", "runtime.step-metadata",
+        "task.review", "task.mutation.lineage", "activity.evidence", "runtime.step-metadata",
       ],
     );
     assert.equal(paths.get("draft.gate.source"), "steps/draft-gate/source.json");
@@ -282,6 +283,7 @@ describe("Flow artifact contract registry", () => {
       ["spec-gate-result.json", "spec.gate"],
       ["task-impl-gate-source.json", "task.gate.source"],
       ["steps/impl/T-1/review/result.json", "task.review"],
+      ["steps/impl/T-1/impl/mutation-lineage/attempt-1.json", "task.mutation.lineage"],
       ["acceptance-review-evidence.json", "acceptance.review.evidence"],
       ["repair-deltas/repair-001.json", "repair.delta"],
       ["review-evidence/evidence.json", "review.evidence"],
@@ -346,6 +348,7 @@ describe("Flow artifact contract registry", () => {
     assert.equal(FLOW_ARTIFACT_CONTRACTS.taskDirectory("T-1", "review"), "steps/impl/T-1/review");
     assert.equal(FLOW_ARTIFACT_CONTRACTS.taskDirectory("T-1", "gate"), "steps/impl/T-1/gate");
     assert.equal(FLOW_ARTIFACT_CONTRACTS.resolve("task.review", { taskId: "T-1" }).relativePath, "steps/impl/T-1/review/result.json");
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.resolve("task.mutation.lineage", { taskId: "T-1", attemptId: "attempt-1" }).relativePath, "steps/impl/T-1/impl/mutation-lineage/attempt-1.json");
     assert.equal(FLOW_ARTIFACT_CONTRACTS.resolve("task.gate", { taskId: "T-1" }).relativePath, "steps/impl/T-1/gate/result.json");
     assert.equal(FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ taskId: "T-1", digest: DIGEST_A }).relativePath, `steps/impl/T-1/review/evidence/${DIGEST_A}.json`);
     assert.throws(() => FLOW_ARTIFACT_CONTRACTS.resolve("review.evidence", { ownerPath: "impl/T-1/review", digest: DIGEST_A }), /typed registry/);
@@ -361,6 +364,7 @@ describe("Flow artifact contract registry", () => {
       ["task.review", { taskId: "T-1" }, { taskId: "T-2" }],
       ["task.gate.source", { taskId: "T-1" }, { taskId: "T-2" }],
       ["task.gate", { taskId: "T-1" }, { taskId: "T-2" }],
+      ["task.mutation.lineage", { taskId: "T-1", attemptId: "attempt-1" }, { taskId: "T-1", attemptId: "attempt-2" }],
       ["tests.source", { testPath: "scenarios/one.test.js" }, { testPath: "scenarios/two.test.js" }],
     ]) {
       const first = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, firstParameters);

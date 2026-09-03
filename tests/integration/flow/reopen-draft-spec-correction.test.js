@@ -77,7 +77,7 @@ describe("canonical reopen draft routes", () => {
     const fixture = new TaskLifecycleFixture({
       flowManager, specId: SPEC_ID, runId: "run-reopen-task", request: "add a Task",
       execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
-      specRecord: { goal: "fixture", requirements: [] },
+      specRecord: { goal: "fixture", requirements: [{ id: "R-T-1", desc: "Complete the first Task.", task_ids: ["T-1"] }] },
       taskDocuments: [{ id: "T-1", title: "first", goal: "finish", parent: null, origin: "plan", added_round: 0, status: "pending" }],
       taskId: "T-1", targetStep: "task-gate",
     }).create();

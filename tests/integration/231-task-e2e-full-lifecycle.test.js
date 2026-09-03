@@ -6,7 +6,11 @@ import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../support/builders/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../support/infrastructure/git-repo.js";
 import { CanonicalFlowFixture, makeFlowManager } from "../support/infrastructure/flow-setup.js";
-import { writePromptDispatchStubAgentScript } from "../support/fakes/stub-agent.js";
+import {
+  SourceMutationBaseline,
+  SourceMutationManifest,
+  SourceWorkerEffect,
+} from "../../src/flow/lib/worker-artifact-handoff.js";
 
 const CMD = path.resolve("src/sennel.js");
 const SPEC_ID = "001-cli-lifecycle";
@@ -54,6 +58,36 @@ const FAIL_REVIEW = JSON.stringify({
   }],
   nonBlockingImprovements: [],
 });
+
+function writeLifecycleStubAgentScript(tmp) {
+  const scriptPath = path.join(tmp, ".stub-agent.cjs");
+  const repairedSource = [
+    "export function add(left, right) {",
+    "  return left + right;",
+    "}",
+    "",
+  ].join("\n");
+  const routes = [
+    { includes: "if (!left || !right) return 0;", response: FAIL_REVIEW, repair: true },
+    { includes: "one-shot static test reviewer", response: PASS_TEST_REVIEW },
+    { includes: "guardrail_id MUST be one of the requirement ids", response: PASS_GATE },
+    { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
+    { includes: "semantic acceptance reviewer", response: PASS_ACCEPTANCE },
+  ];
+  fs.writeFileSync(scriptPath, [
+    "#!/usr/bin/env node",
+    "const fs = require('node:fs');",
+    `const routes = ${JSON.stringify(routes)};`,
+    `const fallback = ${JSON.stringify(PASS_REVIEW)};`,
+    "const prompt = process.argv.slice(2).join('\\n');",
+    "const route = routes.find((candidate) => prompt.includes(candidate.includes));",
+    `if (route?.repair) fs.writeFileSync(${JSON.stringify(path.join(tmp, "src/value.js"))}, ${JSON.stringify(repairedSource)});`,
+    "process.stdout.write(route ? route.response : fallback);",
+    "",
+  ].join("\n"));
+  fs.chmodSync(scriptPath, 0o755);
+  return scriptPath;
+}
 
 function run(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
@@ -112,18 +146,7 @@ function git(tmp, args) {
 }
 
 function setupFixture(tmp) {
-  const stubPath = writePromptDispatchStubAgentScript(
-    tmp,
-    ".stub-agent.js",
-    [
-      { includes: "if (!left || !right) return 0;", response: FAIL_REVIEW },
-      { includes: "one-shot static test reviewer", response: PASS_TEST_REVIEW },
-      { includes: "guardrail_id MUST be one of the requirement ids", response: PASS_GATE },
-      { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
-      { includes: "semantic acceptance reviewer", response: PASS_ACCEPTANCE },
-    ],
-    PASS_REVIEW,
-  );
+  const stubPath = writeLifecycleStubAgentScript(tmp);
   writeJson(tmp, ".sennel/config.json", {
     lang: "en",
     type: "base",
@@ -191,7 +214,7 @@ function setupFixture(tmp) {
       goal: "Implement numeric addition through the complete CLI lifecycle.",
       background: "CLI-only lifecycle fixture.",
       scope: { in: ["src/value.js"], out: [] },
-      requirements: [{ id: "R1", desc: "add returns the arithmetic sum of two numeric operands", priority: "must" }],
+      requirements: [{ id: "R1", desc: "add returns the arithmetic sum of two numeric operands", priority: "must", task_ids: ["T-1"] }],
       acceptance_criteria: ["add(2, 3) returns 5"],
       user_approval: { approved: true, confirmed_at: "2026-01-01T00:00:00.000Z", notes: "E2E fixture approval" },
     },
@@ -232,7 +255,7 @@ function setupFixture(tmp) {
   }
 }
 
-describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
+describe("231: full lifecycle through CLI and the typed source handoff boundary", { timeout: 180_000 }, () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
@@ -269,8 +292,36 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     ].join("\n"));
     runEnvelope(tmp, ["flow", "set", "step", "implement", "done"]);
     assertNext(tmp, "task-impl", "T-1");
+    const manager = makeFlowManager(tmp);
+    const taskAttempt = manager.canonicalState(SPEC_ID).attempt;
+    const baseline = SourceMutationBaseline.capture({ root: tmp, attempt: taskAttempt });
+    writeFile(tmp, "src/value.js", [
+      "// Task-scoped implementation evidence.",
+      "export function add(left, right) {",
+      "  if (!left || !right) return 0;",
+      "  return left + right;",
+      "}",
+      "",
+    ].join("\n"));
+    const manifest = SourceMutationManifest.capture({ baseline });
     runEnvelope(tmp, ["flow", "set", "files", "R1", "src/value.js"]);
-    runEnvelope(tmp, ["flow", "set", "step", "task-impl", "done"]);
+    manager.confirmSourceWorkerHandoff({
+      specId: SPEC_ID,
+      mutationManifest: manifest,
+      handoffDigest: "e".repeat(64),
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: [{ requirementId: "R1", mutationIds: manifest.mutations.map((mutation) => mutation.mutationId) }],
+        issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] },
+        triage: null,
+        repair: null,
+        noChangeReason: null,
+      }),
+      result: { outcome: "passed", summary: "Task source recorded.", confirmedAt: "2026-09-03T00:00:00.000Z", artifactRefs: [] },
+    });
     assertNext(tmp, "task-review", "T-1");
 
     const failedReview = runEnvelope(tmp, ["flow", "run", "review"]);
@@ -285,8 +336,8 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
       JSON.stringify({ next: retryState.nextAction().toJSON(), activities: retryActivities }, null, 2),
     );
 
-    // Repair mutates only the implementation source. Flow state and evidence
-    // continue to move exclusively through CLI commands.
+    // The Review worker already applied its bounded repair before returning
+    // REJECTED. Rewriting the same bytes proves the retry consumes that source.
     writeFile(tmp, "src/value.js", [
       "export function add(left, right) {",
       "  return left + right;",

@@ -71,6 +71,7 @@ import {
   validateScenarioValidityArtifactShape,
   validateScenarioValidityObservationCoherence,
 } from "./lib/test-artifacts.js";
+import { CurrentTaskSourceSnapshot, TaskMutationLineageSet } from "./lib/task-mutation-lineage.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -231,6 +232,7 @@ async function persistNonTerminalReviewResult(ctx, result) {
   const rejectedTaskReview = artifacts?.phase === "impl"
     && artifacts?.taskId != null
     && !["PASS", "ADVISORY"].includes(artifacts?.verdict);
+  const completedTaskRepair = rejectedTaskReview && artifacts?.reviewRepairComplete === true;
   const toolingReview = artifacts?.toolingOutcome != null;
   if (!rejectedTestReview && !rejectedTaskReview && !toolingReview) return;
 
@@ -238,7 +240,7 @@ async function persistNonTerminalReviewResult(ctx, result) {
   if (attachedCanonicalCommandResultArtifact(result) === null) return;
 
   const specId = ctx.specId ?? ctx.flowState.specId;
-  if (rejectedTestReview || toolingReview || ctx.flowState?.policy?.nonblocking?.enabled === true) {
+  if (rejectedTestReview || completedTaskRepair || toolingReview || ctx.flowState?.policy?.nonblocking?.enabled === true) {
     ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
   } else {
     ctx.flowManager.failCurrentAttempt({
@@ -260,6 +262,41 @@ async function persistNonTerminalReviewResult(ctx, result) {
     });
   }
   ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+}
+
+/** Re-admit Task Review source immediately before any Store publication. */
+function assertCurrentTaskReviewSource(ctx, result) {
+  const artifacts = result?.artifacts;
+  if (artifacts?.phase !== "impl" || artifacts?.taskId == null) return;
+  const expected = artifacts.sourceFingerprint;
+  const lineagePublication = attachedCanonicalCommandResultPublications(result)
+    .find((publication) => publication.logicalKey === "task.mutation.lineage") ?? null;
+  if (typeof expected !== "string" || lineagePublication === null) {
+    throw new Error("Task Review publication requires its source fingerprint and mutation lineage");
+  }
+  const specId = ctx.specId ?? ctx.flowState.specId;
+  const state = ctx.flowManager.loadReadOnly(specId);
+  if (state.currentTaskId !== artifacts.taskId) {
+    throw new Error("Task Review publication no longer belongs to the current Task");
+  }
+  const lineageSet = new TaskMutationLineageSet({
+    runId: state.runId,
+    specId,
+    taskId: artifacts.taskId,
+    lineages: [
+      ...ctx.flowManager.taskMutationLineages({ specId, taskId: artifacts.taskId }),
+      lineagePublication.payload,
+    ],
+  });
+  const current = CurrentTaskSourceSnapshot.capture({
+    root: ctx.executionRoot || ctx.root,
+    lineageSet,
+  });
+  if (current.fingerprint !== expected) {
+    const error = new Error("Task Review source changed before canonical publication; reload the current Task context");
+    error.code = "STALE_REVIEW_TARGET";
+    throw error;
+  }
 }
 
 /** A spec review owns a revision-scoped publication rather than generic
@@ -1637,6 +1674,7 @@ export const FLOW_COMMANDS = {
           result?.result === "recovered"
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
+        assertCurrentTaskReviewSource(ctx, result);
         await persistNonTerminalReviewResult(ctx, result);
         try {
           await applyLifecycleActionsFromRegistry(ctx, {
@@ -1964,7 +2002,7 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: sennel flow run settle-review-transition ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Persist the active Review's definition-selected deferred transition and canonical finding handoff.",
+        "Persist the active Review's definition-selected transition, including an exhausted finding handoff or no-change Task implementation correction.",
         "The command accepts no result, retry count, or route; definition-derived persisted facts are its only authority.",
         "",
         "Options:",

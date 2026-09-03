@@ -27,6 +27,7 @@ function freshFlow(tmp) {
     specId: "001-test",
     runId: "run-test",
     execution: { mode: "direct" },
+    specRecord: { requirements: [{ id: "R-001", desc: "Exercise the canonical Task API.", task_ids: ["001"] }] },
   }).create().registerActive();
   return { fixture, fm };
 }

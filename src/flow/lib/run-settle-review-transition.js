@@ -4,7 +4,7 @@ import { settleDefinitionReviewTransition } from "./review-transition-persistenc
 
 /**
  * Materialize a Review disposition which definition.js already selected from
- * persisted facts.  This command has no route/result arguments and cannot
+ * persisted facts. This command has no route/result arguments and cannot
  * execute a review or choose a retry policy.
  */
 export default class RunSettleReviewTransitionCommand extends FlowCommand {
@@ -23,7 +23,7 @@ export default class RunSettleReviewTransitionCommand extends FlowCommand {
           "run",
           "settle-review-transition",
           "REVIEW_TRANSITION_SETTLEMENT_UNAVAILABLE",
-          "the active review has no definition-selected deferred transition",
+          "the active review has no definition-selected transition to settle",
         );
       }
       return Envelope.ok("run", "settle-review-transition", settled);

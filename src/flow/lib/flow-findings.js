@@ -625,6 +625,7 @@ export function buildDeferredSemanticFindingsPublication({
   sourceStep,
   sourceArtifact,
   attempts,
+  round = attempts,
   fingerprints = null,
 } = {}) {
   const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
@@ -654,7 +655,7 @@ export function buildDeferredSemanticFindingsPublication({
       fingerprint,
       rationale: sourceFindingRationale(finding),
       attempts,
-      round: attempts,
+      round,
       finalDisposition: "still_open",
     });
     nextArtifact = update.artifact;

@@ -89,6 +89,8 @@ import {
   GateTransitionActionProjection,
   resolveGateNextAction,
 } from "./gate-transition-application.js";
+import { CanonicalTaskContext, canonicalTaskContextKinds } from "./task-canonical-context.js";
+import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
@@ -173,6 +175,23 @@ function buildContextDescriptor(kinds, target, state) {
     if (task?.spec) paths.task_spec = task.spec;
   }
   return { kinds, paths };
+}
+
+function taskContextProjection({ taskContext, derived, target, state, source }) {
+  const projection = taskContext.projectWorkerContext({
+    stepId: target.stepId,
+    source: canonicalTaskContextKinds(target.stepId).includes("source") ? source : null,
+  }).toJSON();
+  if (JSON.stringify(derived.contextKinds) !== JSON.stringify(projection.kinds)) {
+    throw new NextActionPlanError(
+      "TASK_CONTEXT_CONTRACT_MISMATCH",
+      `Definition Task resource contract diverges from canonical Task context for ${target.stepId}`,
+    );
+  }
+  return Object.freeze({
+    ...buildContextDescriptor(projection.kinds, target, state),
+    ...projection,
+  });
 }
 
 function captureNextActionBinding(ctx, state) {
@@ -451,10 +470,38 @@ function canonicalInstruction(derived, target, state) {
 }
 
 function canonicalWorkerContext(ctx, derived, target, state, typedState) {
-  const context = buildContextDescriptor(derived.contextKinds, target, state);
+  let context = buildContextDescriptor(derived.contextKinds, target, state);
+  const extensions = {};
+  if (target.scope === "task") {
+    try {
+      const artifact = ctx.flowManager.readArtifact({
+        specId: state.specId,
+        logicalKey: "spec.record",
+        consumerNodeId: target.nodeId,
+      });
+      const spec = JSON.parse(artifact.bytes.toString("utf8"));
+      const source = captureCurrentTaskSource({
+        root: ctx.executionRoot || ctx.root,
+        flowManager: ctx.flowManager,
+        state,
+        taskId: target.taskId,
+      });
+      const taskContext = new CanonicalTaskContext({
+        state: { runId: state.runId, specId: state.specId, currentTaskId: target.taskId },
+        spec,
+        sourceFingerprint: source.fingerprint,
+      });
+      context = taskContextProjection({ taskContext, derived, target, state, source });
+    } catch (cause) {
+      throw new NextActionPlanError(
+        "TASK_CONTEXT_INVALID",
+        `canonical Task context is unavailable for ${target.taskId}: ${cause.message}`,
+      );
+    }
+  }
   if (requiresWorkerArtifactHandoff(target.stepId)) {
     const authority = flowArtifactAuthorityForStep(target.stepId);
-    context.workerArtifactHandoff = Object.freeze({
+    extensions.workerArtifactHandoff = Object.freeze({
       version: 2,
       required: true,
       writableAuthority: authority.writableAuthority,
@@ -467,7 +514,7 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
     state,
     targetStepId: target.nodeId,
   });
-  if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
+  if (planGateRepair) extensions.planGateRepair = planGateRepair.toWorkerJSON();
   const testReviewRepair = canonicalTestReviewRepairForTarget({
     flowManager: ctx.flowManager,
     state,
@@ -481,9 +528,9 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
     if (finding === null) throw new Error("canonical test-review repair has no pending finding");
     const testPaths = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state })
       .testSources(target.stepId).map((source) => source.testPath);
-    context.testReviewRepair = testReviewRepair.forFinding(finding.findingId, testPaths);
+    extensions.testReviewRepair = testReviewRepair.forFinding(finding.findingId, testPaths);
   }
-  return context;
+  return Object.freeze({ ...context, ...extensions });
 }
 
 function retryRecoveryCommandFor({ ctx, state, descriptor, target, binding }) {
@@ -656,7 +703,15 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor, bind
   // repair revision is an execution precondition, not a competing policy:
   // exhausted persisted evidence must therefore converge to defer/blocked
   // before a stale repair revision can be observed.
-  const reviewSelection = ["resume", "retry", "record", "blocked"].includes(descriptor.operation)
+  const reviewStep = new Set([
+    "draft-questions-review",
+    "draft-coverage-review",
+    "spec-review",
+    "test-review",
+    "impl-review",
+    "task-review",
+  ]).has(target.stepId);
+  const reviewSelection = reviewStep && ["resume", "retry", "record", "blocked"].includes(descriptor.operation)
     ? resolveCurrentReviewTransition({
         flowManager: ctx.flowManager,
         flowState: state,

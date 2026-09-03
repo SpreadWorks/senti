@@ -18,10 +18,11 @@
      - If `reopen-draft` fails or the flow presents a recovery choice, use Choice Format for that recovery decision.
    - Do not render or edit `spec.md` in this step. `spec.json` is the source of truth; the approval prompt renders the human-readable `spec.md` view when the user needs to read it.
    - Fill spec.json fields: `goal`, `scope`, `constraints`, `requirements`, `acceptance_criteria`, `alternatives_considered` (if applicable).
+   - Every `requirements[]` entry must include a non-empty, duplicate-free `task_ids` array containing only existing `tasks[].id` values. This is the sole Requirement-to-Task mapping; do not infer mappings from prose, order, parent links, or implementation notes.
    - **Requirement testability** (spec 249): each `requirements[]` entry may carry an optional `testable` boolean. Default behavior is testable (omit the field, or set `testable: true`). Set `testable: false` only when the requirement is inherently not verifiable through automated tests — for example, prompt rewrites, documentation updates, or configuration-only changes. Consumers (test step gate, retro static evaluation, test-review untested warning, AI prompt builders) treat `requirement.testable !== false` as testable. `testable: false` requirements are excluded from header coverage validation, retro test-result aggregation, and untested warnings; they appear in AI prompt requirement lists annotated with ` (testing not required)`.
      - Example:
        ```json
-       { "id": "R5", "desc": "rewrite the test phase prompt to teach header convention", "priority": "must", "testable": false }
+       { "id": "R5", "desc": "rewrite the test phase prompt to teach header convention", "priority": "must", "testable": false, "task_ids": ["T-2"] }
        ```
    - Generate `keywords`: an array of 5–15 English keywords derived from the spec content (goal, scope, requirements). These keywords are used by contextSearch for codebase relevance matching. Choose specific, concrete terms (function names, module names, domain concepts) over generic words.
    - If draft phase was done, transfer draft.json content to spec.json using the following field mapping:

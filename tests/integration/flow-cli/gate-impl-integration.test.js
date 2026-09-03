@@ -31,6 +31,11 @@ import {
 } from "../../../src/lib/flow-artifact-contract.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 import {
+  SourceMutationBaseline,
+  SourceMutationManifest,
+  SourceWorkerEffect,
+} from "../../../src/flow/lib/worker-artifact-handoff.js";
+import {
   CanonicalTestArtifactStore,
   canonicalRawEvidenceFingerprint,
 } from "../../../src/flow/lib/canonical-test-artifacts.js";
@@ -46,7 +51,7 @@ function minimalSpecJson() {
     constraints: [],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "anything goes", priority: "must" }],
+    requirements: [{ id: "R1", desc: "anything goes", priority: "must", task_ids: ["T-1"] }],
     acceptance_criteria: [],
     clarifications: [],
     alternatives_considered: [],
@@ -232,24 +237,12 @@ function setupFixture(tmp, {
   initGitRepo(tmp);
   commitAll(tmp, "initial");
 
-  // Feature branch with the modified test file
+  // Feature branch. The Task implementation mutation is applied only after
+  // its canonical source baseline has been captured below.
   checkoutNewBranch(tmp, `feature/${SPEC_ID}`);
-  if (modifiedTest !== undefined) {
-    writeFile(tmp, "tests/dummy.test.js", modifiedTest);
-    commitAll(tmp, "feature change");
-  } else {
-    commitAll(tmp, "empty feature commit");
-  }
+  commitAll(tmp, "empty feature commit");
 
   const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
-  const fixture = new CanonicalFlowFixture({
-    flowManager,
-    specId: SPEC_ID,
-    runId: `run-${SPEC_ID}`,
-    request: "Verify implementation gate behavior.",
-    execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
-    specRecord: { ...specJson, tasks: [] },
-  }).create();
   const gateTask = specJson.tasks?.[0] ?? {
     id: "T-1",
     title: "Integration Gate fixture task",
@@ -259,6 +252,21 @@ function setupFixture(tmp, {
     added_round: 0,
     status: "pending",
   };
+  const canonicalSpec = {
+    ...specJson,
+    requirements: (specJson.requirements ?? []).map((requirement) => ({
+      ...requirement,
+      task_ids: requirement.task_ids ?? [gateTask.id],
+    })),
+  };
+  const fixture = new CanonicalFlowFixture({
+    flowManager,
+    specId: SPEC_ID,
+    runId: `run-${SPEC_ID}`,
+    request: "Verify implementation gate behavior.",
+    execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
+    specRecord: { ...canonicalSpec, tasks: [] },
+  }).create();
   fixture.addTask(gateTask).registerActive();
 
   if (integrationTrustRequirementIds) {
@@ -274,7 +282,32 @@ function setupFixture(tmp, {
   fixture.settle("implement");
 
   fixture.activate(`${gateTask.id}-impl`, { settlePredecessors: false });
-  fixture.settle(`${gateTask.id}-impl`);
+  const implementationState = flowManager.canonicalState(SPEC_ID);
+  const implementationBaseline = SourceMutationBaseline.capture({ root: tmp, attempt: implementationState.attempt });
+  if (modifiedTest !== undefined) writeFile(tmp, "tests/dummy.test.js", modifiedTest);
+  const implementationManifest = SourceMutationManifest.capture({ baseline: implementationBaseline });
+  flowManager.confirmSourceWorkerHandoff({
+    specId: SPEC_ID,
+    mutationManifest: implementationManifest,
+    handoffDigest: "e".repeat(64),
+    effect: new SourceWorkerEffect({
+      version: 1,
+      stepId: "task-impl",
+      completionStatus: "done",
+      files: implementationManifest.mutations.length === 0 ? [] : [{
+        requirementId: canonicalSpec.requirements[0].id,
+        mutationIds: implementationManifest.mutations.map((mutation) => mutation.mutationId),
+      }],
+      issues: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      triage: null,
+      repair: null,
+      noChangeReason: implementationManifest.paths().length === 0
+        ? "The fixture Task implementation requires no source change."
+        : null,
+    }),
+    result: { outcome: "passed", summary: "Fixture Task implementation completed.", confirmedAt: "2026-09-03T00:00:00.000Z", artifactRefs: [] },
+  });
   fixture.activate(`${gateTask.id}-review`, { settlePredecessors: false });
   fixture.settle(`${gateTask.id}-review`);
   fixture.activate(`${gateTask.id}-gate`, { settlePredecessors: false });
@@ -424,7 +457,7 @@ describe("gate-impl integration (spec 202)", () => {
 
   it("R4b-post-235: retry counter increments on AI FAIL, not mechanical test-change FAIL", () => {
     tmp = createTmpDir();
-    setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: BASE_TEST, gateRetry: 0 });
+    setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: `${BASE_TEST}// current Task source\n`, gateRetry: 0 });
 
     const res = runGate(tmp);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
@@ -532,7 +565,7 @@ describe("gate-impl integration (spec 202)", () => {
     tmp = createTmpDir();
     setupFixture(tmp, {
       initialTest: BASE_TEST,
-      modifiedTest: BASE_TEST + "// no usable ids\n",
+      modifiedTest: undefined,
       specJson: { ...minimalSpecJson(), requirements: [{ id: "   ", desc: "no usable id" }] },
       integrationTrustRequirementIds: ["REQ-FALLBACK"],
       stubResponse: buildPassResponseJson("REQ-FALLBACK"),

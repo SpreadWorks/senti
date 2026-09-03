@@ -21,6 +21,8 @@ import { CanonicalGatePromotion } from "../../../src/flow/lib/canonical-gate-art
 import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
 import { resolveGateTransition } from "../../../src/flow/definition.js";
 import { ReviewFindingFingerprint } from "../../../src/flow/lib/finding-disposition-policy.js";
+import { SourceMutationManifest, SourceWorkerEffect } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { captureCurrentTaskSource } from "../../../src/flow/lib/task-mutation-lineage.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -104,6 +106,37 @@ export function confirmCanonicalFixtureStep(flowManager, specId, nodeId, status 
   const task = current.tasks.find((candidate) => (
     candidate.steps.some((step) => step.id === nodeId)
   )) ?? null;
+  if (status === "done" && task !== null && nodeId === `${task.id}-impl`) {
+    const canonical = flowManager.canonicalState(resolvedSpecId);
+    const manifest = new SourceMutationManifest({
+      attempt: canonical.attempt,
+      baselineDigest: "a".repeat(64),
+      mutations: [],
+    });
+    flowManager.confirmSourceWorkerHandoff({
+      specId: resolvedSpecId,
+      mutationManifest: manifest,
+      handoffDigest: "b".repeat(64),
+      effect: new SourceWorkerEffect({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: [],
+        issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] },
+        triage: null,
+        repair: null,
+        noChangeReason: "The fixture Task requires no source mutation.",
+      }),
+      result: {
+        outcome: "passed",
+        summary: "Fixture Task implementation completed without source mutation.",
+        confirmedAt: "2026-01-01T00:00:00.000Z",
+        artifactRefs: [],
+      },
+    });
+    return flowManager.loadReadOnly(resolvedSpecId);
+  }
   const gatePhase = status === "done"
     ? (task?.steps.at(-1)?.id === nodeId ? "task-impl" : nodeId === "impl-gate" ? "integration" : null)
     : null;
@@ -119,7 +152,22 @@ export function confirmCanonicalFixtureStep(flowManager, specId, nodeId, status 
         phase: gatePhase,
         nodeId,
         ...(task === null ? {} : { activeTaskId: task.id }),
-      }).promote({ result: "pass", changed: [], artifacts: { evaluations: [], reasons: [] } });
+      }).promote({
+        result: "pass",
+        changed: [],
+        artifacts: {
+          evaluations: [],
+          reasons: [],
+          ...(task === null ? {} : {
+            sourceFingerprint: captureCurrentTaskSource({
+              root: flowManager.executionRoot(),
+              flowManager,
+              state: current,
+              taskId: task.id,
+            }).fingerprint,
+          }),
+        },
+      });
       flowManager.publishCurrentAttemptResult({ specId: resolvedSpecId, commandResult });
       facts = readCurrentGateTransitionFacts({
         flowManager,
@@ -616,6 +664,15 @@ export class FlowAtStepFixture {
       throw new TypeError("FlowAtStepFixture taskDocuments must be an array");
     }
     const { taskDocuments, targetStep, ...flowInput } = input;
+    if (flowInput.specRecord == null && this.taskDocuments.length > 0) {
+      flowInput.specRecord = {
+        requirements: this.taskDocuments.map((task) => ({
+          id: `R-${task.id}`,
+          desc: `Exercise canonical Task ${task.id}.`,
+          task_ids: [task.id],
+        })),
+      };
+    }
     this.flow = new FreshFlowFixture(flowInput);
   }
 
@@ -647,6 +704,15 @@ export class TaskLifecycleFixture {
     this.taskId = input.taskId;
     this.targetStep = input.targetStep ?? "task-impl";
     const { taskDocuments, taskId, targetStep, ...flowInput } = input;
+    if (flowInput.specRecord == null) {
+      flowInput.specRecord = {
+        requirements: taskDocuments.map((task) => ({
+          id: `R-${task.id}`,
+          desc: `Exercise canonical Task ${task.id}.`,
+          task_ids: [task.id],
+        })),
+      };
+    }
     this.flow = new FreshFlowFixture(flowInput);
     this.taskDocuments = taskDocuments;
   }
@@ -698,7 +764,10 @@ export class CanonicalAutoCheckScenario {
       issue,
       execution,
       autoApprove,
-      specRecord: { goal: "canonical auto-check fixture", requirements: [] },
+      specRecord: {
+        goal: "canonical auto-check fixture",
+        requirements: [{ id: "R-T-1", desc: "Exercise the auto-check Task.", task_ids: ["T-1"] }],
+      },
     });
     this.flowManager = flowManager;
     this.specId = specId;
@@ -791,10 +860,11 @@ export class CanonicalNextActionScenario {
     execution = { mode: "direct" },
     autoApprove = false,
     issue = null,
-    specRecord = { requirements: [] },
+    specRecord = null,
   } = {}) {
     this.flowManager = flowManager;
     this.specId = specId;
+    this.usesDefaultSpecRecord = specRecord === null;
     this.flow = new CanonicalFlowFixture({
       flowManager,
       specId,
@@ -803,13 +873,22 @@ export class CanonicalNextActionScenario {
       execution,
       autoApprove,
       issue,
-      specRecord,
+      specRecord: specRecord ?? { requirements: [] },
     });
     this.created = false;
   }
 
   create({ tasks = [] } = {}) {
     if (this.created) throw new Error("canonical next-action scenario is already created");
+    if (this.usesDefaultSpecRecord && tasks.length > 0) {
+      this.flow.specRecord = {
+        requirements: tasks.map((task) => ({
+          id: `R-${task.id}`,
+          desc: `Exercise canonical Task ${task.id}.`,
+          task_ids: [task.id],
+        })),
+      };
+    }
     this.flow.create().addTasks(tasks).registerActive();
     this.created = true;
     return this;

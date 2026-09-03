@@ -33,7 +33,7 @@ function setupForestFixture(tmp, { taskId = null, targetStep = null, taskDocumen
       specId: SPEC_ID,
       runId: `run-${SPEC_ID}`,
       execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
-      specRecord: { requirements: [{ id: "R1", desc: "task 1 passes", priority: "must" }, { id: "R2", desc: "task 2 passes", priority: "must" }] },
+      specRecord: { requirements: [{ id: "R1", desc: "task 1 passes", priority: "must", task_ids: ["T-1"] }, { id: "R2", desc: "task 2 passes", priority: "must", task_ids: ["T-2"] }] },
     }).create().addTasks(taskDocuments).registerActive()
     : new TaskLifecycleFixture({
       flowManager: fm,

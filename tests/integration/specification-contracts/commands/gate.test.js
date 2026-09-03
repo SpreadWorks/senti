@@ -51,7 +51,7 @@ function runLocallyBlockedGate(tmp, args) {
 }
 
 function validSpecJson(overrides = {}) {
-  return {
+  const result = {
     goal: "test goal",
     background: "test background",
     scope: { in: ["a"], out: ["b"] },
@@ -78,6 +78,13 @@ function validSpecJson(overrides = {}) {
     ],
     ...overrides,
   };
+  const taskIds = result.tasks.map((task) => task.id);
+  result.requirements = result.requirements.map((requirement) => (
+    requirement.task_ids == null && taskIds.length > 0
+      ? { ...requirement, task_ids: [...taskIds] }
+      : requirement
+  ));
+  return result;
 }
 
 // ---------------------------------------------------------------------------

@@ -68,6 +68,7 @@ function sourceEffect(stepId, manifest) {
     overview: null,
     triage: null,
     repair: null,
+    noChangeReason: null,
   };
   if (stepId === "implement") {
     return {
@@ -128,8 +129,13 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
     return;
   }
   if (stepId === "spec") {
+    const spec = validWorkerHandoffSpec();
     fs.writeFileSync(payloadPath(request, "spec.json"), workerArtifactJson({
-      ...validWorkerHandoffSpec(),
+      ...spec,
+      requirements: spec.requirements.map((requirement) => ({
+        ...requirement,
+        task_ids: [...TASK_IDS],
+      })),
       tasks: TASK_IDS.map((taskId) => plannedTask(taskId)),
     }));
     return;

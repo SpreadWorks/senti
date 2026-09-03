@@ -60,7 +60,7 @@ class SourceWorkerUpgradePublicationClaim extends ArtifactPublicationClaim {
 const PRODUCERS = new Set(["cli", "worker", "user"]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
 const CATEGORIES = new Set(["preparation", "command", "artifact", "source", "user"]);
-const SOURCE_MUTATION_MODES = new Set(["required", "forbidden"]);
+const SOURCE_MUTATION_MODES = new Set(["required", "optional", "forbidden"]);
 
 function requiredString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -90,6 +90,8 @@ export class SourceMutationAuthority {
   effectContract() {
     return this.mode === "required"
       ? "required for done; every changed source mutation must occur in files[].mutationIds"
+      : this.mode === "optional"
+        ? "optional; an empty manifest requires a recorded no-change reason"
       : "forbidden";
   }
 
@@ -292,7 +294,7 @@ const ENTRIES = Object.freeze([
   commandOwned("finalize-merge", "finalize-sync"),
   commandOwned("finalize-sync", "finalize-cleanup"),
   commandOwned("finalize-cleanup", "terminal Flow state"),
-  workerSourceOwned("task-impl", "required", "task-review"),
+  workerSourceOwned("task-impl", "optional", "task-review"),
   commandOwned("task-review", "task-gate"),
   commandOwned("task-gate", "next task or implement"),
 ]);

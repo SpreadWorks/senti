@@ -63,6 +63,12 @@ function createFlowState(tmp, extra = {}) {
   if (fields.length > 0) {
     throw new Error(`createFlowState accepts only canonical Spec requirements: ${fields.join(", ")}`);
   }
+  const canonicalRequirements = requirements.length === 0
+    ? [{ id: "R-T-1", desc: "Exercise the canonical command envelope.", task_ids: ["T-1"] }]
+    : requirements.map((requirement) => ({
+      ...requirement,
+      task_ids: requirement.task_ids ?? ["T-1"],
+    }));
   const manager = makeFlowManager(tmp);
   const fixture = new CanonicalFlowFixture({
     flowManager: manager,
@@ -70,7 +76,7 @@ function createFlowState(tmp, extra = {}) {
     runId: "run-001-test",
     request: "add a progress bar",
     execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
-    specRecord: { goal: "x", requirements },
+    specRecord: { goal: "x", requirements: canonicalRequirements },
   }).create().addTask({
     id: "T-1",
     title: "x",

@@ -126,12 +126,13 @@ describe("T-1: entry enforcement (guardrail + prompts + spec gate tasks check)",
     assert.equal(tasksIssues.length, 0, "checkSpecJson must not report tasks issues for non-empty valid tasks");
   });
 
-  it("existing spec.json (tasks undefined) is still valid under JSON schema", () => {
+  it("rejects a canonical spec.json whose tasks field is absent", () => {
     const schema = loadSpecSchema();
     const spec = makeSpec();
-    // tasks is absent — the schema does not list "tasks" in "required",
-    // so an existing spec.json without a tasks field should pass schema validation.
     const errors = validateSchema(spec, schema);
-    assert.deepEqual(errors, [], "spec without tasks must pass JSON schema validation");
+    assert.ok(
+      errors.some((error) => error.includes("tasks") && error.includes("required")),
+      `spec without tasks must fail JSON schema validation: ${errors.join(" / ")}`,
+    );
   });
 });

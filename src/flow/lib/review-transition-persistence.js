@@ -55,7 +55,7 @@ export function persistReviewTransitionFacts(ctx, result) {
   return Object.freeze({ phase, retryRecorded });
 }
 
-/** Persist only a definition-selected deferred disposition for an interrupted active review. */
+/** Materialize a definition-selected Review disposition from current canonical facts. */
 export function settleDefinitionReviewTransition(ctx) {
   const flowState = ctx.flowManager.loadReadOnly(ctx.specId ?? ctx.flowState.specId);
   const taskId = flowState.currentTaskId ?? null;
@@ -68,6 +68,16 @@ export function settleDefinitionReviewTransition(ctx) {
     scope,
     stepId,
   });
+  if (selection.disposition?.operation === "repair-no-change-task-impl") {
+    const repaired = ctx.flowManager.repairNoChangeTaskReview({ specId: flowState.specId });
+    return Object.freeze({
+      stepId,
+      phase: selection.facts.phase,
+      taskId,
+      operation: selection.disposition.operation,
+      replacementAttempt: repaired.attempt?.toJSON?.() ?? null,
+    });
+  }
   if (selection.disposition?.operation !== "defer") return null;
   const { facts, disposition } = selection;
   const findings = buildDeferredSemanticFindingsPublication({
@@ -109,6 +119,7 @@ export function settleDefinitionReviewTransition(ctx) {
   return Object.freeze({
     stepId,
     phase: facts.phase,
+    operation: disposition.operation,
     findingCount: findings.deferred.length,
     attempts: disposition.attempts,
   });

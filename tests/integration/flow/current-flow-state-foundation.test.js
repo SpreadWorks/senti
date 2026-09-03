@@ -369,7 +369,7 @@ describe("Current Flow state foundation", () => {
     assert.deepEqual(action.toJSON(), {
       action: "run-review",
       instructionsKey: "task.task-review",
-      contextKinds: ["task_spec", "diff", "testlog"],
+      contextKinds: ["task_spec", "requirements", "source"],
       outputSchemaRef: "next-action/review.schema.json",
       requiresApproval: false,
       autoApproveChoiceId: null,
@@ -385,7 +385,7 @@ describe("Current Flow state foundation", () => {
     assert.equal(acceptancePolicy.targetNodeId, "spec");
     assert.deepEqual(
       withBoth.definition.contractFor("task-1-review", withBoth.root).resourceContract.required,
-      ["task_spec", "diff", "testlog"],
+      ["task_spec", "requirements", "source"],
     );
     const leaves = [];
     const collect = (node) => {
@@ -654,12 +654,12 @@ describe("Current Flow state foundation", () => {
     const initial = attemptFor(state, pathToReview, "review-1", 1, {
       blocker: { code: "waiting", message: "Waiting for evidence." },
       incomplete: [{
-        code: "testlog_pending",
-        message: "The test log is not available yet.",
-        operation: "collect-testlog",
-        resources: ["testlog"],
+        code: "source_pending",
+        message: "The current Task source is not available yet.",
+        operation: "collect-source",
+        resources: ["source"],
       }],
-      operationClaims: [{ operation: "load-context", resources: ["task_spec", "diff"] }],
+      operationClaims: [{ operation: "load-context", resources: ["task_spec", "requirements"] }],
     });
     state = state.startAttempt({ path: pathToReview, attempt: initial });
     const incompleteReview = state;
@@ -670,7 +670,7 @@ describe("Current Flow state foundation", () => {
     const replacement = initial.replaceFacts({
       blocker: { code: "resolved", message: "Evidence is now available." },
       incomplete: [],
-      operationClaims: [{ operation: "load-context", resources: ["task_spec", "diff", "testlog"] }],
+      operationClaims: [{ operation: "load-context", resources: ["task_spec", "requirements", "source"] }],
     });
     state = state.replaceCurrentAttempt({ attempt: replacement });
     assert.throws(
@@ -1121,8 +1121,8 @@ describe("Current Flow state foundation", () => {
   it("resolves Task resources from the same Task and excludes sibling Task evidence", () => {
     const taskArtifacts = (taskId) => [
       { kind: "task_spec", id: `${taskId}-spec` },
-      { kind: "diff", id: `${taskId}-diff` },
-      { kind: "testlog", id: `${taskId}-testlog` },
+      { kind: "requirements", id: `${taskId}-requirements` },
+      { kind: "source", id: `${taskId}-source` },
     ];
     let state = CurrentFlowState.create({ definition: definition() })
       .addTask({ id: "task-a", key: "first" })
@@ -1134,7 +1134,7 @@ describe("Current Flow state foundation", () => {
     state = completeNext(state, "task-b-impl", { artifactRefs: taskArtifacts("task-b") });
     assert.equal(state.nextAction().nodeId, "task-b-review");
     const authority = state.artifactAuthority();
-    assert.deepEqual(authority.requiredResources, ["task_spec", "diff", "testlog"]);
+    assert.deepEqual(authority.requiredResources, ["task_spec", "requirements", "source"]);
     assert.ok(authority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b-impl"));
     assert.equal(
       authority.resolutions.some((resolution) => resolution.source?.path.includes("task-a")),

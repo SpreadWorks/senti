@@ -15,7 +15,12 @@ test("set broad records its audited fact through the canonical Activity note led
   const root = createTmpDir("canonical-broad-mode-");
   try {
     const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
-    const fixture = new CanonicalFlowFixture({ flowManager: manager, specId: "481-broad", runId: "run-481" })
+    const fixture = new CanonicalFlowFixture({
+      flowManager: manager,
+      specId: "481-broad",
+      runId: "run-481",
+      specRecord: { requirements: [{ id: "R-T-1", desc: "Exercise broad mode.", task_ids: ["T-1"] }] },
+    })
       .create()
       .addTask({ id: "T-1", title: "Task", goal: "Exercise broad mode.", parent: null, origin: "plan", added_round: 0, status: "pending" })
       .registerActive()

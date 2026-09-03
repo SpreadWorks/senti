@@ -220,8 +220,7 @@ describe("flow get next-action", () => {
 
     assert.equal(retry.operation, "retry");
     assert.deepEqual(exhausted.toJSON(), {
-      operation: "defer", phase: "impl", attempts: 4, maxAttempts: 4,
-      sourceFingerprints: ["d".repeat(64)],
+      operation: "blocked", phase: "impl", attempts: 4, maxAttempts: 4,
     });
   });
 

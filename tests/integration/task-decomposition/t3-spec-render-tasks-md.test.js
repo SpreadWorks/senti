@@ -33,6 +33,7 @@ function sampleTask(overrides = {}) {
 }
 
 function minSpec(tasks) {
+  const taskIds = (tasks ?? []).map((task) => task.id);
   return {
     goal: "g",
     scope: { in: [], out: [] },
@@ -40,7 +41,9 @@ function minSpec(tasks) {
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
     background: "bg",
-    requirements: [],
+    requirements: taskIds.length === 0
+      ? []
+      : [{ id: "R-render", desc: "Render every canonical Task.", task_ids: taskIds }],
     acceptance_criteria: [],
     clarifications: [],
     alternatives_considered: [],
@@ -145,7 +148,7 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
         runId: "run-001-test",
         request: "Render canonical Task markdown.",
         execution: { mode: "direct", baseBranch: "main", featureBranch: null },
-        specRecord: minSpec(),
+        specRecord: { ...minSpec([sampleTask({ id: "T-1" })]), tasks: [] },
       }).create().addTask(sampleTask({ id: "T-1", title: "First task" })).registerActive();
       const specDir = fixture.location().directory;
 
@@ -189,7 +192,7 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
         runId: "run-002-fresh",
         request: "Render a new canonical Task markdown document.",
         execution: { mode: "direct", baseBranch: "main", featureBranch: null },
-        specRecord: minSpec(),
+        specRecord: { ...minSpec([sampleTask({ id: "T-A" })]), tasks: [] },
       }).create().addTask(sampleTask({ id: "T-A", title: "New task" }));
       const specDir = fixture.location().directory;
       const tasksDir = path.join(specDir, ".runtime", "spec-render", "tasks");

@@ -46,6 +46,19 @@ afterEach(() => {
   while (roots.length > 0) removeTmpDir(roots.pop());
 });
 
+function taskRecord() {
+  return {
+    id: "T1",
+    title: "Render the full view",
+    goal: "Keep every task inline in the deterministic Markdown.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+    acceptance: ["Markdown shows the task purpose."],
+  };
+}
+
 function specRecord() {
   return {
     goal: "Keep the canonical view deterministic.",
@@ -54,12 +67,16 @@ function specRecord() {
     constraints: ["Node built-ins only."],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "Render the verified requirement." }],
+    requirements: [{ id: "R1", desc: "Render the verified requirement.", task_ids: ["T1"] }],
     acceptance_criteria: ["The human view is stable."],
     clarifications: [{ q: "Who reads it?", a: "A person." }],
     alternatives_considered: [],
     open_questions: [],
   };
+}
+
+function completeSpecRecord() {
+  return { ...specRecord(), tasks: [taskRecord()] };
 }
 
 function activeFixture() {
@@ -69,16 +86,7 @@ function activeFixture() {
     flowManager,
     specId: "514-artifact-view",
     specRecord: specRecord(),
-  }).create().addTask({
-    id: "T1",
-    title: "Render the full view",
-    goal: "Keep every task inline in the deterministic Markdown.",
-    parent: null,
-    origin: "plan",
-    added_round: 0,
-    status: "pending",
-    acceptance: ["Markdown shows the task purpose."],
-  }).registerActive();
+  }).create().addTask(taskRecord()).registerActive();
   return { directory, flowManager, fixture };
 }
 
@@ -105,7 +113,7 @@ function attemptHistorySource(logicalKey, relativePath, payload) {
 }
 
 function acceptanceDocument(location, {
-  spec = specRecord(),
+  spec = completeSpecRecord(),
   flowFindings = { version: 2, entries: [] },
   originalOverride = {},
   decision = null,
@@ -332,7 +340,7 @@ describe("artifact human views", () => {
     const baseline = render();
     const primaryChanged = render({ reviewOverride: { reportRefs: ["report-v2"] } });
     const staticChanged = render({
-      spec: { ...specRecord(), background: "A changed cataloged static dependency." },
+      spec: { ...completeSpecRecord(), background: "A changed cataloged static dependency." },
     });
     const findingsChanged = render({ flowFindings: { version: 2, entries: [{ findingId: "flow-finding-2" }] } });
     const optionalDecision = render({ decision: { choice: "abort", decidedAt: "2026-08-15T00:00:00.000Z" } });

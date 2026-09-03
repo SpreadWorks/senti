@@ -349,6 +349,7 @@ export class FlowManager {
     return this._workspace.executionVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
   }
   pathForCurrent() { return this._store.pathForCurrent(); }
+  executionRoot() { return this._root; }
   /** Alias for the canonical Version-1 flow.json path. */
   flowStatePath() { return this._store.pathForCurrent(); }
   resolveWorktreePaths(state) { return this._store.resolveWorktreePaths(state); }
@@ -767,6 +768,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  repairNoChangeTaskReview(input = {}) {
+    return this._store.repairNoChangeTaskReview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   setAutoApprove(autoApprove, opts) {
     return this._store.setAutoApprove(autoApprove, withSpecIdDefault(opts, this._boundSpecId));
   }
@@ -816,6 +823,10 @@ export class FlowManager {
     const task = this.getCurrentTask();
     if (!task) return null;
     return (task.steps || []).find((s) => s.status === "in_progress") ?? null;
+  }
+
+  taskMutationLineages(options = {}) {
+    return this._store.taskMutationLineages({ ...options, specId: options.specId ?? this._boundSpecId });
   }
 
   /**

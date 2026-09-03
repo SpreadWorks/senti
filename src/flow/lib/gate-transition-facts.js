@@ -6,11 +6,14 @@
  * definition.js.  Commands must not reconstruct any of these identities
  * from their invocation arguments or process-local state.
  */
-import { GateFailureCategory, GateTaskLifecycle, GateTransitionFacts } from "./gate-transition.js";
+import { GateFailureCategory, GateTaskBudget, GateTaskLifecycle, GateTransitionFacts } from "./gate-transition.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { canonicalGateNodeId, canonicalGateRevision } from "./canonical-gate-artifacts.js";
 import { inspectCanonicalPlanGateRepair } from "./plan-gate-repair.js";
 import { evaluateReviewFindingGateReadiness } from "./review-finding-gate-readiness.js";
+import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
+
+const SHA256 = /^[a-f0-9]{64}$/;
 
 function required(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -222,7 +225,7 @@ function currentGateActivity({ flowManager, state, nodeId, attempt }) {
  * All malformed, stale, or mismatched evidence throws: callers must reject
  * rather than turn an unavailable publication into a guessed transition.
  */
-export function readCurrentGateTransitionFacts({ flowManager, flowState, phase } = {}) {
+export function readCurrentGateTransitionFacts({ flowManager, flowState, phase, root = null } = {}) {
   if (!flowManager || typeof flowManager.canonicalState !== "function"
     || typeof flowManager.loadReadOnly !== "function"
     || typeof flowManager.readProducerArtifact !== "function"
@@ -271,6 +274,21 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     }
     if (typeof resultRevision !== "string" || resultRevision !== canonicalGateRevision(state, nodeId)) {
       throw new Error("canonical Gate result lineage binding is invalid");
+    }
+    if (taskId !== null) {
+      const persistedSourceFingerprint = payload?.artifacts?.sourceFingerprint;
+      if (typeof persistedSourceFingerprint !== "string" || !SHA256.test(persistedSourceFingerprint)) {
+        throw new Error("canonical Task Gate result source fingerprint is invalid");
+      }
+      const currentSource = captureCurrentTaskSource({
+        root: root ?? flowManager.executionRoot?.(),
+        flowManager,
+        state: currentView,
+        taskId,
+      });
+      if (currentSource.fingerprint !== persistedSourceFingerprint) {
+        throw new Error("canonical Task Gate result source fingerprint is stale; reload the current Task source");
+      }
     }
   }
   const activities = currentGateActivity({ flowManager, state, nodeId, attempt });
@@ -353,6 +371,9 @@ export function readCurrentGateTransitionFacts({ flowManager, flowState, phase }
     result: payload.result,
     failure,
     retry,
+    taskBudget: taskId === null ? null : new GateTaskBudget({
+      round: flowManager.taskMutationLineages({ specId: state.specId, taskId }).at(-1)?.budget.round,
+    }),
     lineage: {
       sourceAttempt: { id: attempt.id, sequence: attempt.sequence },
       canonicalAttempt: { id: attempt.id, sequence: attempt.sequence },

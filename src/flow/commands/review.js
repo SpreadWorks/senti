@@ -162,6 +162,8 @@ const REVIEW_TEST_SOURCE_DIRECTORY_ENV = PRODUCT.env("REVIEW_TEST_SOURCE_DIR");
 const REVIEW_TEST_ARTIFACT_REVISION_ENV = PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION");
 const REVIEW_TEST_TOPOLOGY_ENV = PRODUCT.env("REVIEW_TEST_TOPOLOGY");
 const REVIEW_TASK_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_SPEC_SOURCE");
+const REVIEW_TASK_CONTEXT_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_CONTEXT_SOURCE");
+const REVIEW_TASK_CURRENT_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_CURRENT_SOURCE");
 const REVIEW_DRAFT_SOURCE_ENV = PRODUCT.env("REVIEW_DRAFT_SOURCE");
 const REVIEW_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_SPEC_SOURCE");
 const REVIEW_SPEC_REVIEW_SOURCE_ENV = PRODUCT.env("REVIEW_SPEC_REVIEW_SOURCE");
@@ -357,6 +359,29 @@ function reviewTaskSpecSource(logicalPath) {
     throw new Error(`${REVIEW_TASK_SPEC_SOURCE_ENV} sourcePath escapes the review work unit`);
   }
   return sourcePath;
+}
+
+function canonicalTaskReviewInputs() {
+  const context = canonicalReviewInput({
+    variable: REVIEW_TASK_CONTEXT_SOURCE_ENV,
+    logicalKey: "task.context",
+    logicalPath: "task-context.json",
+  }).readJsonObject();
+  const source = canonicalReviewInput({
+    variable: REVIEW_TASK_CURRENT_SOURCE_ENV,
+    logicalKey: "task.source",
+    logicalPath: "task-source.json",
+  }).readJsonObject();
+  if (context.lineage?.taskId !== source.taskId
+    || context.lineage?.sourceFingerprint !== source.fingerprint
+    || context.fingerprint == null
+    || source.fingerprint == null) {
+    throw new Error("canonical Task Review inputs do not share one Task identity");
+  }
+  if (!Array.isArray(context.requirements) || !Array.isArray(source.entries)) {
+    throw new Error("canonical Task Review context or source is invalid");
+  }
+  return Object.freeze({ context, source });
 }
 
 function getReviewMaxAttempts(phase, attemptContext) {
@@ -1248,7 +1273,7 @@ function loadPreviousImplReviewMemory({ flowManager, flow, taskId = null } = {})
   }).toPromptMemory();
 }
 
-function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null } = {}) {
+function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null, taskContext = null, taskReviewAttempt = null, taskNoChangeReasons = [] } = {}) {
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   const responseSchema = buildImplReviewResponseSchema(allowedRequirementIds);
   const touched = Array.from(touchedFiles instanceof Set ? touchedFiles : new Set(touchedFiles)).sort();
@@ -1285,19 +1310,58 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
     .setFmtFallback(buildImplReviewFmtFallback(responseSchema))
     .addUserPrompt("## Allowed Target Requirement IDs", [...allowedRequirementIds].sort().join("\n") || "(none)")
     .addUserPrompt("## Requirement-File Mapping", JSON.stringify(requirementFileMap, null, 2))
-    .addUserPrompt("## Touched Files", touched.join("\n") || "(none)")
-    .addUserPrompt("## Diff", diff || "(none)");
+    .addUserPrompt("## Touched Files", touched.join("\n") || "(none)");
+
+  pb.addUserPrompt(taskSpec ? "## Current Task Source" : "## Diff", diff || "(none)");
 
   if (taskSpec) {
+    if (!Number.isSafeInteger(taskReviewAttempt) || taskReviewAttempt < 1 || taskReviewAttempt > 4) {
+      throw new Error("Task Review prompt requires an Attempt between 1 and 4");
+    }
     pb.addUserPrompt("## Task Review Scope", [
       `Task spec: ${taskSpec.relPath}`,
+      `Review attempt: ${taskReviewAttempt}/4`,
       taskSpec.content || "",
     ].join("\n"));
+    const noChange = Array.isArray(taskNoChangeReasons) && taskNoChangeReasons.length > 0 && touched.length === 0;
+    pb.addUserPrompt("## Task Review Repair Contract", noChange
+      ? [
+        "This Task implementation declared no source mutation. Verify that declaration against the canonical Task context, mapped Requirements, stated reasons, and the empty current Task source.",
+        "If the declaration is valid, return no findings. Do not invent a source edit.",
+        "If a mapped Requirement is missing, emit a must-fix missing_acceptance_requirement blocker with file=null and the mapped requirementId. Do not edit source: the parent will route the Task to its bounded implementation correction round.",
+        "Do not use another failure mode or a file-backed finding for an invalid no-change declaration.",
+        "Do not run tests.",
+      ].join("\n")
+      : [
+        "Review the supplied current Task source, then repair every must-fix finding you report before returning JSON.",
+        "Edit only files in Touched Files. Do not add unrelated paths and do not edit for informational findings.",
+        "Do not run tests. Re-read each edited file before returning.",
+        "Keep repaired findings in blockingFindings so the parent can bind every mutation to the finding that owned it.",
+        taskReviewAttempt === 4
+          ? "This is the fourth Review: finish all must-fix repairs now; the parent proceeds directly to Task Gate after validating their mutation manifest."
+          : "The parent will run another Task Review after validating this repair manifest.",
+      ].join("\n"));
+    if (noChange) {
+      pb.addUserPrompt("## Declared No-Change Reasons", taskNoChangeReasons.join("\n"));
+    }
+    pb.addUserPrompt("## Canonical Task Context", JSON.stringify(taskContext, null, 2));
   }
   if (previousReview) {
     pb.addUserPrompt("## Previous Impl Review Memory", JSON.stringify(previousReview, null, 2));
   }
   return pb.build();
+}
+
+function canonicalTaskReviewAttempt({ flowManager, flow, taskId }) {
+  const lineage = flowManager.taskMutationLineages({ specId: flow.specId, taskId }).at(-1) ?? null;
+  if (lineage === null) throw new Error("Task Review requires a current Task execution budget");
+  const task = flow.tasks?.find((candidate) => candidate.id === taskId) ?? null;
+  const review = task?.steps?.find((candidate) => candidate.id === `${taskId}-review`) ?? null;
+  const attempt = review?.attemptSequence - lineage.budget.reviewAttemptSequenceAtStart;
+  if (!Number.isSafeInteger(attempt) || attempt < 1 || attempt > 4) {
+    throw new Error("Task Review Attempt is outside its current execution round");
+  }
+  return attempt;
 }
 
 function resolveRequirementIds(spec) {
@@ -1782,11 +1846,20 @@ function resolveTaskReviewSpec(taskSpecPath) {
     throw new Error(`task spec not found: ${relPath}`);
   }
   const content = fs.readFileSync(absPath, "utf8");
+  const inputs = canonicalTaskReviewInputs();
+  const entries = inputs.source.entries;
+  const currentSource = entries.map((entry) => entry.status === "deleted"
+    ? `## ${entry.path}\n(deleted)`
+    : `## ${entry.path}\n${entry.content}`).join("\n\n");
   return {
     relPath,
-    task: { id: path.basename(relPath, path.extname(relPath)) },
+    task: { id: inputs.context.task.id },
     text: content,
     content,
+    context: inputs.context,
+    source: inputs.source,
+    currentSource,
+    touchedFiles: new Set(entries.map((entry) => entry.path)),
   };
 }
 
@@ -4313,9 +4386,6 @@ async function runReview(rawArgs) {
     activities: flowManager.activityLedger(flow.specId),
   });
 
-  // Resolve merge-base once and use it as the single diff starting point.
-  const mergeBase = resolveMergeBase(root, flow.baseBranch);
-
   const reviewExclusions = resolveReviewExcludePaths(config);
   const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: reviewExclusions });
   const reviewTargetFiles = new ReviewTargetFileFilter({
@@ -4323,18 +4393,23 @@ async function runReview(rawArgs) {
     excludeMatcher: reviewExcludeMatcher,
   });
   const taskSpec = resolveTaskReviewSpec(cli.taskSpec);
-  const resolvedReviewTarget = await resolveReviewTarget(
-    root,
-    flow,
-    mergeBase,
-    spec,
-    reviewExcludeMatcher,
-    reviewExclusions,
-    reviewTargetFiles,
-  );
+  // Task Review consumes the parent-materialized current source allow-list.
+  // Only flow-level Review resolves a repository-wide merge base and diff.
+  const mergeBase = taskSpec ? null : resolveMergeBase(root, flow.baseBranch);
+  const resolvedReviewTarget = taskSpec
+    ? { diff: taskSpec.currentSource, touchedFiles: taskSpec.touchedFiles, untrackedFiles: [] }
+    : await resolveReviewTarget(
+      root,
+      flow,
+      mergeBase,
+      spec,
+      reviewExcludeMatcher,
+      reviewExclusions,
+      reviewTargetFiles,
+    );
   const reviewTarget = resolvedReviewTarget;
   const { diff } = reviewTarget;
-  if (!diff) {
+  if (!diff && taskSpec === null) {
     const result = await runImplReview({
       root: artifactRoot,
       executionRoot: root,
@@ -4353,9 +4428,7 @@ async function runReview(rawArgs) {
     return;
   }
 
-  const touchedFiles = taskSpec
-    ? collectDiffFilePaths(diff)
-    : new Set(resolvedReviewTarget.touchedFiles);
+  const touchedFiles = taskSpec ? new Set(taskSpec.touchedFiles) : new Set(resolvedReviewTarget.touchedFiles);
   for (const file of reviewTarget.untrackedFiles) touchedFiles.add(file);
   const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
 
@@ -4370,7 +4443,12 @@ async function runReview(rawArgs) {
     flow,
     taskId: taskSpec?.task?.id ?? null,
   });
-  const requirementIds = resolveRequirementIds(spec);
+  const taskReviewAttempt = taskSpec
+    ? canonicalTaskReviewAttempt({ flowManager, flow, taskId: taskSpec.task.id })
+    : null;
+  const requirementIds = taskSpec
+    ? new Set(taskSpec.context.requirements.map((requirement) => requirement.id))
+    : resolveRequirementIds(spec);
   const result = await runReviewWithDependencies({
     touchedFiles,
     shouldUseLoopReview: (fileCount) => (
@@ -4395,6 +4473,9 @@ async function runReview(rawArgs) {
           relPath: taskSpec.relPath,
           content: taskSpec.content,
         } : null,
+        taskContext: taskSpec?.context ?? null,
+        taskReviewAttempt,
+        taskNoChangeReasons: taskSpec?.source?.noChangeReasons ?? [],
       });
       const reviewAgent = ensureAgent("flow.impl.review.propose");
       return callReviewAgent(

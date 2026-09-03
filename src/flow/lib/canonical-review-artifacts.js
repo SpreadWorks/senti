@@ -38,6 +38,8 @@ import {
   SpecReviewDelta,
   mergeSpecReviewDelta,
 } from "./spec-review-artifacts.js";
+import { CanonicalTaskContext } from "./task-canonical-context.js";
+import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
 
 const PHASES = new Set(["draft-questions", "draft-coverage", "spec", "test", "impl"]);
 const ATTACHED_REVIEW_WORK_UNIT = Symbol("canonical-review-work-unit");
@@ -588,13 +590,12 @@ export class CanonicalReviewWorkUnit {
    */
   materializeTaskSpec({ write = true } = {}) {
     if (this.taskId === null) return null;
-    const task = this.state.tasks?.find((candidate) => candidate.id === this.taskId) ?? null;
-    if (task === null) throw new Error(`canonical review Task is absent: ${this.taskId}`);
+    const context = this.captureTaskWorkerProjection().context;
     const input = {
       logicalKey: "task.spec",
       logicalPath: "task-spec.md",
       mediaType: "text/markdown",
-      bytes: Buffer.from(renderTaskMarkdown(task), "utf8"),
+      bytes: Buffer.from(renderTaskMarkdown(context.task), "utf8"),
     };
     if (!write) {
       this.workUnit.declareInput(input);
@@ -607,6 +608,68 @@ export class CanonicalReviewWorkUnit {
       `${this.taskId}.md`,
     );
     return Object.freeze({ taskId: this.taskId, logicalPath, sourcePath });
+  }
+
+  /** Bind Task Review to mapped Requirements and the Task-only source allow-list. */
+  materializeTaskContextAndSource({ write = true } = {}) {
+    if (this.taskId === null) return null;
+    const projection = this.captureTaskWorkerProjection();
+    const values = [
+      {
+        logicalKey: "task.context",
+        logicalPath: "task-context.json",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(projection.task, null, 2)}\n`, "utf8"),
+      },
+      {
+        logicalKey: "task.source",
+        logicalPath: "task-source.json",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(projection.source.toJSON(), null, 2)}\n`, "utf8"),
+      },
+    ];
+    if (!write) {
+      values.forEach((value) => this.workUnit.declareInput(value));
+      return null;
+    }
+    const descriptors = values.map((value) => {
+      const written = this.workUnit.writeInput(value);
+      return reviewInputDescriptor({ logicalKey: value.logicalKey, logicalPath: value.logicalPath, written });
+    });
+    return Object.freeze({
+      context: descriptors[0],
+      source: descriptors[1],
+      sourceFingerprint: projection.source.fingerprint,
+    });
+  }
+
+  /** Capture one Task context/source snapshot and project every Task Review input from it. */
+  captureTaskWorkerProjection() {
+    if (this.taskId === null) return null;
+    if (this.taskWorkerProjection) return this.taskWorkerProjection;
+    const source = this.captureCurrentTaskSource();
+    const context = CanonicalTaskContext.capture({
+      root: this.workUnit.executionRoot,
+      flowManager: this.flowManager,
+      state: this.state,
+      taskId: this.taskId,
+      source,
+    });
+    const projection = context.projectWorkerContext({ stepId: "task-review", source });
+    this.taskContext = context;
+    this.taskSource = source;
+    this.taskWorkerProjection = projection;
+    return projection;
+  }
+
+  captureCurrentTaskSource() {
+    if (this.taskId === null) return null;
+    return captureCurrentTaskSource({
+      root: this.workUnit.executionRoot,
+      flowManager: this.flowManager,
+      state: this.state,
+      taskId: this.taskId,
+    });
   }
 
   /** Materialize the catalog-authoritative draft under its worker-visible name. */
@@ -686,19 +749,24 @@ export class CanonicalReviewWorkUnit {
     this.materializeDraft({ write: false });
     this.materializeTestSources(this.workUnit.directory, { write: false });
     this.materializeTaskSpec({ write: false });
+    this.materializeTaskContextAndSource({ write: false });
     return this.workUnit.manifest();
   }
 }
 
 /** Turn a child worker's transient JSON artifact into one V1 command result. */
 export class CanonicalReviewPromotion {
-  constructor({ workUnit, phase: reviewPhase, taskId = null, treeSha, targetStateDigest, specReviewSource = null } = {}) {
+  constructor({ workUnit, phase: reviewPhase, taskId = null, treeSha, targetStateDigest, specReviewSource = null, taskSource = null, taskMutationLineage = null, reviewRepairComplete = false } = {}) {
     if (!(workUnit instanceof ReviewWorkUnit)) throw new Error("canonical review promotion requires a sealed execution work unit");
     this.workUnit = workUnit;
     this.phase = phase(reviewPhase);
     this.taskId = taskId == null ? null : requiredText(taskId, "canonical review taskId");
     this.treeSha = requiredText(treeSha, "canonical review treeSha").toLowerCase();
     this.targetStateDigest = requiredText(targetStateDigest, "canonical review targetStateDigest").toLowerCase();
+    this.taskSource = taskSource;
+    this.taskMutationLineage = taskMutationLineage;
+    if (typeof reviewRepairComplete !== "boolean") throw new Error("canonical review repair completion must be boolean");
+    this.reviewRepairComplete = reviewRepairComplete;
     if (reviewPhase === "spec") {
       if (!specReviewSource || !(specReviewSource.review instanceof CanonicalSpecReview)) {
         throw new Error("canonical spec review promotion requires its revision-scoped review input");
@@ -789,6 +857,13 @@ export class CanonicalReviewPromotion {
           retryPhase: this.phase,
         } : {}),
         ...(this.taskId === null ? {} : { taskId: this.taskId }),
+        ...(this.taskId === null ? {} : {
+          sourceFingerprint: this.taskSource?.fingerprint,
+          noChange: this.taskSource?.entries.length === 0 && this.taskSource?.noChangeReasons.length > 0,
+          noChangeReasons: [...(this.taskSource?.noChangeReasons ?? [])],
+          repairMutationCount: this.taskMutationLineage?.paths?.length ?? 0,
+          reviewRepairComplete: this.reviewRepairComplete,
+        }),
       },
     };
   }
@@ -833,18 +908,38 @@ export class CanonicalReviewPromotion {
       treeSha: this.treeSha,
       targetStateDigest: this.targetStateDigest,
     };
+    if (this.taskId !== null) {
+      normalizedArtifact.taskId = this.taskId;
+      normalizedArtifact.canonicalTaskSource = {
+        fingerprint: this.taskSource.fingerprint,
+        lineageFingerprints: [...this.taskSource.lineageFingerprints],
+        reviewRepairLineageFingerprint: this.taskMutationLineage?.fingerprint ?? null,
+        reviewRepairComplete: this.reviewRepairComplete,
+      };
+      normalizedArtifact.noChange = this.taskSource.entries.length === 0
+        && this.taskSource.noChangeReasons.length > 0;
+      normalizedArtifact.noChangeReasons = [...this.taskSource.noChangeReasons];
+    }
     const artifactAttachment = new CanonicalCommandResultArtifact({
       logicalKey,
       payload: normalizedArtifact,
     });
-    const evidencePublication = new CanonicalCommandResultPublication({
+    const publications = [new CanonicalCommandResultPublication({
       logicalKey: "review.evidence",
       parameters: this.taskId === null
         ? { reviewStep: nodeIdFor({ phase: this.phase, taskId: null }), digest: evidence.identity.evidenceDigest }
         : { taskId: this.taskId, digest: evidence.identity.evidenceDigest },
       mediaType: "application/json",
       payload: evidence.toCanonicalJSON(),
-    });
+    })];
+    if (this.taskMutationLineage !== null) {
+      publications.push(new CanonicalCommandResultPublication({
+        logicalKey: "task.mutation.lineage",
+        parameters: { taskId: this.taskId, attemptId: this.taskMutationLineage.attempt.id },
+        mediaType: "application/json",
+        payload: this.taskMutationLineage.toJSON(),
+      }));
+    }
     result.artifacts ||= {};
     result.artifacts.phase = this.phase;
     result.artifacts.verdict = normalizedVerdict(artifact.verdict);
@@ -854,7 +949,7 @@ export class CanonicalReviewPromotion {
     result.artifacts.targetStateDigest = this.targetStateDigest;
     if (this.taskId !== null) result.artifacts.taskId = this.taskId;
     attachCanonicalCommandResultArtifact(result, artifactAttachment);
-    attachCanonicalCommandResultPublications(result, [evidencePublication]);
+    attachCanonicalCommandResultPublications(result, publications);
     Object.defineProperty(result, ATTACHED_REVIEW_WORK_UNIT, {
       value: this.workUnit,
       enumerable: false,

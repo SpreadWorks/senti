@@ -2429,6 +2429,48 @@ describe("impl review structured artifact helpers", () => {
     assert.match(combined, /findingKey/);
   });
 
+  it("labels Task Review input as current source without a diff or test log", () => {
+    const prompt = buildImplReviewPrompt({
+      requirementFileMap: { R1: ["src/task.js"] },
+      requirementIds: new Set(["R1"]),
+      diff: "export const task = true;",
+      touchedFiles: ["src/task.js"],
+      taskSpec: { relPath: "tasks/T-1.md", content: "Implement the current Task." },
+      taskContext: {
+        task: { id: "T-1", goal: "Implement the current Task." },
+        requirements: [{ id: "R1", desc: "Provide the Task behavior." }],
+      },
+      taskReviewAttempt: 1,
+    });
+
+    assert.match(prompt.userPrompt, /## Current Task Source/);
+    assert.match(prompt.userPrompt, /export const task = true;/);
+    assert.doesNotMatch(prompt.userPrompt, /## Diff/);
+    assert.doesNotMatch(prompt.userPrompt, /testlog|test log/i);
+  });
+
+  it("requires no-change Task Review to validate its declared reason against mapped requirements", () => {
+    const prompt = buildImplReviewPrompt({
+      requirementFileMap: { R1: [] },
+      requirementIds: new Set(["R1"]),
+      diff: "",
+      touchedFiles: [],
+      taskSpec: { relPath: "tasks/T-1.md", content: "Implement the current Task." },
+      taskContext: {
+        task: { id: "T-1", goal: "Implement the current Task." },
+        requirements: [{ id: "R1", desc: "Provide the Task behavior." }],
+      },
+      taskReviewAttempt: 1,
+      taskNoChangeReasons: ["The requested implementation is already present."],
+    });
+
+    assert.match(prompt.userPrompt, /## Declared No-Change Reasons/);
+    assert.match(prompt.userPrompt, /The requested implementation is already present\./);
+    assert.match(prompt.userPrompt, /canonical Task context, mapped Requirements, stated reasons, and the empty current Task source/);
+    assert.match(prompt.userPrompt, /must-fix missing_acceptance_requirement blocker with file=null and the mapped requirementId/);
+    assert.match(prompt.userPrompt, /Do not use another failure mode or a file-backed finding/);
+  });
+
   it("uses a strict-compatible JSON schema for optional impl review fields", () => {
     const prompt = buildImplReviewPrompt({ requirementIds: new Set(["R1"]) });
     const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;

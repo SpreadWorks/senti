@@ -206,21 +206,18 @@ describe("T-2: spec.json tasks[*] schema restructuring", () => {
     assert.ok(errors2.some((e) => e.includes("bar")), "expected error for 'bar'");
   });
 
-  it("schema validates existing 326 spec.json (tasks undefined) as valid", () => {
+  it("schema requires tasks for every canonical spec.json", () => {
     const schema = loadSchema();
-    // tasks is not in the top-level required array
     assert.ok(
-      !schema.required.includes("tasks"),
-      "tasks must not be in the top-level required list",
+      schema.required.includes("tasks"),
+      "tasks must be in the top-level required list",
     );
-    // A spec without tasks should validate without errors
     const spec = minimalSpec();
     assert.ok(!("tasks" in spec), "minimalSpec should not have tasks");
     const errors = validateSchema(spec, schema);
-    assert.deepEqual(
-      errors,
-      [],
-      `spec without tasks should be valid, got: ${errors.join(" / ")}`,
+    assert.ok(
+      errors.some((error) => error.includes("tasks") && error.includes("required")),
+      `spec without tasks should be rejected, got: ${errors.join(" / ")}`,
     );
   });
 });

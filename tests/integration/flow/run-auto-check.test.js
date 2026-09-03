@@ -56,7 +56,10 @@ function seedFlowState(tmp, { request = "add a progress bar with bounded scope" 
     runId: "run-001-test",
     request,
     execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
-    specRecord: { goal: "auto-check fixture", requirements: [] },
+    specRecord: {
+      goal: "auto-check fixture",
+      requirements: [{ id: "R-T-1", desc: "Exercise auto-check.", task_ids: ["T-1"] }],
+    },
   }).create().addTask({
     id: "T-1",
     title: "x",

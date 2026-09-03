@@ -15,7 +15,11 @@ describe("approval Task admission (REQ-2, REQ-6)", () => {
 
   it("adds each approved Spec Task through the canonical Task API", () => {
     tmp = createTmpDir();
-    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "215-flow-task-decomposition" })
+    const fixture = new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
+      specId: "215-flow-task-decomposition",
+      specRecord: { requirements: [{ id: "R-tasks", desc: "Admit every approved Task.", task_ids: ["T-seed", "T-1", "T-2"] }] },
+    })
       .create().addTask(taskDocument("T-seed")).registerActive();
     fixture.addTask(taskDocument("T-1")).addTask(taskDocument("T-2"));
     assert.deepEqual(fixture.state().tasks.map((task) => task.id), ["T-seed", "T-1", "T-2"]);
@@ -23,7 +27,11 @@ describe("approval Task admission (REQ-2, REQ-6)", () => {
 
   it("preserves an existing admitted Task while admitting a later Task", () => {
     tmp = createTmpDir();
-    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "215-flow-task-decomposition" })
+    const fixture = new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
+      specId: "215-flow-task-decomposition",
+      specRecord: { requirements: [{ id: "R-tasks", desc: "Admit every approved Task.", task_ids: ["T-1", "T-2"] }] },
+    })
       .create().addTask(taskDocument("T-1")).registerActive();
     fixture.addTask(taskDocument("T-2", 1));
     const state = fixture.state();
@@ -32,7 +40,11 @@ describe("approval Task admission (REQ-2, REQ-6)", () => {
 
   it("retains the Task document added_round authority", () => {
     tmp = createTmpDir();
-    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "215-flow-task-decomposition" })
+    const fixture = new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
+      specId: "215-flow-task-decomposition",
+      specRecord: { requirements: [{ id: "R-tasks", desc: "Retain every Task round.", task_ids: ["T-1", "T-2"] }] },
+    })
       .create().addTask(taskDocument("T-1")).addTask(taskDocument("T-2", 1)).registerActive();
     assert.equal(fixture.state().tasks.find((task) => task.id === "T-2").added_round, 1);
   });

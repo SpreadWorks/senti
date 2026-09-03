@@ -21,6 +21,10 @@ function taskDocument(id, parent = null) {
   };
 }
 
+function mappedTaskSpec(...taskIds) {
+  return { requirements: [{ id: "R-tasks", desc: "Exercise canonical Task control.", task_ids: taskIds }] };
+}
+
 function completedTaskFixture(tmp, taskDocuments, taskId) {
   const fm = makeFlowManager(tmp);
   const fixture = new TaskLifecycleFixture({ flowManager: fm, taskDocuments, taskId, targetStep: "task-gate" }).create();
@@ -77,7 +81,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
   it("start-task claims a pending Spec Task through the production primitive", async () => {
     tmp = createTmpDir("t6-start-");
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specRecord: mappedTaskSpec("T-1") })
+      .create().addTask(taskDocument("T-1")).registerActive();
     fixture.prepareTaskFrontier();
     const { RunStartTaskCommand } = await import("../../../src/flow/lib/run-start-task.js");
     const env = await new RunStartTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-1" });
@@ -90,7 +95,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
   it("start-task returns the canonical unknown-Task envelope", async () => {
     tmp = createTmpDir("t6-start-");
     const fm = makeFlowManager(tmp);
-    new FreshFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    new FreshFlowFixture({ flowManager: fm, specRecord: mappedTaskSpec("T-1") })
+      .create().addTask(taskDocument("T-1")).registerActive();
     const { RunStartTaskCommand } = await import("../../../src/flow/lib/run-start-task.js");
     const env = await new RunStartTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-missing" });
     assert.equal(env.ok, false);
@@ -175,7 +181,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
   it("complete-task returns UNKNOWN_TASK_ID for an explicit absent Task", async () => {
     tmp = createTmpDir("t6-complete-");
     const fm = makeFlowManager(tmp);
-    new CanonicalFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    new CanonicalFlowFixture({ flowManager: fm, specRecord: mappedTaskSpec("T-1") })
+      .create().addTask(taskDocument("T-1")).registerActive();
     const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
     const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-missing" });
     assert.equal(env.ok, false);

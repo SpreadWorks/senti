@@ -25,7 +25,7 @@ import { CanonicalFlowFixture } from "../support/infrastructure/flow-setup.js";
 import { commitAll, initGitRepo } from "../support/infrastructure/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../support/builders/tmp-dir.js";
 import {
-  validWorkerHandoffSpec,
+  validWorkerHandoffTaskSpec,
   workerArtifactJson,
 } from "../support/infrastructure/worker-artifact.js";
 
@@ -97,7 +97,7 @@ function specWorkerAction() {
       key: "plan.spec",
       content: [
         "Write the declared spec.json handoff payload with exactly this JSON document:",
-        JSON.stringify(validWorkerHandoffSpec()),
+        JSON.stringify(validWorkerHandoffTaskSpec()),
         "Run the exact sealCommand once after writing it.",
       ].join(" "),
     },
@@ -142,7 +142,7 @@ function sourceWorkerAction() {
         "Then replace product.js with exactly `export const value = 2;` followed by a newline.",
         "Run `npm run lint` and require it to succeed.",
         "Do not modify any other source file.",
-        "Run the declared sourceMutationCommand after editing. Write effects.json with version 1, stepId implement, completionStatus done, and files containing requirementId R1 plus only the returned mutationId for product.js in mutationIds. Set issues empty and overview, triage, repair null.",
+        "Run the declared sourceMutationCommand after editing. Write effects.json with version 1, stepId implement, completionStatus done, and files containing requirementId R1 plus only the returned mutationId for product.js in mutationIds. Set issues empty and overview, triage, repair, noChangeReason null.",
         "Run the exact sealCommand once after the context read, source check, and payload write all succeed.",
       ].join(" "),
     },
@@ -619,7 +619,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       assert.equal(findStepById(completed.steps, "spec").status, "done");
       assert.deepEqual(
         JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "spec.json"), "utf8")),
-        { ...validWorkerHandoffSpec(), tasks: [] },
+        validWorkerHandoffTaskSpec(),
       );
       assert.equal(
         flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "spec.record"),

@@ -94,6 +94,8 @@ import {
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
 import { checkSpecGateReadiness } from "./spec-gate-readiness.js";
+import { CanonicalTaskContext } from "./task-canonical-context.js";
+import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
 
 export { resolveGateStepId };
 
@@ -3230,6 +3232,24 @@ export class RunGateCommand extends FlowCommand {
     if (state.current?.at(-1) !== nodeId || state.attempt?.nodeId !== nodeId) {
       throw new Error(`canonical gate requires active ${nodeId}, found ${state.current?.at(-1) ?? "none"}`);
     }
+    if (phase === "task-impl" && activeTaskId !== null) {
+      try {
+        CanonicalTaskContext.capture({
+          root: executionRoot,
+          flowManager,
+          state: ctx.flowState,
+          taskId: activeTaskId,
+        });
+      } catch (error) {
+        return Envelope.fail(
+          "run",
+          "gate",
+          "TASK_CONTEXT_INVALID",
+          `canonical Task context is invalid: ${error.message}`,
+          { taskId: activeTaskId },
+        );
+      }
+    }
     const existingFacts = readCurrentGateTransitionFacts({
       flowManager,
       flowState: ctx.flowState,
@@ -3357,41 +3377,54 @@ export class RunGateCommand extends FlowCommand {
     const task = inputs.task();
     const spec = inputs.spec();
     const specPath = ctx.flowManager.specLocation(state.specId).relativeSpecFile;
-    const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", executionRoot);
-    const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", executionRoot);
-    const untracked = await collectUntrackedDiff(executionRoot, {
-      excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, specPath),
+    const source = captureCurrentTaskSource({ root: executionRoot, flowManager: ctx.flowManager, state, taskId: task.id });
+    const context = CanonicalTaskContext.capture({
+      root: executionRoot,
+      flowManager: ctx.flowManager,
+      state,
+      taskId: task.id,
+      spec,
+      source,
     });
-    const diff = buildGateEvaluationDiff({ committed, uncommitted, untracked, specPath });
-    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath);
     const targetPath = path.posix.join(path.posix.dirname(specPath), "tasks", `${task.id}.md`);
-    if (!guardrailDiff.trim()) {
-      return gateFail(level, phase, targetPath, [], [
-        "no changes found (committed or uncommitted) against base branch",
+    if (source.entries.length === 0) {
+      const result = gateFail(level, phase, targetPath, [], [
+        "Task Gate is inadmissible for an empty mutation manifest; Definition must settle the reviewed no-change result",
       ]);
+      result.artifacts.sourceFingerprint = source.fingerprint;
+      return result;
     }
-    const diffBytes = Buffer.byteLength(guardrailDiff, "utf8");
+    const currentSource = source.entries.map((entry) => entry.status === "deleted"
+      ? `## ${entry.path}\n(deleted)`
+      : `## ${entry.path}\n${entry.content}`).join("\n\n");
+    const diffBytes = Buffer.byteLength(currentSource, "utf8");
     if (diffBytes > TASK_IMPL_GATE_DIFF_MAX_BYTES) {
       return gateFail(level, phase, targetPath, [], [
-        `task implementation diff is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
+        `Task current source is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
       ]);
     }
     const gitState = computeGitState(executionRoot);
     ctx.gitState = gitState;
-    const specification = specJsonToPromptText(spec, { title: getSpecName(state) });
-    return runGateFlow({
+    const result = await runGateFlow({
       root: executionRoot,
       artifactRoot: executionRoot,
       config: ctx.config,
       level,
       phase,
       targetPath,
-      targetText: `${task.markdown}\n\n## Authoritative Flow Specification\n${specification}\n\n## Git Diff\n${guardrailDiff}`,
+      targetText: `${task.markdown}\n\n## Canonical Task Context\n${JSON.stringify(context.readOnlyInput(), null, 2)}\n\n## Current Allow-listed Source\n${currentSource}`,
       textCheck: () => [],
-      checkerRole: "You are a task implementation compliance checker. Check this task specification against the implementation diff.",
+      checkerRole: "You are a task implementation compliance checker. Check only this Task's mapped requirements against its current allow-listed source. Do not run tests.",
       skipGuardrail,
       ctx,
     });
+    const recapturedSource = captureCurrentTaskSource({ root: executionRoot, flowManager: ctx.flowManager, state, taskId: task.id });
+    if (recapturedSource.fingerprint !== source.fingerprint) {
+      throw new Error("Task Gate source changed during evaluation; reload the current Task context");
+    }
+    result.artifacts ||= {};
+    result.artifacts.sourceFingerprint = source.fingerprint;
+    return result;
   }
 
   async executeCanonicalImplementationGate({ ctx, inputs, level, phase, executionRoot, skipGuardrail }) {

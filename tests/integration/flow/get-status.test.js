@@ -33,7 +33,10 @@ describe("flow get status", () => {
       request: "request belongs in detailed status",
       execution,
       autoApprove: true,
-      specRecord: { goal: "status fixture", requirements: [] },
+      specRecord: {
+        goal: "status fixture",
+        requirements: [{ id: "R-T-1", desc: "Exercise status rendering.", task_ids: ["T-1"] }],
+      },
     }).create().addTask({
       id: "T-1",
       title: "x",

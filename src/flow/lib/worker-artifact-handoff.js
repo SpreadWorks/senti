@@ -67,7 +67,8 @@ import {
   testReviewRepairProgressReceiptForSelectedContract,
 } from "./test-review-repair.js";
 import { CanonicalTestArtifactStore } from "./canonical-test-artifacts.js";
-import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
+import { DraftWorkerContextSnapshot, TaskWorkerContextSnapshot } from "./worker-context-snapshot.js";
+import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
 import {
   CanonicalWorkerArtifactAddress,
   CanonicalSpecTestTopology,
@@ -689,8 +690,17 @@ export class SourceRepairEffect {
   toJSON() { return { version: 1, appliedFindingKeys: [...this.appliedFindingKeys], summary: this.summary }; }
 }
 
+/** Durable explanation for a successful source Attempt with no mutation. */
+export class SourceNoChangeReason {
+  constructor(value) {
+    this.text = requiredString(value, "source worker noChangeReason");
+    Object.freeze(this);
+  }
+  toJSON() { return this.text; }
+}
+
 export class SourceWorkerEffect {
-  constructor({ version, stepId, completionStatus, files = [], issues = [], overview = null, triage = null, repair = null } = {}) {
+  constructor({ version, stepId, completionStatus, files = [], issues = [], overview = null, triage = null, repair = null, noChangeReason = null } = {}) {
     if (version !== 1) throw new Error("source worker effect version must be 1");
     this.version = 1;
     this.stepId = requiredString(stepId, "source worker effect stepId");
@@ -718,6 +728,7 @@ export class SourceWorkerEffect {
     if ((this.stepId === "impl-repair") !== (repair !== null)) throw new Error("source repair effect is required only for impl-repair");
     this.triage = triage === null ? null : new SourceTriageEffect(triage);
     this.repair = repair === null ? null : new SourceRepairEffect(repair);
+    this.noChangeReason = noChangeReason === null ? null : new SourceNoChangeReason(noChangeReason);
     if (this.stepId === "impl-triage" && (this.files.length > 0 || this.issues.length > 0 || this.overview !== null || this.repair !== null)) {
       throw new Error("impl-triage source effect may contain only typed triage dispositions");
     }
@@ -728,7 +739,7 @@ export class SourceWorkerEffect {
   }
 
   static fromDocument(value, expectedStepId) {
-    exactObjectKeys(value, ["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair"], "source worker effect");
+    exactObjectKeys(value, ["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair", "noChangeReason"], "source worker effect");
     const effect = new SourceWorkerEffect(value);
     if (effect.stepId !== expectedStepId) throw new Error("source worker effect step does not match the handoff");
     return effect;
@@ -744,6 +755,7 @@ export class SourceWorkerEffect {
       overview: this.overview?.toJSON() ?? null,
       triage: this.triage?.toJSON() ?? null,
       repair: this.repair?.toJSON() ?? null,
+      noChangeReason: this.noChangeReason?.toJSON() ?? null,
     };
   }
 }
@@ -1970,16 +1982,34 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         { retryable: false, data: { stepId } },
       );
     }
-    const required = policy.sourceMutation.requiresDiff(completionStatus);
-    if (required && unique.length === 0) {
+    if (policy.sourceMutation.mode === "optional" && completionStatus === "done" && unique.length === 0 && effect.noChangeReason === null) {
       throw new WorkerArtifactHandoffError(
         "invalid",
-        "FLOW_SOURCE_HANDOFF_DIFF_REQUIRED",
-        `source handoff ${stepId} requires a source diff before completion`,
+        "FLOW_SOURCE_HANDOFF_NO_CHANGE_REASON_REQUIRED",
+        `source handoff ${stepId} has no source mutation and requires a no-change reason`,
         { retryable: false, data: { stepId } },
       );
     }
-    const missingEffects = required ? unique.filter((entry) => !declared.has(entry)) : [];
+    if (policy.sourceMutation.mode === "required" && completionStatus === "done" && unique.length === 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_MUTATION_REQUIRED",
+        `source handoff ${stepId} requires a source mutation before completion`,
+        { retryable: false, data: { stepId } },
+      );
+    }
+    if (policy.sourceMutation.mode !== "optional" && effect.noChangeReason !== null) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_NO_CHANGE_REASON_INVALID", "only optional source workers may record a no-change reason", { retryable: false, data: { stepId } });
+    }
+    if (policy.sourceMutation.mode === "optional" && unique.length > 0 && effect.noChangeReason !== null) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_NO_CHANGE_REASON_INVALID",
+        "source worker may record a no-change reason only with an empty mutation manifest",
+        { retryable: false, data: { stepId } },
+      );
+    }
+    const missingEffects = unique.filter((entry) => !declared.has(entry));
     if (missingEffects.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid",
@@ -2490,9 +2520,10 @@ function currentAcceptanceImplementationRepair({ flowManager, state, stepId }) {
   });
 }
 
-function requiresDraftWorkerContext(policy) {
+function workerContextKind(policy) {
+  if (policy.stepId === "task-impl") return "task";
   const kinds = getFlowNode(policy.stepId)?.contextKinds || [];
-  return ["issue", "guardrail", "project_overview"].every((kind) => kinds.includes(kind));
+  return ["issue", "guardrail", "project_overview"].every((kind) => kinds.includes(kind)) ? "draft" : null;
 }
 
 function handoffInputDigest(inputs, contextSnapshot) {
@@ -2564,10 +2595,10 @@ export class WorkerArtifactHandoffRequest {
     }
     this.sourceMutationBaseline = sourceMutationBaseline;
     this.inputs = Object.freeze(inputs);
-    if (contextSnapshot != null && !(contextSnapshot instanceof DraftWorkerContextSnapshot)) {
-      throw new Error("handoff contextSnapshot must be a DraftWorkerContextSnapshot or null");
+    if (contextSnapshot != null && !(contextSnapshot instanceof DraftWorkerContextSnapshot) && !(contextSnapshot instanceof TaskWorkerContextSnapshot)) {
+      throw new Error("handoff contextSnapshot must be a supported worker context snapshot or null");
     }
-    if (requiresDraftWorkerContext(policy) !== (contextSnapshot != null)) {
+    if ((workerContextKind(policy) !== null) !== (contextSnapshot != null) || (contextSnapshot !== null && contextSnapshot.kind !== workerContextKind(policy))) {
       throw new Error("handoff context snapshot does not match its step context contract");
     }
     contextSnapshot?.assertBinding({
@@ -2656,19 +2687,31 @@ export class WorkerArtifactHandoffRequest {
       });
     });
     let contextSnapshot = null;
-    if (requiresDraftWorkerContext(policy)) {
+    if (workerContextKind(policy) !== null) {
       try {
-        contextSnapshot = DraftWorkerContextSnapshot.materialize({
-          executionRoot,
-          state,
-          invocation,
-          issueText: canonicalIssueSnapshotText({ flowManager, state }),
-        });
+        contextSnapshot = workerContextKind(policy) === "task"
+          ? TaskWorkerContextSnapshot.materialize({
+            state,
+            invocation,
+            flowManager,
+            sourceFingerprint: captureCurrentTaskSource({
+              root: executionRoot,
+              flowManager,
+              state,
+              taskId: invocation.action.nextAction.taskId,
+            }).fingerprint,
+          })
+          : DraftWorkerContextSnapshot.materialize({
+            executionRoot,
+            state,
+            invocation,
+            issueText: canonicalIssueSnapshotText({ flowManager, state }),
+          });
       } catch (cause) {
         throw new WorkerArtifactHandoffError(
           "invalid",
           "FLOW_ARTIFACT_HANDOFF_CONTEXT_INVALID",
-          `draft worker context could not be materialized: ${cause.message}`,
+          `worker context could not be materialized: ${cause.message}`,
           { cause },
         );
       }
@@ -2915,7 +2958,7 @@ export class WorkerArtifactHandoffRequest {
       && this.inputs.some((input) => input.name === "acceptance-review.json");
     return Object.freeze({
       path: this.payloadPath("effects.json"),
-      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair"]),
+      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair", "noChangeReason"]),
       required: Object.freeze({
         version: 1,
         stepId: this.stepId,
@@ -2924,6 +2967,9 @@ export class WorkerArtifactHandoffRequest {
         triage: this.stepId === "impl-triage" ? "required { dispositions:[{ findingKey, disposition:apply|reject, rationale }] }" : "must be null",
         repair: this.stepId === "impl-repair" ? "required { appliedFindingKeys:[...], summary }" : "must be null",
         sourceDiff: this.policy.sourceMutation.effectContract(),
+        noChangeReason: this.policy.sourceMutation.mode === "optional"
+          ? "non-empty when done has an empty mutation manifest; null when mutations exist"
+          : "must be null",
         triageRoute: this.stepId !== "impl-triage" ? null : acceptanceRepairRoute
           ? "acceptance repair: classify every requirement:<id> and hard-blocker:<findingId> as apply"
           : "implementation review: classify every canonical review finding exactly once",
@@ -2984,18 +3030,31 @@ export class WorkerArtifactHandoffRequest {
           actionDigest: this.actionDigest,
           targetDigest: this.contextSnapshot.binding.targetDigest,
         });
-        const currentContext = DraftWorkerContextSnapshot.materialize({
-          executionRoot: this.executionRoot,
-          state,
-          invocation: {
-            id: this.dispatchInvocationId,
-            action: { digest: this.actionDigest },
-            target: { digest: this.contextSnapshot.binding.targetDigest },
-          },
-          issueText: canonicalIssueSnapshotText({ flowManager: this.flowManager, state }),
-        });
+        const invocation = {
+          id: this.dispatchInvocationId,
+          action: { digest: this.actionDigest, nextAction: { taskId: this.taskId } },
+          target: { digest: this.contextSnapshot.binding.targetDigest },
+        };
+        const currentContext = this.contextSnapshot.kind === "task"
+          ? TaskWorkerContextSnapshot.materialize({
+            state,
+            invocation,
+            flowManager: this.flowManager,
+            sourceFingerprint: captureCurrentTaskSource({
+              root: this.executionRoot,
+              flowManager: this.flowManager,
+              state,
+              taskId: this.taskId,
+            }).fingerprint,
+          })
+          : DraftWorkerContextSnapshot.materialize({
+            executionRoot: this.executionRoot,
+            state,
+            invocation,
+            issueText: canonicalIssueSnapshotText({ flowManager: this.flowManager, state }),
+          });
         if (currentContext.digest !== this.contextSnapshot.digest) {
-          throw new Error("draft worker context content changed after handoff capture");
+          throw new Error("worker context content changed after handoff capture");
         }
       } catch (cause) {
         throw new WorkerArtifactHandoffError(
@@ -3494,7 +3553,9 @@ function requestFromStored(filePath) {
     testReviewRepair: document.testReviewRepair === null ? null : parseWorkerVisibleTestReviewRepair(document.testReviewRepair),
     contextSnapshot: document.contextSnapshot == null
       ? null
-      : DraftWorkerContextSnapshot.fromStored(document.contextSnapshot),
+      : document.contextSnapshot.kind === "task"
+        ? TaskWorkerContextSnapshot.fromStored(document.contextSnapshot)
+        : DraftWorkerContextSnapshot.fromStored(document.contextSnapshot),
     sourceMutationBaseline: document.sourceMutationBaseline === null
       ? null
       : SourceMutationBaseline.fromStored(document.sourceMutationBaseline, { root: executionRoot }),
@@ -3511,7 +3572,8 @@ function requestFromStored(filePath) {
   ) {
     throw new Error("handoff request inputs do not match its step policy");
   }
-  if (requiresDraftWorkerContext(policy) !== (request.contextSnapshot != null)) {
+  if ((workerContextKind(policy) !== null) !== (request.contextSnapshot != null)
+    || (request.contextSnapshot !== null && request.contextSnapshot.kind !== workerContextKind(policy))) {
     throw new Error("handoff request context snapshot does not match its step contract");
   }
   if ((policy.kind === "source") !== (request.sourceMutationBaseline instanceof SourceMutationBaseline)) {
@@ -4851,11 +4913,13 @@ function withBootstrapObservationPublication(publications, request, submission, 
 }
 
 function canonicalHandoffResult(request, submission, now, {
-  status = "done", bootstrapValidation = null, bootstrapObservation = null,
+  status = "done", bootstrapValidation = null, bootstrapObservation = null, noChangeReason = null,
 } = {}) {
   return Object.freeze({
     outcome: status === "skipped" ? "skipped" : "passed",
-    summary: bootstrapValidation === null
+    summary: noChangeReason !== null
+      ? `Worker handoff confirmed for ${request.stepId}; no source change: ${noChangeReason}.`
+      : bootstrapValidation === null
       ? `Worker handoff confirmed for ${request.stepId}.`
       : `Worker handoff confirmed for ${request.stepId}; unresolved static test imports are deferred to scenario validity.`,
     confirmedAt: now().toISOString(),
@@ -5558,7 +5622,10 @@ export class WorkerArtifactHandoffCoordinator {
         effect,
         mutationManifest: manifest,
         handoffDigest: submission.handoffDigest,
-        result: canonicalHandoffResult(request, submission, this.now, { status: effect.completionStatus }),
+        result: canonicalHandoffResult(request, submission, this.now, {
+          status: effect.completionStatus,
+          noChangeReason: effect.noChangeReason?.text ?? null,
+        }),
         ...(upgradeResult === null ? {} : { upgradeResult }),
       });
     } catch (cause) {

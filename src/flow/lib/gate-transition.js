@@ -329,6 +329,17 @@ export class GateTaskLifecycle {
   }
 }
 
+export class GateTaskBudget {
+  constructor({ round, maximumRounds = 2 } = {}) {
+    this.round = positiveInteger(round, "gate Task budget round");
+    this.maximumRounds = positiveInteger(maximumRounds, "gate Task budget maximumRounds");
+    if (this.maximumRounds !== 2 || this.round > this.maximumRounds) throw new Error("gate Task budget exceeds the two-round contract");
+    Object.freeze(this);
+  }
+  get finalRound() { return this.round === this.maximumRounds; }
+  toJSON() { return { round: this.round, maximumRounds: this.maximumRounds, finalRound: this.finalRound }; }
+}
+
 /** Complete input contract for a definition-owned Gate decision. */
 export class GateTransitionFacts {
   constructor({
@@ -346,6 +357,7 @@ export class GateTransitionFacts {
     nonblocking = false,
     reviewReadiness = null,
     taskLifecycle = null,
+    taskBudget = null,
   } = {}) {
     this.phase = requiredText(phase, "gate phase");
     if (!GATE_PHASES.has(this.phase)) throw new Error("gate phase is invalid");
@@ -382,6 +394,8 @@ export class GateTransitionFacts {
     if ((this.scope === "task") !== (this.taskLifecycle !== null)) {
       throw new Error("gate Task lifecycle must exist exactly for task scope");
     }
+    this.taskBudget = taskBudget === null ? null : (taskBudget instanceof GateTaskBudget ? taskBudget : new GateTaskBudget(taskBudget));
+    if ((this.scope === "task") !== (this.taskBudget !== null)) throw new Error("gate Task budget must exist exactly for task scope");
     if ((this.result === "recovered") !== (this.recoveryEvidence.kind === "recovered")) {
       throw new Error("recovered gate result requires matching recovery evidence");
     }
@@ -434,6 +448,7 @@ export class GateTransitionFacts {
       nonblocking: this.nonblocking,
       reviewReadiness: this.reviewReadiness?.toJSON() ?? null,
       taskLifecycle: this.taskLifecycle?.toJSON() ?? null,
+      taskBudget: this.taskBudget?.toJSON() ?? null,
     };
   }
 }

@@ -58,6 +58,10 @@ function taskDocument(id, parent = null, extras = {}) {
   };
 }
 
+function mappedSpec(...taskIds) {
+  return { requirements: [{ id: "R-forest", desc: "Exercise the canonical Task forest.", task_ids: taskIds }] };
+}
+
 describe("T-4: forest wiring (sync parent transcription + traversal + propagation)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -66,7 +70,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("canonical Task admission persists the Spec Task parent", () => {
     tmp = createTmpDir();
-    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-forest" })
+    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-forest", specRecord: mappedSpec("T-root", "T-child") })
       .create()
       .addTasks([taskDocument("T-root"), taskDocument("T-child", "T-root")])
       .registerActive();
@@ -79,7 +83,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("canonical admission preserves flat (parent=null) Tasks", () => {
     tmp = createTmpDir();
-    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-flat" })
+    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-flat", specRecord: mappedSpec("T-a", "T-b") })
       .create()
       .addTasks([taskDocument("T-a"), taskDocument("T-b")])
       .registerActive();
@@ -202,7 +206,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("completeTask propagates to parent when all children are done", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-propagation" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-propagation", specRecord: mappedSpec("P", "C1", "C2") })
       .create().addTasks([taskDocument("P"), taskDocument("C1", "P"), taskDocument("C2", "P")]).registerActive();
     fixture.activateTask("C1");
     for (const step of ["C1-impl", "C1-review", "C1-gate"]) fixture.settle(step);
@@ -219,7 +223,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("completeTask propagation is recursive up to root", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-recursive" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-recursive", specRecord: mappedSpec("Root", "Mid", "Leaf") })
       .create().addTasks([taskDocument("Root"), taskDocument("Mid", "Root"), taskDocument("Leaf", "Mid")]).registerActive();
     fixture.activateTask("Leaf");
     for (const step of ["Leaf-impl", "Leaf-review", "Leaf-gate"]) fixture.settle(step);
@@ -234,7 +238,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("completeTask does NOT auto-promote (responsibility separation)", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-no-promote" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-no-promote", specRecord: mappedSpec("T-1", "T-2") })
       .create().addTasks([taskDocument("T-1"), taskDocument("T-2")]).registerActive();
     fixture.activateTask("T-1");
     for (const step of ["T-1-impl", "T-1-review", "T-1-gate"]) fixture.settle(step);
@@ -250,7 +254,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("completeTask handles flat tasks (parent=null) without propagation", () => {
     tmp = createTmpDir();
     const fm = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-flat-complete" })
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-flat-complete", specRecord: mappedSpec("A", "B", "C") })
       .create().addTasks([taskDocument("A"), taskDocument("B"), taskDocument("C")]).registerActive();
     fixture.activateTask("A");
     for (const step of ["A-impl", "A-review", "A-gate"]) fixture.settle(step);

@@ -235,6 +235,7 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
         flowManager,
         specId: "001-test",
         runId: "run-task-gate-pre",
+        specRecord: { requirements: [{ id: "R-T1", desc: "Exercise Task Gate scope.", task_ids: ["T1"] }] },
       }).create().addTask({
         id: "T1", title: "task", goal: "task", parent: null,
         origin: "plan", added_round: 0, status: "pending",

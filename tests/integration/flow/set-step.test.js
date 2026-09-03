@@ -61,7 +61,11 @@ describe("flow set step", () => {
   it("passes explicit flow and task scope for the resolved active step", async () => {
     tmp = createTmpDir();
     const flowManager = makeFlowManager(tmp);
-    const fixture = new CanonicalFlowFixture({ flowManager, specId: "demo" })
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "demo",
+      specRecord: { requirements: [{ id: "R-T-1", desc: "Exercise Task step scope.", task_ids: ["T-1"] }] },
+    })
       .create()
       .addTask({
         id: "T-1", title: "task", goal: "task", parent: null,

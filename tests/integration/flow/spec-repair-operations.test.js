@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { describe, it } from "node:test";
 
-import { validWorkerHandoffSpec } from "../../support/infrastructure/worker-artifact.js";
+import { validWorkerHandoffTaskSpec } from "../../support/infrastructure/worker-artifact.js";
 import { applySpecRepairOperations } from "../../../src/flow/lib/spec-repair-operations.js";
 
 const INPUT_DIGEST = "b".repeat(64);
@@ -11,7 +11,7 @@ const valueDigest = (value) => crypto.createHash("sha256").update(JSON.stringify
 const requirementTarget = { entity: "requirement", id: "R1", field: "desc" };
 const rootTarget = { entity: "spec", field: "background" };
 
-function sourceSpec() { return validWorkerHandoffSpec(); }
+function sourceSpec() { return validWorkerHandoffTaskSpec(); }
 function permission(target, operationKinds) { return { target, operationKinds }; }
 function triage(findings) { return { findings }; }
 function applyFinding(findingId, allowedTargets) {

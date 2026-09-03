@@ -211,10 +211,17 @@ function taskReviewNodeId(state) {
   return `${state.currentTaskId}-review`;
 }
 
-function taskReviewAttempt(state) {
+function taskReviewBudget(state, flowManager) {
   const task = state?.tasks?.find((candidate) => candidate.id === state.currentTaskId) ?? null;
   const step = task?.steps?.find((candidate) => candidate.id === `${state.currentTaskId}-review`) ?? null;
-  return Number.isSafeInteger(step?.attemptSequence) ? step.attemptSequence : 0;
+  if (!Number.isSafeInteger(step?.attemptSequence)) return { attempts: 0, round: null };
+  const current = flowManager.taskMutationLineages({ specId: state.specId, taskId: state.currentTaskId }).at(-1) ?? null;
+  if (current === null) throw new Error("Task Review requires a canonical Task execution budget");
+  const attempts = step.attemptSequence - current.budget.reviewAttemptSequenceAtStart;
+  if (!Number.isSafeInteger(attempts) || attempts < 0 || attempts > 4) {
+    throw new Error("Task Review attempt count is outside the current Task round");
+  }
+  return Object.freeze({ attempts, round: current.budget.round });
 }
 
 function currentAttemptArtifact({ flowManager, source, logicalKey, typedState }) {
@@ -239,6 +246,7 @@ export class ReviewTransitionFacts {
     artifact = null,
     sourceArtifact = null,
     attemptCount = null,
+    taskRound = null,
     deferralEvidence = null,
     repairEvidence = null,
   } = {}) {
@@ -252,6 +260,9 @@ export class ReviewTransitionFacts {
     if (attemptCount !== null && (!Number.isSafeInteger(attemptCount) || attemptCount < 0)) {
       throw new Error("review transition attempt count is invalid");
     }
+    if (taskRound !== null && (!Number.isSafeInteger(taskRound) || taskRound < 1 || taskRound > 2)) {
+      throw new Error("review transition Task round is invalid");
+    }
     this.scope = scope;
     this.phase = phase;
     this.verdict = verdict;
@@ -259,6 +270,7 @@ export class ReviewTransitionFacts {
     this.artifact = artifact === null ? null : Object.freeze(structuredClone(artifact));
     this.sourceArtifact = sourceArtifact;
     this.attemptCount = attemptCount;
+    this.taskRound = taskRound;
     this.deferralEvidence = deferralEvidence instanceof ReviewDeferralEvidence
       ? deferralEvidence
       : verdict === "REJECTED" && toolingOutcome === null
@@ -274,8 +286,14 @@ export class ReviewTransitionFacts {
     const route = flowReviewRouteForPhase(phase);
     if (!route) throw new Error("review transition phase is invalid");
     const nodeId = scope === "task" ? taskReviewNodeId(flowState) : route.reviewStepId;
+    const taskBudget = scope === "task" ? taskReviewBudget(flowState, flowManager) : null;
     if (nodeId === null || flowState?.currentNodeId !== nodeId) {
-      return new ReviewTransitionFacts({ scope, phase, attemptCount: scope === "task" ? taskReviewAttempt(flowState) : null });
+      return new ReviewTransitionFacts({
+        scope,
+        phase,
+        attemptCount: taskBudget?.attempts ?? null,
+        taskRound: taskBudget?.round ?? null,
+      });
     }
     const sourceArtifact = scope === "task" ? "task.review" : route.logicalKey;
     const source = readCatalogedSourceArtifact({ flowManager, flowState, nodeId, sourceArtifact });
@@ -288,7 +306,8 @@ export class ReviewTransitionFacts {
       toolingOutcome: artifact?.toolingOutcome ?? null,
       artifact,
       sourceArtifact,
-      attemptCount: scope === "task" ? taskReviewAttempt(flowState) : null,
+      attemptCount: taskBudget?.attempts ?? null,
+      taskRound: taskBudget?.round ?? null,
     });
   }
 }

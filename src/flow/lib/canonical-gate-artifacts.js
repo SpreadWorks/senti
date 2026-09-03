@@ -83,6 +83,7 @@ function sourcePayload(result, phase, activeTaskId, lineage) {
     failureKind: artifacts.failureKind || null,
     failureCategory: artifacts.gateTransitionFailureCategory ?? null,
     lineage,
+    ...(artifacts.sourceFingerprint == null ? {} : { sourceFingerprint: artifacts.sourceFingerprint }),
     ...(artifacts.failureCode == null ? {} : { failureCode: artifacts.failureCode }),
   });
 }

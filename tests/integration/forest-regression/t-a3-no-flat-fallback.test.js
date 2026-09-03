@@ -36,7 +36,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     }).create();
 
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
-    const ctx = { flowState: fm.loadReadOnly(), flowManager: fm, schemaDir };
+    const ctx = { root: tmp, executionRoot: tmp, flowState: fm.loadReadOnly(), flowManager: fm, schemaDir };
     const result = await cmd.execute(ctx);
     assert.ok(result, "should return a result for valid flow with tasks");
   });

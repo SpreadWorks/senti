@@ -39,6 +39,19 @@ afterEach(() => {
   while (roots.length > 0) removeTmpDir(roots.pop());
 });
 
+function taskRecord() {
+  return {
+    id: "T1",
+    title: "Artifact view task",
+    goal: "Render task details inline.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+    acceptance: ["Task data is visible."],
+  };
+}
+
 function specRecord(goal) {
   return {
     goal,
@@ -47,7 +60,7 @@ function specRecord(goal) {
     constraints: ["Node built-ins only."],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "Show this requirement." }],
+    requirements: [{ id: "R1", desc: "Show this requirement.", task_ids: ["T1"] }],
     acceptance_criteria: ["The display is deterministic."],
     clarifications: [],
     alternatives_considered: [],
@@ -62,16 +75,7 @@ function fixture(directory, { specId, goal, active = false } = {}) {
     specId,
     runId: `run-${specId}`,
     specRecord: specRecord(goal),
-  }).create().addTask({
-    id: "T1",
-    title: "Artifact view task",
-    goal: "Render task details inline.",
-    parent: null,
-    origin: "plan",
-    added_round: 0,
-    status: "pending",
-    acceptance: ["Task data is visible."],
-  });
+  }).create().addTask(taskRecord());
   if (active) created.registerActive();
   return { flowManager, created };
 }
@@ -214,7 +218,12 @@ function migratedVersionFixture(directory, { specId, goal }) {
     execution: { mode: "direct" },
     policy: { autoApprove: false, nonblocking: null },
   });
-  const spec = new AuthoritativeSpecRecord({ ...specRecord(goal), id: specId, tasks: [] });
+  const spec = new AuthoritativeSpecRecord({
+    ...specRecord(goal),
+    id: specId,
+    requirements: [],
+    tasks: [],
+  });
   const migration = new FlowVersionMigrationClassifier({
     target,
     semanticValidator: validator,
@@ -230,7 +239,7 @@ function acceptanceFixture(directory, { specId } = {}) {
     specId,
     runId: `run-${specId}`,
     specRecord: specRecord("Render every cataloged acceptance source."),
-  }).create().registerActive();
+  }).create().addTask(taskRecord()).registerActive();
   created.activate("impl-review");
   const repairFingerprint = "a".repeat(64);
   const implReview = canonicalImplReviewArtifact(created.state(), { blockingFindings: [{
