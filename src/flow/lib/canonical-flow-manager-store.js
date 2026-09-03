@@ -116,6 +116,7 @@ import {
   RetryRecoveryReceipt,
 } from "./retry-recovery.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
+import { TestReviewRepairWorkerTimeout } from "./test-review-repair-timeout.js";
 import {
   MissingProducerArtifactRecoveryAdmission,
   MissingProducerArtifactRoute,
@@ -1762,6 +1763,33 @@ export class CanonicalFlowManagerStore {
       activityId: activityId("test-review-repaired"),
       attempt: commandContextAttempt(state, "test"),
       references,
+    });
+  }
+
+  /**
+   * A repair worker whose handoff was not accepted cannot be replayed. Its
+   * failed Attempt remains auditable while the retained canonical test source
+   * enters the normal scenario-validity and fresh test-review path.
+   */
+  settleTimedOutTestReviewRepair({ specId = null, references = undefined } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    const state = this.runtime.load(resolved);
+    if (state.current?.at(-1) !== "test"
+      || !TestReviewRepairWorkerTimeout.isFailureCode(state.attempt?.failure?.code)) {
+      throw new CurrentFlowStateInvariantError("test-review repair timeout settlement requires its failed test Attempt");
+    }
+    return this.runtime.settleTimedOutTestReviewRepair({
+      specId: resolved,
+      activityId: activityId("test-review-repair-timeout-settled"),
+      attempt: commandContextAttempt(state, "test"),
+      result: {
+        outcome: "passed",
+        summary: "Test-review repair timed out without an accepted handoff; retained test evidence proceeds to scenario validity.",
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [],
+      },
+      references: references ?? { evaluations: [], findings: [], repairs: [], artifacts: [] },
     });
   }
 

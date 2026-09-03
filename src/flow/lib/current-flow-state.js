@@ -28,6 +28,7 @@ import {
 import { DefinitionFailureOwnership } from "./definition-failure-ownership.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 import { StepConnectionReceipt as DraftStepConnectionReceipt } from "./draft-completion-connector.js";
+import { TestReviewRepairWorkerTimeout } from "./test-review-repair-timeout.js";
 
 /**
  * The production Flow Version 1 record.  This is deliberately independent
@@ -85,6 +86,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "rewind",
   "rewind_test_evidence",
   "repair_test_review",
+  "settle_test_review_repair_timeout",
   "repair_task_no_change_review",
   "repair_scenario_validity",
   "repair_implementation",
@@ -4511,6 +4513,33 @@ export class CurrentFlowState {
     });
   }
 
+  /** Settle an unaccepted test-review repair timeout without repair evidence. */
+  settleTimedOutTestReviewRepair({ attempt, result }) {
+    this.#assertExecutionActive();
+    if (this.current?.at(-1) !== "test"
+      || !TestReviewRepairWorkerTimeout.isFailureCode(this.attempt?.failure?.code)) {
+      throw new CurrentFlowStateInvariantError("test-review repair timeout settlement requires its failed test Attempt");
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    const settlement = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (settlement.nodeId !== "test" || settlement.sequence !== this.attempt.sequence + 1
+      || settlement.sequence !== leaf.attemptSequence + 1 || settlement.id === this.attempt.id
+      || settlement.failure !== null || settlement.consumption.semantic !== 0 || settlement.consumption.tooling !== 0) {
+      throw new CurrentFlowStateInvariantError("test-review repair timeout settlement Attempt identity is invalid");
+    }
+    this.#assertAttemptContractForLeaf(leaf, settlement);
+    const settled = result instanceof NodeResult ? result : new NodeResult(result);
+    if (settled.outcome !== "passed") throw new CurrentFlowStateInvariantError("test-review repair timeout settlement requires a passed lifecycle result");
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, leaf.id, transitionNode(leaf, "done", this.definition, {
+        attemptSequence: settlement.sequence,
+        result: settled,
+      })),
+      this.definition,
+    );
+    return this.#replaceRoot(root, null, null);
+  }
+
   /**
    * A material implementation repair records its producer result in the
    * Activity ledger while invalidating stale test evidence and starting one
@@ -5647,7 +5676,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle, stepConnectionReceipt } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -5908,7 +5937,7 @@ export class ActivityTransition {
         ? state.addTask(this.task)
         : state.admitApprovalTask(this.task, { priorActivities });
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -5921,6 +5950,10 @@ export class ActivityTransition {
       }
       if (this.operation === "repair_test_review") {
         return state.repairTestReview({ path: currentPath, attempt: this.attempt });
+      }
+      if (this.operation === "settle_test_review_repair_timeout") {
+        if (activity.result === null) throw new CurrentFlowStateInvariantError("test-review repair timeout settlement requires a result");
+        return state.settleTimedOutTestReviewRepair({ attempt: this.attempt, result: activity.result });
       }
       if (this.operation === "repair_task_no_change_review") {
         return state.repairNoChangeTaskReview({ path: currentPath, attempt: this.attempt });
@@ -6139,6 +6172,7 @@ export class FlowActivity {
       rewind: "recovery",
       rewind_test_evidence: "recovery",
       repair_test_review: "recovery",
+      settle_test_review_repair_timeout: "result_confirmed",
       repair_task_no_change_review: "recovery",
       repair_scenario_validity: "recovery",
       repair_implementation: "recovery",
@@ -6191,10 +6225,10 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "settle_test_review_repair_timeout"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", DRAFT_COMPLETION_TRANSITION_OPERATION, "complete_acceptance_decision_noop", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "settle_test_review_repair_timeout"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure", "repair_scenario_validity"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
@@ -6223,7 +6257,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -6540,7 +6574,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION]);
   for (const entry of entries) {
     if (entry.transition.operation === DRAFT_COMPLETION_TRANSITION_OPERATION) {
       const receipt = entry.transition.stepConnectionReceipt;

@@ -24,7 +24,7 @@ import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
 import { persistAgentInvocationMetric } from "./agent-invocation-metric.js";
-import { AgentTimeout, DEFAULT_AGENT_PROCESS_TREE_GRACE_MS } from "./agent-timeout.js";
+import { AgentTimeout, AgentTimeoutDiagnostic, DEFAULT_AGENT_PROCESS_TREE_GRACE_MS } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
 import { FlowAttributionPolicy } from "./flow-attribution.js";
@@ -456,10 +456,12 @@ class Agent {
         let stderr = "";
         child.stdout.on("data", (chunk) => {
           stdout += chunk;
+          options.activityMonitor?.observeOutput();
           if (options.onStdout) options.onStdout(String(chunk));
         });
         child.stderr.on("data", (chunk) => {
           stderr += chunk;
+          options.activityMonitor?.observeOutput();
           if (options.onStderr) options.onStderr(String(chunk));
         });
 
@@ -472,9 +474,14 @@ class Agent {
           runTaskkill: this._supervision.runTaskkill,
           onEvent: options.onSupervisorEvent,
           waitForProcessTree: options.waitForProcessTree === true,
+          timeoutDiagnostic: options.timeoutDiagnostic,
         });
 
-        supervisor.wait().then(({ code, signal }) => {
+        const completion = supervisor.wait();
+        if (options.activityMonitor) {
+          options.activityMonitor.start((timeoutDiagnostic) => supervisor.timeout(timeoutDiagnostic));
+        }
+        completion.then(({ code, signal }) => {
           if (code === 0 && !signal && !stdinError) {
             const trimmed = String(stdout).trim();
             if (profile.jsonOutputFlag) {
@@ -520,7 +527,7 @@ class Agent {
             profileKey,
             commandId: options.commandId,
           }));
-        });
+        }).finally(() => options.activityMonitor?.stop());
       });
     } finally {
       if (pendingSchemaWrite) {
@@ -531,17 +538,24 @@ class Agent {
 }
 
 class AgentTimeoutError extends AgentTimeoutFailure {
-  constructor({ timeoutMs, graceMs, finalAction, unterminatedMembers = [] }) {
+  constructor({ timeoutMs, graceMs, finalAction, timeoutDiagnostic = null, unterminatedMembers = [] }) {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
     if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
     if (!Array.isArray(unterminatedMembers) || !unterminatedMembers.every((member) => member instanceof UnterminatedProcessMember)) {
       throw new Error("unterminatedMembers must be process member diagnostics");
     }
-    super({ message: `Agent timed out after ${timeoutMs}ms; final action=${finalAction}` });
+    if (timeoutDiagnostic !== null && !(timeoutDiagnostic instanceof AgentTimeoutDiagnostic)) {
+      throw new Error("timeout diagnostic is invalid");
+    }
+    const triggeringTimeoutMs = timeoutDiagnostic?.timeoutMs ?? timeoutMs;
+    super({ message: timeoutDiagnostic === null
+      ? `Agent timed out after ${timeoutMs}ms; final action=${finalAction}`
+      : `Agent timed out after ${triggeringTimeoutMs}ms; reason=${timeoutDiagnostic.reason}; final action=${finalAction}` });
     this.name = "AgentTimeoutError";
-    this.timeoutMs = timeoutMs;
+    this.timeoutMs = triggeringTimeoutMs;
     this.graceMs = graceMs;
     this.finalAction = finalAction;
+    if (timeoutDiagnostic !== null) this.timeoutReason = timeoutDiagnostic.reason;
     this.killed = true;
     this.unterminatedMembers = Object.freeze([...unterminatedMembers]);
   }
@@ -593,6 +607,7 @@ class ChildProcessSupervisor {
     runTaskkill,
     onEvent,
     waitForProcessTree = false,
+    timeoutDiagnostic = null,
   }) {
     if (!child || typeof child.on !== "function") throw new Error("child must be a ChildProcess");
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
@@ -606,6 +621,10 @@ class ChildProcessSupervisor {
     this.runTaskkill = runTaskkill || runWindowsTaskkill;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
     this.waitForProcessTree = waitForProcessTree === true;
+    if (timeoutDiagnostic !== null && !(timeoutDiagnostic instanceof AgentTimeoutDiagnostic)) {
+      throw new Error("supervisor timeout diagnostic is invalid");
+    }
+    this.deadlineTimeoutDiagnostic = timeoutDiagnostic;
     this.deadlineTimer = null;
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
@@ -617,6 +636,7 @@ class ChildProcessSupervisor {
     this.treeDeadObserved = false;
     this.settled = false;
     this.finalAction = null;
+    this.timeoutDiagnostic = null;
     this._onClose = this._handleClose.bind(this);
     this._onExit = this._handleExit.bind(this);
     this._onError = this._handleError.bind(this);
@@ -630,7 +650,7 @@ class ChildProcessSupervisor {
       this.child.once("exit", this._onExit);
       this.child.once("error", this._onError);
       this._emit({ type: "spawn", pid: this.child.pid ?? null, detached: this.platform !== "win32" });
-      this.deadlineTimer = setTimeout(() => this._handleTimeout(), this.timeoutMs);
+      this.deadlineTimer = setTimeout(() => this._handleTimeout(this.deadlineTimeoutDiagnostic), this.timeoutMs);
     });
   }
 
@@ -682,12 +702,21 @@ class ChildProcessSupervisor {
     if (!this.timeoutOwned) this._settleError(error);
   }
 
-  _handleTimeout() {
+  timeout(timeoutDiagnostic) {
+    if (!(timeoutDiagnostic instanceof AgentTimeoutDiagnostic)) {
+      throw new Error("supervisor timeout requires an agent timeout diagnostic");
+    }
+    this._handleTimeout(timeoutDiagnostic);
+  }
+
+  _handleTimeout(timeoutDiagnostic = null) {
     if (this.settled || this.timeoutOwned) return;
+    if (timeoutDiagnostic !== null && !(timeoutDiagnostic instanceof AgentTimeoutDiagnostic)) throw new Error("timeout diagnostic is invalid");
     this.timeoutOwned = true;
+    this.timeoutDiagnostic = timeoutDiagnostic;
     if (this.treeDeathPollTimer) clearTimeout(this.treeDeathPollTimer);
     this.treeDeathPollTimer = null;
-    this._emit({ type: "timeout" });
+    this._emit({ type: "timeout", ...(timeoutDiagnostic === null ? {} : { reason: timeoutDiagnostic.reason }) });
     if (this.platform === "win32") {
       this._signalDirectChild("SIGTERM");
     } else {
@@ -845,6 +874,7 @@ class ChildProcessSupervisor {
       timeoutMs: this.timeoutMs,
       graceMs: this.graceMs,
       finalAction: this.finalAction || "SIGTERM",
+      timeoutDiagnostic: this.timeoutDiagnostic,
       unterminatedMembers: this._collectOriginalUnterminatedPosixMembers(),
     }));
   }

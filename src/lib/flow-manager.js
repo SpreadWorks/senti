@@ -725,6 +725,12 @@ export class FlowManager {
       specId: input.specId ?? this._boundSpecId,
     });
   }
+  settleTimedOutTestReviewRepair(input = {}) {
+    return this._store.settleTimedOutTestReviewRepair({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
   preimplementationBootstrap(input = {}) {
     return this._store.preimplementationBootstrap({
       ...input,

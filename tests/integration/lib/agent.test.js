@@ -16,6 +16,7 @@ import {
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
 import { ReviewExecutionLease } from "../../../src/flow/lib/review-execution-lease.js";
+import { AgentTimeoutDiagnostic } from "../../../src/lib/agent-timeout.js";
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "agent-test-"));
@@ -88,6 +89,38 @@ function successfulSpawnRecorder(record) {
 }
 
 describe("Agent.call() — basic invocation", () => {
+  it("reports both stdout and stderr activity to a supplied worker monitor", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const events = [];
+    const monitor = {
+      start(callback) { events.push("start"); this.callback = callback; },
+      observeOutput() { events.push("output"); },
+      stop() { events.push("stop"); },
+    };
+    const agent = makeAgent(
+      { command: "worker", args: ["{{PROMPT}}"] },
+      {
+        paths: { root, agentWorkDir: path.join(root, ".tmp") },
+        supervision: { spawn() {
+          const child = new EventEmitter();
+          child.pid = null;
+          child.stdout = new EventEmitter();
+          child.stderr = new EventEmitter();
+          queueMicrotask(() => {
+            child.stdout.emit("data", "stdout activity");
+            child.stderr.emit("data", "stderr activity");
+            child.emit("close", 0, null);
+          });
+          return child;
+        } },
+      },
+    );
+
+    assert.equal(await agent.call("work", { commandId: "test", retryCount: 0, activityMonitor: monitor }), "stdout activity");
+    assert.deepEqual(events, ["start", "output", "output", "stop"]);
+  });
+
   it("calls a command and returns trimmed output", async () => {
     const agent = makeAgent({ command: "echo", args: ["{{PROMPT}}"] });
     const result = await agent.call("hello world", { commandId: "test" });
@@ -387,6 +420,64 @@ describe("Agent.call() — basic invocation", () => {
     afterTimeout.release();
   });
 
+  it("kills the inherited-output process tree when the activity monitor expires", async (t) => {
+    if (process.platform === "win32") t.skip("POSIX process-group containment is covered by the Windows supervisor separately");
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const descendant = [
+      "process.stdout.write('descendant:' + process.pid);",
+      "setInterval(()=>{},1_000);",
+    ].join("");
+    const provider = [
+      "const {spawn}=require('node:child_process');",
+      `spawn(process.execPath,['-e',${JSON.stringify(descendant)}],{stdio:['ignore',1,2]});`,
+      "setInterval(()=>{},1_000);",
+    ].join("");
+    let timeout = null;
+    let expired = false;
+    const activityMonitor = {
+      start(callback) { timeout = callback; },
+      observeOutput() {
+        if (expired) return;
+        expired = true;
+        timeout(new AgentTimeoutDiagnostic({ reason: "inactivity", timeoutMs: 123 }));
+        timeout(new AgentTimeoutDiagnostic({ reason: "maximum_lifetime", timeoutMs: 456 }));
+      },
+      stop() {},
+    };
+    const supervisorEvents = [];
+    const agent = makeAgent(
+      { command: process.execPath, args: ["-e", provider] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") } },
+    );
+
+    let failure;
+    try {
+      await agent.call("", {
+        commandId: "test",
+        retryCount: 0,
+        waitForProcessTree: true,
+        activityMonitor,
+        onSupervisorEvent(event) { supervisorEvents.push(event); },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    assert.equal(failure.code, "AGENT_TIMEOUT");
+    assert.equal(failure.timeoutReason, "inactivity");
+    assert.equal(failure.timeoutMs, 123, "inactivity reports its own configured threshold, not the hard cap");
+    assert.match(failure.message, /timed out after 123ms; reason=inactivity/);
+    assert.deepEqual(
+      supervisorEvents.filter((event) => event.type === "timeout").map((event) => event.reason),
+      ["inactivity"],
+      "the first timeout owns one process-tree shutdown",
+    );
+    const descendantPid = Number.parseInt(/descendant:(\d+)/.exec(failure.stdout)?.[1] ?? "", 10);
+    assert.ok(Number.isSafeInteger(descendantPid));
+    await waitForProcessExit(descendantPid);
+  });
+
   it("retains lexical stdout and stderr on supervisor-owned timeout rejection", async (t) => {
     const root = tmpDir();
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -401,6 +492,24 @@ describe("Agent.call() — basic invocation", () => {
       assert.equal(error.code, "AGENT_TIMEOUT");
       assert.equal(error.stdout, "timeout stdout");
       assert.equal(error.stderr, "timeout stderr");
+      return true;
+    });
+  });
+
+  it("keeps ordinary timeout diagnostics byte-for-byte compatible", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agent = makeAgent(
+      { command: process.execPath, args: ["-e", "setInterval(()=>{},1000)"] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") }, config: {
+        agent: { default: "test/exec", providers: { "test/exec": { command: process.execPath, args: ["-e", "setInterval(()=>{},1000)"] } }, timeout: 0.05 },
+      } },
+    );
+    await assert.rejects(agent.call("", { commandId: "test", retryCount: 0 }), (error) => {
+      assert.equal(error.message, "Agent timed out after 50ms; final action=SIGTERM");
+      assert.equal(Object.hasOwn(error, "timeoutReason"), false);
+      assert.equal(Object.hasOwn(error.toJSON(), "timeoutReason"), false);
+      assert.equal(error.toJSON().timeoutMs, 50);
       return true;
     });
   });

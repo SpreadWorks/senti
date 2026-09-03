@@ -52,6 +52,7 @@ function copyDiagnostics(target, source) {
     "timeoutMs",
     "graceMs",
     "finalAction",
+    "timeoutReason",
     "unterminatedMembers",
     "diagnosticLog",
   ]) {
@@ -116,6 +117,7 @@ export class AgentFailure extends Error {
       ...(timeoutDiagnostics && this.timeoutMs != null ? { timeoutMs: this.timeoutMs } : {}),
       ...(timeoutDiagnostics && this.graceMs != null ? { graceMs: this.graceMs } : {}),
       ...(timeoutDiagnostics && this.finalAction != null ? { finalAction: this.finalAction } : {}),
+      ...(timeoutDiagnostics && this.timeoutReason != null ? { timeoutReason: this.timeoutReason } : {}),
       ...(timeoutDiagnostics && this.stdout != null ? { stdout: this.stdout } : {}),
       ...(timeoutDiagnostics && this.stdout == null ? { stdoutUnavailable: "provider produced no capturable stdout" } : {}),
       ...(timeoutDiagnostics && this.stderr != null ? { stderr: this.stderr } : {}),

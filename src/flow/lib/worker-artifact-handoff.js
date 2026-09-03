@@ -5320,6 +5320,13 @@ export class WorkerArtifactHandoffCoordinator {
     return cleanupTransientExecutionHandoffDirectory(request.handoffRoot, request.directory);
   }
 
+  discardRejectedTimeoutHandoff(request) {
+    if (!(request instanceof WorkerArtifactHandoffRequest)) {
+      throw new Error("rejected timeout handoff discard requires a typed request");
+    }
+    return cleanupTransientExecutionHandoffDirectory(request.handoffRoot, request.directory);
+  }
+
   rollbackRejectedSourceHandoff({ ctx, request, mutationAuthority }) {
     if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
       throw new Error("source rollback requires a typed source handoff request");
