@@ -3482,6 +3482,23 @@ export function collectTaskNodes() {
   return [...TASK_DEFINITION];
 }
 
+const ADVISORY_SKIPPABLE_LEAF_IDS = new Set([
+  "branch",
+  "draft-questions-triage", "draft-questions-repair",
+  "draft-coverage-triage", "draft-coverage-repair",
+  "impl-triage", "impl-repair",
+  "acceptance-decision",
+]);
+
+function definitionLeafIds(scope) {
+  return scope === "task" ? collectTaskLeafIds() : collectFlowLeafIds();
+}
+
+function definitionNodeIsSkippable(scope, stepId) {
+  const node = scope === "task" ? getTaskNode(stepId) : getFlowNode(stepId);
+  return node?.skippable === true || ADVISORY_SKIPPABLE_LEAF_IDS.has(stepId);
+}
+
 /**
  * Produce the explicit input contract for the next-generation state model.
  *
@@ -3491,16 +3508,6 @@ export function collectTaskNodes() {
  * legacy-schema fallback or a double-write bridge.
  */
 export function buildCurrentFlowDefinition() {
-  // These leaves are bypassable only by the typed nonblocking continuation
-  // Activity, whose evidence-bound decision is recorded in the same ledger.
-  // Normal lifecycle callers still have no generic skip transition API.
-  const advisorySkippable = new Set([
-    "branch",
-    "draft-questions-triage", "draft-questions-repair",
-    "draft-coverage-triage", "draft-coverage-repair",
-    "impl-triage", "impl-repair",
-    "acceptance-decision",
-  ]);
   // These two leaves may be bypassed only by the fixed,
   // evidence-consuming preimplementation bootstrap Activity.  The reachable
   // states remain part of the definition so journal replay can validate that
@@ -3534,7 +3541,7 @@ export function buildCurrentFlowDefinition() {
     "done:invalidated",
     "skipped:invalidated",
   ];
-  const transitionContract = (node) => new CurrentFlowNodeContract({
+  const transitionContract = (node, scope) => new CurrentFlowNodeContract({
     // Existing maxAttempts counts the initial Attempt.  The next-generation
     // contract keeps only retry budgets, so it subtracts that initial work.
     semanticRetryLimit: node.resolveMaxAttempts({ autoApprove: false }) - 1,
@@ -3543,7 +3550,7 @@ export function buildCurrentFlowDefinition() {
     transitions: transitionsFor({
       ...node,
       triageNoRepair: node.id === "impl-repair",
-      skippable: node.skippable === true || advisorySkippable.has(node.id),
+      skippable: definitionNodeIsSkippable(scope, node.id),
       preimplementationBootstrap: preimplementationBootstrapSkippable.has(node.id),
       existingImplementation: existingImplementationCompletion.has(node.id),
       finalizationRoute: finalizationRouteLeaves.has(node.id),
@@ -3569,12 +3576,12 @@ export function buildCurrentFlowDefinition() {
     failureOwnership: node.failureOwnership,
     artifactAuthority: { sourceScopes },
   });
-  const adapt = (node, kind = "step", sourceScopes = ["all_tasks", "flow"]) => new CurrentFlowDefinitionNode({
+  const adapt = (node, kind = "step", sourceScopes = ["all_tasks", "flow"], scope = "flow") => new CurrentFlowDefinitionNode({
     kind,
     id: node.id,
     key: node.instructionsKey || node.id,
-    contract: transitionContract(node),
-    steps: (node.children || []).map((child) => adapt(child, "step", sourceScopes)),
+    contract: transitionContract(node, scope),
+    steps: (node.children || []).map((child) => adapt(child, "step", sourceScopes, scope)),
     action: node.children ? null : actionMetadata(node, sourceScopes),
   });
   return new CurrentFlowDefinition({
@@ -3588,7 +3595,7 @@ export function buildCurrentFlowDefinition() {
         resourceContract: { required: [], authority: "definition" },
         transitions: transitionsFor(),
       }),
-      steps: FLOW_DEFINITION.map((node) => adapt(node)),
+      steps: FLOW_DEFINITION.map((node) => adapt(node, "step", ["all_tasks", "flow"], "flow")),
     }),
     taskTemplate: new CurrentFlowDefinitionNode({
       kind: "task",
@@ -3600,7 +3607,7 @@ export function buildCurrentFlowDefinition() {
         resourceContract: { required: [], authority: "definition" },
         transitions: transitionsFor(),
       }),
-      steps: TASK_DEFINITION.map((node) => adapt(node, "step", ["same_task", "flow"])),
+      steps: TASK_DEFINITION.map((node) => adapt(node, "step", ["same_task", "flow"], "task")),
     }),
     dynamicTaskContainerId: "impl",
     dynamicTaskInsertionAfterId: "implement",
@@ -3613,6 +3620,41 @@ export function getFlowNode(id) {
 
 export function getTaskNode(id) {
   return resolveNodeFor(TASK_DEFINITION, id);
+}
+
+/**
+ * A source producer may carry an advisory only when the Definition guarantees
+ * a later, non-skippable quality checkpoint. This is deliberately a narrow
+ * domain route, not a second continuation state machine.
+ */
+export class SourceQualityIssueRecoveryRoute {
+  constructor({ sourceStep, recoveryStep, scope } = {}) {
+    this.sourceStep = requireString(sourceStep, "source quality issue source Step");
+    this.recoveryStep = requireString(recoveryStep, "source quality issue recovery Step");
+    if (!new Set(["flow", "task"]).has(scope)) throw new Error("source quality issue recovery scope is invalid");
+    this.scope = scope;
+    const source = scope === "task" ? getTaskNode(sourceStep) : getFlowNode(sourceStep);
+    const recovery = scope === "task" ? getTaskNode(recoveryStep) : getFlowNode(recoveryStep);
+    if (source === null || recovery === null) throw new Error("source quality issue recovery route is absent from the Definition");
+    const leaves = definitionLeafIds(scope);
+    if (leaves.indexOf(sourceStep) < 0 || leaves.indexOf(recoveryStep) <= leaves.indexOf(sourceStep)) {
+      throw new Error("source quality issue recovery Step must be a forward Definition leaf");
+    }
+    if (definitionNodeIsSkippable(scope, recoveryStep)) throw new Error("source quality issue recovery Step must not be skippable");
+    Object.freeze(this);
+  }
+  toJSON() { return { sourceStep: this.sourceStep, recoveryStep: this.recoveryStep, scope: this.scope }; }
+}
+
+const SOURCE_QUALITY_ISSUE_RECOVERY_ROUTES = new Map([
+  ["implement", new SourceQualityIssueRecoveryRoute({ sourceStep: "implement", recoveryStep: "impl-review", scope: "flow" })],
+  ["impl-repair", new SourceQualityIssueRecoveryRoute({ sourceStep: "impl-repair", recoveryStep: "impl-gate", scope: "flow" })],
+  ["task-impl", new SourceQualityIssueRecoveryRoute({ sourceStep: "task-impl", recoveryStep: "task-review", scope: "task" })],
+]);
+
+export function sourceQualityIssueRecoveryForStep(stepId) {
+  if (typeof stepId !== "string") return null;
+  return SOURCE_QUALITY_ISSUE_RECOVERY_ROUTES.get(stepId) ?? null;
 }
 
 export function resolveMaxAttempts({ scope = "flow", stepId, context = {} }) {

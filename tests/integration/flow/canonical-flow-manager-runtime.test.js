@@ -79,8 +79,9 @@ import {
   SourceMutationBaseline,
   SourceMutationManifest,
   SourceWorkerEffect,
+  captureSourceMutationManifestForParent,
+  sealParentMaterializedSourceWorkerEffect,
   sealWorkerArtifactHandoff,
-  sourceMutationManifestForWorker,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { captureCurrentTaskSource } from "../../../src/flow/lib/task-mutation-lineage.js";
 import { canonicalPlanGateRepairForTarget } from "../../../src/flow/lib/plan-gate-repair.js";
@@ -1471,15 +1472,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
       repair: null,
     });
     fs.writeFileSync(handoff.payloadPath("effects.json"), `${JSON.stringify(effect.toJSON(), null, 2)}\n`);
-    sourceMutationManifestForWorker({
-      requestPath: handoff.requestPath,
-      invocationId: handoff.dispatchInvocationId,
-    });
-    sealWorkerArtifactHandoff({
-      requestPath: handoff.requestPath,
-      invocationId: handoff.dispatchInvocationId,
-      now: () => new Date("2026-08-18T00:00:01.000Z"),
-    });
+    captureSourceMutationManifestForParent({ request: handoff });
+    sealParentMaterializedSourceWorkerEffect({ request: handoff, now: () => new Date("2026-08-18T00:00:01.000Z") });
     const reconciliation = coordinator.reconcile({ ctx, request: handoff, mutationAuthority: authority });
     assert.equal(reconciliation.completed, true);
 

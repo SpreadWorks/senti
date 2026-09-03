@@ -764,7 +764,7 @@ export class FlowDispatchWork {
           "This action uses the source-worker handoff contract below.",
           "Treat its input snapshots as the immutable source for this action.",
           "Edit only project source and formal project tests that this action requires.",
-          "After all source edits, run the exact sourceMutationCommand once.",
+          "After all source edits, return file claims as normalized project-relative paths grouped by requirement.",
           "Do not write effects.json, do not write a handoff submission, and do not run a seal command.",
           "Return only the structured source effect required by the guarded action output_schema.",
           "The parent dispatcher validates, materializes, seals, publishes, and completes the step.",
