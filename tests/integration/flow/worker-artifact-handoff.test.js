@@ -34,13 +34,14 @@ import {
   WorkerArtifactMutationAuthoritySnapshot,
   SourceMutationManifest,
   SourceWorkerEffect,
+  SourceWorkerEffectReport,
   assertWorkerUpgradeAllowed,
   stageWorkerUpgradeResult,
   workerArtifactHandoffPolicy,
   sealWorkerArtifactHandoff,
   materializeSourceWorkerEffect,
   sealParentMaterializedSourceWorkerEffect,
-  sourceMutationManifestForWorker,
+  captureSourceMutationManifestForParent,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { sourceWorkerEffectJsonSchema } from "../../../src/flow/lib/source-worker-effect-schema.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
@@ -333,13 +334,52 @@ function acquireRuntimeLock(location, logicalKey) {
 
 function seal(request) {
   if (request.policy.kind === "source") {
-    sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+    if (!fs.existsSync(request.sourceMutationManifestPath)) captureSourceMutationManifestForParent({ request });
+    return sealParentMaterializedSourceWorkerEffect({ request, now: () => new Date("2026-08-04T00:00:01.000Z") });
   }
   return sealWorkerArtifactHandoff({
     requestPath: request.requestPath,
     invocationId: request.dispatchInvocationId,
     now: () => new Date("2026-08-04T00:00:01.000Z"),
   });
+}
+
+function sourceWorkerReport(stepId, paths, additions = {}) {
+  return {
+    version: 1,
+    stepId,
+    completionStatus: "done",
+    files: paths.length === 0 ? [] : [{ requirementId: "R1", paths }],
+    issues: [],
+    overview: null,
+    triage: null,
+    repair: null,
+    noChangeReason: null,
+    ...additions,
+  };
+}
+
+function captureManifest(request) {
+  return captureSourceMutationManifestForParent({ request });
+}
+
+function assertSourceWorkerCoverageFailure(responseText) {
+  const value = fixture("implement", { specRecord: validSpec() });
+  try {
+    initializeGitRepository(value);
+    const request = value.coordinator.createRequest({
+      ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation,
+    });
+    fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+    assert.throws(
+      () => materializeSourceWorkerEffect({ request, responseText: JSON.stringify(responseText) }),
+      (error) => error instanceof WorkerArtifactHandoffError
+        && error.code === "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID"
+        && error.cause?.code === "FLOW_SOURCE_HANDOFF_EFFECT_PATH_COVERAGE_INVALID",
+    );
+  } finally {
+    removeTmpDir(value.mainRoot);
+  }
 }
 
 function implementationEffect(request, paths) {
@@ -741,7 +781,7 @@ describe("worker artifact handoff", () => {
       fs.writeFileSync(path.join(value.mainRoot, "preexisting.js"), "export const before = true;\n");
       const request = value.coordinator.createRequest({ ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation });
       fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.deepEqual(manifest.mutations.map((entry) => entry.path), ["product.js"]);
     } finally {
       removeTmpDir(value.mainRoot);
@@ -756,7 +796,7 @@ describe("worker artifact handoff", () => {
       fs.writeFileSync(product, "export const value = 0;\n");
       const request = value.coordinator.createRequest({ ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation });
       fs.writeFileSync(product, "export const value = 2;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.deepEqual(manifest.mutations.map((entry) => entry.path), ["product.js"]);
       assert.equal(manifest.mutations[0].beforeDigest !== manifest.mutations[0].afterDigest, true);
     } finally {
@@ -771,15 +811,15 @@ describe("worker artifact handoff", () => {
       const product = path.join(value.mainRoot, "product.js");
       const request = value.coordinator.createRequest({ ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation });
       fs.unlinkSync(product);
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "deleted");
       assert.match(manifest.mutations[0].beforeDigest, /^[a-f0-9]{64}$/);
       assert.equal(manifest.mutations[0].afterDigest, null);
       fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(request, ["product.js"]).toJSON()));
       fs.writeFileSync(product, "export const value = 3;\n");
       assert.throws(
-        () => sealWorkerArtifactHandoff({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId }),
-        (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_SOURCE_HANDOFF_MANIFEST_STALE" && error.retryable === true,
+        () => sealParentMaterializedSourceWorkerEffect({ request }),
+        (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_SOURCE_HANDOFF_MANIFEST_STALE",
       );
     } finally {
       removeTmpDir(value.mainRoot);
@@ -796,7 +836,7 @@ describe("worker artifact handoff", () => {
         ctx: contentValue.ctx, state: contentValue.flowManager.load(), invocation: contentValue.invocation,
       });
       fs.writeFileSync(product, "export const value = 2;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "content");
     } finally {
       removeTmpDir(contentValue.mainRoot);
@@ -811,7 +851,7 @@ describe("worker artifact handoff", () => {
         ctx: modeValue.ctx, state: modeValue.flowManager.load(), invocation: modeValue.invocation,
       });
       fs.chmodSync(product, 0o755);
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "mode");
     } finally {
       removeTmpDir(modeValue.mainRoot);
@@ -831,7 +871,7 @@ describe("worker artifact handoff", () => {
       });
       fs.unlinkSync(link);
       fs.symlinkSync("other.js", link);
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "content");
     } finally {
       removeTmpDir(linkValue.mainRoot);
@@ -849,7 +889,7 @@ describe("worker artifact handoff", () => {
       });
       fs.unlinkSync(link);
       fs.writeFileSync(link, "export const replacement = true;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "type");
     } finally {
       removeTmpDir(typeValue.mainRoot);
@@ -868,10 +908,7 @@ describe("worker artifact handoff", () => {
       fs.unlinkSync(product);
       fs.mkdirSync(product);
       fs.writeFileSync(path.join(product, "nested.js"), "export const nested = true;\n");
-      const manifest = SourceMutationManifest.fromStored(sourceMutationManifestForWorker({
-        requestPath: request.requestPath,
-        invocationId: request.dispatchInvocationId,
-      }));
+      const manifest = captureManifest(request);
       assert.deepEqual(
         manifest.mutations.map((entry) => ({ path: entry.path, changeKind: entry.changeKind })),
         [
@@ -883,10 +920,7 @@ describe("worker artifact handoff", () => {
         request,
         manifest.paths(),
       ).toJSON()));
-      sealWorkerArtifactHandoff({
-        requestPath: request.requestPath,
-        invocationId: request.dispatchInvocationId,
-      });
+      sealParentMaterializedSourceWorkerEffect({ request });
       assert.equal(value.coordinator.reconcile({
         ctx: value.ctx,
         request,
@@ -928,7 +962,7 @@ describe("worker artifact handoff", () => {
         ctx: contentValue.ctx, state: contentValue.flowManager.load(), invocation: contentValue.invocation,
       });
       fs.writeFileSync(product, "export const value = 1;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "content");
       assert.match(manifest.mutations[0].afterDigest, /^[a-f0-9]{64}$/);
     } finally {
@@ -944,7 +978,7 @@ describe("worker artifact handoff", () => {
         ctx: deletedValue.ctx, state: deletedValue.flowManager.load(), invocation: deletedValue.invocation,
       });
       fs.writeFileSync(product, "export const value = 1;\n");
-      const manifest = sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const manifest = captureManifest(request);
       assert.equal(manifest.mutations[0].changeKind, "added");
       assert.match(manifest.mutations[0].afterDigest, /^[a-f0-9]{64}$/);
     } finally {
@@ -960,9 +994,9 @@ describe("worker artifact handoff", () => {
       const request = value.coordinator.createRequest({ ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation });
       const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
       fs.writeFileSync(product, "export const value = 2;\n");
-      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      captureManifest(request);
       fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(request, ["product.js"]).toJSON()));
-      sealWorkerArtifactHandoff({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      sealParentMaterializedSourceWorkerEffect({ request });
       fs.writeFileSync(product, "export const value = 3;\n");
       assert.throws(
         () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
@@ -981,13 +1015,13 @@ describe("worker artifact handoff", () => {
       const request = value.coordinator.createRequest({ ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation });
       const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
       fs.writeFileSync(product, "export const value = 2;\n");
-      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      captureManifest(request);
       const otherAttemptId = SourceMutationManifest.mutationId({ id: "another-attempt", nodeId: "implement", sequence: 2 }, "product.js");
       fs.writeFileSync(request.payloadPath("effects.json"), json(new SourceWorkerEffect({
         version: 1, stepId: "implement", completionStatus: "done",
         files: [{ requirementId: "R1", mutationIds: [otherAttemptId] }], issues: [], overview: null, triage: null, repair: null,
       }).toJSON()));
-      sealWorkerArtifactHandoff({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      sealParentMaterializedSourceWorkerEffect({ request });
       assert.throws(
         () => value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority }),
         (error) => error instanceof WorkerArtifactHandoffError && error.code === "FLOW_SOURCE_HANDOFF_EFFECT_MUTATION_INVALID",
@@ -1174,10 +1208,7 @@ describe("worker artifact handoff", () => {
       });
       const retryAuthority = WorkerArtifactMutationAuthoritySnapshot.capture(retryRequest);
       fs.writeFileSync(product, "export const value = 2;\n");
-      const retryManifest = SourceMutationManifest.fromStored(sourceMutationManifestForWorker({
-        requestPath: retryRequest.requestPath,
-        invocationId: retryRequest.dispatchInvocationId,
-      }));
+      const retryManifest = captureManifest(retryRequest);
       const retryEffect = implementationEffect(retryRequest, ["product.js"]);
       const firstValidation = retryAuthority.assertSourceDiff({
         policy: retryRequest.policy,
@@ -1185,10 +1216,8 @@ describe("worker artifact handoff", () => {
         effect: retryEffect,
         manifest: retryManifest,
       });
-      const replayManifest = SourceMutationManifest.fromStored(sourceMutationManifestForWorker({
-        requestPath: retryRequest.requestPath,
-        invocationId: retryRequest.dispatchInvocationId,
-      }));
+      fs.unlinkSync(retryRequest.sourceMutationManifestPath);
+      const replayManifest = captureManifest(retryRequest);
       assert.deepEqual(replayManifest.toJSON(), retryManifest.toJSON());
       assert.deepEqual(retryAuthority.assertSourceDiff({
         policy: retryRequest.policy,
@@ -1314,14 +1343,8 @@ describe("worker artifact handoff", () => {
         nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call(_prompt, options) {
-            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
-            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
-            sourceMutationManifestForWorker({
-              requestPath,
-              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-            });
-            return json(implementationEffect({ sourceMutationBaseline: request.sourceMutationBaseline }, ["product.js", "absent.js"]).toJSON());
+            return json(sourceWorkerReport("implement", ["product.js", "absent.js"]));
           },
         },
         repositoryFingerprint: () => "stable-fixture",
@@ -1336,7 +1359,7 @@ describe("worker artifact handoff", () => {
         _envelopeType: "run",
         _envelopeKey: "dispatch",
       });
-      assert.equal(result.errors[0].code, "FLOW_SOURCE_HANDOFF_EFFECT_MUTATION_INVALID");
+      assert.equal(result.errors[0].code, "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID");
       assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 1;\n");
       assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
     } finally {
@@ -1371,17 +1394,11 @@ describe("worker artifact handoff", () => {
         agent: {
           async call(_prompt, options) {
             calls += 1;
-            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
-            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
-            sourceMutationManifestForWorker({
-              requestPath,
-              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-            });
             if (calls === 1) {
               throw new AgentTimeoutFailure({ message: "provider timed out before structured response" });
             }
-            return json(implementationEffect({ sourceMutationBaseline: request.sourceMutationBaseline }, ["product.js"]).toJSON());
+            return json(sourceWorkerReport("implement", ["product.js"]));
           },
         },
         repositoryFingerprint: () => "stable-fixture",
@@ -1425,12 +1442,7 @@ describe("worker artifact handoff", () => {
         nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call(_prompt, options) {
-            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
-            sourceMutationManifestForWorker({
-              requestPath,
-              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-            });
             return "{ malformed";
           },
         },
@@ -1817,7 +1829,7 @@ describe("worker artifact handoff", () => {
       "impl-repair": {
         ...common,
         stepId: "impl-repair",
-        files: [{ requirementId: "R1", mutationIds: ["a".repeat(64)] }],
+        files: [{ requirementId: "R1", paths: ["product.js"] }],
         overview: null,
         triage: null,
         repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed correction." },
@@ -1827,8 +1839,8 @@ describe("worker artifact handoff", () => {
       },
     };
     for (const [stepId, document] of Object.entries(documents)) {
-      const effect = SourceWorkerEffect.fromDocument(document, stepId);
-      assert.deepEqual(validateSchema(effect.toJSON(), sourceWorkerEffectJsonSchema(stepId)), [], stepId);
+      const report = SourceWorkerEffectReport.fromDocument(document, stepId);
+      assert.deepEqual(validateSchema(report.toJSON(), sourceWorkerEffectJsonSchema(stepId)), [], stepId);
     }
   });
 
@@ -1874,7 +1886,7 @@ describe("worker artifact handoff", () => {
     const triageWithIssues = {
       ...triageWithEffects,
       files: [],
-      issues: [{ reason: "The triage worker must not report source issues.", trigger: null, resolution: null }],
+      issues: [{ classification: "quality", reason: "The triage worker must not report source quality issues.", remainingRisk: "This test proves that triage cannot persist a worker quality issue." }],
     };
     assert.notDeepEqual(validateSchema(triageWithIssues, sourceWorkerEffectJsonSchema("impl-triage")), []);
     assert.throws(() => SourceWorkerEffect.fromDocument(triageWithIssues, "impl-triage"), /may contain only typed triage/);
@@ -1899,10 +1911,7 @@ describe("worker artifact handoff", () => {
       });
       const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
       fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
-      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
-      const effect = implementationEffect(request, ["product.js"]);
-
-      materializeSourceWorkerEffect({ request, responseText: JSON.stringify(effect.toJSON()) });
+      materializeSourceWorkerEffect({ request, responseText: JSON.stringify(sourceWorkerReport("implement", ["product.js"])) });
       assert.equal(fs.existsSync(request.submissionPath), false, "only parent sealing may create the submission");
       sealParentMaterializedSourceWorkerEffect({ request });
       value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
@@ -1911,6 +1920,19 @@ describe("worker artifact handoff", () => {
     } finally {
       removeTmpDir(value.mainRoot);
     }
+  });
+
+  it("rejects a source worker response that omits an observed mutation path", () => {
+    assertSourceWorkerCoverageFailure(sourceWorkerReport("implement", []));
+  });
+
+  it("rejects duplicate source path claims across requirement file claims", () => {
+    assertSourceWorkerCoverageFailure(sourceWorkerReport("implement", [], {
+      files: [
+        { requirementId: "R1", paths: ["product.js"] },
+        { requirementId: "R2", paths: ["product.js"] },
+      ],
+    }));
   });
 
   it("rejects a worker-written source effect before parent materialization", () => {
@@ -1943,7 +1965,6 @@ describe("worker artifact handoff", () => {
       });
       assert.equal(request.version, 3);
       fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
-      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
       fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(request, ["product.js"]).toJSON()));
       seal(request);
       assert.throws(

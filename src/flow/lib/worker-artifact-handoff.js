@@ -636,20 +636,42 @@ export class SourceFileEffect {
   toJSON() { return { requirementId: this.requirementId, mutationIds: [...this.mutationIds] }; }
 }
 
-export class SourceIssueEffect {
-  constructor({ reason, trigger = null, resolution = null } = {}) {
-    this.reason = requiredString(reason, "source worker issue reason");
-    if (this.reason.length < 20) throw new Error("source worker issue reason must be at least 20 characters");
-    for (const [name, value] of [["trigger", trigger], ["resolution", resolution]]) {
-      if (value !== null && (typeof value !== "string" || value.trim().length < 10)) {
-        throw new Error(`source worker issue ${name} must be null or at least 10 characters`);
-      }
+/** A worker claim names intent, never a parent-derived mutation identity. */
+export class SourceWorkerFileClaim {
+  constructor({ requirementId, paths } = {}) {
+    this.requirementId = requiredString(requirementId, "source worker file claim requirementId");
+    if (!Array.isArray(paths) || paths.length === 0 || paths.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source worker file claim paths must be a bounded non-empty array");
     }
-    this.trigger = trigger;
-    this.resolution = resolution;
+    this.paths = Object.freeze(paths.map((candidate) => normalizedRelativePath(candidate, "source worker file claim path")));
+    if (new Set(this.paths).size !== this.paths.length) throw new Error("source worker file claim paths must not duplicate");
     Object.freeze(this);
   }
-  toJSON() { return { reason: this.reason, trigger: this.trigger, resolution: this.resolution }; }
+  bind(manifest) {
+    if (!(manifest instanceof SourceMutationManifest)) throw new Error("source worker file claim requires a SourceMutationManifest");
+    return new SourceFileEffect({
+      requirementId: this.requirementId,
+      mutationIds: this.paths.map((relativePath) => {
+        const mutation = manifest.mutations.find((entry) => entry.path === relativePath);
+        if (!mutation) throw new Error(`source worker file claim path is absent from the current Attempt manifest: ${relativePath}`);
+        return mutation.mutationId;
+      }),
+    });
+  }
+  toJSON() { return { requirementId: this.requirementId, paths: [...this.paths] }; }
+}
+
+export class SourceIssueEffect {
+  constructor({ classification, reason, remainingRisk } = {}) {
+    if (classification !== "quality") throw new Error("source worker issue classification must be quality");
+    this.classification = "quality";
+    this.reason = requiredString(reason, "source worker issue reason");
+    if (this.reason.length < 20) throw new Error("source worker issue reason must be at least 20 characters");
+    this.remainingRisk = requiredString(remainingRisk, "source worker issue remainingRisk");
+    if (this.remainingRisk.length < 20) throw new Error("source worker issue remainingRisk must be at least 20 characters");
+    Object.freeze(this);
+  }
+  toJSON() { return { classification: this.classification, reason: this.reason, remainingRisk: this.remainingRisk }; }
 }
 
 export class SourceOverviewEffect {
@@ -741,7 +763,7 @@ export class SourceWorkerEffect {
       return new SourceFileEffect(entry);
     }));
     this.issues = Object.freeze(issues.map((entry) => {
-      exactObjectKeys(entry, ["reason", "trigger", "resolution"], "source worker issue effect");
+      exactObjectKeys(entry, ["classification", "reason", "remainingRisk"], "source worker issue effect");
       return new SourceIssueEffect(entry);
     }));
     if (this.stepId === "task-impl" && overview === null) throw new Error("task-impl source effect requires overview additions");
@@ -786,7 +808,68 @@ export class SourceWorkerEffect {
   }
 }
 
-function sourceEffectDocumentFromResponse(responseText, request) {
+/** Worker-facing report bound to observed source mutations only by the parent. */
+export class SourceWorkerEffectReport {
+  constructor({ version, stepId, completionStatus, files = [], issues = [], overview = null, triage = null, repair = null, noChangeReason = null } = {}) {
+    if (version !== 1) throw new Error("source worker effect report version must be 1");
+    this.version = 1;
+    this.stepId = requiredString(stepId, "source worker effect report stepId");
+    this.completionStatus = requiredString(completionStatus, "source worker effect report completionStatus");
+    if (!Array.isArray(files) || files.length > MAX_PAYLOAD_FILES || !Array.isArray(issues) || issues.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source worker effect report collections must be bounded arrays");
+    }
+    this.files = Object.freeze(files.map((entry) => {
+      exactObjectKeys(entry, ["requirementId", "paths"], "source worker file claim");
+      return new SourceWorkerFileClaim(entry);
+    }));
+    this.issues = Object.freeze(issues.map((entry) => {
+      exactObjectKeys(entry, ["classification", "reason", "remainingRisk"], "source worker issue claim");
+      return new SourceIssueEffect(entry);
+    }));
+    this.overview = overview === null ? null : new SourceOverviewEffect(overview);
+    this.triage = triage === null ? null : new SourceTriageEffect(triage);
+    this.repair = repair === null ? null : new SourceRepairEffect(repair);
+    this.noChangeReason = noChangeReason === null ? null : new SourceNoChangeReason(noChangeReason);
+    Object.freeze(this);
+  }
+  static fromDocument(value, expectedStepId) {
+    exactObjectKeys(value, SOURCE_EFFECT_KEYS, "source worker effect report");
+    const report = new SourceWorkerEffectReport(value);
+    if (report.stepId !== expectedStepId) throw new Error("source worker effect report step does not match the handoff");
+    return report;
+  }
+  bind(manifest) {
+    if (!(manifest instanceof SourceMutationManifest)) throw new Error("source worker effect report requires a SourceMutationManifest");
+    const claimed = this.files.flatMap((entry) => entry.paths);
+    const observed = manifest.paths();
+    const missing = observed.filter((relativePath) => !claimed.includes(relativePath));
+    const unknown = claimed.filter((relativePath) => !observed.includes(relativePath));
+    if (new Set(claimed).size !== claimed.length || missing.length > 0 || unknown.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid", "FLOW_SOURCE_HANDOFF_EFFECT_PATH_COVERAGE_INVALID",
+        "source worker file claims must exactly cover the parent-observed mutation paths",
+        { retryable: false, data: { missing: missing.slice(0, 20), unknown: unknown.slice(0, 20) } },
+      );
+    }
+    return new SourceWorkerEffect({
+      version: this.version, stepId: this.stepId, completionStatus: this.completionStatus,
+      files: this.files.map((entry) => entry.bind(manifest).toJSON()),
+      issues: this.issues.map((entry) => entry.toJSON()),
+      overview: this.overview?.toJSON() ?? null, triage: this.triage?.toJSON() ?? null,
+      repair: this.repair?.toJSON() ?? null, noChangeReason: this.noChangeReason?.toJSON() ?? null,
+    });
+  }
+  toJSON() {
+    return {
+      version: this.version, stepId: this.stepId, completionStatus: this.completionStatus,
+      files: this.files.map((entry) => entry.toJSON()), issues: this.issues.map((entry) => entry.toJSON()),
+      overview: this.overview?.toJSON() ?? null, triage: this.triage?.toJSON() ?? null,
+      repair: this.repair?.toJSON() ?? null, noChangeReason: this.noChangeReason?.toJSON() ?? null,
+    };
+  }
+}
+
+function sourceEffectDocumentFromResponse(responseText, request, manifest) {
   if (typeof responseText !== "string" || responseText.trim() === "") {
     throw new WorkerArtifactHandoffError(
       "invalid",
@@ -816,7 +899,7 @@ function sourceEffectDocumentFromResponse(responseText, request) {
     );
   }
   try {
-    return SourceWorkerEffect.fromDocument(document, request.stepId);
+    return SourceWorkerEffectReport.fromDocument(document, request.stepId).bind(manifest);
   } catch (cause) {
     throw new WorkerArtifactHandoffError(
       "invalid",
@@ -850,7 +933,8 @@ function assertParentOwnsSourceEffectMaterialization(request) {
  */
 export function materializeSourceWorkerEffect({ request, responseText } = {}) {
   const effectPath = assertParentOwnsSourceEffectMaterialization(request);
-  const effect = sourceEffectDocumentFromResponse(responseText, request);
+  const manifest = captureSourceMutationManifestForParent({ request });
+  const effect = sourceEffectDocumentFromResponse(responseText, request, manifest);
   new AtomicFile(effectPath, { phaseNamespace: "parent-source-effect" })
     .write(`${JSON.stringify(effect.toJSON(), null, 2)}\n`);
   return effect;
@@ -868,11 +952,7 @@ export function sealParentMaterializedSourceWorkerEffect({ request, now = () => 
       { retryable: false, data: { stepId: request.stepId } },
     );
   }
-  return sealWorkerArtifactHandoff({
-    requestPath: request.requestPath,
-    invocationId: request.dispatchInvocationId,
-    now,
-  });
+  return sealParentSourceWorkerArtifactHandoff({ request, now });
 }
 
 function scanTree(directory, {
@@ -3055,7 +3135,6 @@ export class WorkerArtifactHandoffRequest {
           repositoryRoot: this.mainRoot,
         }).toJSON(),
       }),
-      ...(this.sourceMutationBaseline !== null && { sourceMutationCommand: "sennel flow run source-mutation-manifest" }),
       ...(this.policy.kind !== "source" && { sealCommand: "sennel flow run seal-handoff" }),
       completionOwner: "parent-dispatcher",
     };
@@ -3110,16 +3189,9 @@ export class WorkerArtifactHandoffRequest {
           target: { digest: this.contextSnapshot.binding.targetDigest },
         };
         const currentContext = this.contextSnapshot.kind === "task"
-          ? TaskWorkerContextSnapshot.materialize({
+          ? this.contextSnapshot.rebuildCapturedContext({
             state,
-            invocation,
             flowManager: this.flowManager,
-            sourceFingerprint: captureCurrentTaskSource({
-              root: this.executionRoot,
-              flowManager: this.flowManager,
-              state,
-              taskId: this.taskId,
-            }).fingerprint,
           })
           : DraftWorkerContextSnapshot.materialize({
             executionRoot: this.executionRoot,
@@ -3302,7 +3374,14 @@ export class WorkerArtifactHandoffSubmission {
     return { ...this.unsignedJSON(), handoffDigest: this.handoffDigest };
   }
 
-  static seal(request, now = () => new Date()) {
+  static seal(request, now = () => new Date(), { sourceMutationManifest = null } = {}) {
+    if (request.policy.kind === "source" && !(sourceMutationManifest instanceof SourceMutationManifest)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid", "FLOW_SOURCE_HANDOFF_PARENT_MANIFEST_REQUIRED",
+        "only the parent dispatcher may capture a source mutation manifest before sealing",
+        { retryable: false, data: { stepId: request.stepId } },
+      );
+    }
     const manifest = [];
     for (const payload of request.payloads) {
       const { rule } = payload;
@@ -3347,7 +3426,7 @@ export class WorkerArtifactHandoffSubmission {
       inputDigest: request.inputDigest,
       inputRevision: request.inputRevision,
       payloadManifest: manifest.map((entry) => entry.toJSON()),
-      sourceMutationManifest: sealedSourceMutationManifest(request)?.toJSON() ?? null,
+      sourceMutationManifest: sourceMutationManifest?.toJSON() ?? null,
       generatedAt: now().toISOString(),
     };
     return new WorkerArtifactHandoffSubmission({
@@ -3819,6 +3898,13 @@ export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () 
         "handoff request belongs to another dispatch invocation",
       );
     }
+    if (request.policy.kind === "source") {
+      throw new WorkerArtifactHandoffError(
+        "invalid", "FLOW_SOURCE_HANDOFF_PARENT_SEAL_REQUIRED",
+        "source worker handoffs are sealed only by the parent dispatcher",
+        { retryable: false, data: { stepId: request.stepId } },
+      );
+    }
     const submission = WorkerArtifactHandoffSubmission.seal(request, now);
     new AtomicFile(request.submissionPath, { phaseNamespace: "worker-handoff-seal" })
       .write(`${JSON.stringify(submission.toJSON(), null, 2)}\n`);
@@ -3839,43 +3925,54 @@ export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () 
   }
 }
 
-/** Worker CLI surface that materializes the current Attempt mutation manifest sidecar. */
-export function sourceMutationManifestForWorker({ requestPath, invocationId } = {}) {
+/** Capture source mutations after the worker process has exited, under parent authority. */
+export function captureSourceMutationManifestForParent({ request } = {}) {
   try {
-    const request = requestFromStored(path.resolve(requiredString(requestPath, "handoff request path")));
-    if (request.dispatchInvocationId !== requiredString(invocationId, "handoff invocation id")) {
-      throw new WorkerArtifactHandoffError("stale", "FLOW_ARTIFACT_HANDOFF_STALE", "handoff request belongs to another dispatch invocation");
+    if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source" || !(request.sourceMutationBaseline instanceof SourceMutationBaseline)) {
+      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", "parent source mutation capture requires a source worker handoff", { retryable: false });
     }
-    if (request.policy.kind !== "source" || !(request.sourceMutationBaseline instanceof SourceMutationBaseline)) {
-      throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", "source mutation manifest requires a source worker handoff", { retryable: false });
+    if (fs.existsSync(request.sourceMutationManifestPath)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid", "FLOW_SOURCE_HANDOFF_PARENT_AUTHORITY_VIOLATION",
+        "source worker wrote a parent-owned mutation manifest payload",
+        { retryable: false, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+      );
     }
     const manifest = SourceMutationManifest.capture({ baseline: request.sourceMutationBaseline });
     new AtomicFile(request.sourceMutationManifestPath, { phaseNamespace: "source-mutation-manifest" })
       .write(`${JSON.stringify(manifest.toJSON(), null, 2)}\n`);
-    return manifest.toJSON();
+    return manifest;
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;
-    throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", `source mutation manifest could not be generated: ${cause.message}`, { cause, retryable: false });
+    throw new WorkerArtifactHandoffError("invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_INVALID", `parent source mutation manifest could not be captured: ${cause.message}`, { cause, retryable: false });
   }
 }
 
-function sealedSourceMutationManifest(request) {
-  if (request.policy.kind !== "source") return null;
-  let manifest;
+function sealParentSourceWorkerArtifactHandoff({ request, now = () => new Date() } = {}) {
   try {
-    manifest = SourceMutationManifest.fromStored(
-      boundedJson(request.sourceMutationManifestPath, "source mutation manifest").document,
-    );
+    if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
+      throw new Error("parent source handoff seal requires a source worker handoff request");
+    }
+    const manifest = SourceMutationManifest.fromStored(boundedJson(request.sourceMutationManifestPath, "source mutation manifest").document);
+    manifest.assertBinding(request.sourceMutationBaseline);
+    manifest.assertMatchesCurrent(request.sourceMutationBaseline);
+    const submission = WorkerArtifactHandoffSubmission.seal(request, now, { sourceMutationManifest: manifest });
+    new AtomicFile(request.submissionPath, { phaseNamespace: "parent-source-handoff-seal" })
+      .write(`${JSON.stringify(submission.toJSON(), null, 2)}\n`);
+    return Object.freeze({
+      sealed: true,
+      handoffPath: request.submissionPath,
+      handoffDigest: submission.handoffDigest,
+      payloadCount: submission.payloadManifest.length,
+    });
   } catch (cause) {
-    throw cause instanceof WorkerArtifactHandoffError ? cause : new WorkerArtifactHandoffError(
-      "invalid", "FLOW_SOURCE_HANDOFF_MANIFEST_MISSING",
-      `source worker must generate its mutation manifest before sealing: ${cause.message}`,
-      { cause, retryable: true },
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    throw new WorkerArtifactHandoffError(
+      "invalid", "FLOW_SOURCE_HANDOFF_PARENT_SEAL_INVALID",
+      `parent source handoff could not be sealed: ${cause.message}`,
+      { cause, retryable: false },
     );
   }
-  manifest.assertBinding(request.sourceMutationBaseline);
-  manifest.assertMatchesCurrent(request.sourceMutationBaseline);
-  return manifest;
 }
 
 export class WorkerArtifactPublicationJournal {

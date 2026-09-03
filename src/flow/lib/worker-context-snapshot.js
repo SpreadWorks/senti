@@ -367,6 +367,28 @@ export class TaskWorkerContextSnapshot {
     });
   }
 
+  /**
+   * Rebuild the canonical Task inputs at publication time while retaining the
+   * source identity captured before the worker received its lease. Source
+   * mutations are validated separately by the parent-held mutation baseline;
+   * they must not make the worker's own Task context look stale.
+   */
+  rebuildCapturedContext({ state, flowManager } = {}) {
+    return TaskWorkerContextSnapshot.materialize({
+      state,
+      invocation: {
+        id: this.binding.dispatchInvocationId,
+        action: {
+          digest: this.binding.actionDigest,
+          nextAction: { taskId: this.context.taskId },
+        },
+        target: { digest: this.binding.targetDigest },
+      },
+      flowManager,
+      sourceFingerprint: this.context.sourceFingerprint,
+    });
+  }
+
   assertBinding(value) {
     if (!this.binding.matches(value)) throw new Error("Task worker context binding is stale");
     return this;

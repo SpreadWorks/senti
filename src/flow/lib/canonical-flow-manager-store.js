@@ -28,6 +28,7 @@ import {
   testExecuteTransitionDefinition,
   testResultReviewTransitionDefinition,
   DraftCoverageRepairCompletionDecision,
+  sourceQualityIssueRecoveryForStep,
 } from "../definition.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
@@ -2931,15 +2932,31 @@ export class CanonicalFlowManagerStore {
       artifactWrites.push({ logicalKey: "file.map", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(fileMap, null, 2)}\n`, "utf8") });
     }
     if (effect.issues.length > 0) {
+      const recoveryRoute = sourceQualityIssueRecoveryForStep(effect.stepId);
+      if (recoveryRoute === null) {
+        throw new CurrentFlowStateInvariantError("source quality issues have no eligible Definition-backed recovery route");
+      }
+      const taskId = taskIdForNode(state, nodeId);
+      const recoveryStep = recoveryRoute.scope === "task"
+        ? taskId === null
+          ? null
+          : `${taskId}-${recoveryRoute.recoveryStep.slice("task-".length)}`
+        : recoveryRoute.recoveryStep;
+      if (recoveryStep === null) {
+        throw new CurrentFlowStateInvariantError("Task source quality issues require a concrete Task recovery Step");
+      }
       const existing = this.readArtifact({ specId: resolved, logicalKey: "issue.log", consumerNodeId: nodeId, optional: true });
       const issues = new IssueLogDocument(existing === null ? { entries: [] } : JSON.parse(existing.bytes.toString("utf8")));
       effect.issues.forEach((entry, index) => {
         issues.append({
           step: nodeId,
+          classification: entry.classification,
           reason: entry.reason,
-          ...(entry.trigger === null ? {} : { trigger: entry.trigger }),
-          ...(entry.resolution === null ? {} : { resolution: entry.resolution }),
-          taskId: taskIdForNode(state, nodeId),
+          origin: { sourceStep: effect.stepId, sourceNodeId: nodeId },
+          evidence: { ref: `worker-handoff:${handoffDigest}#effects.json`, digest: handoffDigest },
+          recoveryStep,
+          remainingRisk: entry.remainingRisk,
+          taskId,
           timestamp: result.confirmedAt,
         }, `source-handoff:${handoffDigest}:${index}`);
       });

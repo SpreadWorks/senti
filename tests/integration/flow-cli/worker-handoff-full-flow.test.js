@@ -13,7 +13,6 @@ import {
 import { deriveNextAction, findActiveNode } from "../../../src/flow/definition.js";
 import {
   sealWorkerArtifactHandoff,
-  sourceMutationManifestForWorker,
   WorkerArtifactHandoffCoordinator,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { sourceWorkerEffectJsonSchema } from "../../../src/flow/lib/source-worker-effect-schema.js";
@@ -59,7 +58,7 @@ function plannedTask(taskId) {
   };
 }
 
-function sourceEffect(stepId, manifest) {
+function sourceEffect(stepId, paths) {
   const base = {
     version: 1,
     stepId,
@@ -74,7 +73,7 @@ function sourceEffect(stepId, manifest) {
   if (stepId === "implement") {
     return {
       ...base,
-      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/implementation.js").mutationId] }],
+      files: [{ requirementId: "R1", paths }],
     };
   }
   if (stepId === "impl-triage") {
@@ -86,14 +85,14 @@ function sourceEffect(stepId, manifest) {
   if (stepId === "impl-repair") {
     return {
       ...base,
-      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/repair.js").mutationId] }],
+      files: [{ requirementId: "R1", paths }],
       repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed implementation correction." },
     };
   }
   if (stepId === "task-impl") {
     return {
       ...base,
-      files: [{ requirementId: "R1", mutationIds: [manifest.mutations.find((entry) => entry.path === "src/task.js").mutationId] }],
+      files: [{ requirementId: "R1", paths }],
       overview: { modules: ["Task implementation module."], data_flow: [], decisions: [] },
     };
   }
@@ -199,7 +198,7 @@ function writeArtifactPayload(stepId, request, specRepairAttempt = 1) {
   fs.writeFileSync(payloadPath(request, name), workerArtifactJson({ version: 1, phase: stepId, items: [], summary: "Deterministic handoff." }));
 }
 
-function writeSourcePayload(stepId, request, executionRoot, requestPath) {
+function writeSourcePayload(stepId, request, executionRoot) {
   const changed = {
     implement: "src/implementation.js",
     "impl-repair": "src/repair.js",
@@ -209,8 +208,7 @@ function writeSourcePayload(stepId, request, executionRoot, requestPath) {
     fs.mkdirSync(path.dirname(path.join(executionRoot, changed)), { recursive: true });
     fs.writeFileSync(path.join(executionRoot, changed), `// ${stepId}${request.taskId === null ? "" : ` ${request.taskId}`}\n`);
   }
-  const manifest = sourceMutationManifestForWorker({ requestPath, invocationId: request.dispatchInvocationId });
-  return { manifest, effect: sourceEffect(stepId, manifest) };
+  return { paths: changed === undefined ? [] : [changed], effect: sourceEffect(stepId, changed === undefined ? [] : [changed]) };
 }
 
 function completeArtifactHandoff({ coordinator, ctx, stepId, invocationId, logicalName, payload }) {
@@ -495,9 +493,9 @@ describe("deterministic full Flow worker handoff", () => {
             handoffCount += 1;
             try {
               if (WORKER_SOURCE_HANDOFF_STEPS.includes(stepId)) {
-                const { manifest, effect } = writeSourcePayload(stepId, request, executionRoot, requestPath);
+                const { paths, effect } = writeSourcePayload(stepId, request, executionRoot);
                 if (stepId === "task-impl") {
-                  taskMutationPaths.push({ taskId: request.taskId, paths: manifest.mutations.map((mutation) => mutation.path) });
+                  taskMutationPaths.push({ taskId: request.taskId, paths });
                 }
                 return workerArtifactJson(effect);
               }

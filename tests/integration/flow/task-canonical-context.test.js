@@ -27,8 +27,9 @@ import {
   SourceWorkerEffect,
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactMutationAuthoritySnapshot,
-  sealWorkerArtifactHandoff,
-  sourceMutationManifestForWorker,
+  captureSourceMutationManifestForParent,
+  materializeSourceWorkerEffect,
+  sealParentMaterializedSourceWorkerEffect,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { emptySpecStub, validateSpecJsonObject } from "../../../src/lib/spec-json.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
@@ -37,6 +38,8 @@ import { CanonicalGatePromotion } from "../../../src/flow/lib/canonical-gate-art
 import { CanonicalReviewWorkUnit } from "../../../src/flow/lib/canonical-review-artifacts.js";
 import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
 import { resolveGateTransition } from "../../../src/flow/definition.js";
+import RunRepairPlanGateCommand from "../../../src/flow/lib/run-repair-plan-gate.js";
+import { appendIssueLogFromGateResult } from "../../../src/flow/lib/run-gate.js";
 import { FlowDispatchSession, FlowDispatchTarget } from "../../../src/flow/lib/dispatch-invocation.js";
 import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
 import { CurrentFlowSpecRecord } from "../../../src/flow/lib/current-flow-state.js";
@@ -69,6 +72,60 @@ const taskScopedSpec = {
   ],
   overview: { modules: [], data_flow: [], decisions: [] },
 };
+
+function assertTaskCanonicalDrift({ label, mutate }) {
+  const mainRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-canonical-drift-"));
+  const executionRoot = path.join(mainRoot, "execution");
+  fs.mkdirSync(executionRoot, { recursive: true });
+  const manager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true });
+  const specId = `task-canonical-drift-${label}`;
+  const ctx = () => ({ root: executionRoot, mainRoot, executionRoot, specId, flowManager: manager, flowState: manager.loadReadOnly(specId) });
+  let driftedSpec = null;
+  const captureView = new Proxy(manager, {
+    get(target, property, receiver) {
+      if (property !== "readArtifact") return Reflect.get(target, property, receiver);
+      return (input) => {
+        const artifact = target.readArtifact(input);
+        if (driftedSpec !== null && input?.logicalKey === "spec.record") {
+          return { ...artifact, bytes: Buffer.from(`${JSON.stringify(driftedSpec, null, 2)}\n`, "utf8") };
+        }
+        return artifact;
+      };
+    },
+  });
+  try {
+    new TaskLifecycleFixture({
+      flowManager: manager, specId, runId: `run-task-canonical-drift-${label}`,
+      request: "Reject publication when canonical Task inputs drift.",
+      taskDocuments: [{ id: "T-1", title: "Drift target", goal: "Keep source publication guarded.", parent: null, origin: "plan", added_round: 0, status: "pending" }],
+      taskId: "T-1", targetStep: "task-impl",
+    }).create();
+    const coordinator = new WorkerArtifactHandoffCoordinator({ now: () => new Date("2026-09-04T00:00:00.000Z") });
+    const invocation = { id: `dispatch-task-canonical-drift-${label}`, target: { digest: "c".repeat(64) }, action: { digest: "b".repeat(64), nextAction: { step: "task-impl", taskId: "T-1" } } };
+    const request = coordinator.createRequest({ ctx: { ...ctx(), flowManager: captureView }, state: manager.loadReadOnly(specId), invocation });
+    const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+    fs.writeFileSync(path.join(executionRoot, "drift.js"), "export const drift = true;\n");
+    materializeSourceWorkerEffect({ request, responseText: JSON.stringify({
+      version: 1, stepId: "task-impl", completionStatus: "done",
+      files: [{ requirementId: "R-T-1", paths: ["drift.js"] }], issues: [],
+      overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null, noChangeReason: null,
+    }) });
+    const currentSpec = JSON.parse(manager.readArtifact({ specId, logicalKey: "spec.record", consumerNodeId: "T-1-impl" }).bytes.toString("utf8"));
+    mutate(currentSpec);
+    driftedSpec = currentSpec;
+    sealParentMaterializedSourceWorkerEffect({ request, now: () => new Date("2026-09-04T00:00:01.000Z") });
+    assert.throws(
+      () => coordinator.reconcile({ ctx: ctx(), request, mutationAuthority: authority }),
+      (error) => error.code === "FLOW_ARTIFACT_HANDOFF_STALE" && error.classification === "stale",
+      label,
+    );
+    assert.equal(coordinator.rollbackRejectedSourceHandoff({ ctx: ctx(), request, mutationAuthority: authority }), true, label);
+    assert.equal(fs.existsSync(path.join(executionRoot, "drift.js")), false, `${label} must roll back the source mutation`);
+    assert.deepEqual(manager.taskMutationLineages({ specId, taskId: "T-1" }), [], `${label} must not publish source lineage`);
+  } finally {
+    fs.rmSync(mainRoot, { recursive: true, force: true });
+  }
+}
 
 function taskContextSnapshot() {
   const context = new CanonicalTaskContext({
@@ -224,6 +281,55 @@ describe("canonical Task context", () => {
     }), /no mapped Requirements: T-2/);
   });
 
+  it("rebuilds Task publication context with the captured source fingerprint", () => {
+    const source = Buffer.from(JSON.stringify(taskScopedSpec));
+    const flowManager = {
+      readArtifact() {
+        return { bytes: source };
+      },
+    };
+    const state = { runId: "run-4", specId: "spec-4", issue: null };
+    const snapshot = TaskWorkerContextSnapshot.materialize({
+      state,
+      invocation: {
+        id: "dispatch-4",
+        action: { digest: "b".repeat(64), nextAction: { taskId: "T-4" } },
+        target: { digest: "c".repeat(64) },
+      },
+      flowManager,
+      sourceFingerprint: digest,
+    });
+
+    // The worker may legitimately update a file already in this Task's
+    // lineage. The parent validates that filesystem mutation from its source
+    // baseline; publication context keeps the pre-worker source binding.
+    const rebuilt = snapshot.rebuildCapturedContext({ state, flowManager });
+
+    assert.equal(rebuilt.context.sourceFingerprint, digest);
+    assert.equal(rebuilt.digest, snapshot.digest);
+  });
+
+  it("rejects Task canonical drift before source handoff publication", () => {
+    assertTaskCanonicalDrift({
+      label: "task",
+      mutate(document) { document.tasks[0].title = "Changed Task identity after worker capture"; },
+    });
+  });
+
+  it("rejects mapped Requirement canonical drift before source handoff publication", () => {
+    assertTaskCanonicalDrift({
+      label: "requirement",
+      mutate(document) { document.requirements[0].desc = "Changed requirement content after worker capture."; },
+    });
+  });
+
+  it("rejects overview canonical drift before source handoff publication", () => {
+    assertTaskCanonicalDrift({
+      label: "overview",
+      mutate(document) { document.overview.modules.push("Changed overview content after worker capture."); },
+    });
+  });
+
   it("rejects malformed task-scoped snapshot identities before accepting its digest", () => {
     const snapshot = taskContextSnapshot().toJSON();
     const invalidCases = [
@@ -280,10 +386,7 @@ describe("canonical Task context", () => {
         request.contextSnapshot.context.requirements.map((requirement) => requirement.id),
         ["R-4", "R-4-6"],
       );
-      sourceMutationManifestForWorker({
-        requestPath: request.requestPath,
-        invocationId: request.dispatchInvocationId,
-      });
+      captureSourceMutationManifestForParent({ request });
       fs.writeFileSync(request.payloadPath("effects.json"), JSON.stringify({
         version: 1,
         stepId: "task-impl",
@@ -295,11 +398,7 @@ describe("canonical Task context", () => {
         repair: null,
         noChangeReason: "The Task already satisfies its source implementation requirement.",
       }));
-      sealWorkerArtifactHandoff({
-        requestPath: request.requestPath,
-        invocationId: request.dispatchInvocationId,
-        now: () => new Date("2026-09-03T00:00:01.000Z"),
-      });
+      sealParentMaterializedSourceWorkerEffect({ request, now: () => new Date("2026-09-03T00:00:01.000Z") });
 
       assert.throws(
         () => coordinator.recoverPending({ ctx }),
@@ -310,6 +409,235 @@ describe("canonical Task context", () => {
       const result = coordinator.reconcile({ ctx, request, mutationAuthority });
       assert.equal(result.completed, true);
       assert.equal(fs.existsSync(request.directory), false, "parent acceptance atomically consumes the sealed handoff");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts a second Task implementation handoff that updates an existing lineage file", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-lineage-handoff-"));
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    const specId = "task-lineage-handoff";
+    const ctx = () => ({
+      root,
+      mainRoot: root,
+      executionRoot: root,
+      specId,
+      flowManager: manager,
+      flowState: manager.loadReadOnly(specId),
+    });
+    try {
+      new TaskLifecycleFixture({
+        flowManager: manager,
+        specId,
+        runId: "run-task-lineage-handoff",
+        request: "Repair one Task through a second implementation attempt.",
+        taskDocuments: [{
+          id: "T-1", title: "Lineage repair", goal: "Change the same source file twice.",
+          parent: null, origin: "plan", added_round: 0, status: "pending",
+        }],
+        taskId: "T-1",
+        targetStep: "task-impl",
+      }).create();
+
+      const firstBaseline = SourceMutationBaseline.capture({
+        root,
+        attempt: manager.canonicalState(specId).attempt,
+      });
+      fs.writeFileSync(path.join(root, "shared.js"), "export const revision = 1;\n");
+      const firstManifest = SourceMutationManifest.capture({ baseline: firstBaseline });
+      manager.confirmSourceWorkerHandoff({
+        specId,
+        mutationManifest: firstManifest,
+        handoffDigest: "d".repeat(64),
+        effect: new SourceWorkerEffect({
+          version: 1,
+          stepId: "task-impl",
+          completionStatus: "done",
+          files: [{ requirementId: "R-T-1", mutationIds: firstManifest.mutations.map((entry) => entry.mutationId) }],
+          issues: [],
+          overview: { modules: [], data_flow: [], decisions: [] },
+          triage: null,
+          repair: null,
+        }),
+        result: {
+          outcome: "passed",
+          summary: "First Task implementation established the source lineage.",
+          confirmedAt: "2026-09-03T00:00:00.000Z",
+          artifactRefs: [],
+        },
+      });
+      manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "in_progress" }, { specId });
+      confirmCanonicalFixtureStep(manager, specId, "T-1-review");
+      manager.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "in_progress" }, { specId });
+
+      const observation = {
+        kind: "violation",
+        failureMode: "guardrail-violation",
+        requirementRef: "R-T-1",
+        where: { file: "shared.js", locator: "revision" },
+        observed: "A repair round is required before accepting the second implementation.",
+        severity: "blocking",
+        refs: ["R-T-1"],
+      };
+      for (let evaluation = 1; evaluation <= 5; evaluation += 1) {
+        const commandResult = new CanonicalGatePromotion({
+          state: manager.canonicalState(specId),
+          phase: "task-impl",
+          nodeId: "T-1-gate",
+          activeTaskId: "T-1",
+        }).promote({
+          result: "fail",
+          artifacts: {
+            failureKind: "ai_semantic_fail",
+            failureCode: "TASK_GATE_REJECTED",
+            sourceFingerprint: captureCurrentTaskSource({
+              root,
+              flowManager: manager,
+              state: manager.loadReadOnly(specId),
+              taskId: "T-1",
+            }).fingerprint,
+            nextAction: { diagnosis: { observations: [observation] } },
+          },
+        });
+        manager.failCurrentAttempt({
+          specId,
+          failure: {
+            category: "semantic",
+            code: "TASK_GATE_REJECTED",
+            message: "Fixture gate rejection requests a bounded Task repair.",
+            retryable: evaluation < 5,
+            retryKind: evaluation < 5 ? "semantic" : null,
+          },
+          commandResult,
+        });
+        let decision = resolveGateTransition(readCurrentGateTransitionFacts({
+          flowManager: manager,
+          flowState: manager.loadReadOnly(specId),
+          phase: "task-impl",
+        }));
+        if (evaluation < 5) {
+          manager.retryGateTransition({ specId, decision });
+          continue;
+        }
+        appendIssueLogFromGateResult({
+          ...ctx(),
+          phase: "task-impl",
+          gitState: { headSha: "a".repeat(40), worktreeHash: "b".repeat(64) },
+        }, commandResult);
+        decision = resolveGateTransition(readCurrentGateTransitionFacts({
+          flowManager: manager,
+          flowState: manager.loadReadOnly(specId),
+          phase: "task-impl",
+        }));
+        assert.equal(decision.disposition.operation, "repair");
+      }
+      const repaired = new RunRepairPlanGateCommand().execute(ctx());
+      assert.equal(repaired.ok, true, JSON.stringify(repaired));
+      assert.equal(manager.canonicalState(specId).current.at(-1), "T-1-impl");
+
+      const coordinator = new WorkerArtifactHandoffCoordinator({
+        now: () => new Date("2026-09-03T00:00:00.000Z"),
+      });
+      const invocation = {
+        id: "dispatch-task-lineage-round-two",
+        target: { digest: "c".repeat(64) },
+        action: {
+          digest: "b".repeat(64),
+          nextAction: { step: "task-impl", taskId: "T-1" },
+        },
+      };
+      const request = coordinator.createRequest({ ctx: ctx(), state: manager.loadReadOnly(specId), invocation });
+      const mutationAuthority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const capturedFingerprint = request.contextSnapshot.context.sourceFingerprint;
+      assert.equal(capturedFingerprint, captureCurrentTaskSource({
+        root,
+        flowManager: manager,
+        state: manager.loadReadOnly(specId),
+        taskId: "T-1",
+      }).fingerprint);
+
+      // This is precisely the path that formerly recaptured the changed
+      // lineage source in assertCurrent and rejected it as stale.
+      fs.writeFileSync(path.join(root, "shared.js"), "export const revision = 2;\n");
+      assert.notEqual(capturedFingerprint, captureCurrentTaskSource({
+        root,
+        flowManager: manager,
+        state: manager.loadReadOnly(specId),
+        taskId: "T-1",
+      }).fingerprint, "the legacy post-worker source recapture would have invalidated the Task snapshot");
+      materializeSourceWorkerEffect({ request, responseText: JSON.stringify({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: [{ requirementId: "R-T-1", paths: ["shared.js"] }],
+        issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] },
+        triage: null,
+        repair: null,
+        noChangeReason: null,
+      }) });
+      sealParentMaterializedSourceWorkerEffect({ request, now: () => new Date("2026-09-03T00:00:01.000Z") });
+
+      const result = coordinator.reconcile({ ctx: ctx(), request, mutationAuthority });
+      assert.equal(result.completed, true);
+      assert.equal(fs.existsSync(request.directory), false, "parent acceptance consumes the sealed second handoff");
+      assert.equal(manager.canonicalState(specId).current, null);
+      manager.updateStepStatus({ stepId: "T-1-review", requestedStatus: "in_progress" }, { specId });
+      confirmCanonicalFixtureStep(manager, specId, "T-1-review");
+      manager.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "in_progress" }, { specId });
+      const pass = new CanonicalGatePromotion({
+        state: manager.canonicalState(specId), phase: "task-impl", nodeId: "T-1-gate", activeTaskId: "T-1",
+      }).promote({ result: "pass", artifacts: { sourceFingerprint: captureCurrentTaskSource({
+        root, flowManager: manager, state: manager.loadReadOnly(specId), taskId: "T-1",
+      }).fingerprint } });
+      manager.publishCurrentAttemptResult({ specId, commandResult: pass });
+      const gateDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+        flowManager: manager, flowState: manager.loadReadOnly(specId), phase: "task-impl",
+      }));
+      manager.confirmCurrentAttempt({ specId, status: "done", gateTransitionDecision: gateDecision });
+      assert.equal(manager.canonicalState(specId).findNode("T-1").status, "done");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("persists only parent-bound quality risks with the mandatory Task Review recovery", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-quality-risk-"));
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    const specId = "task-quality-risk";
+    try {
+      new TaskLifecycleFixture({
+        flowManager: manager, specId, runId: "run-task-quality-risk", request: "Persist a bounded quality risk.",
+        taskDocuments: [{ id: "T-1", title: "Quality", goal: "Exercise parent-owned quality persistence.", parent: null, origin: "plan", added_round: 0, status: "pending" }],
+        taskId: "T-1", targetStep: "task-impl",
+      }).create();
+      const baseline = SourceMutationBaseline.capture({ root, attempt: manager.canonicalState(specId).attempt });
+      fs.writeFileSync(path.join(root, "quality.js"), "export const quality = true;\n");
+      const manifest = SourceMutationManifest.capture({ baseline });
+      manager.confirmSourceWorkerHandoff({
+        specId, mutationManifest: manifest, handoffDigest: "9".repeat(64),
+        effect: new SourceWorkerEffect({
+          version: 1, stepId: "task-impl", completionStatus: "done",
+          files: [{ requirementId: "R-T-1", mutationIds: manifest.mutations.map((entry) => entry.mutationId) }],
+          issues: [{ classification: "quality", reason: "The implementation needs a later quality review for its boundary behavior.", remainingRisk: "The changed behavior remains subject to the mandatory Task Review checkpoint." }],
+          overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+        }),
+        result: { outcome: "passed", summary: "Persisted a parent-bound source quality risk.", confirmedAt: "2026-09-03T00:00:00.000Z", artifactRefs: [] },
+      });
+      const issueLog = JSON.parse(manager.readArtifact({ specId, logicalKey: "issue.log", consumerNodeId: "T-1-review" }).bytes.toString("utf8"));
+      assert.deepEqual(issueLog.entries.map((entry) => ({
+        classification: entry.classification, sourceStep: entry.origin.sourceStep, recoveryStep: entry.recoveryStep, risk: entry.remainingRisk,
+      })), [{
+        classification: "quality", sourceStep: "task-impl", recoveryStep: "T-1-review",
+        risk: "The changed behavior remains subject to the mandatory Task Review checkpoint.",
+      }]);
+      assert.match(issueLog.entries[0].evidence.ref, /^worker-handoff:9{64}#effects\.json$/);
+      assert.throws(() => new SourceWorkerEffect({
+        version: 1, stepId: "task-impl", completionStatus: "done", files: [],
+        issues: [{ classification: "integrity", reason: "A worker must not persist an integrity failure as an advisory quality issue.", remainingRisk: "Integrity failures must remain terminal before any source completion is published." }],
+        overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+      }), /classification must be quality/);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
