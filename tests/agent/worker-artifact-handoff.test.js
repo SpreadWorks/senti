@@ -11,6 +11,7 @@ import RunClaimNextActionCommand from "../../src/flow/lib/run-claim-next-action.
 import RunDispatchCommand from "../../src/flow/lib/run-dispatch.js";
 import RunRepairTestReviewCommand from "../../src/flow/lib/run-repair-test-review.js";
 import { CanonicalTestArtifactStore } from "../../src/flow/lib/canonical-test-artifacts.js";
+import { sourceWorkerEffectJsonSchema } from "../../src/flow/lib/source-worker-effect-schema.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 import { WorkerArtifactHandoffCoordinator } from "../../src/flow/lib/worker-artifact-handoff.js";
 import { Agent } from "../../src/lib/agent.js";
@@ -182,12 +183,12 @@ function sourceWorkerAction() {
         "Then replace product.js with exactly `export const value = 2;` followed by a newline.",
         "Run `npm run lint` and require it to succeed.",
         "Do not modify any other source file.",
-        "Run the declared sourceMutationCommand after editing. Write effects.json with version 1, stepId implement, completionStatus done, and files containing requirementId R1 plus only the returned mutationId for product.js in mutationIds. Set issues empty and overview, triage, repair, noChangeReason null.",
-        "Run the exact sealCommand once after the context read, source check, and payload write all succeed.",
+        "Run the declared sourceMutationCommand after editing.",
+        "Return the structured source effect with version 1, stepId implement, completionStatus done, and files containing requirementId R1 plus only the returned mutationId for product.js in mutationIds. Set issues empty and overview, triage, repair, noChangeReason null.",
       ].join(" "),
     },
     context: { workerArtifactHandoff: { required: true } },
-    output_schema: JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA, "utf8")),
+    output_schema: sourceWorkerEffectJsonSchema("implement"),
     requires_approval: false,
     maxAttempts: 1,
     directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
