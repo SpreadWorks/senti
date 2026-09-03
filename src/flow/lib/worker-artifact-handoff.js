@@ -3060,7 +3060,7 @@ export class WorkerArtifactHandoffRequest {
         throw new WorkerArtifactHandoffError(
           "stale",
           "FLOW_ARTIFACT_HANDOFF_STALE",
-          `draft worker context binding is stale: ${cause.message}`,
+          `worker context binding is stale: ${cause.message}`,
           { cause },
         );
       }

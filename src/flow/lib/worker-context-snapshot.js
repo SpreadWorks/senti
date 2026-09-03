@@ -360,20 +360,9 @@ export class TaskWorkerContextSnapshot {
 
   static fromStored(value) {
     if (value?.version !== SNAPSHOT_VERSION || value?.kind !== "task") throw new Error("Task worker context snapshot schema is invalid");
-    const document = value.context;
-    const context = new CanonicalTaskContext({
-      state: { runId: document?.lineage?.runId, specId: document?.lineage?.specId, currentTaskId: document?.lineage?.taskId },
-      spec: {
-        tasks: (document?.lineage?.taskIds || []).map((id) => id === document?.lineage?.taskId ? document?.task : { id }),
-        requirements: document?.requirements,
-        overview: document?.overview,
-      },
-      sourceFingerprint: document?.lineage?.sourceFingerprint,
-    });
-    if (context.fingerprint !== document?.fingerprint) throw new Error("Task worker context fingerprint is invalid");
     return new TaskWorkerContextSnapshot({
       binding: WorkerContextBinding.fromStored(value.binding),
-      context,
+      context: CanonicalTaskContext.fromReadOnlyInput(value.context),
       digest: requireDigest(value.digest, "Task worker context digest"),
     });
   }

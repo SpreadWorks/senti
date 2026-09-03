@@ -10,6 +10,10 @@ import {
   canonicalTaskContextKinds,
 } from "../../../src/flow/lib/task-canonical-context.js";
 import {
+  TaskWorkerContextSnapshot,
+  WorkerContextBinding,
+} from "../../../src/flow/lib/worker-context-snapshot.js";
+import {
   CurrentTaskSourceSnapshot,
   TaskExecutionBudget,
   TaskMutationLineage,
@@ -17,7 +21,15 @@ import {
   TaskReviewRepairManifest,
   captureCurrentTaskSource,
 } from "../../../src/flow/lib/task-mutation-lineage.js";
-import { SourceMutationBaseline, SourceMutationManifest, SourceWorkerEffect } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import {
+  SourceMutationBaseline,
+  SourceMutationManifest,
+  SourceWorkerEffect,
+  WorkerArtifactHandoffCoordinator,
+  WorkerArtifactMutationAuthoritySnapshot,
+  sealWorkerArtifactHandoff,
+  sourceMutationManifestForWorker,
+} from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { emptySpecStub, validateSpecJsonObject } from "../../../src/lib/spec-json.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
@@ -43,6 +55,39 @@ const spec = {
   ],
   overview: { modules: [], data_flow: [], decisions: [] },
 };
+
+const taskScopedSpec = {
+  tasks: [
+    { id: "T-2", title: "Second", goal: "Second concern" },
+    { id: "T-4", title: "Fourth", goal: "Fourth concern" },
+    { id: "T-6", title: "Sixth", goal: "Sixth concern" },
+  ],
+  requirements: [
+    { id: "R-2", desc: "Second only", task_ids: ["T-2"] },
+    { id: "R-4", desc: "Fourth only", task_ids: ["T-4"] },
+    { id: "R-4-6", desc: "Shared by Fourth and Sixth", task_ids: ["T-4", "T-6"] },
+  ],
+  overview: { modules: [], data_flow: [], decisions: [] },
+};
+
+function taskContextSnapshot() {
+  const context = new CanonicalTaskContext({
+    state: { runId: "run-4", specId: "spec-4", currentTaskId: "T-4" },
+    spec: taskScopedSpec,
+    sourceFingerprint: digest,
+  });
+  return new TaskWorkerContextSnapshot({
+    binding: new WorkerContextBinding({
+      runId: "run-4",
+      specId: "spec-4",
+      issue: null,
+      dispatchInvocationId: "dispatch-4",
+      actionDigest: "b".repeat(64),
+      targetDigest: "c".repeat(64),
+    }),
+    context,
+  });
+}
 
 describe("canonical Task context", () => {
   it("uses requirement task_ids as the sole Task mapping authority", () => {
@@ -155,6 +200,119 @@ describe("canonical Task context", () => {
     assert.throws(() => new CanonicalTaskContext({
       state: { runId: "run-1", specId: "spec-1", currentTaskId: "T-3" }, spec, sourceFingerprint: digest,
     }), /absent from spec/);
+  });
+
+  it("round-trips a task-scoped worker snapshot without widening it to the full canonical Spec", () => {
+    const snapshot = taskContextSnapshot();
+    const stored = snapshot.toJSON();
+    const restored = TaskWorkerContextSnapshot.fromStored(stored);
+
+    assert.deepEqual(restored.toJSON(), stored);
+    assert.deepEqual(restored.context.taskIds, ["T-2", "T-4", "T-6"]);
+    assert.deepEqual(
+      restored.context.requirements.map((requirement) => requirement.id),
+      ["R-4", "R-4-6"],
+    );
+    assert.deepEqual(
+      restored.context.requirements.flatMap((requirement) => requirement.task_ids),
+      ["T-4", "T-4", "T-6"],
+    );
+    assert.doesNotThrow(() => new CanonicalTaskRequirementMap(taskScopedSpec));
+    assert.throws(() => new CanonicalTaskRequirementMap({
+      ...taskScopedSpec,
+      requirements: taskScopedSpec.requirements.slice(1),
+    }), /no mapped Requirements: T-2/);
+  });
+
+  it("rejects malformed task-scoped snapshot identities before accepting its digest", () => {
+    const snapshot = taskContextSnapshot().toJSON();
+    const invalidCases = [
+      ["duplicate Task lineage", (value) => { value.context.lineage.taskIds = ["T-2", "T-4", "T-4"]; }, /taskIds must not duplicate/],
+      ["missing current Task lineage", (value) => { value.context.lineage.taskIds = ["T-2", "T-6"]; }, /must include current Task/],
+      ["mismatched current Task document", (value) => { value.context.task.id = "T-2"; }, /task.id must match current Task/],
+      ["foreign Requirement", (value) => { value.context.requirements[0].task_ids = ["T-2"]; }, /does not map current Task/],
+      ["unknown Requirement Task", (value) => { value.context.requirements[0].task_ids = ["T-4", "T-unknown"]; }, /references unknown Task/],
+      ["duplicate Requirement identity", (value) => { value.context.requirements[1].id = "R-4"; }, /Requirement ids must be unique/],
+      ["invalid context fingerprint", (value) => { value.context.fingerprint = "d".repeat(64); }, /fingerprint is invalid/],
+      ["invalid snapshot digest", (value) => { value.digest = "e".repeat(64); }, /snapshot digest is invalid/],
+    ];
+
+    for (const [label, mutate, expected] of invalidCases) {
+      const invalid = structuredClone(snapshot);
+      mutate(invalid);
+      assert.throws(() => TaskWorkerContextSnapshot.fromStored(invalid), expected, label);
+    }
+  });
+
+  it("accepts a sealed task implementation handoff with Task-only Requirements", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-task-handoff-"));
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    const specId = "task-scoped-handoff";
+    const { tasks, ...taskSpecRecord } = taskScopedSpec;
+    try {
+      new TaskLifecycleFixture({
+        flowManager: manager,
+        specId,
+        runId: "run-task-scoped-handoff",
+        request: "Accept a sealed Task implementation handoff.",
+        specRecord: taskSpecRecord,
+        taskDocuments: tasks,
+        taskId: "T-4",
+        targetStep: "task-impl",
+      }).create();
+      const state = manager.loadReadOnly(specId);
+      const invocation = {
+        id: "dispatch-task-scoped-handoff",
+        target: { digest: "c".repeat(64) },
+        action: {
+          digest: "b".repeat(64),
+          nextAction: { step: "task-impl", taskId: "T-4" },
+        },
+      };
+      const ctx = { root, mainRoot: root, executionRoot: root, specId, flowManager: manager };
+      const coordinator = new WorkerArtifactHandoffCoordinator({
+        now: () => new Date("2026-09-03T00:00:00.000Z"),
+      });
+      const request = coordinator.createRequest({ ctx, state, invocation });
+      const mutationAuthority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+
+      assert.deepEqual(
+        request.contextSnapshot.context.requirements.map((requirement) => requirement.id),
+        ["R-4", "R-4-6"],
+      );
+      sourceMutationManifestForWorker({
+        requestPath: request.requestPath,
+        invocationId: request.dispatchInvocationId,
+      });
+      fs.writeFileSync(request.payloadPath("effects.json"), JSON.stringify({
+        version: 1,
+        stepId: "task-impl",
+        completionStatus: "done",
+        files: [],
+        issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] },
+        triage: null,
+        repair: null,
+        noChangeReason: "The Task already satisfies its source implementation requirement.",
+      }));
+      sealWorkerArtifactHandoff({
+        requestPath: request.requestPath,
+        invocationId: request.dispatchInvocationId,
+        now: () => new Date("2026-09-03T00:00:01.000Z"),
+      });
+
+      assert.throws(
+        () => coordinator.recoverPending({ ctx }),
+        (error) => error.code === "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+        "recovery parses the Task snapshot and reaches the source-handoff recovery rule",
+      );
+
+      const result = coordinator.reconcile({ ctx, request, mutationAuthority });
+      assert.equal(result.completed, true);
+      assert.equal(fs.existsSync(request.directory), false, "parent acceptance atomically consumes the sealed handoff");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("selects only current content declared by current-Task manifests", () => {
