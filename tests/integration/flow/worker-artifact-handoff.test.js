@@ -27,6 +27,7 @@ import RunRepairTestReviewCommand from "../../../src/flow/lib/run-repair-test-re
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import SetMetricCommand from "../../../src/flow/lib/set-metric.js";
 import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
+import { validateSchema } from "../../../src/lib/schema-validate.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
@@ -37,8 +38,11 @@ import {
   stageWorkerUpgradeResult,
   workerArtifactHandoffPolicy,
   sealWorkerArtifactHandoff,
+  materializeSourceWorkerEffect,
+  sealParentMaterializedSourceWorkerEffect,
   sourceMutationManifestForWorker,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { sourceWorkerEffectJsonSchema } from "../../../src/flow/lib/source-worker-effect-schema.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { CanonicalTestArtifactStore } from "../../../src/flow/lib/canonical-test-artifacts.js";
 import {
@@ -1301,7 +1305,7 @@ describe("worker artifact handoff", () => {
         action: "implement-source",
         instructions: { key: "plan.implement", content: "Implement the source change." },
         context: { workerArtifactHandoff: { required: true } },
-        output_schema: {},
+        output_schema: sourceWorkerEffectJsonSchema("implement"),
         requires_approval: false,
         maxAttempts: 1,
         directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
@@ -1313,18 +1317,11 @@ describe("worker artifact handoff", () => {
             const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
-            fs.writeFileSync(
-              request.payloads.find((entry) => entry.logicalName === "effects.json").payloadPath,
-              json(implementationEffect({ sourceMutationBaseline: request.sourceMutationBaseline }, ["product.js", "absent.js"]).toJSON()),
-            );
             sourceMutationManifestForWorker({
               requestPath,
               invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
-            sealWorkerArtifactHandoff({
-              requestPath,
-              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
-            });
+            return json(implementationEffect({ sourceMutationBaseline: request.sourceMutationBaseline }, ["product.js", "absent.js"]).toJSON());
           },
         },
         repositoryFingerprint: () => "stable-fixture",
@@ -1342,6 +1339,124 @@ describe("worker artifact handoff", () => {
       assert.equal(result.errors[0].code, "FLOW_SOURCE_HANDOFF_EFFECT_MUTATION_INVALID");
       assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 1;\n");
       assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("retries a source provider failure once and preserves its rollback boundary", async () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const action = {
+        taskId: null,
+        step: "implement",
+        action: "implement-source",
+        instructions: { key: "plan.implement", content: "Implement the source change." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: sourceWorkerEffectJsonSchema("implement"),
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
+      };
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "implement").status === "done"
+              ? completedWorkerAction()
+              : structuredClone(action);
+          },
+        },
+        agent: {
+          async call(_prompt, options) {
+            calls += 1;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+            sourceMutationManifestForWorker({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            if (calls === 1) {
+              throw new AgentTimeoutFailure({ message: "provider timed out before structured response" });
+            }
+            return json(implementationEffect({ sourceMutationBaseline: request.sourceMutationBaseline }, ["product.js"]).toJSON());
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result));
+      assert.equal(calls, 2);
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "done");
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 2;\n");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rolls back a malformed structured source response without completing the Flow", async () => {
+    const value = fixture("implement", { worktree: false, specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const action = {
+        taskId: null,
+        step: "implement",
+        action: "implement-source",
+        instructions: { key: "plan.implement", content: "Implement the source change." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: sourceWorkerEffectJsonSchema("implement"),
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "implement-source" },
+      };
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(action); } },
+        agent: {
+          async call(_prompt, options) {
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
+            fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+            sourceMutationManifestForWorker({
+              requestPath,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            return "{ malformed";
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.errors[0].code, "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID");
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "in_progress");
+      assert.equal(fs.readFileSync(path.join(value.mainRoot, "product.js"), "utf8"), "export const value = 1;\n");
+      assert.equal(fs.existsSync(executionHandoffRoot(value)), false);
+      assert.equal(value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "file.map",
+        consumerNodeId: "impl-gate",
+        optional: true,
+      }), null);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -1663,6 +1778,182 @@ describe("worker artifact handoff", () => {
       repair: null,
       noChangeReason: "No source mutation was required for this Task.",
     }, "task-impl"), /requires overview/);
+  });
+
+  it("uses the step-specific structured source schema before parent materialization", () => {
+    const valid = {
+      version: 1,
+      stepId: "task-impl",
+      completionStatus: "done",
+      files: [],
+      issues: [],
+      overview: { modules: ["Module ownership is explicit."], data_flow: [], decisions: [] },
+      triage: null,
+      repair: null,
+      noChangeReason: "No source mutation was required for this Task.",
+    };
+    assert.deepEqual(validateSchema(valid, sourceWorkerEffectJsonSchema("task-impl")), []);
+    assert.doesNotThrow(() => SourceWorkerEffect.fromDocument(valid, "task-impl"));
+
+    const objectOverview = structuredClone(valid);
+    objectOverview.overview.modules = [{ text: "Worker must not choose canonical ownership." }];
+    assert.notDeepEqual(validateSchema(objectOverview, sourceWorkerEffectJsonSchema("task-impl")), []);
+    assert.throws(() => SourceWorkerEffect.fromDocument(objectOverview, "task-impl"), /must be a string/);
+
+    const oversizedOverview = structuredClone(valid);
+    oversizedOverview.overview.modules = Array.from({ length: 51 }, () => "Overview item");
+    assert.notDeepEqual(validateSchema(oversizedOverview, sourceWorkerEffectJsonSchema("task-impl")), []);
+    assert.throws(() => SourceWorkerEffect.fromDocument(oversizedOverview, "task-impl"), /upper bound/);
+  });
+
+  it("round-trips every source effect class through its structured response schema", () => {
+    const common = { version: 1, completionStatus: "done", files: [], issues: [], noChangeReason: null };
+    const documents = {
+      implement: { ...common, stepId: "implement", overview: null, triage: null, repair: null },
+      "impl-triage": {
+        ...common, stepId: "impl-triage", overview: null, repair: null,
+        triage: { version: 1, dispositions: [{ findingKey: "F1", disposition: "apply", rationale: "The finding requires a correction." }] },
+      },
+      "impl-repair": {
+        ...common,
+        stepId: "impl-repair",
+        files: [{ requirementId: "R1", mutationIds: ["a".repeat(64)] }],
+        overview: null,
+        triage: null,
+        repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed correction." },
+      },
+      "task-impl": {
+        ...common, stepId: "task-impl", overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+      },
+    };
+    for (const [stepId, document] of Object.entries(documents)) {
+      const effect = SourceWorkerEffect.fromDocument(document, stepId);
+      assert.deepEqual(validateSchema(effect.toJSON(), sourceWorkerEffectJsonSchema(stepId)), [], stepId);
+    }
+  });
+
+  it("enforces step-static source response constraints before parent materialization", () => {
+    const base = {
+      version: 1,
+      completionStatus: "done",
+      files: [],
+      issues: [],
+      overview: null,
+      triage: null,
+      repair: null,
+      noChangeReason: null,
+    };
+    for (const stepId of ["implement", "impl-triage", "impl-repair"]) {
+      const document = {
+        ...base,
+        stepId,
+        ...(stepId === "impl-triage"
+          ? { triage: { version: 1, dispositions: [] } }
+          : {}),
+        ...(stepId === "impl-repair"
+          ? {
+            files: [{ requirementId: "R1", mutationIds: ["a".repeat(64)] }],
+            repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed correction." },
+          }
+          : {}),
+      };
+      const noChange = { ...document, noChangeReason: "Only task implementation may be unchanged." };
+      assert.notDeepEqual(validateSchema(noChange, sourceWorkerEffectJsonSchema(stepId)), [], stepId);
+      assert.throws(() => SourceWorkerEffect.fromDocument(noChange, stepId), /only task-impl may submit/);
+    }
+
+    const triageWithEffects = {
+      ...base,
+      stepId: "impl-triage",
+      files: [{ requirementId: "R1", mutationIds: ["a".repeat(64)] }],
+      triage: { version: 1, dispositions: [] },
+    };
+    assert.notDeepEqual(validateSchema(triageWithEffects, sourceWorkerEffectJsonSchema("impl-triage")), []);
+    assert.throws(() => SourceWorkerEffect.fromDocument(triageWithEffects, "impl-triage"), /may contain only typed triage/);
+
+    const triageWithIssues = {
+      ...triageWithEffects,
+      files: [],
+      issues: [{ reason: "The triage worker must not report source issues.", trigger: null, resolution: null }],
+    };
+    assert.notDeepEqual(validateSchema(triageWithIssues, sourceWorkerEffectJsonSchema("impl-triage")), []);
+    assert.throws(() => SourceWorkerEffect.fromDocument(triageWithIssues, "impl-triage"), /may contain only typed triage/);
+
+    const repairWithoutFiles = {
+      ...base,
+      stepId: "impl-repair",
+      repair: { version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed correction." },
+    };
+    assert.notDeepEqual(validateSchema(repairWithoutFiles, sourceWorkerEffectJsonSchema("impl-repair")), []);
+    assert.doesNotThrow(() => SourceWorkerEffect.fromDocument(repairWithoutFiles, "impl-repair"));
+  });
+
+  it("materializes and seals a source worker structured response only in the parent", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      const effect = implementationEffect(request, ["product.js"]);
+
+      materializeSourceWorkerEffect({ request, responseText: JSON.stringify(effect.toJSON()) });
+      assert.equal(fs.existsSync(request.submissionPath), false, "only parent sealing may create the submission");
+      sealParentMaterializedSourceWorkerEffect({ request });
+      value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
+
+      assert.equal(findStepById(value.flowManager.load().steps, "implement").status, "done");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects a worker-written source effect before parent materialization", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("effects.json"), "{}\n");
+      assert.throws(
+        () => materializeSourceWorkerEffect({ request, responseText: "{}" }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_SOURCE_HANDOFF_PARENT_AUTHORITY_VIOLATION",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("retains the Version-3 sealed source recovery boundary", () => {
+    const value = fixture("implement", { specRecord: validSpec() });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      assert.equal(request.version, 3);
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      sourceMutationManifestForWorker({ requestPath: request.requestPath, invocationId: request.dispatchInvocationId });
+      fs.writeFileSync(request.payloadPath("effects.json"), json(implementationEffect(request, ["product.js"]).toJSON()));
+      seal(request);
+      assert.throws(
+        () => value.coordinator.recoverPending({ ctx: value.ctx }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_SOURCE_HANDOFF_RECOVERY_UNTRUSTED",
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
   });
 
   it("rejects the retired worker requirement completion field", () => {

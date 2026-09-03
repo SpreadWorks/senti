@@ -46,8 +46,11 @@ import {
   WorkerArtifactMutationAuthoritySnapshot,
   WorkerArtifactHandoffRequest,
   SpecTestBootstrapObservationAuthority,
+  materializeSourceWorkerEffect,
+  sealParentMaterializedSourceWorkerEffect,
   workerArtifactHandoffPolicy,
 } from "./worker-artifact-handoff.js";
+import { sourceWorkerEffectJsonSchema } from "./source-worker-effect-schema.js";
 import {
   AutoApprovedFlowDispatchAuthorization,
   ExplicitFlowDispatchAuthorization,
@@ -237,6 +240,16 @@ function finalizeCleanupCompletion(result) {
 }
 
 function workerArtifactAgentOptions(stepId, outputSchema) {
+  if (workerArtifactHandoffPolicy(stepId)?.kind === "source") {
+    const sourceSchema = sourceWorkerEffectJsonSchema(stepId);
+    if (JSON.stringify(outputSchema) !== JSON.stringify(sourceSchema)) {
+      throw new Error(`guarded source worker output schema is not the canonical effect schema: ${stepId}`);
+    }
+    // Schema-capable providers receive this directly through their native
+    // structured-output flag. No prompt copy is permitted: the parent uses
+    // the same schema again before materializing its owned effects.json.
+    return { jsonSchema: sourceSchema };
+  }
   let payloadName;
   let schema;
   let label;
@@ -772,7 +785,21 @@ export class FlowDispatchWork {
         ].join("\n")
       : "";
     const handoffInstruction = this.handoffRequest
-      ? [
+      ? this.handoffRequest.policy.kind === "source"
+        ? [
+          "",
+          "This action uses the source-worker handoff contract below.",
+          "Treat its input snapshots as the immutable source for this action.",
+          "Edit only project source and formal project tests that this action requires.",
+          "After all source edits, run the exact sourceMutationCommand once.",
+          "Do not write effects.json, do not write a handoff submission, and do not run a seal command.",
+          "Return only the structured source effect required by the guarded action output_schema.",
+          "The parent dispatcher validates, materializes, seals, publishes, and completes the step.",
+          "",
+          "Source-worker handoff contract:",
+          JSON.stringify(handoffContract, null, 2),
+        ].join("\n")
+        : [
           "",
           "This action uses the worker artifact handoff contract below.",
           "Treat its input snapshots as the immutable source for this action.",
@@ -1283,6 +1310,7 @@ export default class RunDispatchCommand extends FlowCommand {
         ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
         : null;
       let agentError = null;
+      let sourceResponseError = null;
       const supervisorEvents = [];
       try {
         const agent = this.agent || (this.agent = this.container.get("agent"));
@@ -1291,7 +1319,7 @@ export default class RunDispatchCommand extends FlowCommand {
           action.nextAction.output_schema,
         );
         const { promptGuidance, ...agentOptions } = workerOptions;
-        await agent.call(work.prompt(promptGuidance), {
+        const responseText = await agent.call(work.prompt(promptGuidance), {
           commandId: "flow.dispatch",
           executionWorkDir: ctx.executionRoot || ctx.root,
           cacheMode: "bypass",
@@ -1305,15 +1333,33 @@ export default class RunDispatchCommand extends FlowCommand {
           },
           ...agentOptions,
         });
+        if (handoffRequest?.policy.kind === "source") {
+          materializeSourceWorkerEffect({ request: handoffRequest, responseText });
+          sealParentMaterializedSourceWorkerEffect({ request: handoffRequest });
+        }
       } catch (error) {
         agentError = error;
         if (agentError instanceof AgentFailure) agentError.supervisorEvents = Object.freeze(supervisorEvents);
+        if (handoffRequest?.policy.kind === "source") {
+          sourceResponseError = error instanceof WorkerArtifactHandoffError
+            ? error
+            : new WorkerArtifactHandoffError(
+                "invalid",
+                "FLOW_SOURCE_HANDOFF_RESPONSE_UNAVAILABLE",
+                `source worker did not produce a parent-materializable structured effect: ${error.message || String(error)}`,
+                // Preserve the existing one-fresh-invocation transport retry
+                // for provider failures. Parse and schema failures are thrown
+                // above as typed handoff errors and remain terminal.
+                { cause: error, retryable: error instanceof AgentFailure, data: { stepId: handoffRequest.stepId } },
+              );
+        }
       }
 
       if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
 
       let reconciliation = null;
       try {
+        if (sourceResponseError !== null) throw sourceResponseError;
         reconciliation = this.handoffCoordinator.reconcile({
           ctx,
           request: handoffRequest,

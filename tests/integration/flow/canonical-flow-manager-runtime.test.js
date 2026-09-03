@@ -1461,6 +1461,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       issues: [],
       overview: null,
       triage: {
+        version: 1,
         dispositions: [
           { findingKey: "requirement:R-1", disposition: "apply", rationale: "The failed requirement needs an implementation repair." },
           { findingKey: "hard-blocker:DF-acceptance-a", disposition: "apply", rationale: "The first canonical blocker requires repair." },
@@ -1541,6 +1542,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
           completionStatus: "done",
           files: [], issues: [], overview: null, repair: null,
           triage: {
+            version: 1,
             dispositions: [{
               findingKey: "finding-1",
               disposition: scenario.disposition,
@@ -1623,7 +1625,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId,
       effect: new SourceWorkerEffect({
         version: 1, stepId: "impl-triage", completionStatus: "done", files: [], issues: [], overview: null, repair: null,
-        triage: { dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
+        triage: { version: 1, dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
       }),
       mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "a".repeat(64),
@@ -1633,7 +1635,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId,
       effect: new SourceWorkerEffect({
         version: 1, stepId: "impl-repair", completionStatus: "done", files: [], issues: [], overview: null, triage: null,
-        repair: { appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
+        repair: { version: 1, appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
       }),
       mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "b".repeat(64),
@@ -4906,7 +4908,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         stepId: "impl-repair",
         completionStatus: "done",
         files: [], issues: [], overview: null, triage: null,
-        repair: { appliedFindingKeys: ["finding-1"], summary: "Applied the reviewed implementation correction." },
+        repair: { version: 1, appliedFindingKeys: ["finding-1"], summary: "Applied the reviewed implementation correction." },
       }),
       mutationManifest: emptySourceMutationManifest(manager, created.specId),
       handoffDigest: "a".repeat(64),

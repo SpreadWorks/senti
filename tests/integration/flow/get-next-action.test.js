@@ -40,6 +40,7 @@ import {
   ReviewTransitionFacts,
 } from "../../../src/flow/lib/review-transition-facts.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
+import { sourceWorkerEffectJsonSchema } from "../../../src/flow/lib/source-worker-effect-schema.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
 import { runtimeLogFileForContext } from "../../../src/lib/runtime-log.js";
@@ -513,6 +514,7 @@ describe("flow get next-action", () => {
     assert.equal(envelope.data.taskId, "T-1");
     assert.equal(envelope.data.step, "task-impl");
     assert.equal(envelope.data.action, "run-impl");
+    assert.deepEqual(envelope.data.output_schema, sourceWorkerEffectJsonSchema("task-impl"));
     assert.equal(envelope.data.context.paths.task_spec, "tasks/T-1.md");
     assert.equal(state.currentTaskId, "T-1");
     assert.equal(state.currentNodeId, "T-1-impl");

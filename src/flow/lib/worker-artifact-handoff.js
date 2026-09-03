@@ -6,6 +6,7 @@ import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { PRODUCT } from "../../lib/product.js";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
+import { validateSchema } from "../../lib/schema-validate.js";
 import {
   CanonicalFlowArtifactBaseline,
   CanonicalWorkerSpecPublication,
@@ -83,8 +84,12 @@ import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime
 import { validateAdditions } from "./overview-merge.js";
 import { AcceptanceRepairFindingSet } from "./acceptance-review-artifacts.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
+import { sourceWorkerEffectJsonSchema } from "./source-worker-effect-schema.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
+// Structured source responses change fresh-dispatch producer ownership only.
+// The durable request, effects, and submission documents stay Version 3 so
+// existing pending handoffs retain their recovery contract.
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 3;
 export const WORKER_ARTIFACT_HANDOFF_ROOT = PRODUCT.managedPath("handoffs");
 
@@ -103,6 +108,18 @@ const FLOW_REPOSITORY_RUNTIME_ARTIFACTS = new FlowRepositoryRuntimeArtifactRegis
 const AUTHORITY_ENTRY_KINDS = new Set(["missing", "symlink", "directory", "file", "other"]);
 const SPEC_TEST_FILE = /\.(?:js|mjs|ts|json|md|ya?ml|txt|sh)$/;
 const COMMAND_OWNED_SPEC_TEST_DIRECTORY = ".raw";
+
+const SOURCE_EFFECT_KEYS = Object.freeze([
+  "version",
+  "stepId",
+  "completionStatus",
+  "files",
+  "issues",
+  "overview",
+  "triage",
+  "repair",
+  "noChangeReason",
+]);
 
 function requiredString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -662,7 +679,10 @@ export class SourceTriageDisposition {
 }
 
 export class SourceTriageEffect {
-  constructor({ dispositions } = {}) {
+  constructor(value = {}) {
+    exactObjectKeys(value, ["version", "dispositions"], "source triage effect");
+    const { version, dispositions } = value;
+    if (version !== 1) throw new Error("source triage effect version must be 1");
     if (!Array.isArray(dispositions) || dispositions.length > MAX_PAYLOAD_FILES) throw new Error("source triage dispositions are invalid");
     this.dispositions = Object.freeze(dispositions.map((entry) => {
       exactObjectKeys(entry, ["findingKey", "disposition", "rationale"], "source triage disposition");
@@ -677,7 +697,10 @@ export class SourceTriageEffect {
 }
 
 export class SourceRepairEffect {
-  constructor({ appliedFindingKeys, summary } = {}) {
+  constructor(value = {}) {
+    exactObjectKeys(value, ["version", "appliedFindingKeys", "summary"], "source repair effect");
+    const { version, appliedFindingKeys, summary } = value;
+    if (version !== 1) throw new Error("source repair effect version must be 1");
     if (!Array.isArray(appliedFindingKeys) || appliedFindingKeys.length === 0 || appliedFindingKeys.length > MAX_PAYLOAD_FILES) {
       throw new Error("source repair appliedFindingKeys are invalid");
     }
@@ -710,8 +733,8 @@ export class SourceWorkerEffect {
     if (this.completionStatus === "skipped" && this.stepId !== "implement") {
       throw new Error("only implement may report a skipped source completion");
     }
-    if (!Array.isArray(files) || !Array.isArray(issues)) {
-      throw new Error("source worker effect collections must be arrays");
+    if (!Array.isArray(files) || files.length > MAX_PAYLOAD_FILES || !Array.isArray(issues) || issues.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source worker effect collections must be bounded arrays");
     }
     this.files = Object.freeze(files.map((entry) => {
       exactObjectKeys(entry, ["requirementId", "mutationIds"], "source worker file effect");
@@ -729,6 +752,9 @@ export class SourceWorkerEffect {
     this.triage = triage === null ? null : new SourceTriageEffect(triage);
     this.repair = repair === null ? null : new SourceRepairEffect(repair);
     this.noChangeReason = noChangeReason === null ? null : new SourceNoChangeReason(noChangeReason);
+    if (this.stepId !== "task-impl" && this.noChangeReason !== null) {
+      throw new Error("only task-impl may submit a source no-change reason");
+    }
     if (this.stepId === "impl-triage" && (this.files.length > 0 || this.issues.length > 0 || this.overview !== null || this.repair !== null)) {
       throw new Error("impl-triage source effect may contain only typed triage dispositions");
     }
@@ -739,7 +765,7 @@ export class SourceWorkerEffect {
   }
 
   static fromDocument(value, expectedStepId) {
-    exactObjectKeys(value, ["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair", "noChangeReason"], "source worker effect");
+    exactObjectKeys(value, SOURCE_EFFECT_KEYS, "source worker effect");
     const effect = new SourceWorkerEffect(value);
     if (effect.stepId !== expectedStepId) throw new Error("source worker effect step does not match the handoff");
     return effect;
@@ -758,6 +784,95 @@ export class SourceWorkerEffect {
       noChangeReason: this.noChangeReason?.toJSON() ?? null,
     };
   }
+}
+
+function sourceEffectDocumentFromResponse(responseText, request) {
+  if (typeof responseText !== "string" || responseText.trim() === "") {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
+      "source worker did not return a structured source effect response",
+      { retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+  let document;
+  try {
+    document = JSON.parse(responseText);
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
+      `source worker returned malformed structured source effect JSON: ${cause.message}`,
+      { cause, retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+  const schemaErrors = validateSchema(document, sourceWorkerEffectJsonSchema(request.stepId));
+  if (schemaErrors.length > 0) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
+      `source worker response violates its effect schema: ${schemaErrors.join("; ")}`,
+      { retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+  try {
+    return SourceWorkerEffect.fromDocument(document, request.stepId);
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
+      `source worker response violates its canonical effect contract: ${cause.message}`,
+      { cause, retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+}
+
+function assertParentOwnsSourceEffectMaterialization(request) {
+  if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
+    throw new Error("source effect materialization requires a source worker handoff request");
+  }
+  const effectPath = request.payloadPath("effects.json");
+  if (fs.existsSync(effectPath) || fs.existsSync(request.submissionPath)) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_PARENT_AUTHORITY_VIOLATION",
+      "source worker wrote a parent-owned effects or sealed handoff payload",
+      { retryable: false, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+    );
+  }
+  return effectPath;
+}
+
+/**
+ * Parent-only source handoff bridge. A worker cannot self-seal an effect: its
+ * structured final response is validated against the same canonical contract,
+ * materialized atomically, then bound by the ordinary sealed handoff digest.
+ */
+export function materializeSourceWorkerEffect({ request, responseText } = {}) {
+  const effectPath = assertParentOwnsSourceEffectMaterialization(request);
+  const effect = sourceEffectDocumentFromResponse(responseText, request);
+  new AtomicFile(effectPath, { phaseNamespace: "parent-source-effect" })
+    .write(`${JSON.stringify(effect.toJSON(), null, 2)}\n`);
+  return effect;
+}
+
+export function sealParentMaterializedSourceWorkerEffect({ request, now = () => new Date() } = {}) {
+  if (!(request instanceof WorkerArtifactHandoffRequest) || request.policy.kind !== "source") {
+    throw new Error("parent source effect seal requires a source worker handoff request");
+  }
+  if (!fs.existsSync(request.payloadPath("effects.json"))) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
+      "parent cannot seal a source handoff without a materialized source effect",
+      { retryable: false, data: { stepId: request.stepId } },
+    );
+  }
+  return sealWorkerArtifactHandoff({
+    requestPath: request.requestPath,
+    invocationId: request.dispatchInvocationId,
+    now,
+  });
 }
 
 function scanTree(directory, {
@@ -2907,6 +3022,9 @@ export class WorkerArtifactHandoffRequest {
   }
 
   toWorkerJSON() {
+    const workerPayloads = this.toJSON().payloads.filter((payload) => (
+      this.policy.kind !== "source" || payload.logicalName !== "effects.json"
+    ));
     return {
       version: this.version,
       runId: this.runId,
@@ -2920,7 +3038,7 @@ export class WorkerArtifactHandoffRequest {
       requestPath: this.requestPath,
       requestDigest: this.requestDigest,
       payloadDirectory: this.payloadDirectory,
-      payloads: this.toJSON().payloads,
+      payloads: workerPayloads,
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
       ...(this.toJSON().testReviewRepair && { testReviewRepair: this.toJSON().testReviewRepair }),
@@ -2937,46 +3055,10 @@ export class WorkerArtifactHandoffRequest {
           repositoryRoot: this.mainRoot,
         }).toJSON(),
       }),
-      effectContract: this.sourceEffectContract(),
       ...(this.sourceMutationBaseline !== null && { sourceMutationCommand: "sennel flow run source-mutation-manifest" }),
-      sealCommand: "sennel flow run seal-handoff",
+      ...(this.policy.kind !== "source" && { sealCommand: "sennel flow run seal-handoff" }),
       completionOwner: "parent-dispatcher",
     };
-  }
-
-  sourceEffectContract() {
-    if (this.policy.kind !== "source") return null;
-    const acceptanceRepairRoute = this.stepId === "impl-triage"
-      && this.inputs.some((input) => input.name === "acceptance-review.json");
-    return Object.freeze({
-      path: this.payloadPath("effects.json"),
-      exactKeys: Object.freeze(["version", "stepId", "completionStatus", "files", "issues", "overview", "triage", "repair", "noChangeReason"]),
-      required: Object.freeze({
-        version: 1,
-        stepId: this.stepId,
-        completionStatus: this.stepId === "implement" ? ["done", "skipped"] : ["done"],
-        overview: this.stepId === "task-impl" ? "required additions object" : "must be null",
-        triage: this.stepId === "impl-triage" ? "required { dispositions:[{ findingKey, disposition:apply|reject, rationale }] }" : "must be null",
-        repair: this.stepId === "impl-repair" ? "required { appliedFindingKeys:[...], summary }" : "must be null",
-        sourceDiff: this.policy.sourceMutation.effectContract(),
-        noChangeReason: this.policy.sourceMutation.mode === "optional"
-          ? "non-empty when done has an empty mutation manifest; null when mutations exist"
-          : "must be null",
-        triageRoute: this.stepId !== "impl-triage" ? null : acceptanceRepairRoute
-          ? "acceptance repair: classify every requirement:<id> and hard-blocker:<findingId> as apply"
-          : "implementation review: classify every canonical review finding exactly once",
-      }),
-      example: Object.freeze({
-        version: 1,
-        stepId: this.stepId,
-        completionStatus: "done",
-        files: [],
-        issues: [],
-        overview: this.stepId === "task-impl" ? { modules: [], data_flow: [], decisions: [] } : null,
-        triage: this.stepId === "impl-triage" ? { dispositions: [] } : null,
-        repair: this.stepId === "impl-repair" ? { appliedFindingKeys: ["finding-key"], summary: "Applied the reviewed source correction." } : null,
-      }),
-    });
   }
 
   executionEnvironment() {
