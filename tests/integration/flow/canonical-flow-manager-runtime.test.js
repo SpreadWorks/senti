@@ -724,10 +724,10 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const finding = (target) => new TestReviewRepairFinding({ findingId: `scope-${target}`, fingerprint: crypto.createHash("sha256").update(target).digest("hex"), target, requiredChange: "Repair the smallest test premise." });
     const uncovered = new TestReviewRepairScope({ finding: finding("R1"), testPaths: ["z.test.js", "a.test.js"] }).toJSON();
     assert.equal(uncovered.operation, "create");
-    assert.match(uncovered.targetFile, /^repair-[a-f0-9]{16}\.test\.js$/);
+    assert.match(uncovered.targetFiles[0], /^repair-[a-f0-9]{16}\.test\.js$/);
     assert.equal(new TestReviewRepairScope({ finding: finding("GLOBAL"), testPaths: [] }).toJSON().operation, "create");
-    assert.equal(new TestReviewRepairScope({ finding: finding("a.test.js:line 3"), testPaths: ["a.test.js"] }).toJSON().targetFile, "a.test.js");
-    assert.equal(new TestReviewRepairScope({ finding: finding("a.test.js:R1"), testPaths: ["a.test.js"] }).toJSON().targetFile, "a.test.js");
+    assert.equal(new TestReviewRepairScope({ finding: finding("a.test.js:line 3"), testPaths: ["a.test.js"] }).toJSON().targetFiles[0], "a.test.js");
+    assert.equal(new TestReviewRepairScope({ finding: finding("a.test.js:R1"), testPaths: ["a.test.js"] }).toJSON().targetFiles[0], "a.test.js");
     assert.throws(() => new TestReviewRepairScope({ finding: finding("../product.js"), testPaths: [] }), /repair target/);
   });
   it("starts a new progress episode when retained progress belongs to an older review artifact", () => {
@@ -736,11 +736,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const finding = (findingId, fingerprint) => ({ findingId, fingerprint, target: "one.test.js", requiredChange: "Repair one assertion." });
     const previous = new CanonicalTestReviewRepair({ state, attempt: 1, artifactDigest: "b".repeat(64), evidenceId: "c".repeat(64), sourceTestRevision: revision, blockingFindings: [finding("old", "d".repeat(64))] });
     const current = new CanonicalTestReviewRepair({ state, attempt: 2, artifactDigest: "e".repeat(64), evidenceId: "f".repeat(64), sourceTestRevision: revision, blockingFindings: [finding("current", "1".repeat(64))] });
-    const retained = TestReviewRepairProgress.start(previous).markComplete(previous, "old", {
-      handoffDigest: "2".repeat(64),
-      requestDigest: "3".repeat(64),
-      payloadDigest: "4".repeat(64),
-    });
+    const retained = TestReviewRepairProgress.start(previous);
     const progress = canonicalTestReviewRepairProgress({
       flowManager: { readArtifact() { return { bytes: Buffer.from(JSON.stringify(retained.toJSON())) }; } },
       state, repair: current, consumerNodeId: "test",
@@ -3866,11 +3862,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const workerContract = handoff.toWorkerJSON();
     assert.deepEqual(workerContract.inputs.map((entry) => entry.name), ["spec.json"]);
     assert.equal(workerContract.testReviewRepair.blockingFindings.length, 1);
-    assert.equal(workerContract.testReviewRepair.workerScope.targetFile, "requirement.test.js");
-    assert.match(workerContract.testReviewRepair.workerScope.repairScope, /observable assertion/);
+    assert.deepEqual(workerContract.testReviewRepair.batch.scopes[0].targetFiles, ["requirement.test.js"]);
+    assert.match(workerContract.testReviewRepair.batch.scopes[0].repairScope, /observable assertion/);
   });
 
-  it("publishes each test-review repair finding checkpoint and resumes from the latest canonical tree", async () => {
+  it("publishes one shared test-review repair batch receipt and resumes without rerunning it", async () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-test-review-repair-progress", {
@@ -3911,8 +3907,8 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const ctx = { root: repository, mainRoot: repository, executionRoot: repository, specId: created.specId, flowManager: manager, flowState: manager.load(created.specId), flowCommandBoundary: true };
     assert.equal(new RunRepairTestReviewCommand().execute(ctx).ok, true);
     const selectedAction = await new GetNextActionCommand().execute({ ...ctx, flowState: manager.load(created.specId) });
-    assert.deepEqual(selectedAction.context.testReviewRepair.blockingFindings.map((entry) => entry.findingId), ["finding-one"]);
-    assert.equal(JSON.stringify(selectedAction).includes("finding-two"), false, "next action must not disclose a later finding");
+    assert.deepEqual(selectedAction.context.testReviewRepair.blockingFindings.map((entry) => entry.findingId), ["finding-one", "finding-two"]);
+    assert.equal(selectedAction.context.testReviewRepair.batch.findingIds.length, 2);
     const invocation = { id: "test-review-progress", target: { digest: "b".repeat(64) }, action: { digest: "a".repeat(64), nextAction: { step: "test" } } };
     const coordinator = new WorkerArtifactHandoffCoordinator();
     const interrupted = coordinator.createRequest({
@@ -3937,7 +3933,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.ok(first.workerVisibleTestReviewRepair instanceof WorkerVisibleTestReviewRepair);
     const firstRequestText = fs.readFileSync(first.requestPath, "utf8");
     assert.match(firstRequestText, /finding-one/);
-    assert.doesNotMatch(firstRequestText, /finding-two/);
+    assert.match(firstRequestText, /finding-two/);
     const firstFile = path.join(first.payloadPath("spec-tests"), "requirement.test.js");
     assert.deepEqual(fs.readFileSync(firstFile), original);
     fs.appendFileSync(firstFile, "// repaired finding one\n");
@@ -3977,7 +3973,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(restoredFirst.requestDigest, first.requestDigest, "selected request restore preserves sealed request identity");
     assert.ok(restoredFirst.workerVisibleTestReviewRepair instanceof WorkerVisibleTestReviewRepair);
     assert.deepEqual(restoredFirst.workerVisibleTestReviewRepair.toJSON(), first.workerVisibleTestReviewRepair.toJSON());
-    assert.equal(restoredFirst.toWorkerJSON().testReviewRepair.workerScope.finding.findingId, "finding-one");
+    assert.deepEqual(restoredFirst.toWorkerJSON().testReviewRepair.batch.findingIds, ["finding-one", "finding-two"]);
     const partialInterrupted = new WorkerArtifactHandoffCoordinator({
       faultInjector({ phase }) {
         if (phase === "before-worker-handoff-cleanup-rename") throw new Error("partial cleanup interruption");
@@ -3998,37 +3994,15 @@ describe("FlowManager canonical Version-1 runtime", () => {
       canonicalLocation: manager.specLocation(created.specId),
     });
     assert.equal(committedPartial.testReviewRepair, null, "a committed selected request is recognized before rebinding current progress");
-    assert.equal(committedPartial.workerVisibleTestReviewRepair.blockingFindings[0].findingId, "finding-one");
+    assert.deepEqual(committedPartial.workerVisibleTestReviewRepair.batch.findingIds, ["finding-one", "finding-two"]);
     assert.deepEqual(coordinator.recoverPending({ ctx }), {
       completed: true,
       replayed: true,
       cleanedHandoffs: 1,
-    }, "restart recognizes the first finding receipt before rebinding the next finding");
-    assert.equal(manager.load(created.specId).currentNodeId, "test");
+    }, "restart recognizes the published batch receipt without rerunning it");
     const progress = JSON.parse(manager.readArtifact({ specId: created.specId, logicalKey: "test.review.repair.progress", consumerNodeId: "test" }).bytes);
     assert.equal(progress.entries.find((entry) => entry.findingId === "finding-one").status, "done");
-    assert.equal(progress.entries.find((entry) => entry.findingId === "finding-two").status, "pending");
-    const second = coordinator.createRequest({ ctx, state: manager.load(created.specId), invocation }).prepare();
-    const secondWorker = second.toWorkerJSON();
-    assert.equal(secondWorker.testReviewRepair.workerScope.finding.findingId, "finding-two");
-    const secondFile = path.join(second.payloadPath("spec-tests"), "requirement.test.js");
-    assert.match(fs.readFileSync(secondFile, "utf8"), /repaired finding one/);
-    fs.appendFileSync(secondFile, "// repaired finding two\n");
-    sealWorkerArtifactHandoff({ requestPath: second.requestPath, invocationId: invocation.id });
-    const finalInterrupted = new WorkerArtifactHandoffCoordinator({
-      faultInjector({ phase }) {
-        if (phase === "before-worker-handoff-cleanup-rename") throw new Error("final cleanup interruption");
-      },
-    });
-    assert.throws(
-      () => finalInterrupted.reconcile({ ctx, request: second }),
-      /final cleanup interruption/,
-    );
-    assert.deepEqual(coordinator.recoverPending({ ctx }), {
-      completed: true,
-      replayed: true,
-      cleanedHandoffs: 1,
-    }, "restart recognizes final confirmation without requiring an active repair target");
+    assert.equal(progress.entries.find((entry) => entry.findingId === "finding-two").status, "done");
     assert.equal(
       leaves(manager.load(created.specId).steps).find((entry) => entry.id === "test").status,
       "done",

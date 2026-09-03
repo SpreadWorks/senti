@@ -1542,9 +1542,13 @@ describe("test-review spec-local file scope", () => {
     assert.match(combined, /invents a module path, export, function, constant, method, or artifact shape/);
 
     const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;
-    assert.deepEqual([...itemSchema.required].sort(), Object.keys(itemSchema.properties).sort());
+    assert.deepEqual([...itemSchema.required].sort(), [
+      "failureKind", "issue", "origin", "requiredChange", "target", "title", "whyBlocking",
+    ]);
     assert.deepEqual(itemSchema.properties.origin.type, ["string", "null"]);
     assert.deepEqual(itemSchema.properties.failureKind.type, ["string", "null"]);
+    assert.equal(itemSchema.properties.testPaths.minItems, 1);
+    assert.equal(itemSchema.properties.createTestPaths.minItems, 1);
   });
 
   it("parses JSON test review findings and rejects markdown gap output", () => {
@@ -1567,6 +1571,20 @@ describe("test-review spec-local file scope", () => {
     assert.equal(parsed.blocking.length, 1);
     assert.equal(parsed.advisory.length, 1);
     assert.throws(() => parseTestReviewFindings("### GAP-1\nMissing"), /test review output failed schema validation|Unexpected token|JSON/i);
+  });
+
+  it("retains declared canonical test path capabilities in parsed blocking findings", () => {
+    const parsed = parseTestReviewFindings(JSON.stringify({
+      blockingFindings: [{
+        title: "Shared test behavior", target: "tests/flow-query-api.test.js — R1 test",
+        testPaths: ["flow-query-api.test.js", "nested/api.spec.js"],
+        issue: "Two related assertions require one coherent repair.",
+        requiredChange: "Repair both assertions together.", whyBlocking: "The acceptance behavior is incomplete.",
+        origin: null, failureKind: null,
+      }],
+      advisoryFindings: [],
+    }));
+    assert.deepEqual(parsed.blocking[0].toJSON().testPaths, ["flow-query-api.test.js", "nested/api.spec.js"]);
   });
 
   it("accepts missing top-level test review findings arrays and rejects malformed items", () => {

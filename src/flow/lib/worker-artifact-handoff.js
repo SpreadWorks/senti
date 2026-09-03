@@ -2427,17 +2427,19 @@ function restoredTestReviewRepairContext({ flowManager, state, stepId, workerVis
       "persisted test-review repair request lacks its selected worker scope",
     );
   }
-  const selectedFindingId = workerVisibleTestReviewRepair.blockingFindings[0].findingId;
-  if (!testReviewRepair.blockingFindings.some((finding) => finding.findingId === selectedFindingId)) {
+  const selectedFindingIds = workerVisibleTestReviewRepair.batch.findingIds;
+  if (selectedFindingIds.some((findingId) => !testReviewRepair.blockingFindings.some((finding) => finding.findingId === findingId))) {
     throw new WorkerArtifactHandoffError(
       "stale",
       "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID",
       "persisted worker repair scope is not bound to current canonical findings",
     );
   }
-  const testPaths = new CanonicalTestArtifactStore({ flowManager, state })
-    .testSources("test").map((source) => source.testPath);
-  const expectedWorkerScope = testReviewRepair.forFinding(selectedFindingId, testPaths);
+  const testSources = new CanonicalTestArtifactStore({ flowManager, state }).testSources("test");
+  const progress = currentTestReviewRepairProgress({ flowManager, state, repair: testReviewRepair });
+  const batch = progress.nextBatch(testReviewRepair, testSources);
+  if (batch === null) throw new WorkerArtifactHandoffError("stale", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID", "persisted repair request has no pending batch");
+  const expectedWorkerScope = testReviewRepair.forBatch(batch);
   if (JSON.stringify(workerVisibleTestReviewRepair.toJSON()) !== JSON.stringify(expectedWorkerScope)) {
     throw new WorkerArtifactHandoffError(
       "stale",
@@ -2447,7 +2449,7 @@ function restoredTestReviewRepairContext({ flowManager, state, stepId, workerVis
   }
   return {
     testReviewRepair,
-    testReviewRepairProgress: currentTestReviewRepairProgress({ flowManager, state, repair: testReviewRepair }),
+    testReviewRepairProgress: progress,
   };
 }
 
@@ -2726,12 +2728,10 @@ export class WorkerArtifactHandoffRequest {
         baselineEntries: baseline?.entries ?? null,
       });
     });
-    const selectedRepairContract = testReviewRepair === null
-      ? null
-      : testReviewRepair.forFinding(
-        testReviewRepairProgress.nextFinding(testReviewRepair).findingId,
-        new CanonicalTestArtifactStore({ flowManager, state }).testSources("test").map((source) => source.testPath),
-      );
+    const repairSources = testReviewRepair === null ? [] : new CanonicalTestArtifactStore({ flowManager, state }).testSources("test");
+    const selectedBatch = testReviewRepair === null ? null : testReviewRepairProgress.nextBatch(testReviewRepair, repairSources);
+    if (testReviewRepair !== null && selectedBatch === null) throw new WorkerArtifactHandoffError("recovery-required", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_COMPLETE", "test-review repair has no pending batch", { retryable: false, recoveryPossible: true });
+    const selectedRepairContract = selectedBatch === null ? null : testReviewRepair.forBatch(selectedBatch);
     const semanticIdentity = canonicalSemanticInputIdentity({ flowManager, state });
     const actionDirectory = handoffActionDirectory(
       executionHandoffRoot(executionRoot, state.specId),
@@ -2818,16 +2818,7 @@ export class WorkerArtifactHandoffRequest {
   }
 
   toJSON() {
-    const selectedFinding = this.testReviewRepair === null
-      ? null
-      : this.testReviewRepairProgress.nextFinding(this.testReviewRepair);
-    const testPaths = this.testReviewRepair === null
-      ? []
-      : new CanonicalTestArtifactStore({ flowManager: this.flowManager, state: this.state })
-        .testSources("test").map((source) => source.testPath);
-    const visibleRepair = this.workerVisibleTestReviewRepair ?? (selectedFinding === null
-      ? null
-      : this.testReviewRepair.forFinding(selectedFinding.findingId, testPaths));
+    const visibleRepair = this.workerVisibleTestReviewRepair;
     return {
       version: this.version,
       runId: this.runId,
@@ -2889,7 +2880,8 @@ export class WorkerArtifactHandoffRequest {
     if (this.stepId !== "test" || this.testReviewRepair === null) return;
     const root = this.payloadPath("spec-tests");
     const store = new CanonicalTestArtifactStore({ flowManager: this.flowManager, state: this.state });
-    for (const source of store.testSources("test")) {
+    const allowed = new Set(this.workerVisibleTestReviewRepair.batch.allowedTestPaths);
+    for (const source of store.testSources("test").filter((candidate) => allowed.has(candidate.testPath))) {
       const target = path.resolve(root, source.testPath);
       if (!isWithin(root, target)) {
         throw new WorkerArtifactHandoffError(
@@ -4248,6 +4240,30 @@ function assertTestReviewRepairMadeProgress(request, submission, state, logicalN
   }
 }
 
+/** Parent-only full-tree reconstruction used for semantic validation. */
+function testReviewRepairValidationRoot(request, submission, state) {
+  if (request.testReviewRepair === null) return request.payloadDirectory;
+  const entries = submission.payloadManifest.filter((entry) => entry.targetRelativePath.startsWith("tests/"))
+    .map((entry) => ({ targetRelativePath: entry.targetRelativePath, bytes: manifestPayloadBytes(request, entry, "bounded repair validation payload") }));
+  const canonicalEntries = new CanonicalTestArtifactStore({ flowManager: request.flowManager, state }).testSources("test");
+  const composition = new CanonicalWorkerTestTree(entries).repairComposition({
+    baseline: canonicalTestTreeBaselineForPublication(request),
+    allowedTestPaths: request.workerVisibleTestReviewRepair.batch.allowedTestPaths,
+    canonicalEntries,
+  });
+  const root = path.join(request.directory, "parent-validation");
+  ensureRealDirectory(root, request.directory);
+  const testsRoot = path.join(root, "tests");
+  ensureRealDirectory(testsRoot, root);
+  for (const artifact of composition.artifactWrites) {
+    const target = path.resolve(testsRoot, artifact.parameters.testPath);
+    if (!isWithin(testsRoot, target)) throw new WorkerArtifactHandoffError("invalid", "FLOW_TEST_REVIEW_REPAIR_SCOPE_INVALID", "parent validation tree escapes its root");
+    ensureRealDirectory(path.dirname(target), testsRoot);
+    new AtomicFile(target, { phaseNamespace: "test-review-repair-parent-validation" }).write(artifact.bytes);
+  }
+  return root;
+}
+
 function validatePayload(request, submission, state, { bootstrapObservationAuthority = null } = {}) {
   try {
     if (request.policy.kind === "source") {
@@ -4321,10 +4337,11 @@ function validatePayload(request, submission, state, { bootstrapObservationAutho
     }
     if (request.stepId === "test") {
       const spec = request.inputs.find((input) => input.name === "spec.json").document;
-      const result = validateTestHeaders({ specDir: request.payloadDirectory, spec });
+      const validationRoot = testReviewRepairValidationRoot(request, submission, state);
+      const result = validateTestHeaders({ specDir: validationRoot, spec });
       if (!result.ok) throw new Error(formatValidationMessages(result).join("; "));
       const bootstrapValidation = new SpecTestBootstrapValidator({
-        payloadSpecDir: request.payloadDirectory,
+        payloadSpecDir: validationRoot,
         canonicalSpecDir: CanonicalWorkerTestTree.artifactRoot({
           flowManager: request.flowManager,
           specId: state.specId,
@@ -4847,11 +4864,32 @@ function canonicalHandoffPublications(request, submission) {
     ));
   }
   if (testEntries.length > 0) {
-    const replacement = new CanonicalWorkerTestTree(testEntries)
-      .replacement(canonicalTestTreeBaselineForPublication(request));
+    const baseline = canonicalTestTreeBaselineForPublication(request);
+    const replacement = request.testReviewRepair === null
+      ? new CanonicalWorkerTestTree(testEntries).replacement(baseline)
+      : new CanonicalWorkerTestTree(testEntries).repairComposition({
+        baseline,
+        allowedTestPaths: request.workerVisibleTestReviewRepair.batch.allowedTestPaths,
+        canonicalEntries: new CanonicalTestArtifactStore({ flowManager: request.flowManager, state: request.state }).testSources("test"),
+      });
     artifactWrites.push(...replacement.artifactWrites);
     artifactRemovals.push(...replacement.artifactRemovals);
     testSourceBaseline = replacement.testSourceBaseline;
+    if (request.testReviewRepair !== null) {
+      return Object.freeze({
+        specRecord: specRecord ?? undefined,
+        artifactWrites: Object.freeze(artifactWrites), artifactRemovals: Object.freeze(artifactRemovals),
+        artifactBaselines: Object.freeze([...artifactBaselines.values()]), testSourceBaseline,
+        testReviewRepairComposition: Object.freeze({
+          beforeTreeDigest: digest(stableStringify(baseline.entries)),
+          afterTreeDigest: digest(stableStringify(replacement.artifactWrites.map((entry) => ({
+            targetRelativePath: `tests/${entry.parameters.testPath}`, digest: digest(entry.bytes), byteLength: entry.bytes.length,
+          })).sort((left, right) => left.targetRelativePath.localeCompare(right.targetRelativePath)))),
+          changedPaths: replacement.changedPaths,
+        }),
+        draftCoverageRepairDecision, draftCoverageRepairDraft: draftCoverageRepairDecision === null ? null : structuredClone(draftRepairResultValue.draft),
+      });
+    }
   }
   return Object.freeze({
     specRecord: specRecord ?? undefined,
@@ -4859,6 +4897,7 @@ function canonicalHandoffPublications(request, submission) {
     artifactRemovals: Object.freeze(artifactRemovals),
     artifactBaselines: Object.freeze([...artifactBaselines.values()]),
     testSourceBaseline: testSourceBaseline ?? undefined,
+    testReviewRepairComposition: undefined,
     draftCoverageRepairDecision,
     draftCoverageRepairDraft: draftCoverageRepairDecision === null
       ? null
@@ -4933,15 +4972,30 @@ function canonicalHandoffResult(request, submission, now, {
 
 function testReviewRepairProgressPublication(request, submission, publications) {
   if (request.testReviewRepair === null || request.testReviewRepairProgress === null) return null;
-  const finding = request.testReviewRepairProgress.nextFinding(request.testReviewRepair);
-  if (finding === null) {
-    throw new WorkerArtifactHandoffError("invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID", "test-review repair has no pending canonical finding");
+  const batch = request.workerVisibleTestReviewRepair?.batch;
+  const composition = publications.testReviewRepairComposition;
+  if (batch === undefined || composition === undefined) {
+    throw new WorkerArtifactHandoffError("invalid", "FLOW_TEST_REVIEW_REPAIR_PROGRESS_INVALID", "test-review repair lacks a composed bounded batch");
   }
-  const next = request.testReviewRepairProgress.markComplete(request.testReviewRepair, finding.findingId, {
+  let handoff;
+  try {
+    handoff = {
+      batchId: batch.batchId, findingIds: batch.findingIds,
+      beforeTreeDigest: composition.beforeTreeDigest, afterTreeDigest: composition.afterTreeDigest,
+      changedPaths: composition.changedPaths, sourceTestRevision: request.testReviewRepair.sourceTestRevision.toJSON(),
     handoffDigest: submission.handoffDigest,
     requestDigest: request.requestDigest,
     payloadDigest: manifestDigest(submission.payloadManifest),
-  });
+    };
+    // The progress value class owns receipt/batch identity validation.
+    const next = request.testReviewRepairProgress.markBatchComplete(request.testReviewRepair, batch, handoff);
+    return testReviewRepairProgressPublicationResult(request, publications, next);
+  } catch (cause) {
+    throw cause;
+  }
+}
+
+function testReviewRepairProgressPublicationResult(request, publications, next) {
   const previous = request.flowManager.readArtifact({
     specId: request.specId,
     logicalKey: "test.review.repair.progress",

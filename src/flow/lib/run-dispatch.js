@@ -113,7 +113,7 @@ export class FlowDispatchDeadlineReserve {
   toJSON() { return { deadline: this.deadline, reserveMs: this.reserveMs, remainingMs: this.deadline === null ? null : Math.max(0, this.deadline - this.now()) }; }
 }
 
-/** A deadline policy is deliberately limited to one selected test-review repair. */
+/** A deadline policy is deliberately limited to one selected test-review repair batch. */
 export class TestReviewRepairDeadlinePolicy {
   constructor({ reserve, nextAction } = {}) {
     if (!(reserve instanceof FlowDispatchDeadlineReserve)) throw new Error("test-review repair deadline requires a typed reserve");

@@ -2493,6 +2493,16 @@ const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
     whyBlocking: { type: "string", minLength: 1 },
     origin: { type: ["string", "null"] },
     failureKind: { type: ["string", "null"] },
+    testPaths: {
+      type: "array",
+      minItems: 1,
+      items: { type: "string", minLength: 1 },
+    },
+    createTestPaths: {
+      type: "array",
+      minItems: 1,
+      items: { type: "string", minLength: 1 },
+    },
   },
 });
 
@@ -2547,6 +2557,11 @@ class TestReviewFinding {
     this.kind = kind;
     this.title = normalizeTestReviewText(item.title, "Untitled test review finding");
     this.target = normalizeTestReviewText(item.target, "GLOBAL").replaceAll("\\", "/");
+    this.testPaths = item.testPaths == null ? null : new TestReviewFindingPaths(item.testPaths, "testPaths");
+    this.createTestPaths = item.createTestPaths == null ? null : new TestReviewFindingPaths(item.createTestPaths, "createTestPaths");
+    if (this.testPaths !== null && this.createTestPaths !== null) {
+      throw new Error("test review finding cannot both modify and create canonical test paths");
+    }
     if (kind === "blocking") {
       this.issue = normalizeTestReviewText(item.issue, "Blocking test issue.");
       this.requiredChange = normalizeTestReviewText(item.requiredChange, "Fix the blocking test issue.");
@@ -2578,6 +2593,8 @@ class TestReviewFinding {
       fingerprint: this.fingerprint,
       disposition: this.disposition,
       rationale: this.rationale,
+      ...(this.testPaths !== null && { testPaths: this.testPaths.toJSON() }),
+      ...(this.createTestPaths !== null && { createTestPaths: this.createTestPaths.toJSON() }),
     };
     if (this.kind === "blocking") {
       return {
@@ -2595,6 +2612,28 @@ class TestReviewFinding {
       whyNonBlocking: this.whyNonBlocking,
     };
   }
+}
+
+/** A validated, deterministic canonical test-path capability in review output. */
+class TestReviewFindingPaths {
+  constructor(value, field) {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error(`test review finding ${field} must contain canonical test paths`);
+    }
+    const paths = value.map((candidate) => {
+      if (typeof candidate !== "string" || candidate.trim() === "") {
+        throw new Error(`test review finding ${field} paths must be non-empty strings`);
+      }
+      return candidate.trim().replaceAll("\\", "/");
+    });
+    if (new Set(paths).size !== paths.length) {
+      throw new Error(`test review finding ${field} paths must be unique`);
+    }
+    this.paths = Object.freeze([...paths].sort());
+    Object.freeze(this);
+  }
+
+  toJSON() { return [...this.paths]; }
 }
 
 class RequirementCoverageEntry {
@@ -2794,8 +2833,9 @@ function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
       "Runtime pass/fail belongs to scenario-validity, test-execute, test-result-review, impl-gate, and final-regression.",
       "",
       "Return JSON only. The response object must contain:",
-      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking, origin, failureKind",
+      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking, origin, failureKind, plus testPaths[] for existing canonical spec tests or createTestPaths[] for required new canonical spec tests",
       "- advisoryFindings[] with title, target, improvement, whyNonBlocking",
+      "- testPaths[] and createTestPaths[] are optional but mutually exclusive. testPaths[] must contain exact existing paths from the supplied test inventory; createTestPaths[] must contain explicit new canonical spec-relative test paths that are absent from that inventory. Never use source paths or prose.",
       "- Use null for origin or failureKind when it does not apply.",
       "- Use empty arrays when there are no findings in a category.",
     ].join("\n"))

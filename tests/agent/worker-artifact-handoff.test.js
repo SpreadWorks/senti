@@ -34,6 +34,46 @@ const WORKER_ARTIFACT_HANDOFF_SCHEMA = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
 );
+const TEST_REVIEW_BATCH_BENCHMARK = Object.freeze({
+  fileBytes: 227_523,
+  fileLines: 5_299,
+  findingCount: 13,
+  currentProfileKey: "codex/gpt-5.6-luna-low",
+  legacy: Object.freeze({
+    sourceEpisode: "e8af190b-flow-query-api/001 test-review repair, confirmation orders 152-192",
+    provider: "codex",
+    profileKey: "codex/gpt-5.6-luna",
+    recordedAt: "2026-09-01",
+    successfulConfirmationOrders: Object.freeze([152, 154, 158, 160, 164, 166, 170, 174, 178, 182, 186, 188, 192]),
+    workerCalls: 13,
+    inputTokens: 1_930_914,
+    durationMs: 6_721_893,
+  }),
+});
+
+function fixedTestReviewBatchSource() {
+  const header = [
+    "// spec: R1",
+    "import test from 'node:test';",
+    "import assert from 'node:assert/strict';",
+    "test('R1: original assertion', () => { assert.equal(1, 1); });",
+  ];
+  const paddingCount = TEST_REVIEW_BATCH_BENCHMARK.fileLines - header.length;
+  const prefixes = Array.from({ length: paddingCount }, (_, index) => (
+    `// fixed benchmark padding ${String(index + 1).padStart(4, "0")} `
+  ));
+  const minimum = Buffer.byteLength(`${[...header, ...prefixes].join("\n")}\n`);
+  const paddingBytes = TEST_REVIEW_BATCH_BENCHMARK.fileBytes - minimum;
+  const width = Math.floor(paddingBytes / paddingCount);
+  const remainder = paddingBytes % paddingCount;
+  const lines = [...header, ...prefixes.map((prefix, index) => (
+    `${prefix}${"x".repeat(width + (index < remainder ? 1 : 0))}`
+  ))];
+  const source = Buffer.from(`${lines.join("\n")}\n`, "utf8");
+  assert.equal(source.length, TEST_REVIEW_BATCH_BENCHMARK.fileBytes);
+  assert.equal(source.toString("utf8").match(/\n/g)?.length, TEST_REVIEW_BATCH_BENCHMARK.fileLines);
+  return source;
+}
 
 function attemptHistoryBytes(nodeId, logicalKey, payload) {
   return Buffer.from(`${JSON.stringify(new FlowArtifactAttemptHistory([
@@ -72,11 +112,11 @@ function installSennelWrapper(executionRoot) {
   return binDir;
 }
 
-function realCodexAgent({ mainRoot, executionRoot, flowManager }) {
+function realCodexAgent({ mainRoot, executionRoot, flowManager, profileKey = "codex/gpt-5.6-sol-medium" }) {
   return new Agent({
     config: {
       agent: {
-        default: "codex/gpt-5.6-sol-medium",
+        default: profileKey,
         timeout: 240,
         retryCount: 0,
       },
@@ -117,9 +157,9 @@ function testReviewRepairWorkerAction() {
     instructions: {
       key: "plan.test",
       content: [
-        "Read the worker handoff request and its testReviewRepair workerScope.",
-        "Edit only the stated target file beneath the declared spec-tests payload root.",
-        "Make the required assertion change, then run the exact sealCommand from the request once.",
+        "Read the worker handoff request and its testReviewRepair batch.",
+        "Edit only the batch allowed test paths beneath the declared spec-tests payload root.",
+        "Apply every finding's required unique repair marker exactly once, then run the exact sealCommand from the request once.",
       ].join(" "),
     },
     context: { workerArtifactHandoff: { required: true } },
@@ -474,7 +514,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
     }
   });
 
-  it("has a real Codex CLI repair one scoped test-review finding from canonical payload bytes", async () => {
+  it("measures real Codex CLI repair batches for the fixed large test-review fixture", async (t) => {
     const mainRoot = createTmpDir("worker-handoff-agent-test-review-main-");
     const originalPath = process.env.PATH;
     try {
@@ -493,7 +533,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         execution: { mode: "worktree", baseBranch: "main", featureBranch: "feature/worker-handoff-agent-test-review" },
         specRecord: { goal: "Repair a reviewed test", requirements: [{ id: "R1", desc: "Preserve a test assertion." }] },
       }).create().registerActive();
-      const original = Buffer.from("// spec: R1\nimport test from 'node:test';\ntest('R1: original assertion', () => {});\n", "utf8");
+      const original = fixedTestReviewBatchSource();
       fixture.activate("test");
       flowManager.publishArtifacts({
         specId, nodeId: "test", artifactWrites: [{
@@ -504,14 +544,22 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       fixture.settle("test").activate("test-review");
       const sourceRevision = new CanonicalTestArtifactStore({ flowManager, state: flowManager.load() })
         .testSourceRevision().toJSON();
-      const finding = {
-        findingId: "real-agent-finding", fingerprint: "f".repeat(64), target: "requirement.test.js",
-        requiredChange: "Add one explicit assertion that preserves R1 behavior.", disposition: "must-fix", rationale: "The review requires an observable assertion.",
-      };
+      const findings = Array.from({ length: TEST_REVIEW_BATCH_BENCHMARK.findingCount }, (_, index) => {
+        const ordinal = String(index + 1).padStart(2, "0");
+        const marker = `// test-review-repair-${ordinal}`;
+        return {
+          findingId: `real-agent-finding-${ordinal}`,
+          fingerprint: crypto.createHash("sha256").update(`real-agent-finding-${ordinal}`).digest("hex"),
+          target: "requirement.test.js",
+          requiredChange: `Add the exact unique marker ${marker} to the canonical test file.`,
+          disposition: "must-fix",
+          rationale: "The fixed benchmark requires every selected finding to be handled in its batch.",
+        };
+      });
       publishAttemptArtifact(flowManager, specId, "test-review", "test.review", {
-        phase: "test", verdict: "REJECTED", blockingFindings: [finding], advisoryFindings: [],
+        phase: "test", verdict: "REJECTED", blockingFindings: findings, advisoryFindings: [],
         sourceTestArtifactRevision: sourceRevision,
-        canonicalEvidence: { disposition: "REJECTED", blockingFindings: [finding], advisoryFindings: [], identity: { evidenceDigest: "e".repeat(64) } },
+        canonicalEvidence: { disposition: "REJECTED", blockingFindings: findings, advisoryFindings: [], identity: { evidenceDigest: "d".repeat(64) } },
       });
       const context = { root: executionRoot, executionRoot, mainRoot, specId, flowManager, flowState: flowManager.load() };
       assert.equal(new RunRepairTestReviewCommand().execute(context).ok, true);
@@ -520,7 +568,12 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
           return findStepById(flowManager.load().steps, "test").status === "done"
             ? action(null) : testReviewRepairWorkerAction();
         } },
-        agent: realCodexAgent({ mainRoot, executionRoot, flowManager }),
+        agent: realCodexAgent({
+          mainRoot,
+          executionRoot,
+          flowManager,
+          profileKey: TEST_REVIEW_BATCH_BENCHMARK.currentProfileKey,
+        }),
         repositoryFingerprint: () => "real-agent-test-review-repair",
         leaseFactory: () => ({ acquire() {}, release() {} }),
       });
@@ -530,14 +583,49 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         _envelopeType: "run", _envelopeKey: "dispatch",
       });
       assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result, null, 2));
-      assert.equal(result.dispatch.dispatchCount, 1);
+      assert.equal(result.dispatch.dispatchCount, 2);
       const completed = flowManager.load();
       assert.equal(findStepById(completed.steps, "test").status, "done");
       const repaired = flowManager.readArtifact({
         specId, logicalKey: "tests.source", parameters: { testPath: "requirement.test.js" }, consumerNodeId: "test-review",
       }).bytes;
-      assert.match(repaired.toString("utf8"), /assert|strict/);
+      assert.notDeepEqual(repaired, original);
+      for (let index = 1; index <= TEST_REVIEW_BATCH_BENCHMARK.findingCount; index += 1) {
+        assert.match(repaired.toString("utf8"), new RegExp(`// test-review-repair-${String(index).padStart(2, "0")}`));
+      }
       assert.equal(flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "test.review.repair.progress"), true);
+      const progress = JSON.parse(flowManager.readArtifact({
+        specId, logicalKey: "test.review.repair.progress", consumerNodeId: "test",
+      }).bytes);
+      assert.deepEqual(progress.entries.map((entry) => entry.status), Array(13).fill("done"));
+      const receiptGroups = new Map();
+      for (const entry of progress.entries) {
+        const group = receiptGroups.get(entry.handoff.batchId) ?? [];
+        group.push(entry.findingId);
+        receiptGroups.set(entry.handoff.batchId, group);
+      }
+      assert.deepEqual([...receiptGroups.values()].map((findingIds) => findingIds.length), [8, 5]);
+
+      const activities = fs.readFileSync(flowManager.specLocation(specId).activitiesFile, "utf8").trim().split("\n")
+        .map((line) => JSON.parse(line));
+      const agentMetrics = activities.filter((activity) => activity.metric?.phase === "test" && activity.metric.kind === "agent");
+      assert.equal(agentMetrics.length, 2);
+      assert.deepEqual([...new Set(agentMetrics.map((activity) => activity.metric.profileKey))], [TEST_REVIEW_BATCH_BENCHMARK.currentProfileKey]);
+      assert.equal(agentMetrics.every((activity) => Number.isSafeInteger(activity.metric.tokens?.input)), true);
+      const measured = {
+        workerCalls: agentMetrics.reduce((total, activity) => total + activity.metric.callCount, 0),
+        inputTokens: agentMetrics.reduce((total, activity) => total + activity.metric.tokens.input, 0),
+        durationMs: agentMetrics.reduce((total, activity) => total + activity.metric.durationMs, 0),
+      };
+      const reductions = {
+        workerCalls: 1 - measured.workerCalls / TEST_REVIEW_BATCH_BENCHMARK.legacy.workerCalls,
+        inputTokens: 1 - measured.inputTokens / TEST_REVIEW_BATCH_BENCHMARK.legacy.inputTokens,
+        duration: 1 - measured.durationMs / TEST_REVIEW_BATCH_BENCHMARK.legacy.durationMs,
+      };
+      t.diagnostic(JSON.stringify({ fixture: TEST_REVIEW_BATCH_BENCHMARK, measured, reductions }));
+      assert.ok(reductions.workerCalls >= 0.4);
+      assert.ok(reductions.inputTokens >= 0.4);
+      assert.ok(reductions.duration >= 0.3);
     } finally {
       process.env.PATH = originalPath;
       removeTmpDir(mainRoot);

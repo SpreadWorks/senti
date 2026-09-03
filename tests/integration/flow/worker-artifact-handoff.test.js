@@ -4307,7 +4307,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("shares a repair episode reserve across findings and resumes with a fresh budget", async () => {
+  it("uses one bounded repair batch for overlapping findings", async () => {
     const value = fixture("test", { specRecord: validSpec() });
     try {
       prepareCanonicalTestReviewRepair(value, { findingCount: 2 });
@@ -4315,7 +4315,7 @@ describe("worker artifact handoff", () => {
       let calls = 0;
       const nextAction = {
         async run() {
-          if (calls >= 2) return completedWorkerAction();
+          if (calls >= 1) return completedWorkerAction();
           return new GetNextActionCommand().execute({ ...value.ctx, flowState: value.flowManager.load(value.specId) });
         },
       };
@@ -4326,7 +4326,6 @@ describe("worker artifact handoff", () => {
         const tree = request.payloads.find((entry) => entry.logicalName === "spec-tests").payloadPath;
         fs.appendFileSync(path.join(tree, "r1.test.js"), `// repaired ${calls}\n`);
         sealWorkerArtifactHandoff({ requestPath, invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID });
-        if (calls === 1) clock = 14_000;
       };
       const first = new RunDispatchCommand({
         nextAction,
@@ -4336,35 +4335,17 @@ describe("worker artifact handoff", () => {
         deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 15_000, reserveMs: 1_000, now: () => clock }),
       });
       first.container = {};
-      const interrupted = await first.execute({
-        ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
-        expectRunId: "run-worker-handoff", expectSpec: value.specId,
-        _envelopeType: "run", _envelopeKey: "dispatch",
-      });
-      assert.equal(interrupted.ok, false);
-      assert.equal(interrupted.errors[0].code, "FLOW_DISPATCH_DEADLINE_RESERVE_REACHED");
-      assert.equal(calls, 1);
-      const progress = JSON.parse(value.flowManager.readArtifact({
-        specId: value.specId, logicalKey: "test.review.repair.progress", consumerNodeId: "test",
-      }).bytes);
-      assert.deepEqual(progress.entries.map((entry) => entry.status), ["done", "pending"]);
-
-      clock = 20_000;
-      const resumed = new RunDispatchCommand({
-        nextAction,
-        agent: { call: worker },
-        repositoryFingerprint: () => "stable-fixture",
-        leaseFactory: () => ({ acquire() {}, release() {} }),
-        deadlineReserve: new runDispatchModule.FlowDispatchDeadlineReserve({ deadline: 30_000, reserveMs: 1_000, now: () => clock }),
-      });
-      resumed.container = {};
-      const completed = await resumed.execute({
+      const completed = await first.execute({
         ...value.ctx, flowState: value.flowManager.load(value.specId), config: { agent: { timeout: 42 } },
         expectRunId: "run-worker-handoff", expectSpec: value.specId,
         _envelopeType: "run", _envelopeKey: "dispatch",
       });
       assert.equal(completed.dispatch.boundary, "completed", JSON.stringify(completed));
-      assert.equal(calls, 2);
+      assert.equal(calls, 1);
+      const progress = JSON.parse(value.flowManager.readArtifact({
+        specId: value.specId, logicalKey: "test.review.repair.progress", consumerNodeId: "test",
+      }).bytes);
+      assert.deepEqual(progress.entries.map((entry) => entry.status), ["done", "done"]);
     } finally {
       removeTmpDir(value.mainRoot);
     }

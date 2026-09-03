@@ -524,11 +524,11 @@ function canonicalWorkerContext(ctx, derived, target, state, typedState) {
     const progress = canonicalTestReviewRepairProgress({
       flowManager: ctx.flowManager, state, repair: testReviewRepair, consumerNodeId: target.stepId,
     });
-    const finding = progress.nextFinding(testReviewRepair);
-    if (finding === null) throw new Error("canonical test-review repair has no pending finding");
-    const testPaths = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state })
-      .testSources(target.stepId).map((source) => source.testPath);
-    extensions.testReviewRepair = testReviewRepair.forFinding(finding.findingId, testPaths);
+    const testSources = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state })
+      .testSources(target.stepId);
+    const batch = progress.nextBatch(testReviewRepair, testSources);
+    if (batch === null) throw new Error("canonical test-review repair has no pending batch");
+    extensions.testReviewRepair = testReviewRepair.forBatch(batch);
   }
   return Object.freeze({ ...context, ...extensions });
 }

@@ -8,6 +8,7 @@
  * a path below the canonical root.
  */
 
+import crypto from "node:crypto";
 import path from "node:path";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
@@ -304,6 +305,59 @@ export class CanonicalWorkerTestTree {
       // Version Store compares it with the catalog under its publication
       // lock before replacing the collection.
       testSourceBaseline: Object.freeze(baseline.entries.map((entry) => Object.freeze({ ...entry }))),
+    });
+  }
+
+  /**
+   * Parent-owned composition for a bounded repair payload.  The worker sees
+   * only allowed files; this method reconstructs the complete canonical tree
+   * from the immutable catalog snapshot and rejects every omission or escape.
+   */
+  repairComposition({ baseline, allowedTestPaths, canonicalEntries }) {
+    if (!(baseline instanceof CanonicalWorkerTestTreeSnapshot) || !Array.isArray(allowedTestPaths) || allowedTestPaths.length === 0 || !Array.isArray(canonicalEntries)) {
+      throw new Error("bounded repair composition requires a snapshot and allowed test paths");
+    }
+    const allowed = new Set(allowedTestPaths.map((entry) => `tests/${requiredPath(entry, "bounded repair allowed test path")}`));
+    const submitted = new Map(this.entries.map((entry) => [entry.address.workerPath, entry]));
+    if ([...submitted].some(([workerPath]) => !allowed.has(workerPath))) {
+      throw new Error("bounded repair output changed a test path outside its capability");
+    }
+    const baselineByPath = new Map(baseline.entries.map((entry) => [entry.targetRelativePath, entry]));
+    for (const workerPath of allowed) {
+      if (!submitted.has(workerPath)) throw new Error(`bounded repair omitted allowed test path: ${workerPath}`);
+    }
+    const canonicalByPath = new Map(canonicalEntries.map((entry) => [`tests/${requiredPath(entry.testPath, "bounded repair canonical test path")}`, entry]));
+    const full = new Map();
+    for (const entry of baseline.entries) {
+      const submittedEntry = submitted.get(entry.targetRelativePath);
+      if (submittedEntry) full.set(entry.targetRelativePath, submittedEntry);
+      else {
+        const address = new CanonicalWorkerArtifactAddress(entry.targetRelativePath);
+        const canonical = canonicalByPath.get(entry.targetRelativePath);
+        if (!canonical || !Buffer.isBuffer(canonical.bytes)) throw new Error(`bounded repair lacks canonical bytes for ${entry.targetRelativePath}`);
+        if (crypto.createHash("sha256").update(canonical.bytes).digest("hex") !== entry.digest) {
+          throw new Error(`bounded repair canonical snapshot changed while composing ${entry.targetRelativePath}`);
+        }
+        full.set(entry.targetRelativePath, { address, bytes: canonical.bytes, mediaType: mediaTypeForPath(entry.targetRelativePath), baseline: entry });
+      }
+    }
+    for (const [workerPath, entry] of submitted) if (!baselineByPath.has(workerPath)) full.set(workerPath, entry);
+    const changedPaths = [];
+    for (const [workerPath, entry] of full) {
+      const before = baselineByPath.get(workerPath) ?? null;
+      const afterDigest = crypto.createHash("sha256").update(entry.bytes).digest("hex");
+      if (before === null || before.digest !== afterDigest) changedPaths.push(Object.freeze({
+        path: workerPath.slice("tests/".length), beforeDigest: before?.digest ?? null, afterDigest,
+      }));
+    }
+    if (changedPaths.length === 0) throw new Error("bounded repair did not change the canonical test tree");
+    return Object.freeze({
+      artifactWrites: Object.freeze([...full.values()].map((entry) => entry.address.publication(entry.bytes, entry.mediaType))),
+      artifactRemovals: Object.freeze([]),
+      // Full-tree CAS remains parent-owned even though only the selected
+      // bounded subset was materialized in the worker payload.
+      testSourceBaseline: Object.freeze(baseline.entries.map((entry) => Object.freeze({ ...entry }))),
+      changedPaths: Object.freeze(changedPaths.sort((left, right) => left.path.localeCompare(right.path))),
     });
   }
 

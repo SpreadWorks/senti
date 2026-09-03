@@ -25,6 +25,10 @@ import {
 } from "../../../src/flow/lib/run-review.js";
 import { parseTestReviewFindings } from "../../../src/flow/commands/review.js";
 import {
+  TestReviewRepairFinding,
+  TestReviewRepairScope,
+} from "../../../src/flow/lib/test-review-repair.js";
+import {
   CanonicalSpecReview,
   SpecReviewDelta,
 } from "../../../src/flow/lib/spec-review-artifacts.js";
@@ -388,9 +392,11 @@ describe("ReviewWorkUnit", () => {
         issue: "The header declares R1 but there is no matching test name.",
         requiredChange: "Add an R1 test name to a.test.js.",
         whyBlocking: "Coverage evidence is inconsistent.",
+        testPaths: ["a.test.js"],
       }, {
         title: "AI found an incomplete behavior",
         target: "GLOBAL",
+        createTestPaths: ["new-behavior.test.js"],
         issue: "The test suite omits an observable behavior.",
         requiredChange: "Add the missing behavior assertion.",
         whyBlocking: "The acceptance premise is not executable.",
@@ -411,6 +417,19 @@ describe("ReviewWorkUnit", () => {
     });
     const sealed = promotion.sealedArtifact();
     assert.deepEqual(sealed.artifact.blockingFindings.map((finding) => finding.target), ["a.test.js:R1", "GLOBAL"]);
+    assert.deepEqual(sealed.artifact.blockingFindings[0].testPaths, ["a.test.js"]);
+    const resolved = new TestReviewRepairScope({
+      finding: new TestReviewRepairFinding(sealed.artifact.blockingFindings[0]),
+      testPaths: ["a.test.js"],
+    });
+    assert.deepEqual(resolved.allowedTestPaths, ["a.test.js"]);
+    assert.deepEqual(sealed.artifact.blockingFindings[1].createTestPaths, ["new-behavior.test.js"]);
+    const create = new TestReviewRepairScope({
+      finding: new TestReviewRepairFinding(sealed.artifact.blockingFindings[1]),
+      testPaths: ["a.test.js"],
+    });
+    assert.equal(create.operation, "create");
+    assert.deepEqual(create.allowedTestPaths, ["new-behavior.test.js"]);
     assert.deepEqual(sealed.artifact.blockingFindings.map((finding) => finding.requiredChange), [
       "Add an R1 test name to a.test.js.",
       "Add the missing behavior assertion.",
