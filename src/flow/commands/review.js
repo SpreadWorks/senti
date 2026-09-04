@@ -74,6 +74,7 @@ import {
   contractFromTestReviewArtifact,
 } from "../lib/flow-judgment-contract.js";
 import { CanonicalCommandAttemptArtifactHistory } from "../lib/canonical-command-result.js";
+import { TaskReviewConvergenceEvidence } from "../lib/review-recurrence.js";
 import {
   FindingDispositionPolicy,
   MustFixDisposition,
@@ -1273,7 +1274,14 @@ function loadPreviousImplReviewMemory({ flowManager, flow, taskId = null } = {})
   }).toPromptMemory();
 }
 
-function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null, taskContext = null, taskReviewAttempt = null, taskNoChangeReasons = [] } = {}) {
+/** Exact Task Review recurrence candidates derived from canonical history. */
+function taskReviewRecurrenceHistory({ flowManager, flow, taskId, cycle }) {
+  return new TaskReviewConvergenceEvidence({ flowManager, state: flow, cycle })
+    .recurrenceHistory(taskId)
+    .toJSON();
+}
+
+function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null, taskContext = null, taskReviewAttempt = null, taskNoChangeReasons = [], taskReviewRecurrenceHistory = [] } = {}) {
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   const responseSchema = buildImplReviewResponseSchema(allowedRequirementIds);
   const touched = Array.from(touchedFiles instanceof Set ? touchedFiles : new Set(touchedFiles)).sort();
@@ -1337,6 +1345,7 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
         "Edit only files in Touched Files. Do not add unrelated paths and do not edit for informational findings.",
         "Do not run tests. Re-read each edited file before returning.",
         "Keep repaired findings in blockingFindings so the parent can bind every mutation to the finding that owned it.",
+        "When the exact stable identity (findingKey and target fields) appears in Task Review Recurrence History, rationale must state why the prior repair was insufficient and suggestion must state this repair's distinct strategy. Do not infer a recurrence from a matching findingKey or similar prose alone.",
         taskReviewAttempt === 4
           ? "This is the fourth Review: finish all must-fix repairs now; the parent proceeds directly to Task Gate after validating their mutation manifest."
           : "The parent will run another Task Review after validating this repair manifest.",
@@ -1345,6 +1354,9 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
       pb.addUserPrompt("## Declared No-Change Reasons", taskNoChangeReasons.join("\n"));
     }
     pb.addUserPrompt("## Canonical Task Context", JSON.stringify(taskContext, null, 2));
+    if (taskReviewRecurrenceHistory.length > 0) {
+      pb.addUserPrompt("## Task Review Recurrence History", JSON.stringify(taskReviewRecurrenceHistory, null, 2));
+    }
   }
   if (previousReview) {
     pb.addUserPrompt("## Previous Impl Review Memory", JSON.stringify(previousReview, null, 2));
@@ -4486,6 +4498,9 @@ async function runReview(rawArgs) {
   const taskReviewAttempt = taskSpec
     ? canonicalTaskReviewAttempt({ flowManager, flow, taskId: taskSpec.task.id })
     : null;
+  const taskReviewRecurrences = taskSpec
+    ? taskReviewRecurrenceHistory({ flowManager, flow, taskId: taskSpec.task.id, cycle })
+    : [];
   const requirementIds = taskSpec
     ? new Set(taskSpec.context.requirements.map((requirement) => requirement.id))
     : resolveRequirementIds(spec);
@@ -4516,6 +4531,7 @@ async function runReview(rawArgs) {
         taskContext: taskSpec?.context ?? null,
         taskReviewAttempt,
         taskNoChangeReasons: taskSpec?.source?.noChangeReasons ?? [],
+        taskReviewRecurrenceHistory: taskReviewRecurrences,
       });
       const reviewAgent = ensureAgent("flow.impl.review.propose");
       return callReviewAgent(
@@ -4619,7 +4635,7 @@ export {
   extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt,
   formatSpecReviewMd, formatSpecReviewDelta, parseSpecReviewFindings,
   buildImplReviewPrompt, parseImplReviewFindings, filterImplReviewFindingsByScope,
-  formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory, priorImplReviewFingerprintCounts,
+  formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory, priorImplReviewFingerprintCounts, taskReviewRecurrenceHistory,
   runImplReview,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt,

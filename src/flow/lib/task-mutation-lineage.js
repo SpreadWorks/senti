@@ -13,6 +13,11 @@ const digest = (value, field) => {
   if (!SHA.test(result)) throw new Error(`${field} must be a SHA-256 digest`);
   return result;
 };
+const deepFreeze = (value) => {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.values(value).forEach(deepFreeze);
+  return Object.freeze(value);
+};
 
 /** Immutable lineage of one Task source Attempt. */
 export class TaskExecutionBudget {
@@ -188,6 +193,52 @@ export class TaskReviewRepairManifest {
       sourceFingerprint: this.manifest.digest,
       manifest: this.manifest.toJSON(),
     });
+  }
+}
+
+/**
+ * Read-only projection of the terminal Task Review boundary.  Its inputs are
+ * the canonical review result and the already-published mutation lineage; it
+ * intentionally owns no sidecar history or duplicate finding storage.
+ */
+export class TaskReviewAcceptanceHandoff {
+  constructor({ taskId, review, lineage, reviewAttempt, cumulativeAttempt, unreviewedAfterRepair = true } = {}) {
+    this.taskId = text(taskId, "Task Review acceptance handoff taskId");
+    if (review === null || typeof review !== "object" || Array.isArray(review)) {
+      throw new Error("Task Review acceptance handoff requires a review artifact");
+    }
+    if (review.taskId !== this.taskId || review.verdict !== "REJECTED"
+      || review.canonicalTaskSource?.reviewRepairComplete !== true) {
+      throw new Error("Task Review acceptance handoff requires the fourth repaired rejected review");
+    }
+    if (!(lineage instanceof TaskMutationLineage) || lineage.taskId !== this.taskId || lineage.role !== "review-repair") {
+      throw new Error("Task Review acceptance handoff requires its Task review-repair lineage");
+    }
+    if (review.canonicalTaskSource.reviewRepairLineageFingerprint !== lineage.fingerprint) {
+      throw new Error("Task Review acceptance handoff review does not bind its repair lineage");
+    }
+    if (!Number.isSafeInteger(cumulativeAttempt) || cumulativeAttempt !== lineage.attempt.sequence) {
+      throw new Error("Task Review acceptance handoff Attempt does not bind its repair lineage");
+    }
+    if (!Number.isSafeInteger(reviewAttempt) || reviewAttempt !== 4) {
+      throw new Error("Task Review acceptance handoff requires local fourth-review accounting");
+    }
+    this.reviewAttempt = reviewAttempt;
+    this.reviewArtifact = deepFreeze(structuredClone(review));
+    this.repair = deepFreeze(lineage.toJSON());
+    if (typeof unreviewedAfterRepair !== "boolean") throw new Error("Task Review acceptance handoff unreviewedAfterRepair must be boolean");
+    this.unreviewedAfterRepair = unreviewedAfterRepair;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      taskId: this.taskId,
+      reviewAttempt: this.reviewAttempt,
+      unreviewedAfterRepair: this.unreviewedAfterRepair,
+      findings: structuredClone(this.reviewArtifact.blockingFindings || []),
+      repair: structuredClone(this.repair),
+    };
   }
 }
 

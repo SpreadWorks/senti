@@ -2825,20 +2825,23 @@ export class CurrentFailureDisposition {
 /** A definition-owned review continuation projected from persisted facts. */
 export class DefinitionReviewDisposition {
   constructor({ operation, phase = null, attempts = null, maxAttempts = null, sourceFingerprints = [] } = {}) {
-    if (!["repair-test-review", "repair-evidence-blocked", "repair-no-change-task-impl", "task-rounds-exhausted", "retry", "defer", "external-blocked", "blocked"].includes(operation)) {
+    if (!["repair-test-review", "repair-evidence-blocked", "repair-no-change-task-impl", "task-rounds-exhausted", "task-review-gate-handoff", "retry", "defer", "external-blocked", "blocked"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("review disposition operation is invalid");
     }
     this.operation = operation;
     this.phase = phase == null ? null : requireString(phase, "review disposition phase");
-    if (["blocked", "defer", "task-rounds-exhausted"].includes(operation)) {
+    if (["blocked", "defer", "task-rounds-exhausted", "task-review-gate-handoff"].includes(operation)) {
       if (!Number.isSafeInteger(attempts) || attempts < 0) {
-      throw new CurrentFlowStateInvariantError("bounded review disposition attempts must be non-negative");
+        throw new CurrentFlowStateInvariantError("bounded review disposition attempts must be non-negative");
       }
       if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
         throw new CurrentFlowStateInvariantError("bounded review disposition maxAttempts must be positive");
       }
     } else if (attempts !== null || maxAttempts !== null) {
       throw new CurrentFlowStateInvariantError("non-exhausted review disposition must not include retry accounting");
+    }
+    if (operation === "task-review-gate-handoff" && attempts !== maxAttempts) {
+      throw new CurrentFlowStateInvariantError("Task Review Gate handoff requires the maximum Review Attempt");
     }
     if (!Array.isArray(sourceFingerprints) || sourceFingerprints.some((value) => (
       typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)

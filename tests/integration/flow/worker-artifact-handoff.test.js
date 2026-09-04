@@ -1857,6 +1857,55 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("preserves a recurring implementation repair rationale and distinct strategy", () => {
+    const document = {
+      version: 1, stepId: "impl-repair", completionStatus: "done",
+      files: [{ requirementId: "R1", paths: ["product.js"] }], issues: [], overview: null, triage: null, noChangeReason: null,
+      repair: {
+        version: 1, appliedFindingKeys: ["F1"], summary: "Applied the reviewed correction with an additional boundary check.",
+        recurrenceResolutions: [{
+          findingKey: "F1",
+          fingerprint: "a".repeat(64),
+          priorRepairInsufficiency: "The earlier change covered only the direct branch and missed its caller.",
+          repairStrategy: "Validate the shared boundary before both callers reach the branch.",
+        }],
+      },
+    };
+    assert.deepEqual(validateSchema(document, sourceWorkerEffectJsonSchema("impl-repair")), []);
+    const repair = SourceWorkerEffectReport.fromDocument(document, "impl-repair").repair;
+    assert.deepEqual(repair.toJSON(), document.repair);
+    const recurrence = { entries: [{ findingKey: "F1", fingerprint: "a".repeat(64) }] };
+    assert.strictEqual(repair.assertRecurrenceResolutions(recurrence), repair);
+    assert.throws(
+      () => repair.assertRecurrenceResolutions({ entries: [] }),
+      /must exactly match canonical recurrence context/,
+    );
+    const ordinaryRepair = SourceWorkerEffectReport.fromDocument({
+      ...document,
+      repair: {
+        version: 1,
+        appliedFindingKeys: ["F1"],
+        summary: "Applied a first-occurrence implementation repair.",
+      },
+    }, "impl-repair").repair;
+    assert.throws(
+      () => ordinaryRepair.assertRecurrenceResolutions(recurrence),
+      /must exactly match canonical recurrence context/,
+    );
+  });
+
+  it("binds implementation recurrence evidence into the impl-repair handoff identity", () => {
+    const contract = workerArtifactHandoffPolicy("impl-repair").inputContract;
+    assert.deepEqual(contract.resolve(), [
+      "spec.json",
+      "impl-review.json",
+      "impl-triage.json",
+      "impl-review-recurrence.json",
+    ]);
+    assert.equal(contract.accepts(["spec.json", "impl-review.json", "impl-triage.json", "impl-review-recurrence.json"]), true);
+    assert.equal(contract.accepts(["spec.json", "impl-review.json", "impl-triage.json"]), false);
+  });
+
   it("describes the many-to-many source requirement-to-path claim contract in every mutating worker schema", () => {
     for (const stepId of ["implement", "impl-repair", "task-impl"]) {
       const files = sourceWorkerEffectJsonSchema(stepId).properties.files;

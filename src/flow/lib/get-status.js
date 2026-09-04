@@ -23,6 +23,8 @@ import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { FlowFindingsArtifact } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
+import { ReviewFindingCycle } from "./finding-disposition-policy.js";
+import { ImplementationReviewRepairRecurrence, TaskReviewConvergenceEvidence } from "./review-recurrence.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { advisorySummary } from "./nonblocking.js";
 import { CanonicalSpecRecord } from "./canonical-spec-record.js";
@@ -211,6 +213,7 @@ class CanonicalStatusArtifacts {
       throw new Error("canonical status requires a Version-1 Flow state");
     }
     this.flowManager = flowManager;
+    this.state = state;
     this.specId = state.specId;
     this.runId = state.runId;
     Object.freeze(this);
@@ -270,6 +273,27 @@ class CanonicalStatusArtifacts {
       sourceSteps: [...new Set(entries.map((entry) => entry.sourceStep))],
       artifactPath: resolved.relativePath,
     };
+  }
+
+  taskReviewConvergence() {
+    const cycle = ReviewFindingCycle.fromActivityLedger({
+      runId: this.runId,
+      activities: this.flowManager.activityLedger(this.specId),
+    });
+    return new TaskReviewConvergenceEvidence({ flowManager: this.flowManager, state: this.state, cycle }).status();
+  }
+
+  implementationReviewConvergence() {
+    if (typeof this.flowManager.readArtifact !== "function") return null;
+    const cycle = ReviewFindingCycle.fromActivityLedger({
+      runId: this.runId,
+      activities: this.flowManager.activityLedger(this.specId),
+    });
+    return new ImplementationReviewRepairRecurrence({
+      flowManager: this.flowManager,
+      state: this.state,
+      cycle,
+    }).status();
   }
 }
 
@@ -357,6 +381,8 @@ function buildStatusOutput(state, root, options = {}) {
       artifactPath: FLOW_ARTIFACT_CONTRACTS.resolve("flow.findings").relativePath,
     };
   const finalRegression = finalRegressionStatus(artifacts?.finalRegression() ?? null);
+  const taskReviewConvergence = artifacts?.taskReviewConvergence() ?? [];
+  const implementationReviewConvergence = artifacts?.implementationReviewConvergence() ?? null;
   const completion = new FlowCompletion(state);
   const advisory = advisorySummary(state);
 
@@ -375,6 +401,8 @@ function buildStatusOutput(state, root, options = {}) {
     requirementsProgress: { mapped: mappedReqs, total: totalReqs },
     ...(deferredFindings.count > 0 && { deferredFindings }),
     ...(finalRegression && { finalRegression }),
+    ...(taskReviewConvergence.length > 0 && { taskReviewConvergence }),
+    ...(implementationReviewConvergence !== null && { implementationReviewConvergence }),
     ...(recoveryDiagnostics && { recoveryDiagnostics }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,

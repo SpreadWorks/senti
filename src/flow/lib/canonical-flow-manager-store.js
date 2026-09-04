@@ -72,6 +72,7 @@ import {
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { CanonicalImplementationRepairRecord } from "./review-recurrence.js";
 import {
   buildDeferredSemanticFindingsPublication,
   DeferredFlowFindingsPublication,
@@ -2991,10 +2992,14 @@ export class CanonicalFlowManagerStore {
       artifactWrites.push({ logicalKey: "issue.log", mediaType: "application/json", bytes: Buffer.from(`${JSON.stringify(issues.toJSON(), null, 2)}\n`, "utf8") });
     }
     if (effect.repair !== null) {
+      const repairRecord = CanonicalImplementationRepairRecord.capture({
+        repair: effect.repair,
+        mutationManifest,
+      });
       artifactWrites.push({
         logicalKey: "impl.repair",
         mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(effect.repair.toJSON(), null, 2)}\n`, "utf8"),
+        bytes: Buffer.from(`${JSON.stringify(repairRecord.toJSON(), null, 2)}\n`, "utf8"),
       });
       return this.runtime.repairImplementation({
         specId: resolved,

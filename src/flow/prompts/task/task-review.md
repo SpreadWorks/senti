@@ -17,7 +17,7 @@ Use this guidance for the per-task code review step. It is scoped to the current
   5. Record repair evidence with `sennel flow set issue-log --step task-review --normalized-finding-id <findingId> --repair-ref-file <path> --task-id <taskId> --reason <text>`. A requirement/guardrail must-fix finding cannot pass `task-gate` without an exact finding id, task scope, and repair reference.
 - **If verdict is `PASS` or `ADVISORY`**: Display "レビューの結果、修正の必要はありませんでした。"
 - **Retry limit:** Each `sennel flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces the task-scope `maxAttempts` from `TASK_DEFINITION`.
-- **Fourth Review behavior:** Correct the fourth Review's `must-fix` findings in that invocation, persist the finding and source-mutation fingerprints, and continue to `task-gate` without a fifth Review. Review findings are never passed to Gate repair and are not deferred to Acceptance.
+- **Fourth Review behavior:** Correct the fourth Review's `must-fix` findings in that invocation, persist the finding and source-mutation fingerprints, and continue to `task-gate` without a fifth Review. Task Gate validates the repair. Acceptance receives the fourth Review finding, its mutation-lineage repair evidence, and the explicit fact that no post-repair Task Review was run; Acceptance makes the final semantic judgment.
 - **Recovery:** Use `review` for review recovery and `gate` for gate recovery: `sennel flow set retry reset <gate|review> <phase> --reason <text> --yes`. The reason is required and audited, one re-evaluation is granted, and unchanged evidence is rejected.
 - On complete, the next-action CLI advances to `task-gate`.
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

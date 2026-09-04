@@ -19,6 +19,7 @@ import {
   TaskMutationLineage,
   TaskMutationLineageSet,
   TaskReviewRepairManifest,
+  TaskReviewAcceptanceHandoff,
   captureCurrentTaskSource,
 } from "../../../src/flow/lib/task-mutation-lineage.js";
 import {
@@ -868,7 +869,19 @@ describe("canonical Task context", () => {
     };
     const fourth = new TaskReviewRepairManifest({ lineageSet, baseline, manifest, artifact, attemptCount: 4 });
     assert.equal(fourth.complete, true);
-    assert.equal(fourth.lineage({ attempt: reviewAttempt }).role, "review-repair");
+    const reviewLineage = fourth.lineage({ attempt: reviewAttempt });
+    assert.equal(reviewLineage.role, "review-repair");
+    const handoffReview = {
+      taskId: "T-1", verdict: "REJECTED", blockingFindings: [],
+      canonicalTaskSource: { reviewRepairComplete: true, reviewRepairLineageFingerprint: reviewLineage.fingerprint },
+    };
+    assert.equal(new TaskReviewAcceptanceHandoff({
+      taskId: "T-1", review: handoffReview, lineage: reviewLineage, reviewAttempt: 4, cumulativeAttempt: 4,
+    }).unreviewedAfterRepair, true);
+    assert.throws(() => new TaskReviewAcceptanceHandoff({
+      taskId: "T-1", review: { ...handoffReview, canonicalTaskSource: { ...handoffReview.canonicalTaskSource, reviewRepairLineageFingerprint: "f".repeat(64) } },
+      lineage: reviewLineage, reviewAttempt: 4, cumulativeAttempt: 4,
+    }), /does not bind its repair lineage/);
     assert.equal(new TaskReviewRepairManifest({ lineageSet, baseline, manifest, artifact, attemptCount: 1 }).complete, false);
 
     const unchangedBaseline = SourceMutationBaseline.capture({
