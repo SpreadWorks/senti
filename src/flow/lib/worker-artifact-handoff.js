@@ -854,10 +854,14 @@ export class SourceRepairEffect {
     const recurrenceByFingerprint = new Map(recurring.map((entry) => (
       [entry.fingerprint, entry.findingKey]
     )));
+    const recurrenceFindingKeys = [...recurrenceByFingerprint.values()];
     if (
-      recurrenceByFingerprint.size !== this.recurrenceResolutions.length
+      recurrenceByFingerprint.size !== recurring.length
+      || recurrenceFindingKeys.some((findingKey) => !this.appliedFindingKeys.includes(findingKey))
+      || recurrenceByFingerprint.size !== this.recurrenceResolutions.length
       || this.recurrenceResolutions.some((entry) => (
         recurrenceByFingerprint.get(entry.fingerprint) !== entry.findingKey
+        || !this.appliedFindingKeys.includes(entry.findingKey)
       ))
     ) {
       throw new Error("implementation repair recurrence resolutions must exactly match canonical recurrence context");

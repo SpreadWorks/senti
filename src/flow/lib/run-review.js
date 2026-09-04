@@ -57,6 +57,8 @@ import {
   SourceMutationManifest,
 } from "./worker-artifact-handoff.js";
 import { CanonicalTaskContext } from "./task-canonical-context.js";
+import { ReviewFindingCycle } from "./finding-disposition-policy.js";
+import { TaskReviewConvergenceEvidence } from "./review-recurrence.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "REJECTED"]);
@@ -77,6 +79,33 @@ const REVIEW_NODE_ID_BY_PHASE = Object.freeze(Object.fromEntries(
 ));
 
 const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
+
+/** Validate recurrence claims against only canonical prior Task Review history. */
+function assertTaskReviewRecurrenceExplanation({ artifact, flowManager, state, taskId }) {
+  const cycle = ReviewFindingCycle.fromActivityLedger({
+    runId: state.runId,
+    activities: flowManager.activityLedger(state.specId),
+  });
+  const recurrence = new TaskReviewConvergenceEvidence({ flowManager, state, cycle })
+    .recurrenceHistory(taskId);
+  const expected = new Map(recurrence.entries.map((entry) => [entry.fingerprint, entry]));
+  for (const finding of [
+    ...(artifact.blockingFindings || []),
+    ...(artifact.nonBlockingImprovements || []),
+  ]) {
+    const hasInsufficiency = typeof finding?.priorRepairInsufficiency === "string";
+    const hasStrategy = typeof finding?.repairStrategy === "string";
+    const prior = expected.get(finding?.fingerprint) ?? null;
+    if (prior === null && (hasInsufficiency || hasStrategy)) {
+      throw new Error("Task Review recurrence explanation has no exact canonical prior finding");
+    }
+    if (prior !== null && (!hasInsufficiency || !hasStrategy
+      || finding.priorRepairInsufficiency.trim() === "" || finding.repairStrategy.trim() === ""
+      || finding.findingKey !== prior.findingKey)) {
+      throw new Error("recurring Task Review finding requires an exact prior insufficiency and repair strategy");
+    }
+  }
+}
 
 function persistedPhaseKey(ctxPhase) {
   return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;
@@ -122,7 +151,7 @@ function reviewPhaseKeyForCtx(ctx, phase) {
   return resolveDraftReviewPhaseKey(ctx?.flowState || {});
 }
 
-export { REVIEW_PHASE_KEYS };
+export { REVIEW_PHASE_KEYS, assertTaskReviewRecurrenceExplanation };
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review", commandId: "flow.test.review" },
@@ -771,6 +800,12 @@ export class RunReviewCommand extends FlowCommand {
         taskSource: workUnit.taskSource,
       });
       if (taskId !== null) {
+        assertTaskReviewRecurrenceExplanation({
+          artifact: promotion.sealedArtifact().artifact,
+          flowManager: ctx.flowManager,
+          state,
+          taskId,
+        });
         const lineageSet = new TaskMutationLineageSet({
           runId: state.runId,
           specId: state.specId,

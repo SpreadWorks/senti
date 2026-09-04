@@ -1892,6 +1892,28 @@ describe("worker artifact handoff", () => {
       () => ordinaryRepair.assertRecurrenceResolutions(recurrence),
       /must exactly match canonical recurrence context/,
     );
+    const mixedTriageRepair = SourceWorkerEffectReport.fromDocument({
+      ...document,
+      repair: {
+        ...document.repair,
+        appliedFindingKeys: ["F1"],
+        recurrenceResolutions: [{
+          ...document.repair.recurrenceResolutions[0],
+          findingKey: "F2",
+          fingerprint: "b".repeat(64),
+        }],
+      },
+    }, "impl-repair").repair;
+    assert.throws(
+      () => mixedTriageRepair.assertRecurrenceResolutions({
+        entries: [
+          { findingKey: "F1", fingerprint: "a".repeat(64) },
+          { findingKey: "F2", fingerprint: "b".repeat(64) },
+        ],
+      }),
+      /must exactly match canonical recurrence context/,
+      "a triage-rejected recurring finding is neither a repair obligation nor a valid resolution",
+    );
   });
 
   it("binds implementation recurrence evidence into the impl-repair handoff identity", () => {

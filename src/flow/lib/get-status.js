@@ -24,7 +24,7 @@ import { FlowFindingsArtifact } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { ReviewFindingCycle } from "./finding-disposition-policy.js";
-import { ImplementationReviewRepairRecurrence, TaskReviewConvergenceEvidence } from "./review-recurrence.js";
+import { ImplementationReviewRecurrenceStatus, TaskReviewConvergenceEvidence } from "./review-recurrence.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { advisorySummary } from "./nonblocking.js";
 import { CanonicalSpecRecord } from "./canonical-spec-record.js";
@@ -289,11 +289,11 @@ class CanonicalStatusArtifacts {
       runId: this.runId,
       activities: this.flowManager.activityLedger(this.specId),
     });
-    return new ImplementationReviewRepairRecurrence({
+    return ImplementationReviewRecurrenceStatus.fromCanonical({
       flowManager: this.flowManager,
       state: this.state,
       cycle,
-    }).status();
+    }).toJSON();
   }
 }
 

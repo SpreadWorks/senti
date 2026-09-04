@@ -48,6 +48,10 @@ function reviewFindingEvidence(finding) {
     issue: finding.issue,
     suggestion: finding.suggestion,
     rationale: finding.rationale,
+    ...(typeof finding.priorRepairInsufficiency === "string" ? {
+      priorRepairInsufficiency: finding.priorRepairInsufficiency,
+    } : {}),
+    ...(typeof finding.repairStrategy === "string" ? { repairStrategy: finding.repairStrategy } : {}),
   };
 }
 
@@ -303,8 +307,12 @@ function taskReviewRecords({ flowManager, state }) {
     });
 }
 
-function taskRepairEvidence(lineage) {
+function taskRepairEvidence(lineage, finding) {
   return {
+    // Task Review itself performs the repair.  Its prior suggestion is the
+    // canonical repair instruction; keep it with the observed mutation rather
+    // than creating a recurrence-only history record.
+    priorRepairContent: finding.suggestion,
     mutations: lineage.manifest.mutations.map(({ path, beforeDigest, afterDigest }) => ({
       path,
       beforeDigest,
@@ -351,7 +359,7 @@ export class TaskReviewConvergenceEvidence {
         previous.push(new ReviewRecurrenceOccurrence({
           attempt: review.attempt,
           finding: reviewFindingEvidence(finding),
-          repair: taskRepairEvidence(repair),
+          repair: taskRepairEvidence(repair, finding),
         }));
         grouped.set(finding.fingerprint, previous);
       }
@@ -484,6 +492,40 @@ function currentImplementationRepair({ flowManager, state, activities }) {
   return Object.freeze({ record, descriptor: source.descriptor, activity });
 }
 
+function currentImplementationTriage({ flowManager, state, activities }) {
+  const source = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "impl.triage",
+    consumerNodeId: "impl-repair",
+    optional: true,
+  });
+  if (source === null) return null;
+  const activity = activityForDescriptor({
+    descriptor: source.descriptor,
+    activities,
+    label: "canonical implementation triage",
+  });
+  if (activity.nodeId !== "impl-triage"
+    || activity.transition?.operation !== "triage_implementation_for_repair") {
+    throw new Error("canonical implementation triage lacks its repair-route Activity lineage");
+  }
+  const value = JSON.parse(source.bytes.toString("utf8"));
+  if (!Array.isArray(value?.dispositions)) {
+    throw new Error("canonical implementation triage dispositions are invalid");
+  }
+  const appliedFindingKeys = value.dispositions
+    .filter((entry) => entry?.disposition === "apply")
+    .map((entry) => requiredText(entry?.findingKey, "canonical implementation triage findingKey"));
+  if (new Set(appliedFindingKeys).size !== appliedFindingKeys.length) {
+    throw new Error("canonical implementation triage applies duplicate finding keys");
+  }
+  const activityFindingKeys = activity.references?.findings?.map((entry) => entry.id) ?? [];
+  if (!containsStringMembers(activityFindingKeys, appliedFindingKeys)) {
+    throw new Error("canonical implementation triage apply set lacks its Activity finding lineage");
+  }
+  return Object.freeze({ value: deepFreeze(structuredClone(value)), descriptor: source.descriptor, activity, appliedFindingKeys: Object.freeze(appliedFindingKeys) });
+}
+
 function sameStringMembers(left, right) {
   return left.length === right.length && new Set(left).size === left.length
     && left.every((entry) => right.includes(entry));
@@ -504,9 +546,12 @@ export class ImplementationReviewRepairRecurrence {
     this.activities = Object.freeze(flowManager.activityLedger(state.specId));
     this.reviewEvidence = implementationReviewHistory({ flowManager, state, activities: this.activities });
     this.attemptHistory = this.reviewEvidence?.history ?? null;
-    this.currentRepair = this.attemptHistory === null
+    this.precedingRepair = this.attemptHistory === null
       ? null
       : currentImplementationRepair({ flowManager, state, activities: this.activities });
+    this.currentTriage = this.attemptHistory === null
+      ? null
+      : currentImplementationTriage({ flowManager, state, activities: this.activities });
     this.history = this.#deriveHistory();
     Object.freeze(this);
   }
@@ -514,10 +559,16 @@ export class ImplementationReviewRepairRecurrence {
   #deriveHistory() {
     if (
       this.attemptHistory === null
-      || this.currentRepair === null
       || this.attemptHistory.attempts.length < 2
       || !this.cycle.matchesArtifact(this.attemptHistory.current.payload)
     ) {
+      return new ReviewRecurrenceHistory({ scope: "implementation" });
+    }
+    // A completed current repair follows the current Review.  It is useful to
+    // status and later gates, but cannot be predecessor evidence for another
+    // repair worker, so the worker-only projection is deliberately empty.
+    if (this.precedingRepair === null || this.currentTriage === null
+      || this.precedingRepair.activity.confirmationOrder >= this.reviewEvidence.activity.confirmationOrder) {
       return new ReviewRecurrenceHistory({ scope: "implementation" });
     }
     const previousReview = this.attemptHistory.attempts.at(-2);
@@ -529,28 +580,31 @@ export class ImplementationReviewRepairRecurrence {
       && activity.sequence === previousReview.attempt
       && activity.confirmationOrder < this.reviewEvidence.activity.confirmationOrder
     )) ?? null;
-    const repairActivity = this.currentRepair.activity;
-    const triageActivity = this.activities.findLast((activity) => (
+    const repairActivity = this.precedingRepair.activity;
+    const precedingTriageActivity = this.activities.findLast((activity) => (
       activity.nodeId === "impl-triage"
       && activity.transition?.operation === "triage_implementation_for_repair"
       && activity.confirmationOrder > (previousReviewActivity?.confirmationOrder ?? Number.MAX_SAFE_INTEGER)
       && activity.confirmationOrder < repairActivity.confirmationOrder
     )) ?? null;
     const repairFindingKeys = repairActivity.references?.findings?.map((entry) => entry.id) ?? [];
-    const triageFindingKeys = triageActivity?.references?.findings?.map((entry) => entry.id) ?? [];
+    const precedingTriageFindingKeys = precedingTriageActivity?.references?.findings?.map((entry) => entry.id) ?? [];
+    const currentTriageActivity = this.currentTriage.activity;
     if (previousReviewActivity === null
       || previousReviewActivity.confirmationOrder >= repairActivity.confirmationOrder
       || repairActivity.confirmationOrder >= this.reviewEvidence.activity.confirmationOrder
-      || triageActivity === null
-      || !sameStringMembers(repairFindingKeys, this.currentRepair.record.appliedFindingKeys)
-      || !containsStringMembers(triageFindingKeys, this.currentRepair.record.appliedFindingKeys)) {
+      || precedingTriageActivity === null
+      || currentTriageActivity.confirmationOrder <= this.reviewEvidence.activity.confirmationOrder
+      || !sameStringMembers(repairFindingKeys, this.precedingRepair.record.appliedFindingKeys)
+      || !containsStringMembers(precedingTriageFindingKeys, this.precedingRepair.record.appliedFindingKeys)) {
       throw new Error("implementation recurrence repair is not bound to the immediately preceding Review lineage");
     }
     const entries = [];
     for (const finding of this.attemptHistory.current.payload.blockingFindings || []) {
       if (
         !isFingerprint(finding?.fingerprint)
-        || !this.currentRepair.record.appliedFindingKeys.includes(finding.findingKey)
+        || !this.currentTriage.appliedFindingKeys.includes(finding.findingKey)
+        || !this.precedingRepair.record.appliedFindingKeys.includes(finding.findingKey)
       ) {
         continue;
       }
@@ -571,7 +625,7 @@ export class ImplementationReviewRepairRecurrence {
         previous: [new ReviewRecurrenceOccurrence({
           attempt: previousReview.attempt,
           finding: reviewFindingEvidence(previousFinding),
-          repair: this.currentRepair.record.toRecurrenceEvidence(repairActivity),
+          repair: this.precedingRepair.record.toRecurrenceEvidence(repairActivity),
         })],
       }));
     }
@@ -583,38 +637,51 @@ export class ImplementationReviewRepairRecurrence {
   }
 
   status() {
+    return new ImplementationReviewRecurrenceStatus({ attemptHistory: this.attemptHistory, cycle: this.cycle }).toJSON();
+  }
+}
+
+/** Read-only status projection. It intentionally has no repair-lineage role. */
+export class ImplementationReviewRecurrenceStatus {
+  constructor({ attemptHistory, cycle } = {}) {
+    if (attemptHistory !== null && !(attemptHistory instanceof CanonicalCommandAttemptArtifactHistory)) {
+      throw new Error("implementation recurrence status requires canonical Review history");
+    }
+    if (!(cycle instanceof ReviewFindingCycle)) {
+      throw new Error("implementation recurrence status requires a ReviewFindingCycle");
+    }
+    this.attemptHistory = attemptHistory;
+    this.cycle = cycle;
+    Object.freeze(this);
+  }
+
+  static fromCanonical({ flowManager, state, cycle } = {}) {
+    const activities = flowManager.activityLedger(state.specId);
+    return new ImplementationReviewRecurrenceStatus({
+      attemptHistory: implementationReviewHistory({ flowManager, state, activities })?.history ?? null,
+      cycle,
+    });
+  }
+
+  toJSON() {
     if (this.attemptHistory === null) return null;
     const current = this.attemptHistory.current.payload;
-    if (!this.cycle.matchesArtifact(current)) {
-      return { recurringFindings: [], finalVerdict: null };
-    }
+    if (!this.cycle.matchesArtifact(current)) return { recurringFindings: [], finalVerdict: null };
     const occurrences = new Map();
     for (const review of this.attemptHistory.attempts) {
       if (!this.cycle.matchesArtifact(review.payload)) continue;
       const seen = new Set();
       for (const finding of review.payload?.blockingFindings || []) {
         if (!isFingerprint(finding?.fingerprint) || seen.has(finding.fingerprint)) continue;
-        const previous = occurrences.get(finding.fingerprint) ?? {
-          findingId: finding.findingId,
-          fingerprint: finding.fingerprint,
-          count: 0,
-        };
-        occurrences.set(finding.fingerprint, {
-          findingId: finding.findingId,
-          fingerprint: finding.fingerprint,
-          count: previous.count + 1,
-        });
+        const previous = occurrences.get(finding.fingerprint) ?? { findingId: finding.findingId, fingerprint: finding.fingerprint, count: 0 };
+        occurrences.set(finding.fingerprint, { findingId: finding.findingId, fingerprint: finding.fingerprint, count: previous.count + 1 });
         seen.add(finding.fingerprint);
       }
     }
     return {
-      recurringFindings: [...occurrences.values()]
-        .filter((entry) => entry.count > 1)
-        .map((entry) => ({
-          findingId: entry.findingId,
-          fingerprint: entry.fingerprint,
-          recurrenceCount: entry.count - 1,
-        })),
+      recurringFindings: [...occurrences.values()].filter((entry) => entry.count > 1).map((entry) => ({
+        findingId: entry.findingId, fingerprint: entry.fingerprint, recurrenceCount: entry.count - 1,
+      })),
       finalVerdict: current.verdict,
     };
   }
