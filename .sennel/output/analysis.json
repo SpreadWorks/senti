@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-09-04T00:24:52.454Z",
+  "analyzedAt": "2026-09-04T02:36:25.395Z",
   "package": {
     "entries": [
       {
@@ -11100,9 +11100,9 @@
       },
       {
         "file": "src/flow/lib/run-dispatch.js",
-        "hash": "66bb805c7f12f7a9b37d048514235958",
+        "hash": "35b10b8f6058b83ac0d3bc7115f2d34e",
         "lines": 2107,
-        "mtime": "2026-09-03T23:59:36.262Z",
+        "mtime": "2026-09-04T01:35:08.387Z",
         "className": "run-dispatch",
         "methods": [
           "DispatcherOwnedFlowCommand",
@@ -11188,23 +11188,24 @@
         "extends": "Error",
         "usedBy": null,
         "id": "6c7fd82a",
-        "summary": "Implements the Flow command dispatcher and its durable handoff boundary between canonical Flow state and worker or registered-command execution. It enforces dispatch authorization, repository fingerprints, approval receipts, retries, leases, timeouts, and structured failure handling.",
-        "detail": "The dispatcher captures a next action, validates its target and approval requirements, and serializes commands through a FlowDispatchSession and authority lease. Worker handoffs use canonical output schemas, sealed artifact checks, retry feedback, deferred metrics, and quarantine paths for rejected artifacts. Approval continuation persists a canonical Version receipt and verifies that only permitted control files changed before execution proceeds. Dispatch loops detect stalled progress, classify resumable boundaries, route dispatcher-owned recovery commands, and return structured Envelopes or blocked boundaries on failure.",
+        "summary": "Implements the flow dispatch command that coordinates worker execution, approvals, retries, recovery, and dispatcher-owned follow-up actions. It preserves repository integrity and records durable evidence throughout dispatch lifecycle transitions.",
+        "detail": "The module models dispatch sessions, actions, boundaries, leases, work units, and repository fingerprints to enforce valid state transitions and prevent unauthorized or stale execution. It validates worker handoffs through canonical schemas, sealed artifact checks, retry feedback, timeout monitoring, and quarantine handling, while separating parent-owned correction evidence from worker output. Approval continuations persist canonical receipt mutations and verify that only approved control files changed. The command executes registered flow commands, handles dispatcher-owned repair and recovery commands, flushes deferred invocation metrics, and converts failures into structured envelopes and flow issue logs.",
         "chapter": "internal_design",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-09-04T00:25:44.684Z",
+          "processedAt": "2026-09-04T02:36:38.223Z",
           "attempts": 1
         },
         "keywords": [
-          "flow dispatcher",
+          "flow dispatch",
           "worker handoff",
           "approval receipt",
           "repository fingerprint",
-          "authority lease",
-          "retry feedback",
-          "dispatch boundary",
-          "failure recovery"
+          "retry handling",
+          "dispatch lease",
+          "recovery commands",
+          "artifact validation",
+          "state transitions"
         ]
       },
       {
@@ -15602,9 +15603,9 @@
       },
       {
         "file": "src/flow/lib/worker-artifact-handoff.js",
-        "hash": "790b572779c1239364961b42f59bfce7",
-        "lines": 5891,
-        "mtime": "2026-09-03T23:59:36.263Z",
+        "hash": "49a7d51841794591f0465e13fcf3985a",
+        "lines": 5942,
+        "mtime": "2026-09-04T01:52:43.294Z",
         "className": "worker-artifact-handoff",
         "methods": [
           "WorkerArtifactHandoffError",
@@ -15647,6 +15648,8 @@
           "requiredString",
           "requiredDigest",
           "exactObjectKeys",
+          "duplicateValues",
+          "assertUniqueSourceRequirementClaims",
           "stableStringify",
           "digest",
           "boundedJson",
@@ -15829,24 +15832,24 @@
           "src/upgrade.js"
         ],
         "id": "58154956",
-        "summary": "Implements a secure, versioned handoff protocol for Flow worker artifacts, including request creation, payload validation, sealing, publication, receipt tracking, and cleanup. It also governs source-worker mutation manifests, repository authority snapshots, rollback operations, and retry or quarantine behavior.",
-        "detail": "The module defines typed policies, input contracts, payload rules, semantic revisions, and worker context snapshots to ensure each Flow step receives and returns only authorized artifacts. It enforces bounded sizes, normalized repository-relative paths, real-directory boundaries, digest verification, canonical JSON representations, and atomic file writes. Source-worker changes are tracked through Git or filesystem authority snapshots, typed mutation manifests, ownership checks, canonical observation advances, and rollback checkpoints that prevent unauthorized commits or staged changes. Handoff coordination supports validation, publication journals, upgrade results, receipts, quarantine records, transient-directory cleanup, and recovery of incomplete canonical or source workflows.",
+        "summary": "Defines the secure handoff protocol between Flow workers and the parent process for exchanging, validating, publishing, and cleaning up artifacts. It combines typed policies, immutable snapshots, cryptographic digests, authority checks, source-mutation manifests, and recovery coordination.",
+        "detail": "WorkerArtifactHandoffRequest and related policy classes establish step-specific input contracts, payload rules, repair routes, context snapshots, and guarded filesystem locations. Handoff submissions are validated against manifests, schemas, canonical state, payload size limits, repository authority snapshots, and sealed digests before publication. Source-worker flows additionally track mutation baselines, typed effects, canonical observation advances, rollback checkpoints, and restrictions preventing unauthorized commits or staged changes. The coordinator manages sealing, quarantine, reconciliation, retries, recovery of pending handoffs, cleanup of transient directories, and receipt-based idempotent completion.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-09-04T00:25:44.701Z",
+          "processedAt": "2026-09-04T02:36:38.241Z",
           "attempts": 1
         },
         "keywords": [
           "worker handoff",
           "artifact protocol",
-          "payload validation",
+          "integrity validation",
+          "SHA-256 digest",
           "repository authority",
-          "mutation manifest",
+          "source mutation manifest",
           "rollback",
-          "atomic writes",
-          "digest verification",
-          "Flow coordination"
+          "quarantine",
+          "reconciliation"
         ]
       },
       {
@@ -22262,9 +22265,9 @@
     ],
     "summary": {
       "total": 389,
-      "totalMethods": 4157
+      "totalMethods": 4159
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-09-04T00:25:44.717Z"
+  "enrichedAt": "2026-09-04T02:36:38.241Z"
 }
