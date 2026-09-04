@@ -374,6 +374,14 @@ export class NextActionDirectiveResolver {
         resumeInstruction: "Revise the canonical Task or mapped Requirement evidence before starting another Flow; do not create a third Task implementation round.",
       });
     }
+    if (reviewDisposition?.operation === "task-review-gate-handoff") {
+      return new ExecuteCommandDirective({
+        actionId: "SETTLE_TASK_REVIEW_GATE_HANDOFF",
+        nextAction: guardedCommand("sennel flow run settle-review-transition", this.state, this.binding),
+        instruction: "Settle the already-published fourth Task Review repair into Task Gate. This records no new review and is safe to repeat after an interrupted post lifecycle.",
+        reason: "The definition selected the fourth Task Review Gate handoff from canonical review and mutation-lineage evidence.",
+      });
+    }
     if (reviewDisposition?.operation === "blocked") {
       const reason = `The definition exhausted ${reviewDisposition.phase} review retries (${reviewDisposition.attempts}/${reviewDisposition.maxAttempts}) for the current canonical evidence.`;
       return new BlockedDirective({

@@ -85,6 +85,8 @@ import { validateAdditions } from "./overview-merge.js";
 import { AcceptanceRepairFindingSet } from "./acceptance-review-artifacts.js";
 import { validateUpgradeResultArtifact } from "./upgrade-result-artifact.js";
 import { sourceWorkerEffectJsonSchema } from "./source-worker-effect-schema.js";
+import { ImplementationReviewRepairRecurrence } from "./review-recurrence.js";
+import { ReviewFindingCycle } from "./finding-disposition-policy.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 // Structured source responses change fresh-dispatch producer ownership only.
@@ -395,7 +397,14 @@ export class WorkerArtifactPayloadRule {
 }
 
 export class WorkerArtifactInputContract {
-  constructor({ stepId, inputs, repairInputs = {}, testReviewRepairInputs = [], acceptanceRepairInputs = [] }) {
+  constructor({
+    stepId,
+    inputs,
+    repairInputs = {},
+    testReviewRepairInputs = [],
+    acceptanceRepairInputs = [],
+    virtualInputs = [],
+  }) {
     this.stepId = requiredString(stepId, "worker artifact input contract stepId");
     this.inputs = Object.freeze(
       inputs.map((entry) => normalizedRelativePath(entry, `${this.stepId}.input`)),
@@ -420,6 +429,9 @@ export class WorkerArtifactInputContract {
     this.acceptanceRepairInputs = Object.freeze(acceptanceRepairInputs.map((entry) => (
       normalizedRelativePath(entry, `${this.stepId}.acceptanceRepair.input`)
     )));
+    this.virtualInputs = Object.freeze(virtualInputs.map((entry) => (
+      normalizedRelativePath(entry, `${this.stepId}.virtualInput`)
+    )));
     if (this.acceptanceRepairInputs.length > 0 && this.stepId !== "impl-triage") {
       throw new Error("acceptance repair inputs may only belong to the implementation triage handoff");
     }
@@ -428,17 +440,24 @@ export class WorkerArtifactInputContract {
       ...Object.values(variants),
       ...(this.testReviewRepairInputs.length > 0 ? [this.testReviewRepairInputs] : []),
       ...(this.acceptanceRepairInputs.length > 0 ? [this.acceptanceRepairInputs] : []),
-    ].map((paths) => paths.join("\u0000")));
+    ].map((paths) => [...paths, ...this.virtualInputs].join("\u0000")));
     if (new Set(this.allowedSignatures).size !== this.allowedSignatures.length) {
       throw new Error(`duplicate worker artifact input contract for ${this.stepId}`);
     }
     Object.freeze(this);
   }
 
-  resolve({ planGateRepair = null, testReviewRepair = null, acceptanceRepairRoute = null } = {}) {
+  resolveCanonical({ planGateRepair = null, testReviewRepair = null, acceptanceRepairRoute = null } = {}) {
     if (acceptanceRepairRoute !== null) return this.acceptanceRepairInputs;
     if (testReviewRepair) return this.testReviewRepairInputs;
     return planGateRepair ? (this.repairInputs[planGateRepair.phase] || this.inputs) : this.inputs;
+  }
+
+  resolve(options = {}) {
+    return Object.freeze([
+      ...this.resolveCanonical(options),
+      ...this.virtualInputs,
+    ]);
   }
 
   accepts(paths) {
@@ -457,6 +476,7 @@ export class WorkerArtifactHandoffPolicy {
     repairInputs = {},
     testReviewRepairInputs = [],
     acceptanceRepairInputs = [],
+    virtualInputs = [],
     payloads,
     revisionKind = null,
     kind = "artifact",
@@ -482,6 +502,7 @@ export class WorkerArtifactHandoffPolicy {
       repairInputs,
       testReviewRepairInputs,
       acceptanceRepairInputs,
+      virtualInputs,
     });
     this.inputs = this.inputContract.inputs;
     this.payloads = Object.freeze(payloads.map((entry) => (
@@ -586,6 +607,7 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "impl-repair",
     inputs: ["spec.json", "impl-review.json", "impl-triage.json"],
+    virtualInputs: ["impl-review-recurrence.json"],
     payloads: [
       { logicalName: "effects.json", targetRelativePath: "effects.json" },
       { logicalName: "upgrade.result", targetRelativePath: "upgrade-result.json", required: false },
@@ -752,21 +774,100 @@ export class SourceTriageEffect {
   toJSON() { return { version: 1, dispositions: this.dispositions.map((entry) => entry.toJSON()) }; }
 }
 
+export class SourceRepairRecurrenceResolution {
+  constructor({ findingKey, fingerprint, priorRepairInsufficiency, repairStrategy } = {}) {
+    this.findingKey = requiredString(findingKey, "source repair recurrence findingKey");
+    this.fingerprint = requiredDigest(fingerprint, "source repair recurrence fingerprint");
+    this.priorRepairInsufficiency = requiredString(
+      priorRepairInsufficiency,
+      "source repair recurrence priorRepairInsufficiency",
+    );
+    this.repairStrategy = requiredString(
+      repairStrategy,
+      "source repair recurrence repairStrategy",
+    );
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      findingKey: this.findingKey,
+      fingerprint: this.fingerprint,
+      priorRepairInsufficiency: this.priorRepairInsufficiency,
+      repairStrategy: this.repairStrategy,
+    };
+  }
+}
+
 export class SourceRepairEffect {
   constructor(value = {}) {
-    exactObjectKeys(value, ["version", "appliedFindingKeys", "summary"], "source repair effect");
-    const { version, appliedFindingKeys, summary } = value;
+    const allowedKeys = new Set([
+      "version",
+      "appliedFindingKeys",
+      "summary",
+      "recurrenceResolutions",
+    ]);
+    if (value === null || typeof value !== "object" || Array.isArray(value)
+      || Object.keys(value).some((key) => !allowedKeys.has(key))) {
+      throw new Error("source repair effect has an invalid schema");
+    }
+    const { version, appliedFindingKeys, summary, recurrenceResolutions = [] } = value;
     if (version !== 1) throw new Error("source repair effect version must be 1");
     if (!Array.isArray(appliedFindingKeys) || appliedFindingKeys.length === 0 || appliedFindingKeys.length > MAX_PAYLOAD_FILES) {
       throw new Error("source repair appliedFindingKeys are invalid");
     }
-    this.appliedFindingKeys = Object.freeze(appliedFindingKeys.map((value) => requiredString(value, "source repair findingKey")));
-    if (new Set(this.appliedFindingKeys).size !== this.appliedFindingKeys.length) throw new Error("source repair findings must not duplicate");
+    this.appliedFindingKeys = Object.freeze(appliedFindingKeys.map((entry) => (
+      requiredString(entry, "source repair findingKey")
+    )));
+    if (new Set(this.appliedFindingKeys).size !== this.appliedFindingKeys.length) {
+      throw new Error("source repair findings must not duplicate");
+    }
     this.summary = requiredString(summary, "source repair summary");
     if (this.summary.length < 10) throw new Error("source repair summary must be at least 10 characters");
+    if (!Array.isArray(recurrenceResolutions) || recurrenceResolutions.length > MAX_PAYLOAD_FILES) {
+      throw new Error("source repair recurrence resolutions are invalid");
+    }
+    this.recurrenceResolutions = Object.freeze(recurrenceResolutions.map((entry) => (
+      entry instanceof SourceRepairRecurrenceResolution
+        ? entry
+        : new SourceRepairRecurrenceResolution(entry)
+    )));
+    if (
+      new Set(this.recurrenceResolutions.map((entry) => entry.fingerprint)).size
+      !== this.recurrenceResolutions.length
+    ) {
+      throw new Error("source repair recurrence resolutions must not duplicate fingerprints");
+    }
     Object.freeze(this);
   }
-  toJSON() { return { version: 1, appliedFindingKeys: [...this.appliedFindingKeys], summary: this.summary }; }
+  toJSON() {
+    return {
+      version: 1, appliedFindingKeys: [...this.appliedFindingKeys], summary: this.summary,
+      ...(this.recurrenceResolutions.length === 0 ? {} : {
+        recurrenceResolutions: this.recurrenceResolutions.map((entry) => entry.toJSON()),
+      }),
+    };
+  }
+
+  assertRecurrenceResolutions(recurrence) {
+    const recurring = Array.isArray(recurrence?.entries) ? recurrence.entries : [];
+    const recurrenceByFingerprint = new Map(recurring.map((entry) => (
+      [entry.fingerprint, entry.findingKey]
+    )));
+    const recurrenceFindingKeys = [...recurrenceByFingerprint.values()];
+    if (
+      recurrenceByFingerprint.size !== recurring.length
+      || recurrenceFindingKeys.some((findingKey) => !this.appliedFindingKeys.includes(findingKey))
+      || recurrenceByFingerprint.size !== this.recurrenceResolutions.length
+      || this.recurrenceResolutions.some((entry) => (
+        recurrenceByFingerprint.get(entry.fingerprint) !== entry.findingKey
+        || !this.appliedFindingKeys.includes(entry.findingKey)
+      ))
+    ) {
+      throw new Error("implementation repair recurrence resolutions must exactly match canonical recurrence context");
+    }
+    return this;
+  }
 }
 
 /** Durable explanation for a successful source Attempt with no mutation. */
@@ -1175,6 +1276,27 @@ function canonicalHandoffInputSnapshot({ flowManager, state, workerPath, consume
     document: input.jsonDocument(label),
     snapshot: input.snapshot(),
   });
+}
+
+/** Ephemeral worker context is derived from canonical evidence, never cataloged. */
+function reviewRecurrenceHandoffInput({ flowManager, state, policy }) {
+  if (!policy.inputContract.virtualInputs.includes("impl-review-recurrence.json")) return [];
+  const cycle = ReviewFindingCycle.fromActivityLedger({
+    runId: state.runId,
+    activities: flowManager.activityLedger(state.specId),
+  });
+  const recurrence = new ImplementationReviewRepairRecurrence({ flowManager, state, cycle });
+  const document = { version: 1, scope: "implementation", entries: recurrence.toJSON() };
+  const bytes = Buffer.from(stableStringify(document), "utf8");
+  return [new WorkerArtifactInputSnapshot({
+    name: "impl-review-recurrence.json",
+    targetRelativePath: "impl-review-recurrence.json",
+    snapshot: {
+      digest: crypto.createHash("sha256").update(bytes).digest("hex"),
+      byteLength: bytes.length,
+    },
+    document,
+  })];
 }
 
 function canonicalIssueSnapshotText({ flowManager, state }) {
@@ -2702,7 +2824,7 @@ function restoredTestReviewRepairContext({ flowManager, state, stepId, workerVis
 /** Rehydrate parent-private canonical inputs; request.json retains only worker capabilities. */
 function restoredCanonicalHandoffInputs({ flowManager, state, policy, testReviewRepair, storedInputs }) {
   if (testReviewRepair === null) return storedInputs;
-  return policy.inputContract.resolve({ testReviewRepair }).map((relativePath) => {
+  const canonicalInputs = policy.inputContract.resolveCanonical({ testReviewRepair }).map((relativePath) => {
     const { document, snapshot } = canonicalHandoffInputSnapshot({
       flowManager,
       state,
@@ -2717,6 +2839,8 @@ function restoredCanonicalHandoffInputs({ flowManager, state, policy, testReview
       document,
     });
   });
+  const virtualInputs = storedInputs.filter((input) => policy.inputContract.virtualInputs.includes(input.targetRelativePath));
+  return [...canonicalInputs, ...virtualInputs];
 }
 
 /** Immutable binding for the dedicated acceptance-review implementation-repair route. */
@@ -2916,7 +3040,7 @@ export class WorkerArtifactHandoffRequest {
       );
     }
     const acceptanceRepairRoute = currentAcceptanceImplementationRepair({ flowManager, state, stepId: policy.stepId });
-    const inputs = policy.inputContract.resolve({ planGateRepair, testReviewRepair, acceptanceRepairRoute }).map((relativePath) => {
+    const inputs = policy.inputContract.resolveCanonical({ planGateRepair, testReviewRepair, acceptanceRepairRoute }).map((relativePath) => {
       const { document, snapshot } = canonicalHandoffInputSnapshot({
         flowManager,
         state,
@@ -2934,6 +3058,7 @@ export class WorkerArtifactHandoffRequest {
         document,
       });
     });
+    inputs.push(...reviewRecurrenceHandoffInput({ flowManager, state, policy }));
     let contextSnapshot = null;
     if (workerContextKind(policy) !== null) {
       try {
@@ -3277,7 +3402,11 @@ export class WorkerArtifactHandoffRequest {
       state,
       stepId: this.stepId,
     });
-    const expectedInputPaths = this.policy.inputContract.resolve({ planGateRepair, testReviewRepair, acceptanceRepairRoute });
+    const expectedInputPaths = this.policy.inputContract.resolve({
+      planGateRepair,
+      testReviewRepair,
+      acceptanceRepairRoute,
+    });
     if (
       expectedInputPaths.length !== this.inputs.length
       || expectedInputPaths.some((relativePath, index) => relativePath !== this.inputs[index].targetRelativePath)
@@ -3288,7 +3417,18 @@ export class WorkerArtifactHandoffRequest {
         "worker artifact handoff input contract changed before publication",
       );
     }
+    const virtualInputs = new Map(reviewRecurrenceHandoffInput({
+      flowManager: this.flowManager,
+      state,
+      policy: this.policy,
+    }).map((input) => [input.targetRelativePath, input]));
     const current = this.inputs.map(({ targetRelativePath: relativePath }) => {
+      const virtual = virtualInputs.get(relativePath) ?? null;
+      if (virtual !== null) return {
+        path: relativePath,
+        digest: virtual.digest,
+        byteLength: virtual.byteLength,
+      };
       const input = CanonicalWorkerArtifactAddress.from(relativePath).read({
         flowManager: this.flowManager,
         specId: state.specId,
@@ -4527,6 +4667,8 @@ function validatePayload(request, submission, state, { bootstrapObservationAutho
           || applied.some((key) => !effect.repair.appliedFindingKeys.includes(key))) {
           throw new Error("source repair must apply exactly the canonical impl-triage apply findings");
         }
+        const recurrence = request.inputs.find((input) => input.name === "impl-review-recurrence.json")?.document;
+        effect.repair.assertRecurrenceResolutions(recurrence);
       }
       return;
     }
@@ -5029,6 +5171,7 @@ function canonicalHandoffPublications(request, submission) {
     artifactBaselines.set(relativePath, baseline);
   };
   for (const input of request.inputs) {
+    if (request.policy.inputContract.virtualInputs.includes(input.targetRelativePath)) continue;
     const address = CanonicalWorkerArtifactAddress.from(input.targetRelativePath);
     addArtifactBaseline(new CanonicalFlowArtifactBaseline({
       logicalKey: address.logicalKey,

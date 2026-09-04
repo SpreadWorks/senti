@@ -74,6 +74,7 @@ import {
   contractFromTestReviewArtifact,
 } from "../lib/flow-judgment-contract.js";
 import { CanonicalCommandAttemptArtifactHistory } from "../lib/canonical-command-result.js";
+import { TaskReviewConvergenceEvidence } from "../lib/review-recurrence.js";
 import {
   FindingDispositionPolicy,
   MustFixDisposition,
@@ -896,7 +897,7 @@ function buildImplReviewResponseSchema(requirementIds) {
   const allowedRequirementIds = [...normalizeImplReviewRequirementIds(requirementIds)].sort();
   const findingSchema = {
     type: "object",
-    required: ["findingKey", "title", "failureMode", "file", "requirementId", "issue", "suggestion", "disposition", "rationale"],
+    required: ["findingKey", "title", "failureMode", "file", "requirementId", "issue", "suggestion", "disposition", "rationale", "priorRepairInsufficiency", "repairStrategy"],
     additionalProperties: false,
     properties: {
       findingKey: { type: "string", minLength: 1, maxLength: 100 },
@@ -911,6 +912,8 @@ function buildImplReviewResponseSchema(requirementIds) {
       suggestion: { type: "string", minLength: 1 },
       disposition: { type: "string", enum: [...IMPL_REVIEW_DISPOSITIONS] },
       rationale: { type: "string", minLength: 1 },
+      priorRepairInsufficiency: { type: ["string", "null"] },
+      repairStrategy: { type: ["string", "null"] },
     },
   };
   return {
@@ -959,6 +962,10 @@ class ImplReviewFinding {
     this.suggestion = String(item.suggestion || "").trim();
     this.disposition = String(item.disposition || "").trim();
     this.rationale = String(item.rationale || "").trim();
+    this.priorRepairInsufficiency = item.priorRepairInsufficiency == null
+      ? null
+      : String(item.priorRepairInsufficiency).trim();
+    this.repairStrategy = item.repairStrategy == null ? null : String(item.repairStrategy).trim();
     this.repeatCount = Number.isSafeInteger(item.repeatCount) && item.repeatCount > 0
       ? item.repeatCount
       : 1;
@@ -979,6 +986,10 @@ class ImplReviewFinding {
     }
     if (!this.rationale) {
       throw new Error("rationale must be a non-empty string");
+    }
+    if ((this.priorRepairInsufficiency === null) !== (this.repairStrategy === null)
+      || this.priorRepairInsufficiency === "" || this.repairStrategy === "") {
+      throw new Error("recurrence explanation and repair strategy must be supplied together");
     }
     const fingerprint = ReviewFindingFingerprint.fromFinding({
       ...item,
@@ -1007,6 +1018,10 @@ class ImplReviewFinding {
       suggestion: this.suggestion,
       disposition: this.disposition,
       rationale: this.rationale,
+      ...(this.priorRepairInsufficiency === null ? {} : {
+        priorRepairInsufficiency: this.priorRepairInsufficiency,
+        repairStrategy: this.repairStrategy,
+      }),
       findingId: this.findingId,
       fingerprint: this.fingerprint,
       repeatCount: this.repeatCount,
@@ -1025,6 +1040,10 @@ class ImplReviewFinding {
       suggestion: truncateReviewMemoryText(this.suggestion),
       disposition: this.disposition,
       rationale: truncateReviewMemoryText(this.rationale),
+      ...(this.priorRepairInsufficiency === null ? {} : {
+        priorRepairInsufficiency: truncateReviewMemoryText(this.priorRepairInsufficiency),
+        repairStrategy: truncateReviewMemoryText(this.repairStrategy),
+      }),
       findingId: this.findingId,
       fingerprint: this.fingerprint,
       repeatCount: this.repeatCount,
@@ -1117,6 +1136,12 @@ function parseImplReviewJsonOutput(raw, requirementIds) {
     for (const finding of parsed[bucket]) {
       if (finding && typeof finding === "object" && !Object.hasOwn(finding, "file")) {
         finding.file = null;
+      }
+      if (finding && typeof finding === "object" && !Object.hasOwn(finding, "priorRepairInsufficiency")) {
+        finding.priorRepairInsufficiency = null;
+      }
+      if (finding && typeof finding === "object" && !Object.hasOwn(finding, "repairStrategy")) {
+        finding.repairStrategy = null;
       }
     }
   }
@@ -1273,7 +1298,14 @@ function loadPreviousImplReviewMemory({ flowManager, flow, taskId = null } = {})
   }).toPromptMemory();
 }
 
-function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null, taskContext = null, taskReviewAttempt = null, taskNoChangeReasons = [] } = {}) {
+/** Exact Task Review recurrence candidates derived from canonical history. */
+function taskReviewRecurrenceHistory({ flowManager, flow, taskId, cycle }) {
+  return new TaskReviewConvergenceEvidence({ flowManager, state: flow, cycle })
+    .recurrenceHistory(taskId)
+    .toJSON();
+}
+
+function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff = "", touchedFiles = [], previousReview = null, taskSpec = null, taskContext = null, taskReviewAttempt = null, taskNoChangeReasons = [], taskReviewRecurrenceHistory = [] } = {}) {
   const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
   const responseSchema = buildImplReviewResponseSchema(allowedRequirementIds);
   const touched = Array.from(touchedFiles instanceof Set ? touchedFiles : new Set(touchedFiles)).sort();
@@ -1298,10 +1330,12 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
       "requirementId is always required and must use one of the allowed target requirement IDs.",
       "A missing_acceptance_requirement blocker may omit file only when its requirementId identifies the missing target requirement.",
       "Put must-fix findings in blockingFindings[]. Put informational findings in nonBlockingImprovements[].",
+      "Outside Task Review, set priorRepairInsufficiency and repairStrategy to null; they are reserved for exact Task recurrence evidence.",
       "",
       "Return an object with:",
-      "- blockingFindings[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale",
-      "- nonBlockingImprovements[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale",
+      "- blockingFindings[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale, priorRepairInsufficiency, repairStrategy",
+      "- nonBlockingImprovements[] with findingKey, title, failureMode, file, requirementId, issue, suggestion, disposition, rationale, priorRepairInsufficiency, repairStrategy",
+      "- Set priorRepairInsufficiency and repairStrategy to non-empty strings for an exact Task Review recurrence; set both to null for a first occurrence.",
       "- file may be null only when the missing_acceptance_requirement rule applies.",
       "- requirementId must never be null; every finding must use an allowed target requirement ID.",
       "- Use empty arrays when there are no findings in a category.",
@@ -1337,6 +1371,7 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
         "Edit only files in Touched Files. Do not add unrelated paths and do not edit for informational findings.",
         "Do not run tests. Re-read each edited file before returning.",
         "Keep repaired findings in blockingFindings so the parent can bind every mutation to the finding that owned it.",
+        "When the exact stable identity (findingKey and target fields) appears in Task Review Recurrence History, include non-empty priorRepairInsufficiency and repairStrategy fields. They are durable evidence of why the prior repair was insufficient and this repair's distinct strategy. Do not infer a recurrence from a matching findingKey or similar prose alone.",
         taskReviewAttempt === 4
           ? "This is the fourth Review: finish all must-fix repairs now; the parent proceeds directly to Task Gate after validating their mutation manifest."
           : "The parent will run another Task Review after validating this repair manifest.",
@@ -1345,6 +1380,9 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
       pb.addUserPrompt("## Declared No-Change Reasons", taskNoChangeReasons.join("\n"));
     }
     pb.addUserPrompt("## Canonical Task Context", JSON.stringify(taskContext, null, 2));
+    if (taskReviewRecurrenceHistory.length > 0) {
+      pb.addUserPrompt("## Task Review Recurrence History", JSON.stringify(taskReviewRecurrenceHistory, null, 2));
+    }
   }
   if (previousReview) {
     pb.addUserPrompt("## Previous Impl Review Memory", JSON.stringify(previousReview, null, 2));
@@ -4486,6 +4524,9 @@ async function runReview(rawArgs) {
   const taskReviewAttempt = taskSpec
     ? canonicalTaskReviewAttempt({ flowManager, flow, taskId: taskSpec.task.id })
     : null;
+  const taskReviewRecurrences = taskSpec
+    ? taskReviewRecurrenceHistory({ flowManager, flow, taskId: taskSpec.task.id, cycle })
+    : [];
   const requirementIds = taskSpec
     ? new Set(taskSpec.context.requirements.map((requirement) => requirement.id))
     : resolveRequirementIds(spec);
@@ -4516,6 +4557,7 @@ async function runReview(rawArgs) {
         taskContext: taskSpec?.context ?? null,
         taskReviewAttempt,
         taskNoChangeReasons: taskSpec?.source?.noChangeReasons ?? [],
+        taskReviewRecurrenceHistory: taskReviewRecurrences,
       });
       const reviewAgent = ensureAgent("flow.impl.review.propose");
       return callReviewAgent(
@@ -4619,7 +4661,7 @@ export {
   extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt,
   formatSpecReviewMd, formatSpecReviewDelta, parseSpecReviewFindings,
   buildImplReviewPrompt, parseImplReviewFindings, filterImplReviewFindingsByScope,
-  formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory, priorImplReviewFingerprintCounts,
+  formatImplReviewMd, formatImplReviewJson, loadPreviousImplReviewMemory, priorImplReviewFingerprintCounts, taskReviewRecurrenceHistory,
   runImplReview,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt,

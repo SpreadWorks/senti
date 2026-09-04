@@ -212,6 +212,9 @@ describe("flow get next-action", () => {
         phase: "impl",
         verdict: "REJECTED",
         attemptCount: 4,
+        artifact: {
+          canonicalTaskSource: { reviewRepairComplete: true },
+        },
         deferralEvidence: new ReviewDeferralEvidence({
           status: "available",
           sourceFingerprints: ["d".repeat(64)],
@@ -221,7 +224,7 @@ describe("flow get next-action", () => {
 
     assert.equal(retry.operation, "retry");
     assert.deepEqual(exhausted.toJSON(), {
-      operation: "blocked", phase: "impl", attempts: 4, maxAttempts: 4,
+      operation: "task-review-gate-handoff", phase: "impl", attempts: 4, maxAttempts: 4,
     });
   });
 

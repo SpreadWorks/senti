@@ -1,7 +1,7 @@
    - Run `sennel flow run acceptance-review`.
    - This step evaluates whether the approved spec and implementation satisfy the original request after retro and before final-regression.
    - It validates the current repair fingerprint across test, review, gate, and retro evidence before semantic judgment.
-   - It reads the original request, every requirement, the base-branch diff, `impl-repair.json` or an explicit no-repair record, fingerprint-matched test evidence, `flow-findings.json`, and deferred-finding source artifacts.
+   - It reads the original request, every requirement, the base-branch diff, `impl-repair.json` or an explicit no-repair record, fingerprint-matched test evidence, `flow-findings.json`, deferred-finding source artifacts, and any fourth Task Review handoff. A Task Review handoff includes the rejected findings, the exact task mutation lineage that repaired them, and the fact that no post-repair Task Review occurred.
    - Missing or failed mechanical evidence must produce verdict `blocked`.
    - Emit exactly one `met`, `notMet`, or `notVerifiable` judgment for every requirement id.
    - Evidence refs are bound to the current request, exact requirement id, paths present in the current base-branch diff, the selected repair/no-repair record, and current test artifacts. Do not invent citation strings.

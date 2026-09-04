@@ -2277,10 +2277,15 @@ export function resolveReviewTransition({
     }
     return new DefinitionReviewDisposition({ operation: "retry", phase });
   }
-  // Task Review findings never enter Acceptance deferral. The Review worker
-  // must repair them inside its bounded episode; malformed or uncorrected
-  // fourth-review evidence stays blocked rather than crossing into Gate.
+  // The fourth Task Review is deliberately not re-run after its in-invocation
+  // repair.  Gate receives that repair, while Acceptance receives the same
+  // canonical review/lineage evidence as an explicitly unreviewed handoff.
+  // This is not a generic deferred finding: the Task Review remains scoped to
+  // its Task and its repair is still validated by Task Gate.
   if (facts.scope === "task") {
+    if (attempts === maxAttempts && facts.artifact?.canonicalTaskSource?.reviewRepairComplete === true) {
+      return new DefinitionReviewDisposition({ operation: "task-review-gate-handoff", phase, attempts, maxAttempts });
+    }
     return new DefinitionReviewDisposition({ operation: "blocked", phase, attempts, maxAttempts });
   }
   if (facts.deferralEvidence.available) {
@@ -2761,6 +2766,11 @@ function resolveLifecycleForNode(node, input = {}) {
 }
 
 export function resolveLifecycle(input = {}) {
+  if (input.event === "review:task-gate-handoff") {
+    const step = input.currentStepId || input.targetStepId;
+    if (typeof step !== "string" || step === "") throw new Error("Task Review Gate handoff lifecycle requires its current Task Review step");
+    return [new SetStepStatus({ step, status: "done" })];
+  }
   if (input.event === "set-step:impl-triage") {
     return [
       new SetStepStatus({ step: "impl-repair", status: "done" }),

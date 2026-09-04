@@ -1656,7 +1656,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   contract("test.result.review", "steps/test-result-review/result.json", "test-result-review", "canonical-flow-artifacts", "test-result-review", own("test-result-review", ["test-result-review"], ["test-review", "impl-review", "impl-repair", "impl-gate", "task-gate", "acceptance-review", "final-regression", "retro", "report"])),
   contract("impl.review", "steps/impl/review/result.json", "impl-review", "canonical-flow-artifacts", "impl-review", own("impl-review", ["impl-review"], ["system", "impl-triage", "impl-repair", "impl-gate", "acceptance-review"])),
   contract("impl.triage", "steps/impl/triage/result.json", "impl-triage", "execution-checkout", "impl-triage", own("impl-triage", ["impl-triage"], ["impl-repair", "impl-gate", "acceptance-review"])),
-  contract("impl.repair", "steps/impl/repair/result.json", "impl-repair", "execution-checkout", "impl-repair", own("impl-repair", ["impl-repair"], ["test-execute", "impl-gate", "acceptance-review"])),
+  contract("impl.repair", "steps/impl/repair/result.json", "impl-repair", "execution-checkout", "impl-repair", own("impl-repair", ["impl-repair"], ["system", "test-execute", "impl-gate", "acceptance-review"])),
   contract("impl.gate.source", "steps/impl/gate/source.json", "impl-gate-source", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["impl-gate", "retro"])),
   contract("impl.gate", "steps/impl/gate/result.json", "impl-gate", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["retro", "acceptance-review", "final-regression", "report"])),
   contract("retro", "steps/impl/retro/result.json", "retro", "canonical-flow-artifacts", "retro", own("retro", ["retro"], ["acceptance-review", "report"])),

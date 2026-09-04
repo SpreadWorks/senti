@@ -8,6 +8,7 @@ import {
   deriveAcceptanceReviewVerdict,
   validateAcceptanceReviewArtifact,
 } from "../../../src/flow/lib/acceptance-review-artifacts.js";
+import { CanonicalAcceptanceArtifactStore } from "../../../src/flow/lib/canonical-acceptance-artifacts.js";
 
 class TestFixtureResponseSource extends AcceptanceReviewResponseSource {
   constructor(response) {
@@ -39,6 +40,20 @@ test("fixture response requires an explicit injected test source", () => {
   });
   assert.equal(command.responseSource.load({ marker: "test-context" }), fixture);
   assert.throws(() => new RunAcceptanceReviewCommand({ responseSource: {} }), /AcceptanceReviewResponseSource/);
+});
+
+test("acceptance has no Task Review handoff when no Task review artifact is a fourth repaired rejection", () => {
+  const store = new CanonicalAcceptanceArtifactStore({
+    state: { schemaRevision: 3, specId: "001", runId: "run", flowId: "flow", flowVersionId: "v1", request: "x" },
+    flowManager: {
+      readArtifact() { throw new Error("no task review should be read"); },
+      readCatalogArtifact() {},
+      artifactCatalog() { return { artifacts: [] }; },
+      activityLedger() { return []; },
+      specLocation() { return { specRoot: "specs", specId: "001", relativeDirectory: "specs/001" }; },
+    },
+  });
+  assert.deepEqual(store.taskReviewHandoffs(), []);
 });
 
 test("rejects a retired root-artifact acceptance fixture", async () => {

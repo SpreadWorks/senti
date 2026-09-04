@@ -29,6 +29,8 @@ import {
 import { FlowFindingsArtifact } from "./flow-findings.js";
 import { collectUntrackedDiff } from "./run-gate.js";
 import { matchUpgradeRequiredSourcePaths, validateCanonicalUpgradeEvidence } from "./test-artifacts.js";
+import { ReviewFindingCycle } from "./finding-disposition-policy.js";
+import { TaskReviewConvergenceEvidence } from "./review-recurrence.js";
 
 const REVIEW_NODE_ID = "acceptance-review";
 const DECISION_NODE_ID = "acceptance-decision";
@@ -236,6 +238,7 @@ export class CanonicalAcceptanceArtifactStore {
       || typeof flowManager.readArtifact !== "function"
       || typeof flowManager.readCatalogArtifact !== "function"
       || typeof flowManager.artifactCatalog !== "function"
+      || typeof flowManager.activityLedger !== "function"
       || typeof flowManager.specLocation !== "function") {
       throw new Error("CanonicalAcceptanceArtifactStore requires the canonical FlowManager surface");
     }
@@ -348,6 +351,15 @@ export class CanonicalAcceptanceArtifactStore {
     return Object.freeze({ findings: Object.freeze(findings), evidence: Object.freeze(evidence) });
   }
 
+  /** Derive, rather than persist, fourth-review handoffs for final judgment. */
+  taskReviewHandoffs() {
+    const cycle = ReviewFindingCycle.fromActivityLedger({
+      runId: this.state.runId,
+      activities: this.flowManager.activityLedger(this.specId),
+    });
+    return new TaskReviewConvergenceEvidence({ flowManager: this.flowManager, state: this.state, cycle }).handoffs();
+  }
+
   async buildContext({ executionRoot }) {
     const root = requiredText(executionRoot, "canonical acceptance executionRoot");
     const spec = this.spec();
@@ -390,6 +402,7 @@ export class CanonicalAcceptanceArtifactStore {
       blocker(blockers, "failed_retro", "Retrospective evidence contains requirements that are not done.");
     }
     const deferred = this.deferredFindings(blockers);
+    const taskReviewHandoffs = this.taskReviewHandoffs();
     const repair = this.readDocument("impl.repair", { optional: true })?.value ?? null;
     const upgrade = this.readDocument("upgrade.result", { optional: true })?.value ?? null;
     const upgradeValidation = validateCanonicalUpgradeEvidence({
@@ -431,6 +444,7 @@ export class CanonicalAcceptanceArtifactStore {
         },
         testEvidence: new AcceptanceTestEvidenceProjection(evidenceArtifacts).toJSON(),
         reviewEvidence: inputs["impl.review"]?.canonicalEvidence ?? null,
+        taskReviewHandoffs: taskReviewHandoffs.map((handoff) => handoff.toJSON()),
         deferredFindings: deferred.findings,
         deferredFindingEvidence: deferred.evidence,
       }),

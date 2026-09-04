@@ -5,6 +5,7 @@
 import {
   applyLifecycleActions,
   resolveReviewDeferralLifecycle,
+  resolveLifecycle,
   resolveReviewTransition,
 } from "../definition.js";
 import {
@@ -76,6 +77,24 @@ export function settleDefinitionReviewTransition(ctx) {
       taskId,
       operation: selection.disposition.operation,
       replacementAttempt: repaired.attempt?.toJSON?.() ?? null,
+    });
+  }
+  if (selection.disposition?.operation === "task-review-gate-handoff") {
+    applyLifecycleActions({
+      setStepStatus(step, status) {
+        const current = ctx.flowManager.loadReadOnly(flowState.specId);
+        const transition = createLifecycleStepTransition({
+          flowState: current, stepId: step, status, event: "review:task-gate-handoff", taskId,
+        });
+        if (transition) ctx.flowManager.updateStepStatus(transition, { taskId });
+      },
+    }, resolveLifecycle({ event: "review:task-gate-handoff", currentStepId: nodeId }));
+    return Object.freeze({
+      stepId,
+      phase: selection.facts.phase,
+      taskId,
+      operation: selection.disposition.operation,
+      attempts: selection.disposition.attempts,
     });
   }
   if (selection.disposition?.operation !== "defer") return null;

@@ -31,6 +31,7 @@ import {
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import RunReportCommand from "../../../src/flow/lib/run-report.js";
 import RunReviewCommand from "../../../src/flow/lib/run-review.js";
+import GetStatusCommand from "../../../src/flow/lib/get-status.js";
 import FlowReviewCommand from "../../../src/flow/commands/review.js";
 import {
   reconcileCompletedReviewWorkUnits,
@@ -1324,9 +1325,11 @@ describe("FlowManager canonical Version-1 runtime", () => {
       "upgradeEvidence",
       "testEvidence",
       "reviewEvidence",
+      "taskReviewHandoffs",
       "deferredFindings",
       "deferredFindingEvidence",
     ]);
+    assert.deepEqual(context.evidence.taskReviewHandoffs, []);
     assert.match(context.evidence.diff, /diff --git a\/README\.md b\/README\.md/);
     assert.match(context.evidence.diff, /diff --git a\/untracked-source\.js b\/untracked-source\.js/);
     assert.equal(
@@ -1575,25 +1578,31 @@ describe("FlowManager canonical Version-1 runtime", () => {
 
   it("binds repaired implementation findings to their triage Activity before integration readiness", () => {
     const repository = root();
+    initializeReviewSource(repository);
     const specId = "001-integration-repaired-readiness";
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request(specId));
     manager.addActiveFlow(created.specId, "direct");
-    const rawFinding = {
-      findingKey: "repair-me", title: "Repair me", failureMode: "required_behavior", file: "src/example.js",
-      requirementId: "R1", guardrailId: null, issue: "Required behavior is absent.", suggestion: "Implement it.",
-      disposition: "must-fix", rationale: "The accepted requirement is mandatory.",
+    const finding = ({ findingKey, title, file }) => {
+      const rawFinding = {
+        findingKey, title, failureMode: "required_behavior", file,
+        requirementId: "R1", guardrailId: null, issue: "Required behavior is absent.", suggestion: "Implement it.",
+        disposition: "must-fix", rationale: "The accepted requirement is mandatory.",
+      };
+      const fingerprint = ReviewFindingFingerprint.fromFinding({
+        ...rawFinding, scope: "flow", phase: "impl-review", taskId: null, category: rawFinding.failureMode,
+      }).value;
+      return { ...rawFinding, findingId: fingerprint, fingerprint };
     };
-    const fingerprint = ReviewFindingFingerprint.fromFinding({
-      ...rawFinding, scope: "flow", phase: "impl-review", taskId: null, category: rawFinding.failureMode,
-    }).value;
-    const review = (findings) => ({
+    const repairedFinding = finding({ findingKey: "repair-me", title: "Repair me", file: "src/example.js" });
+    const rejectedFinding = finding({ findingKey: "do-not-repair", title: "Do not repair", file: "src/other.js" });
+    const review = (findings, repairFingerprint = "a".repeat(64)) => ({
       version: 1, phase: "impl", generatedAt: "2026-01-02T03:04:05.000Z", runId: manager.load(specId).runId,
       taskId: null, planRewindAt: null, verdict: findings.length === 0 ? "PASS" : "REJECTED",
       summary: { blocking: findings.length, nonBlocking: 0, total: findings.length },
-      blockingFindings: findings, nonBlockingImprovements: [], repairFingerprint: "a".repeat(64),
+      blockingFindings: findings, nonBlockingImprovements: [], repairFingerprint,
     });
-    const publishReReview = () => {
+    const publishReReview = (findings, repairFingerprint) => {
       const history = JSON.parse(manager.readArtifact({
         specId, logicalKey: "impl.review", consumerNodeId: "impl-triage",
       }).bytes.toString("utf8"));
@@ -1602,7 +1611,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
         nodeId: "impl-review",
         outcome: "completed",
         result: { result: "ok" },
-        artifact: { logicalKey: "impl.review", payload: review([]) },
+        artifact: { logicalKey: "impl.review", payload: review(findings, repairFingerprint) },
       });
       manager.publishArtifacts({
         specId,
@@ -1614,17 +1623,29 @@ describe("FlowManager canonical Version-1 runtime", () => {
         }],
       });
     };
-    const finding = { ...rawFinding, findingId: fingerprint, fingerprint };
     advanceTo(manager, specId, "impl-triage", {
       onActive(stepId) {
-        if (stepId === "impl-review") publishAttemptArtifact(manager, specId, "impl-review", "impl.review", review([finding]));
+        if (stepId === "impl-review") publishAttemptArtifact(
+          manager,
+          specId,
+          "impl-review",
+          "impl.review",
+          review([repairedFinding, rejectedFinding]),
+        );
       },
     });
     manager.confirmSourceWorkerHandoff({
       specId,
       effect: new SourceWorkerEffect({
         version: 1, stepId: "impl-triage", completionStatus: "done", files: [], issues: [], overview: null, repair: null,
-        triage: { version: 1, dispositions: [{ findingKey: "repair-me", disposition: "apply", rationale: "The finding requires a material implementation repair." }] },
+        triage: {
+          version: 1,
+          dispositions: [repairedFinding, rejectedFinding].map((entry) => ({
+            findingKey: entry.findingKey,
+            disposition: "apply",
+            rationale: "The finding requires a material implementation repair.",
+          })),
+        },
       }),
       mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "a".repeat(64),
@@ -1634,20 +1655,106 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId,
       effect: new SourceWorkerEffect({
         version: 1, stepId: "impl-repair", completionStatus: "done", files: [], issues: [], overview: null, triage: null,
-        repair: { version: 1, appliedFindingKeys: ["repair-me"], summary: "Applied the required implementation repair." },
+        repair: {
+          version: 1,
+          appliedFindingKeys: ["repair-me", "do-not-repair"],
+          summary: "Applied the required implementation repairs.",
+        },
       }),
       mutationManifest: emptySourceMutationManifest(manager, specId),
       handoffDigest: "b".repeat(64),
       result: { outcome: "passed", summary: "repair", confirmedAt: "2026-08-18T00:01:00.000Z", artifactRefs: [] },
     });
+    const settleThroughImplementationReview = (findings, repairFingerprint) => {
+      const cycleLeaves = leaves(manager.load(specId).steps);
+      const currentIndex = cycleLeaves.findIndex((entry) => entry.id === manager.load(specId).currentNodeId);
+      const implReviewIndex = cycleLeaves.findIndex((entry) => entry.id === "impl-review");
+      assert.ok(currentIndex >= 0 && implReviewIndex >= currentIndex);
+      for (const entry of cycleLeaves.slice(currentIndex, implReviewIndex + 1)) {
+        if (manager.load(specId).currentNodeId !== entry.id) {
+          manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" }, { specId });
+        }
+        if (entry.id === "impl-review") publishReReview(findings, repairFingerprint);
+        confirmFixtureStep(manager, entry.id, { specId });
+      }
+    };
+    settleThroughImplementationReview([repairedFinding, rejectedFinding], "b".repeat(64));
+    assert.equal(manager.load(specId).currentNodeId, null);
+    manager.updateStepStatus({ stepId: "impl-triage", requestedStatus: "in_progress" }, { specId });
+    manager.confirmSourceWorkerHandoff({
+      specId,
+      effect: new SourceWorkerEffect({
+        version: 1, stepId: "impl-triage", completionStatus: "done", files: [], issues: [], overview: null, repair: null,
+        triage: {
+          version: 1,
+          dispositions: [
+            { findingKey: "repair-me", disposition: "apply", rationale: "The recurring finding still requires repair." },
+            { findingKey: "do-not-repair", disposition: "reject", rationale: "This recurring finding is not accepted for repair." },
+          ],
+        },
+      }),
+      mutationManifest: emptySourceMutationManifest(manager, specId),
+      handoffDigest: "c".repeat(64),
+      result: { outcome: "passed", summary: "recurring triage", confirmedAt: "2026-08-18T00:02:00.000Z", artifactRefs: [] },
+    });
+    assert.equal(manager.load(specId).currentNodeId, "impl-repair");
+    const handoff = new WorkerArtifactHandoffCoordinator().createRequest({
+      ctx: { root: repository, executionRoot: repository, mainRoot: repository, specId, flowManager: manager },
+      state: manager.load(specId),
+      invocation: {
+        id: "recurring-impl-repair",
+        target: { digest: "d".repeat(64) },
+        action: { digest: "e".repeat(64), nextAction: { step: "impl-repair" } },
+      },
+    });
+    const recurrenceInput = handoff.inputs.find((entry) => entry.name === "impl-review-recurrence.json");
+    assert.deepEqual(
+      recurrenceInput.document.entries.map((entry) => entry.findingKey),
+      ["repair-me"],
+      "the real impl-repair handoff must omit a recurring finding rejected by current triage",
+    );
+    manager.confirmSourceWorkerHandoff({
+      specId,
+      effect: new SourceWorkerEffect({
+        version: 1, stepId: "impl-repair", completionStatus: "done", files: [], issues: [], overview: null, triage: null,
+        repair: {
+          version: 1,
+          appliedFindingKeys: ["repair-me"],
+          summary: "Applied a different strategy for the recurring finding.",
+          recurrenceResolutions: [{
+            findingKey: "repair-me",
+            fingerprint: repairedFinding.fingerprint,
+            priorRepairInsufficiency: "The earlier implementation did not cover the repeated behavior.",
+            repairStrategy: "Move the correction to the shared behavior boundary.",
+          }],
+        },
+      }),
+      mutationManifest: emptySourceMutationManifest(manager, specId),
+      handoffDigest: "f".repeat(64),
+      result: { outcome: "passed", summary: "recurring repair", confirmedAt: "2026-08-18T00:03:00.000Z", artifactRefs: [] },
+    });
+    const status = new GetStatusCommand().execute({
+      root: repository,
+      executionRoot: repository,
+      mainRoot: repository,
+      flowManager: manager,
+      flowState: manager.load(specId),
+    });
+    assert.equal(status.implementationReviewConvergence.finalVerdict, "REJECTED");
+    assert.deepEqual(
+      status.implementationReviewConvergence.recurringFindings.map((entry) => entry.findingId).sort(),
+      [repairedFinding.findingId, rejectedFinding.findingId].sort(),
+      "public status remains readable after the latest recurring repair",
+    );
+
     const repairedLeaves = leaves(manager.load(specId).steps);
-    const testExecuteIndex = repairedLeaves.findIndex((entry) => entry.id === "test-execute");
+    const currentIndex = repairedLeaves.findIndex((entry) => entry.id === manager.load(specId).currentNodeId);
     const implGateIndex = repairedLeaves.findIndex((entry) => entry.id === "impl-gate");
-    for (const entry of repairedLeaves.slice(testExecuteIndex, implGateIndex)) {
+    for (const entry of repairedLeaves.slice(currentIndex, implGateIndex)) {
       if (manager.load(specId).currentNodeId !== entry.id) {
         manager.updateStepStatus({ stepId: entry.id, requestedStatus: "in_progress" }, { specId });
       }
-      if (entry.id === "impl-review") publishReReview();
+      if (entry.id === "impl-review") publishReReview([], "c".repeat(64));
       confirmFixtureStep(manager, entry.id, { specId });
     }
     manager.updateStepStatus({ stepId: "impl-gate", requestedStatus: "in_progress" }, { specId });
@@ -4926,6 +5033,19 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(activity.nodeId, "impl-repair");
     assert.notEqual(activity.attemptId, activity.transition.attempt.id, "producer and replacement Attempt identities differ");
     assert.equal(activity.transition.attempt.nodeId, "test-execute");
+    const repairArtifact = manager.readArtifact({
+      specId: created.specId,
+      logicalKey: "impl.repair",
+      consumerNodeId: "acceptance-review",
+    });
+    const repairRecord = JSON.parse(repairArtifact.bytes.toString("utf8"));
+    assert.equal(repairArtifact.descriptor.activityId, activity.id);
+    assert.deepEqual(repairRecord.sourceMutationManifest.attempt, {
+      id: activity.attemptId,
+      nodeId: "impl-repair",
+      sequence: activity.sequence,
+    });
+    assert.match(repairRecord.sourceMutationManifest.digest, /^[a-f0-9]{64}$/);
     assert.equal(manager.load(created.specId).currentNodeId, "test-execute", "journal reload preserves the replacement Attempt");
   });
 
@@ -8515,5 +8635,61 @@ describe("FlowManager canonical Version-1 runtime", () => {
       manager.taskMutationLineages({ specId, taskId: "T-1" }).map((lineage) => lineage.role),
       ["implementation", "review-repair", "review-repair", "review-repair", "review-repair"],
     );
+  });
+
+  it("recovers a published fourth Task Review into Gate exactly once", async () => {
+    const repository = root();
+    initializeReviewSource(repository);
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const specId = "001-task-review-fourth-settle";
+    new TaskLifecycleFixture({
+      flowManager: manager, specId, runId: "run-task-review-fourth-settle",
+      request: "recover a published fourth Task Review",
+      specRecord: { requirements: [{ id: "R-1", desc: "Recover the fourth Task Review.", task_ids: ["T-1"] }], overview: { modules: [], data_flow: [], decisions: [] } },
+      taskDocuments: [{ id: "T-1", title: "Recover fourth review", goal: "Reach Gate from canonical evidence.", parent: null, origin: "plan", added_round: 0, status: "pending" }],
+      taskId: "T-1", targetStep: "task-impl",
+    }).create();
+    confirmTaskImplementationMutation({ repository, manager, specId, content: "implemented Task behavior\n" });
+    let invocation = 0;
+    const review = new RunReviewCommand({
+      resolveTreeSha: () => "a".repeat(40), resolveTargetStateDigest: () => "b".repeat(64),
+      runCommand(_command, _args, options) {
+        invocation += 1;
+        fs.appendFileSync(path.join(repository, "README.md"), `repair ${invocation}\n`);
+        fs.writeFileSync(path.join(options.env.SENNEL_REVIEW_OUTPUT_DIR, "impl-review.json"), `${JSON.stringify({
+          version: 1, phase: "impl", generatedAt: "2026-09-03T00:00:00.000Z", verdict: "REJECTED",
+          summary: { blocking: 1, nonBlocking: 0, total: 1 },
+          blockingFindings: [{ findingKey: "same-finding", title: "Repair Task", failureMode: "spec_behavior_contradiction", file: "README.md", requirementId: "R-1", issue: "Repair is required.", suggestion: "Repair the Task.", disposition: "must-fix", rationale: "R-1 requires it." }],
+          nonBlockingImprovements: [], excluded: { missingFile: 0, outOfScope: 0 },
+        })}\n`);
+        ReviewWorkUnit.fromEnvironment(options.env).seal();
+        return { ok: true, status: 0, stdout: "", stderr: "", signal: null, killed: false };
+      },
+    });
+    const ctx = { root: repository, mainRoot: repository, executionRoot: repository, specId, flowManager: manager, flowState: manager.load(specId), config: {} };
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      ctx.flowState = manager.load(specId);
+      const result = await review.execute(ctx);
+      if (attempt < 4) {
+        await FLOW_COMMANDS.run.review.post(ctx, result);
+        manager.retryCurrentAttempt({ specId });
+      } else {
+        manager.publishCurrentAttemptResult({ specId, commandResult: result });
+      }
+    }
+    const before = manager.load(specId);
+    const next = await new GetNextActionCommand().execute({ ...ctx, flowState: before });
+    assert.equal(next.directive.actionId, "SETTLE_TASK_REVIEW_GATE_HANDOFF");
+    const settled = new RunSettleReviewTransitionCommand().execute({ ...ctx, flowState: before });
+    assert.equal(settled.ok, true, JSON.stringify(settled));
+    const after = manager.load(specId);
+    const afterSnapshot = structuredClone(after);
+    assert.equal(leaves(after.steps).find((step) => step.id === "T-1-review").status, "done");
+    assert.equal(manager.canonicalState(specId).nextAction().nodeId, "T-1-gate");
+    assert.equal(invocation, 4);
+    assert.equal(manager.taskMutationLineages({ specId, taskId: "T-1" }).filter((entry) => entry.role === "review-repair").length, 4);
+    const repeated = new RunSettleReviewTransitionCommand().execute({ ...ctx, flowState: after });
+    assert.equal(repeated.ok, false);
+    assert.deepEqual(manager.load(specId), afterSnapshot);
   });
 });
