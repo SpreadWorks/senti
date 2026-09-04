@@ -54,6 +54,7 @@ const TYPE_FOR_OPERATION = Object.freeze({
   plan_gate_repair: "recovery",
   recover_attempt: "recovery",
   recover_missing_producer_artifact: "recovery",
+  recover_task_execution_overrun: "recovery",
   park_flow: "flow_parked",
   resume_flow: "flow_resumed",
   finalize_flow: "flow_finalized",
@@ -1055,6 +1056,19 @@ export class CanonicalFlowRuntime {
     });
   }
 
+  /** Persist the Definition-selected closure of an accidentally opened Task round. */
+  recoverTaskExecutionOverrun({ specId, activityId, nodeId, attempt, references, admission = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "recover_task_execution_overrun",
+      attempt: requiredAttempt(attempt, "Task execution overrun recovery"),
+      references,
+      admission,
+    });
+  }
+
   /** Read-only restart resolution; callers decide whether a resume Activity is needed. */
   restart(specId) {
     const state = this.#state(specId);
@@ -1172,12 +1186,12 @@ export class CanonicalFlowRuntime {
     const target = requiredText(nodeId, "transition nodeId");
     const node = state.findNode(target);
     if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
-    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate"].includes(operation)
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "recover_task_execution_overrun", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate"].includes(operation)
       ? attempt
       : null;
     const activityAttempt = operation === "complete_draft_completion"
       ? stepConnectionReceipt?.sourceAttempt ?? null
-      : new Set(["repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "defer_failed_review", "defer_failed_gate"]).has(operation)
+      : new Set(["repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "recover_missing_producer_artifact", "recover_task_execution_overrun", "defer_failed_review", "defer_failed_gate"]).has(operation)
       ? state.attempt ?? attempt
       : ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_recovery_attempt", "accept_final_regression_failure"].includes(operation)
       ? attempt

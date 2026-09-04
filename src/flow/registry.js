@@ -2036,6 +2036,21 @@ export const FLOW_COMMANDS = {
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
+    "recover-task-execution-overrun": {
+      helpKey: "flow.run.recover-task-execution-overrun",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-recover-task-execution-overrun.js"),
+      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
+      help: [
+        `Usage: sennel flow run recover-task-execution-overrun ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Cancel only a Definition-detected Task implementation Attempt opened beyond its execution-round budget. The command preserves the prior Gate and issue-log evidence, restores the failed Gate frontier, and returns to the normal bounded retry/settlement route.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     "claim-next-action": {
       helpKey: "flow.run.claim-next-action",
       runtimeLog: { stepMetadata: false },

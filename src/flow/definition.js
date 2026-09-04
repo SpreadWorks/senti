@@ -42,6 +42,13 @@ import {
   reviewPhaseForFlowStepId,
 } from "./lib/review-route.js";
 import { sourceWorkerEffectSchemaRef } from "./lib/source-worker-effect-schema.js";
+import {
+  TaskExecutionBudget,
+  TaskExecutionOverrunDecision,
+  TaskExecutionOverrunFacts,
+  TaskExecutionRoundPolicy,
+  resolveTaskExecutionOverrun,
+} from "./lib/task-execution-policy.js";
 
 import {
   GateAttemptIdentity,
@@ -116,7 +123,12 @@ export {
   FinalRegressionProceedEvidence,
   FinalRegressionRetryHistory,
   FinalRegressionStepFacts,
+  TaskExecutionBudget,
+  TaskExecutionOverrunDecision,
+  TaskExecutionOverrunFacts,
+  TaskExecutionRoundPolicy,
 };
+export { resolveTaskExecutionOverrun } from "./lib/task-execution-policy.js";
 
 const MAX_DEPTH = 3;
 
@@ -688,9 +700,16 @@ export function resolveGateTransition(facts) {
       GATE_TRANSITION_TOKEN, facts.failure.code || "local_input_invalid",
     ));
   }
-  // An explicit current repair receipt may reopen a failed observation only
-  // before the semantic budget is exhausted.  Exhaustion always settles the
-  // current finding; it can never select another repair or evaluation.
+  // Task Gates consume their semantic retry budget before considering a
+  // plan-repair receipt. A gate:post receipt is emitted after every failed
+  // evaluation, so letting it win here would open an unbudgeted Task round.
+  if (facts.scope === "task" && !facts.retry.exhausted) {
+    return gateDecision(facts, new GateRetryDisposition(GATE_TRANSITION_TOKEN), {
+      retryMetric: new GateRetryMetricEffect({ operation: "increment", phase: facts.phase }),
+    });
+  }
+  // Other Gate scopes retain their sealed repair-receipt lifecycle. Their
+  // repair route has no bounded Task execution-round transition to protect.
   if (facts.recoveryEvidence.kind === "repair" && !facts.retry.exhausted) {
     return gateDecision(facts, new GateRepairDisposition(GATE_TRANSITION_TOKEN));
   }
@@ -3515,7 +3534,8 @@ export function buildCurrentFlowDefinition() {
   const preimplementationBootstrapSkippable = new Set(["scenario-validity", "test-review"]);
   const existingImplementationCompletion = new Set(["implement"]);
   const finalizationRouteLeaves = new Set(["finalize-sync", "finalize-cleanup"]);
-  const transitionsFor = ({ skippable = false, triageNoRepair = false, preimplementationBootstrap = false, existingImplementation = false, finalizationRoute = false, failurePolicy = null } = {}) => [
+  const taskOverrunRecoveryLeaves = new Set(["task-review"]);
+  const transitionsFor = ({ skippable = false, triageNoRepair = false, preimplementationBootstrap = false, existingImplementation = false, finalizationRoute = false, taskOverrunRecovery = false, failurePolicy = null } = {}) => [
     "pending:in_progress",
     "in_progress:done",
     ...(skippable ? ["in_progress:skipped"] : []),
@@ -3524,6 +3544,9 @@ export function buildCurrentFlowDefinition() {
     // review route or invalidated on the acceptance-repair route.
     ...(triageNoRepair ? ["pending:skipped", "invalidated:skipped"] : []),
     ...(preimplementationBootstrap ? ["pending:skipped", "in_progress:skipped"] : []),
+    // This is consumed only by the Definition-selected stale Task-overrun
+    // recovery Activity, which closes an accidentally opened extra round.
+    ...(taskOverrunRecovery ? ["invalidated:done"] : []),
     ...(existingImplementation ? ["pending:done"] : []),
     // These suffix leaves are skipped/reset only by the typed
     // finalization-downstream Activity while finalize-merge is active.  The
@@ -3554,6 +3577,7 @@ export function buildCurrentFlowDefinition() {
       preimplementationBootstrap: preimplementationBootstrapSkippable.has(node.id),
       existingImplementation: existingImplementationCompletion.has(node.id),
       finalizationRoute: finalizationRouteLeaves.has(node.id),
+      taskOverrunRecovery: scope === "task" && taskOverrunRecoveryLeaves.has(node.id),
     }),
     // Context requirements stay definition-owned. Current Attempt claims may
     // cover them as completed operations or typed incomplete operations, but

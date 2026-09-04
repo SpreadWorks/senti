@@ -1,5 +1,7 @@
 /** Read-only typed facts for the definition-owned Gate transition boundary. */
 
+import { TASK_EXECUTION_ROUND_POLICY } from "./task-execution-policy.js";
+
 const GATE_PHASES = new Set(["draft", "spec", "task-spec", "task-impl", "integration"]);
 const GATE_SCOPES = new Set(["flow", "task"]);
 const GATE_RESULTS = new Set(["pass", "fail", "recovered"]);
@@ -330,10 +332,11 @@ export class GateTaskLifecycle {
 }
 
 export class GateTaskBudget {
-  constructor({ round, maximumRounds = 2 } = {}) {
+  constructor({ round, maximumRounds = TASK_EXECUTION_ROUND_POLICY.maximumRounds } = {}) {
     this.round = positiveInteger(round, "gate Task budget round");
     this.maximumRounds = positiveInteger(maximumRounds, "gate Task budget maximumRounds");
-    if (this.maximumRounds !== 2 || this.round > this.maximumRounds) throw new Error("gate Task budget exceeds the two-round contract");
+    TASK_EXECUTION_ROUND_POLICY.assertRound(this.round);
+    if (this.maximumRounds !== TASK_EXECUTION_ROUND_POLICY.maximumRounds) throw new Error("gate Task budget does not match the Definition-owned Task execution policy");
     Object.freeze(this);
   }
   get finalRound() { return this.round === this.maximumRounds; }

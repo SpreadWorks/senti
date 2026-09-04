@@ -101,6 +101,7 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "plan_gate_repair",
   "recover_attempt",
   "recover_missing_producer_artifact",
+  "recover_task_execution_overrun",
   "accept_final_regression_failure",
   "defer_failed_review",
   "defer_failed_gate",
@@ -4363,6 +4364,75 @@ export class CurrentFlowState {
     return next;
   }
 
+  /** Restore the exact failed Task Gate frontier before an extra repair ran. */
+  recoverTaskExecutionOverrun({ attempt, priorActivities = [], references = null }) {
+    this.#assertExecutionActive();
+    const currentId = this.current?.at(-1) ?? null;
+    const taskId = this.current?.at(-2) ?? null;
+    if (typeof taskId !== "string" || currentId !== `${taskId}-impl` || this.attempt === null) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires the active Task implementation Attempt");
+    }
+    if (attempt?.id !== this.attempt.id || attempt?.sequence !== this.attempt.sequence) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery Attempt changed before settlement");
+    }
+    const task = this.findNode(taskId);
+    const stepIds = ["impl", "review", "gate"].map((role) => `${taskId}-${role}`);
+    if (!(task instanceof TaskNode) || !Array.isArray(task.steps) || task.steps.length !== stepIds.length
+      || task.steps.some((step, index) => step.id !== stepIds[index])) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires canonical materialized Task Steps");
+    }
+    const repairReferences = references?.repairs?.filter((reference) => (
+      reference.label === "stale plan-gate-repair Activity"
+    )) ?? [];
+    if (repairReferences.length !== 1) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires exactly one referenced plan_gate_repair Activity");
+    }
+    const repair = priorActivities.find((entry) => entry.id === repairReferences[0].id) ?? null;
+    if (repair?.transition?.operation !== "plan_gate_repair"
+      || repair.nodeId !== currentId
+      || repair.attemptId !== this.attempt.id
+      || repair.sequence !== this.attempt.sequence) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires the untouched preceding plan_gate_repair Activity");
+    }
+    const gateId = `${taskId}-gate`;
+    if (references?.evaluations?.length !== 1) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires exactly one referenced Gate failure Activity");
+    }
+    const failureReference = references.evaluations[0];
+    const failure = priorActivities.find((entry) => entry.id === failureReference.id) ?? null;
+    if (failure?.transition?.operation !== "fail_attempt" || failure.nodeId !== gateId
+      || failure.failure?.category !== "semantic" || failureReference.label !== failure.failure.code) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery Gate failure reference is invalid");
+    }
+    if (failure === null) throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires the prior semantic Gate failure");
+    const gateStart = [...priorActivities].reverse().find((entry) => (
+      entry.nodeId === gateId && entry.confirmationOrder < failure.confirmationOrder
+      && entry.transition?.attempt?.id === failure.attemptId
+      && entry.transition?.attempt?.sequence === failure.sequence
+    )) ?? null;
+    if (gateStart === null) throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires the prior Gate Attempt identity");
+    const priorResults = new Map();
+    for (const entry of priorActivities) {
+      if (entry.transition?.operation === "confirm_attempt" && entry.result?.outcome === "passed") {
+        priorResults.set(entry.nodeId, entry.result);
+      }
+    }
+    const implementationResult = priorResults.get(`${taskId}-impl`) ?? null;
+    const reviewResult = priorResults.get(`${taskId}-review`) ?? null;
+    if (implementationResult === null || reviewResult === null) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires confirmed prior implementation and review results");
+    }
+    let root = this.root;
+    root = replaceNode(root, stepIds[0], transitionNode(findNodeInRoot(root, stepIds[0]), "done", this.definition, { result: implementationResult }));
+    root = replaceNode(root, stepIds[1], transitionNode(findNodeInRoot(root, stepIds[1]), "done", this.definition, { result: reviewResult }));
+    root = replaceNode(root, gateId, transitionNode(findNodeInRoot(root, gateId), "in_progress", this.definition, { result: null }));
+    root = reconcileCompletedParents(root, this.definition);
+    const restoredAttempt = gateStart.transition.attempt.replaceFacts({ failure: failure.failure });
+    const path = this.definition.pathFor(root, gateId);
+    if (path === null) throw new CurrentFlowStateInvariantError("Task execution overrun recovery Gate path is absent");
+    return this.#replaceRoot(root, path, restoredAttempt);
+  }
+
   /** Apply the route-specific skips authorized by an immutable advisory decision. */
   continueNonblockingAttempt({ result, skippedNodeIds }) {
     const continuationResult = result instanceof NodeResult ? result : new NodeResult(result);
@@ -5676,7 +5746,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, ACTIVITY_TRANSITION_FIELDS, "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps, gateTaskLifecycle, stepConnectionReceipt } = normalized;
-    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, DRAFT_COMPLETION_TRANSITION_OPERATION, "add_task", "add_approval_task", "start_attempt", "retry_attempt", "retry_gate_attempt", "retry_recovery_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "complete_acceptance_decision_noop", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "recover_task_execution_overrun", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION, ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -5929,6 +5999,13 @@ export class ActivityTransition {
         gateTaskLifecycle: this.gateTaskLifecycle,
       });
     }
+    if (this.operation === "recover_task_execution_overrun") {
+      return state.recoverTaskExecutionOverrun({
+        attempt: this.attempt,
+        priorActivities,
+        references: activity.references,
+      });
+    }
     if (["add_task", "add_approval_task"].includes(this.operation)) {
       if (target.id !== state.definition.dynamicTaskContainerId) {
         throw new CurrentFlowStateInvariantError("Task admission Activity must target the definition dynamic Task container");
@@ -5937,7 +6014,7 @@ export class ActivityTransition {
         ? state.addTask(this.task)
         : state.admitApprovalTask(this.task, { priorActivities });
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "recover_task_execution_overrun"].includes(this.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.operation) && (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
@@ -6187,6 +6264,7 @@ export class FlowActivity {
       plan_gate_repair: "recovery",
       recover_attempt: "recovery",
       recover_missing_producer_artifact: "recovery",
+      recover_task_execution_overrun: "recovery",
       park_flow: "flow_parked",
       resume_flow: "flow_resumed",
       finalize_flow: "flow_finalized",
@@ -6257,7 +6335,7 @@ export class FlowActivity {
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "settle_test_review_repair_timeout", "repair_task_no_change_review", "repair_scenario_validity", "repair_implementation", "triage_implementation_for_repair", "triage_implementation_no_repair", "repair_acceptance_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "recover_missing_producer_artifact", "recover_task_execution_overrun", "retry_recovery_attempt", "accept_final_regression_failure", "defer_failed_review", "defer_failed_gate", INTERRUPTED_FINALIZE_SYNC_OPERATION].includes(this.transition.operation)) {
       if (!REPLACEMENT_ATTEMPT_OPERATIONS.has(this.transition.operation) && (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence)) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }

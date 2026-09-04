@@ -19,6 +19,7 @@ import {
   deriveNextAction,
   resolveDefinitionRoute,
   resolveDraftTransition,
+  resolveTaskExecutionOverrun,
   selectedNonGateUserAction,
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
@@ -91,6 +92,7 @@ import {
 } from "./gate-transition-application.js";
 import { CanonicalTaskContext, canonicalTaskContextKinds } from "./task-canonical-context.js";
 import { captureCurrentTaskSource } from "./task-mutation-lineage.js";
+import { readTaskExecutionOverrunFacts } from "./task-execution-overrun.js";
 
 // New non-Gate Step migrations use this shared read → Definition → route
 // validation → Action projection contract. Existing Step migrations retain
@@ -899,6 +901,23 @@ export default class GetNextActionCommand extends FlowCommand {
 
     if (descriptor === null) {
       return completedNextAction(binding);
+    }
+    const taskExecutionOverrun = resolveTaskExecutionOverrun(readTaskExecutionOverrunFacts({
+      flowManager: ctx.flowManager,
+      specId: ctx.flowState.specId,
+    }));
+    if (taskExecutionOverrun !== null) {
+      const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor, binding, null);
+      return {
+        ...result,
+        definitionTransition: taskExecutionOverrun.toJSON(),
+        directive: new ExecuteCommandDirective({
+          actionId: "RECOVER_TASK_EXECUTION_OVERRUN",
+          nextAction: guardedCommand("sennel flow run recover-task-execution-overrun", ctx.flowState, binding),
+          instruction: "Record the Definition-selected cancellation of the stale Task implementation Attempt before continuing.",
+          reason: "The canonical Task execution budget is exhausted; recovery restores the exact prior failed Gate frontier so normal retry or settlement remains authoritative.",
+        }).toJSON(),
+      };
     }
     let result = null;
     if (descriptor.nodeId === "scenario-validity") {

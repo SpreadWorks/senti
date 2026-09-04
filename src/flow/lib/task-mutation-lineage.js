@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { SourceMutationBaseline, SourceMutationManifest } from "./worker-artifact-handoff.js";
+import { TaskExecutionBudget } from "./task-execution-policy.js";
 
 const SHA = /^[a-f0-9]{64}$/;
 const text = (value, field) => {
@@ -15,19 +16,7 @@ const digest = (value, field) => {
 };
 
 /** Immutable lineage of one Task source Attempt. */
-export class TaskExecutionBudget {
-  constructor({ round, reviewAttemptSequenceAtStart, gateAttemptSequenceAtStart } = {}) {
-    if (!Number.isSafeInteger(round) || round < 1 || round > 2) throw new Error("Task execution round must be 1 or 2");
-    for (const [field, value] of Object.entries({ reviewAttemptSequenceAtStart, gateAttemptSequenceAtStart })) {
-      if (!Number.isSafeInteger(value) || value < 0) throw new Error(`Task execution ${field} is invalid`);
-    }
-    this.round = round;
-    this.reviewAttemptSequenceAtStart = reviewAttemptSequenceAtStart;
-    this.gateAttemptSequenceAtStart = gateAttemptSequenceAtStart;
-    Object.freeze(this);
-  }
-  toJSON() { return { round: this.round, reviewAttemptSequenceAtStart: this.reviewAttemptSequenceAtStart, gateAttemptSequenceAtStart: this.gateAttemptSequenceAtStart }; }
-}
+export { TaskExecutionBudget } from "./task-execution-policy.js";
 
 export class TaskMutationLineage {
   constructor({ runId, specId, taskId, role, attempt, budget, sourceFingerprint, manifest, noChangeReason = null } = {}) {
@@ -88,6 +77,42 @@ export class TaskMutationLineageSet {
   }
 
   get currentBudget() { return this.lineages.at(-1)?.budget ?? null; }
+}
+
+/**
+ * Rehydrate and verify one Task's immutable lineage publications from a
+ * caller-owned canonical catalog snapshot. Both ordinary Store readers and
+ * lock-scoped transition readers use this one authority-preserving loader.
+ */
+export function readTaskMutationLineagesFromCatalog({ state, catalog, activities, taskId, readCatalogedArtifact } = {}) {
+  const id = text(taskId, "Task mutation lineage taskId");
+  if (!state?.findNode?.(id)) throw new Error(`canonical Task is absent: ${id}`);
+  if (!catalog || !Array.isArray(catalog.artifacts) || !Array.isArray(activities) || typeof readCatalogedArtifact !== "function") {
+    throw new Error("Task mutation lineage loader requires canonical state, catalog, Activities and reader");
+  }
+  const lineages = catalog.artifacts
+    .filter((entry) => entry.logicalKey === "task.mutation.lineage"
+      && entry.relativePath.startsWith(`steps/impl/${id}/impl/mutation-lineage/`))
+    .map((entry) => {
+      const match = entry.relativePath.match(/mutation-lineage\/([^/]+)\.json$/);
+      if (!match) throw new Error("Task mutation lineage catalog path is invalid");
+      let document;
+      try { document = JSON.parse(readCatalogedArtifact(entry).toString("utf8")); }
+      catch (cause) { throw new Error(`Task mutation lineage is invalid JSON: ${cause.message}`); }
+      const lineage = new TaskMutationLineage(document);
+      const publication = activities.find((activity) => activity.id === entry.activityId) ?? null;
+      const expectedProducer = lineage.role === "implementation" ? `${id}-impl` : `${id}-review`;
+      if (lineage.taskId !== id || lineage.runId !== state.runId || lineage.specId !== state.specId || lineage.attempt.id !== match[1]
+        || publication?.nodeId !== expectedProducer || publication.attemptId !== lineage.attempt.id
+        || publication.sequence !== lineage.attempt.sequence) {
+        throw new Error("Task mutation lineage publication is inconsistent");
+      }
+      return lineage;
+    })
+    .sort((left, right) => left.budget.round - right.budget.round
+      || left.role.localeCompare(right.role) || left.attempt.sequence - right.attempt.sequence || left.attempt.id.localeCompare(right.attempt.id));
+  new TaskMutationLineageSet({ runId: state.runId, specId: state.specId, taskId: id, lineages });
+  return Object.freeze(lineages);
 }
 
 /**

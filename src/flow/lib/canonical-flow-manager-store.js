@@ -22,8 +22,10 @@ import {
   NonGateTransitionDecision,
   RetroStaleEvidenceRecoveryDecision,
   GateTransitionDecision,
+  TaskExecutionOverrunDecision,
   resolveGateTransition,
   resolveNonGateTransition,
+  resolveTaskExecutionOverrun,
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
   testResultReviewTransitionDefinition,
@@ -72,6 +74,7 @@ import {
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { TaskStepIdentity } from "./task-step-identity.js";
 import { readCurrentGateTransitionFacts } from "./gate-transition-facts.js";
+import { readTaskExecutionOverrunFacts, TaskExecutionOverrunAdmission } from "./task-execution-overrun.js";
 import {
   buildDeferredSemanticFindingsPublication,
   DeferredFlowFindingsPublication,
@@ -107,7 +110,7 @@ import { ExternalBlockedOutcome, StepAttempt } from "./step-outcome.js";
 import { CanonicalSpecReview } from "./spec-review-artifacts.js";
 import { TaskCollection } from "../../spec/lib/render-contract.js";
 import { SourceMutationManifest, SourceWorkerEffect } from "./worker-artifact-handoff.js";
-import { captureCurrentTaskSource, TaskExecutionBudget, TaskMutationLineage, TaskMutationLineageSet } from "./task-mutation-lineage.js";
+import { captureCurrentTaskSource, TaskExecutionBudget, TaskMutationLineage, TaskMutationLineageSet, readTaskMutationLineagesFromCatalog } from "./task-mutation-lineage.js";
 import { DefinitionLifecycleTransition } from "./step-transition-policy.js";
 import {
   captureRetryRecoveryBaseline,
@@ -1522,6 +1525,39 @@ export class CanonicalFlowManagerStore {
       result: { outcome: "passed", summary: "Gate findings deferred after semantic retry exhaustion", confirmedAt: new Date().toISOString(), artifactRefs: [] },
       findingsPublication: findings,
       gateTaskLifecycle: current.plan.taskLifecycle?.toJSON?.() ?? null,
+    });
+  }
+
+  /** Apply only the current Definition-selected stale Task round closure. */
+  recoverTaskExecutionOverrun({ specId = null, decision } = {}) {
+    const resolved = this.#resolveSpecId(specId);
+    if (resolved === null) throw new CurrentFlowStateInvariantError("no canonical active Flow");
+    if (!(decision instanceof TaskExecutionOverrunDecision)) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery requires a Definition decision");
+    }
+    const facts = readTaskExecutionOverrunFacts({ flowManager: this, specId: resolved });
+    const selected = resolveTaskExecutionOverrun(facts);
+    if (selected === null || !selected.matches(decision)) {
+      throw new CurrentFlowStateInvariantError("Task execution overrun recovery is stale or no longer Definition-selected");
+    }
+    const state = this.runtime.load(resolved);
+    return this.runtime.recoverTaskExecutionOverrun({
+      specId: resolved,
+      activityId: activityId("task-execution-overrun-recovered"),
+      nodeId: `${selected.facts.taskId}-impl`,
+      attempt: state.attempt,
+      references: {
+        evaluations: [{ id: selected.facts.gate.failure.activityId, label: selected.facts.gate.failure.code }], findings: [],
+        repairs: [
+          { id: selected.facts.repair.activityId, label: "stale plan-gate-repair Activity" },
+          { id: selected.facts.repair.recordId, label: selected.facts.repair.sourceIssueLogId },
+        ],
+        artifacts: [
+          { id: selected.facts.gate.publication.relativePath, label: selected.facts.gate.publication.hash },
+          { id: selected.facts.issueLog.relativePath, label: selected.facts.issueLog.hash },
+        ],
+      },
+      admission: new TaskExecutionOverrunAdmission({ facts: selected.facts, root: this.executionRoot() }),
     });
   }
 
@@ -3065,35 +3101,17 @@ export class CanonicalFlowManagerStore {
     if (!state.findNode(id)) throw new CurrentFlowStateInvariantError(`canonical Task is absent: ${id}`);
     const catalog = this.catalog(resolved);
     const activities = this.runtime.activities(resolved);
-    const lineages = catalog.artifacts
-      .filter((entry) => entry.logicalKey === "task.mutation.lineage"
-        && entry.relativePath.startsWith(`steps/impl/${id}/impl/mutation-lineage/`))
-      .map((entry) => {
+    return readTaskMutationLineagesFromCatalog({
+      state, catalog, activities, taskId: id,
+      readCatalogedArtifact: (entry) => {
         const match = entry.relativePath.match(/mutation-lineage\/([^/]+)\.json$/);
-        if (!match) throw new CurrentFlowStateInvariantError("Task mutation lineage catalog path is invalid");
-        const read = this.readArtifact({ specId: resolved, logicalKey: "task.mutation.lineage", parameters: { taskId: id, attemptId: match[1] }, consumerNodeId: "task-review" });
-        let document;
-        try { document = JSON.parse(read.bytes.toString("utf8")); }
-        catch (cause) { throw new CurrentFlowStateInvariantError(`Task mutation lineage is invalid JSON: ${cause.message}`); }
-        const lineage = new TaskMutationLineage(document);
-        if (lineage.taskId !== id || lineage.runId !== state.runId || lineage.specId !== state.specId || lineage.attempt.id !== match[1]) {
-          throw new CurrentFlowStateInvariantError("Task mutation lineage identity does not match its canonical catalog entry");
-        }
-        const publication = activities.find((activity) => activity.id === entry.activityId) ?? null;
-        const expectedProducer = lineage.role === "implementation" ? `${id}-impl` : `${id}-review`;
-        if (publication?.nodeId !== expectedProducer
-          || publication.attemptId !== lineage.attempt.id
-          || publication.sequence !== lineage.attempt.sequence) {
-          throw new CurrentFlowStateInvariantError("Task mutation lineage role does not match its canonical producer Attempt");
-        }
-        return lineage;
-      })
-      .sort((left, right) => left.budget.round - right.budget.round
-        || left.role.localeCompare(right.role)
-        || left.attempt.sequence - right.attempt.sequence
-        || left.attempt.id.localeCompare(right.attempt.id));
-    new TaskMutationLineageSet({ runId: state.runId, specId: state.specId, taskId: id, lineages });
-    return Object.freeze(lineages);
+        if (match === null) throw new CurrentFlowStateInvariantError("Task mutation lineage catalog path is invalid");
+        return this.readArtifact({
+          specId: resolved, logicalKey: "task.mutation.lineage",
+          parameters: { taskId: id, attemptId: match[1] }, consumerNodeId: "task-review",
+        }).bytes;
+      },
+    });
   }
 
   /**

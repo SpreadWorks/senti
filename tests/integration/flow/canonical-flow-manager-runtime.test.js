@@ -13,9 +13,10 @@ import {
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
 } from "../../../src/lib/flow-artifact-contract.js";
-import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow-manager-store.js";
+import { CanonicalFlowCreateRequest, CanonicalFlowManagerStore } from "../../../src/flow/lib/canonical-flow-manager-store.js";
 import {
   ActivityReviewPublication,
+  CurrentAttempt,
   CurrentFlowSpecRecord,
   CurrentFlowState,
   CurrentFlowStateStore,
@@ -40,11 +41,13 @@ import SetReviewEvidenceCommand from "../../../src/flow/lib/set-review-evidence.
 import RunRecoverReviewPassCommand from "../../../src/flow/lib/run-recover-review-pass.js";
 import RunUpdateOverviewCommand from "../../../src/flow/lib/run-update-overview.js";
 import RunGateCommand, { appendIssueLogFromGateResult } from "../../../src/flow/lib/run-gate.js";
+import { computeGitState } from "../../../src/lib/git-state.js";
 import { CanonicalGatePromotion, canonicalGateRevision } from "../../../src/flow/lib/canonical-gate-artifacts.js";
 import { readCurrentGateTransitionFacts } from "../../../src/flow/lib/gate-transition-facts.js";
 import {
   resolveGateTransition,
   resolveNonGateTransition,
+  resolveTaskExecutionOverrun,
   scenarioValidityTransitionDefinition,
   testExecuteTransitionDefinition,
 } from "../../../src/flow/definition.js";
@@ -84,7 +87,9 @@ import {
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { captureCurrentTaskSource } from "../../../src/flow/lib/task-mutation-lineage.js";
-import { canonicalPlanGateRepairForTarget } from "../../../src/flow/lib/plan-gate-repair.js";
+import { canonicalPlanGateRepairForTarget, inspectCanonicalPlanGateRepair } from "../../../src/flow/lib/plan-gate-repair.js";
+import RunRecoverTaskExecutionOverrunCommand from "../../../src/flow/lib/run-recover-task-execution-overrun.js";
+import { readTaskExecutionOverrunFacts, readTaskExecutionOverrunFactsFromView } from "../../../src/flow/lib/task-execution-overrun.js";
 
 function emptySourceMutationManifest(manager, specId) {
   return new SourceMutationManifest({
@@ -7038,9 +7043,9 @@ describe("FlowManager canonical Version-1 runtime", () => {
       flowManager: manager,
       flowState: manager.load(specId),
     });
-    const exhaustCurrentGateRound = (round) => {
+    const exhaustCurrentGateRound = (round, { startAt = 1, stopAfter = 5 } = {}) => {
       let exhausted = null;
-      for (let evaluation = 1; evaluation <= 5; evaluation += 1) {
+      for (let evaluation = startAt; evaluation <= stopAfter; evaluation += 1) {
         const commandResult = new CanonicalGatePromotion({
           state: manager.canonicalState(specId), phase: "task-impl", nodeId: "T-1-gate", activeTaskId: "T-1",
         }).promote({
@@ -7052,17 +7057,23 @@ describe("FlowManager canonical Version-1 runtime", () => {
             nextAction: { diagnosis: { observations: [observation] } },
           },
         });
-        manager.failCurrentAttempt({
-          specId,
-          failure: {
-            category: "semantic",
-            code: "TASK_GATE_REJECTED",
-            message: `persistent round ${round} finding`,
-            retryable: evaluation < 5,
-            retryKind: evaluation < 5 ? "semantic" : null,
-          },
-          commandResult,
-        });
+        // Production gate:post persists the canonical result first, then
+        // records the semantic failure against that same Gate Attempt.
+        manager.publishCurrentAttemptResult({ specId, commandResult });
+        const publishedDecision = resolveGateTransition(readCurrentGateTransitionFacts({
+          flowManager: manager,
+          flowState: manager.load(specId),
+          phase: "task-impl",
+        }));
+        manager.recordGateObservationDecision({ specId, decision: publishedDecision });
+        // Production gate:post publishes a matching issue-log receipt after
+        // every failed evaluation, including retries. That receipt must not
+        // bypass the Task Gate semantic retry budget.
+        appendIssueLogFromGateResult({
+          ...context(),
+          phase: "task-impl",
+          gitState: computeGitState(repository),
+        }, commandResult);
         let decision = resolveGateTransition(readCurrentGateTransitionFacts({
           flowManager: manager,
           flowState: manager.load(specId),
@@ -7071,14 +7082,10 @@ describe("FlowManager canonical Version-1 runtime", () => {
         assert.equal(decision.facts.taskBudget.round, round);
         if (evaluation < 5) {
           assert.equal(decision.disposition.operation, "retry");
+          if (evaluation === stopAfter) return decision;
           manager.retryGateTransition({ specId, decision });
           continue;
         }
-        appendIssueLogFromGateResult({
-          ...context(),
-          phase: "task-impl",
-          gitState: { headSha: "a".repeat(40), worktreeHash: "b".repeat(64) },
-        }, commandResult);
         decision = resolveGateTransition(readCurrentGateTransitionFacts({
           flowManager: manager,
           flowState: manager.load(specId),
@@ -7136,7 +7143,178 @@ describe("FlowManager canonical Version-1 runtime", () => {
     confirmCanonicalFixtureStep(manager, specId, "T-1-review");
     manager.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "in_progress" }, { specId });
 
-    const secondRound = exhaustCurrentGateRound(2);
+    const secondRoundFirstFailure = exhaustCurrentGateRound(2, { stopAfter: 1 });
+    assert.equal(secondRoundFirstFailure.disposition.operation, "retry");
+    assert.deepEqual(secondRoundFirstFailure.facts.retry.toJSON(), { used: 0, maximum: 4, remaining: 4 });
+
+    // Reproduce the historic bug exactly: gate:post has already published a
+    // receipt for the first failed second-round Gate while retry remains, then the old route opens a
+    // third implementation Attempt through plan_gate_repair.  This bypasses
+    // the manager admission deliberately; production admission now prevents
+    // it, while recovery must still repair durable old state.
+    const staleGateState = manager.canonicalState(specId);
+    const staleIssueLog = JSON.parse(manager.readArtifact({
+      specId, logicalKey: "issue.log", consumerNodeId: "T-1-impl",
+    }).bytes.toString("utf8"));
+    const staleRepairEvidence = inspectCanonicalPlanGateRepair({ flowManager: manager, state: staleGateState });
+    assert.notEqual(staleRepairEvidence, null);
+    const staleRepairRecord = staleRepairEvidence.createRecord(staleGateState);
+    const staleImpl = staleGateState.findNode("T-1-impl");
+    const staleAttempt = new CurrentAttempt({
+      id: "attempt-t-1-impl-stale-round-three",
+      nodeId: "T-1-impl",
+      sequence: staleImpl.attemptSequence + 1,
+      startedAt: "2026-09-04T00:00:00.000Z",
+      consumption: { semantic: 0, tooling: 0 },
+      failure: null,
+      blocker: null,
+      incomplete: [],
+      operationClaims: [{
+        operation: "resolve-command-context",
+        resources: staleGateState.definition.contractForNode(staleImpl).resourceContract.required,
+      }],
+    });
+    // CanonicalFlowRuntime is the persisted Version-store API that produced
+    // the legacy state; the FlowManager facade deliberately has no bypass
+    // around Definition admission.
+    const legacyRuntime = new CanonicalFlowManagerStore({ root: repository, mainRoot: repository }).runtime;
+    legacyRuntime.planGateRepair({
+      specId,
+      activityId: "task-round-overrun-plan-gate-repair",
+      nodeId: "T-1-impl",
+      attempt: staleAttempt,
+      references: { evaluations: [], findings: [], repairs: [staleRepairRecord.activityReference()], artifacts: [] },
+      artifactWrites: [{
+        logicalKey: "issue.log",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(staleRepairRecord.appendToIssueLog(staleIssueLog), null, 2)}\n`, "utf8"),
+      }],
+      gateTaskLifecycle: {
+        operation: "repair-task-impl",
+        taskId: "T-1",
+        successorStepId: "T-1-impl",
+        resetStepIds: ["T-1-impl", "T-1-review", "T-1-gate"],
+      },
+    });
+    // gate:post flushes the stale implementation worker's Task-scoped agent
+    // metric after the repair Activity. This exact observation must not make
+    // an otherwise untouched stale frontier unrecoverable.
+    manager.accumulateAgentMetrics("T-1-impl", {
+      specId, taskId: "T-1", provider: "test", profileKey: "default",
+      responseChars: 0, durationMs: 0,
+      usage: { input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 },
+    });
+    assert.equal(manager.canonicalState(specId).current.at(-1), "T-1-impl");
+    assert.equal(manager.taskMutationLineages({ specId, taskId: "T-1" })
+      .filter((lineage) => lineage.role === "implementation").length, 2);
+    const beforeAttemptThreeHandoff = {
+      state: manager.canonicalState(specId).toJSON(), activities: manager.activityLedger(specId),
+    };
+    assert.throws(() => manager.confirmSourceWorkerHandoff({
+      specId,
+      mutationManifest: emptySourceMutationManifest(manager, specId),
+      handoffDigest: "d".repeat(64),
+      effect: new SourceWorkerEffect({
+        version: 1, stepId: "task-impl", completionStatus: "done", files: [], issues: [],
+        overview: { modules: [], data_flow: [], decisions: [] }, triage: null, repair: null,
+        noChangeReason: "The stale Attempt is not an admitted Task execution round.",
+      }),
+      result: {
+        outcome: "passed", summary: "must not accept stale Task Attempt", confirmedAt: "2026-09-04T00:00:00.000Z", artifactRefs: [],
+      },
+    }), /round|budget|Task execution/);
+    assert.deepEqual(manager.canonicalState(specId).toJSON(), beforeAttemptThreeHandoff.state);
+    assert.deepEqual(manager.activityLedger(specId), beforeAttemptThreeHandoff.activities);
+    const staleBeforeSourceEdit = {
+      state: manager.canonicalState(specId).toJSON(), activities: manager.activityLedger(specId),
+    };
+    fs.writeFileSync(path.join(repository, "README.md"), "unconfirmed change after the round-two Gate\n");
+    const sourceChangedDirective = await new GetNextActionCommand().execute(context());
+    assert.notEqual(sourceChangedDirective.directive?.actionId, "RECOVER_TASK_EXECUTION_OVERRUN");
+    const sourceChangedRecovery = new RunRecoverTaskExecutionOverrunCommand().execute(context());
+    assert.equal(sourceChangedRecovery.ok, false);
+    assert.deepEqual(manager.canonicalState(specId).toJSON(), staleBeforeSourceEdit.state);
+    assert.deepEqual(manager.activityLedger(specId), staleBeforeSourceEdit.activities);
+    fs.writeFileSync(path.join(repository, "README.md"), "Task implementation round 2\n");
+    fs.writeFileSync(path.join(repository, "unconfirmed-attempt-three.js"), "export default true;\n");
+    const untrackedSourceDirective = await new GetNextActionCommand().execute(context());
+    assert.notEqual(untrackedSourceDirective.directive?.actionId, "RECOVER_TASK_EXECUTION_OVERRUN");
+    const untrackedSourceRecovery = new RunRecoverTaskExecutionOverrunCommand().execute(context());
+    assert.equal(untrackedSourceRecovery.ok, false);
+    assert.deepEqual(manager.canonicalState(specId).toJSON(), staleBeforeSourceEdit.state);
+    assert.deepEqual(manager.activityLedger(specId), staleBeforeSourceEdit.activities);
+    fs.unlinkSync(path.join(repository, "unconfirmed-attempt-three.js"));
+    const selectedOverrunDecision = resolveTaskExecutionOverrun(readTaskExecutionOverrunFacts({
+      flowManager: manager, specId,
+    }));
+    assert.notEqual(selectedOverrunDecision, null);
+    const malformedOverrunFacts = (changeActivities) => manager.readCanonicalTransitionView({
+      specId,
+      read: (view) => readTaskExecutionOverrunFactsFromView({
+        root: repository,
+        view: {
+          state: view.state, revision: view.revision, catalog: view.catalog,
+          activities: changeActivities(view.activities),
+          readCatalogedArtifact: view.readCatalogedArtifact,
+        },
+      }),
+    });
+    assert.equal(malformedOverrunFacts((activities) => activities.map((activity) => (
+      activity.transition.operation !== "plan_gate_repair"
+        ? activity
+        : { ...activity, references: { ...activity.references, repairs: [] } }
+    ))), null, "a repair Activity without its sealed record reference is not recoverable");
+    assert.equal(malformedOverrunFacts((activities) => activities.map((activity) => (
+      activity.transition.operation !== "fail_attempt" || activity.nodeId !== "T-1-gate"
+        ? activity
+        : { ...activity, failure: { ...activity.failure, code: "MISMATCHED_GATE_FAILURE" } }
+    ))), null, "a Gate result without its matching failure Activity is not recoverable");
+    assert.equal(malformedOverrunFacts((activities) => {
+      const repairOrder = activities.find((activity) => activity.transition.operation === "plan_gate_repair").confirmationOrder;
+      return activities.map((activity) => (
+        activity.transition.operation !== "record_metric" || activity.nodeId !== "T-1" || activity.confirmationOrder <= repairOrder
+          ? activity
+          : { ...activity, metric: { ...activity.metric, phase: "task-impl" } }
+      ));
+    }), null, "only the stale Task implementation agent metric may follow plan_gate_repair");
+    const recoveryDirective = await new GetNextActionCommand().execute(context());
+    assert.equal(recoveryDirective.directive.actionId, "RECOVER_TASK_EXECUTION_OVERRUN");
+    const recovered = new RunRecoverTaskExecutionOverrunCommand().execute(context());
+    assert.equal(recovered.ok, true, JSON.stringify(recovered));
+    const restored = manager.canonicalState(specId);
+    assert.equal(restored.current.at(-1), "T-1-gate");
+    assert.equal(restored.attempt.failure.category, "semantic");
+    assert.equal(restored.findNode("T-1-impl").status, "done");
+    assert.equal(restored.findNode("T-1-review").status, "done");
+    assert.equal(restored.findNode("T-1-gate").status, "in_progress");
+    assert.equal(manager.activityLedger(specId).at(-1).transition.operation, "recover_task_execution_overrun");
+    assert.equal(manager.taskMutationLineages({ specId, taskId: "T-1" })
+      .filter((lineage) => lineage.role === "implementation").length, 2);
+    const afterRecovery = {
+      state: manager.canonicalState(specId).toJSON(), activities: manager.activityLedger(specId),
+    };
+    assert.throws(
+      () => manager.recoverTaskExecutionOverrun({ specId, decision: selectedOverrunDecision }),
+      /stale|Definition-selected/,
+    );
+    assert.deepEqual(manager.canonicalState(specId).toJSON(), afterRecovery.state);
+    assert.deepEqual(manager.activityLedger(specId), afterRecovery.activities);
+    const reloaded = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    assert.equal(reloaded.canonicalState(specId).current.at(-1), "T-1-gate");
+    assert.equal((await new GetNextActionCommand().execute({ ...context(), flowManager: reloaded, flowState: reloaded.load(specId) })).directive.actionId, "CLAIM_GATE_RETRY");
+    const recoveredReplay = new RunRecoverTaskExecutionOverrunCommand().execute({
+      ...context(), flowManager: reloaded, flowState: reloaded.load(specId),
+    });
+    assert.equal(recoveredReplay.ok, true, JSON.stringify(recoveredReplay));
+    assert.equal(recoveredReplay.data.replayed, true);
+    assert.equal(reloaded.activityLedger(specId).at(-1).transition.operation, "recover_task_execution_overrun");
+
+    const retryAfterRecovery = resolveGateTransition(readCurrentGateTransitionFacts({
+      flowManager: manager, flowState: manager.load(specId), phase: "task-impl",
+    }));
+    assert.equal(retryAfterRecovery.disposition.operation, "retry");
+    manager.retryGateTransition({ specId, decision: retryAfterRecovery });
+    const secondRound = exhaustCurrentGateRound(2, { startAt: 2 });
     assert.equal(secondRound.disposition.operation, "defer");
     assert.deepEqual(secondRound.facts.retry.toJSON(), { used: 4, maximum: 4, remaining: 0 });
     assert.deepEqual(secondRound.plan.taskLifecycle.toJSON(), {
@@ -7496,9 +7674,42 @@ describe("FlowManager canonical Version-1 runtime", () => {
       specId, flowManager: manager, flowState: manager.load(specId), phase: "task-impl",
       gitState: { headSha: "a".repeat(40), worktreeHash: "b".repeat(64) },
     }, result);
-    const facts = readCurrentGateTransitionFacts({ flowManager: manager, flowState: manager.load(specId), phase: "task-impl" });
-    const decision = resolveGateTransition(facts);
-    assert.equal(decision.disposition.operation, "repair");
+    let facts = readCurrentGateTransitionFacts({ flowManager: manager, flowState: manager.load(specId), phase: "task-impl" });
+    let decision = resolveGateTransition(facts);
+    assert.equal(decision.disposition.operation, "retry");
+    // A valid receipt is generated after every Task Gate evaluation. It must
+    // not turn the first failure into an implementation repair; repair is
+    // admitted only after the Definition-owned semantic retry budget.
+    for (let retry = 1; retry <= 4; retry += 1) {
+      manager.retryGateTransition({ specId, decision });
+      const retryResult = new CanonicalGatePromotion({
+        state: manager.canonicalState(specId), phase: "task-impl", nodeId: "T-1-gate", activeTaskId: "T-1",
+      }).promote({
+        result: "fail",
+        artifacts: {
+          phase: "task-impl", taskId: "T-1",
+          failureKind: "ai_semantic_fail", failureCode: "TASK_GATE_REJECTED",
+          sourceFingerprint: currentTaskSourceFingerprint(manager, specId),
+          nextAction: { diagnosis: { observations: result.artifacts.nextAction.diagnosis.observations } },
+        },
+      });
+      manager.failCurrentAttempt({
+        specId,
+        failure: {
+          category: "semantic", code: "TASK_GATE_REJECTED", message: "repair current task",
+          retryable: retry < 4, retryKind: retry < 4 ? "semantic" : null,
+        },
+        commandResult: retryResult,
+      });
+      appendIssueLogFromGateResult({
+        root: repository, mainRoot: repository, executionRoot: repository,
+        specId, flowManager: manager, flowState: manager.load(specId), phase: "task-impl",
+        gitState: { headSha: "a".repeat(40), worktreeHash: "b".repeat(64) },
+      }, retryResult);
+      facts = readCurrentGateTransitionFacts({ flowManager: manager, flowState: manager.load(specId), phase: "task-impl" });
+      decision = resolveGateTransition(facts);
+      assert.equal(decision.disposition.operation, retry < 4 ? "retry" : "repair");
+    }
     const reloadedManager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const reloadedFacts = readCurrentGateTransitionFacts({
       flowManager: reloadedManager, flowState: reloadedManager.load(specId), phase: "task-impl",

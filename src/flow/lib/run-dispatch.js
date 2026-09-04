@@ -93,6 +93,7 @@ const DISPATCHER_OWNED_RECOVERY_COMMANDS = new Set([
   "claim-next-action",
   "recover-finalization",
   "recover-missing-producer-artifact",
+  "recover-task-execution-overrun",
   "settle-gate-transition",
   "settle-review-transition",
 ]);

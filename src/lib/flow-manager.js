@@ -706,6 +706,9 @@ export class FlowManager {
   settleGateTransition(input = {}) {
     return this._store.settleGateTransition({ ...input, specId: input.specId ?? this._boundSpecId });
   }
+  recoverTaskExecutionOverrun(input = {}) {
+    return this._store.recoverTaskExecutionOverrun({ ...input, specId: input.specId ?? this._boundSpecId });
+  }
   rewindTo(nodeId, opts) { return this._store.rewindTo(nodeId, withSpecIdDefault(opts, this._boundSpecId)); }
   rewindTestEvidence(input = {}) {
     return this._store.rewindTestEvidence({

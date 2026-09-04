@@ -293,22 +293,25 @@ describe("definition-owned Gate transition boundary", () => {
     assert.equal(exhaustedActions.some((action) => action instanceof IncrementMetric), false);
   });
 
-  it("settles retry exhaustion before another repair or evaluation", () => {
-    const exhausted = { result: "fail", failure: new GateFailureCategory({ category: "semantic" }), retry: new GateRetryMetrics({ used: 4, maximum: 4 }) };
+  it("keeps a Task Gate retry ahead of a repair receipt until exhaustion", () => {
+    const exhausted = {
+      result: "fail", failure: new GateFailureCategory({ category: "semantic" }),
+      retry: new GateRetryMetrics({ used: 4, maximum: 4 }), taskBudget: { round: 2, maximumRounds: 2 },
+    };
     const binding = { attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" };
-    const repairedExhausted = resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }) }));
+    const repairedExhausted = resolveGateTransition(facts({ phase: "task-impl", ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }) }));
     assert.equal(repairedExhausted.disposition.operation, "defer");
-    assert.equal(resolveGateTransition(facts({ ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "defer", ...binding }) })).disposition.operation, "defer");
-    const deferred = resolveGateTransition(facts(exhausted));
+    assert.equal(resolveGateTransition(facts({ phase: "task-impl", ...exhausted, recoveryEvidence: new GateRecoveryEvidence({ kind: "defer", ...binding }) })).disposition.operation, "defer");
+    const deferred = resolveGateTransition(facts({ phase: "task-impl", ...exhausted }));
     assert.equal(deferred.disposition.operation, "defer");
     assert.equal(deferred.plan.retryMetric, null);
     assert.equal(deferred.plan.updates[0].status, "in_progress");
-    assert.equal(resolveGateTransition(facts({
+    assert.equal(resolveGateTransition(facts({ phase: "task-impl",
       result: "fail",
       failure: new GateFailureCategory({ category: "semantic" }),
       retry: new GateRetryMetrics({ used: 3, maximum: 4 }),
       recoveryEvidence: new GateRecoveryEvidence({ kind: "repair", ...binding }),
-    })).disposition.operation, "repair");
+    })).disposition.operation, "retry");
   });
 
   it("uses persisted Attempt consumption: four retries permit a fifth failed evaluation, never a sixth", () => {
@@ -367,7 +370,7 @@ describe("definition-owned Gate transition boundary", () => {
     });
     const repair = resolveGateTransition(facts({
       ...task.toJSON(), result: "fail", failure: { category: "semantic", code: "GATE_REJECTED" },
-      retry: { used: 0, maximum: 4 },
+      retry: { used: 4, maximum: 4 },
       recoveryEvidence: { kind: "repair", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" },
     }));
     assert.deepEqual(repair.plan.taskLifecycle.toJSON(), {
@@ -388,6 +391,7 @@ describe("definition-owned Gate transition boundary", () => {
       retry: { used: 4, maximum: 4 },
       taskBudget: { round: 2, maximumRounds: 2 },
       taskLifecycle: { taskId: "T-1", nextTaskId: null, integrationStepId: "test-execute" },
+      recoveryEvidence: { kind: "repair", attempt: { id: "attempt-7", sequence: 7 }, fingerprint: "revision-7" },
     }));
     assert.deepEqual(finalTask.plan.taskLifecycle.toJSON(), {
       operation: "defer-and-advance", taskId: "T-1", successorStepId: "test-execute", resetStepIds: [],
