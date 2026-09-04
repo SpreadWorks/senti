@@ -365,7 +365,7 @@ function captureManifest(request) {
   return captureSourceMutationManifestForParent({ request });
 }
 
-function assertSourceWorkerCoverageFailure(responseText) {
+function assertSourceWorkerResponseFailure(responseText, violationCode, expectedData = {}) {
   const value = fixture("implement", { specRecord: validSpec() });
   try {
     initializeGitRepository(value);
@@ -377,11 +377,22 @@ function assertSourceWorkerCoverageFailure(responseText) {
       () => materializeSourceWorkerEffect({ request, responseText: JSON.stringify(responseText) }),
       (error) => error instanceof WorkerArtifactHandoffError
         && error.code === "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID"
-        && error.cause?.code === "FLOW_SOURCE_HANDOFF_EFFECT_PATH_COVERAGE_INVALID",
+        && error.data?.sourceEffectViolation === violationCode
+        && Object.entries(expectedData).every(([key, value]) => (
+          JSON.stringify(error.data?.[key]) === JSON.stringify(value)
+        )),
     );
   } finally {
     removeTmpDir(value.mainRoot);
   }
+}
+
+function assertSourceWorkerCoverageFailure(responseText, expectedData = {}) {
+  assertSourceWorkerResponseFailure(
+    responseText,
+    "FLOW_SOURCE_HANDOFF_EFFECT_PATH_COVERAGE_INVALID",
+    expectedData,
+  );
 }
 
 function implementationEffect(request, paths) {
@@ -1846,6 +1857,15 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("describes the many-to-many source requirement-to-path claim contract in every mutating worker schema", () => {
+    for (const stepId of ["implement", "impl-repair", "task-impl"]) {
+      const files = sourceWorkerEffectJsonSchema(stepId).properties.files;
+      assert.match(files.description, /at most one group per requirement/i, stepId);
+      assert.match(files.description, /may appear in different requirement groups/i, stepId);
+      assert.match(files.items.properties.paths.description, /Normalized project-relative paths/i, stepId);
+    }
+  });
+
   it("enforces step-static source response constraints before parent materialization", () => {
     const base = {
       version: 1,
@@ -1925,16 +1945,110 @@ describe("worker artifact handoff", () => {
   });
 
   it("rejects a source worker response that omits an observed mutation path", () => {
-    assertSourceWorkerCoverageFailure(sourceWorkerReport("implement", []));
+    assertSourceWorkerCoverageFailure(sourceWorkerReport("implement", []), { missing: ["product.js"], unknown: [] });
   });
 
-  it("rejects duplicate source path claims across requirement file claims", () => {
-    assertSourceWorkerCoverageFailure(sourceWorkerReport("implement", [], {
+  it("reports unknown source worker path claims separately from missing paths", () => {
+    assertSourceWorkerCoverageFailure(
+      sourceWorkerReport("implement", ["product.js", "absent.js"]),
+      { missing: [], unknown: ["absent.js"] },
+    );
+  });
+
+  it("reports missing and unknown source worker path claims together", () => {
+    assertSourceWorkerCoverageFailure(
+      sourceWorkerReport("implement", ["absent.js"]),
+      { missing: ["product.js"], unknown: ["absent.js"] },
+    );
+  });
+
+  it("allows one observed path to remain mapped to every requirement it satisfies", () => {
+    const specRecord = validSpec();
+    specRecord.requirements.push({ id: "R2", desc: "Share the implementation file.", task_ids: ["T1"] });
+    const value = fixture("implement", { specRecord });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx, state: value.flowManager.load(), invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(path.join(value.executionRoot, "product.js"), "export const value = 2;\n");
+      const effect = materializeSourceWorkerEffect({
+        request,
+        responseText: JSON.stringify(sourceWorkerReport("implement", [], {
+          files: [
+            { requirementId: "R1", paths: ["product.js"] },
+            { requirementId: "R2", paths: ["product.js"] },
+          ],
+        })),
+      });
+      const mutationId = SourceMutationManifest.mutationId(request.sourceMutationBaseline.attempt, "product.js");
+      assert.deepEqual(effect.toJSON().files, [
+        { requirementId: "R1", mutationIds: [mutationId] },
+        { requirementId: "R2", mutationIds: [mutationId] },
+      ]);
+
+      sealParentMaterializedSourceWorkerEffect({ request });
+      value.coordinator.reconcile({ ctx: value.ctx, request, mutationAuthority: authority });
+
+      assert.deepEqual(readCatalogJson(value, "file.map", "impl-review"), {
+        R1: ["product.js"],
+        R2: ["product.js"],
+      });
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects duplicate requirement claim groups with a diagnostic", () => {
+    assertSourceWorkerResponseFailure(sourceWorkerReport("implement", [], {
       files: [
         { requirementId: "R1", paths: ["product.js"] },
-        { requirementId: "R2", paths: ["product.js"] },
+        { requirementId: "R1", paths: ["product.js"] },
       ],
-    }));
+    }), "FLOW_SOURCE_HANDOFF_EFFECT_REQUIREMENT_CLAIM_DUPLICATE", { duplicateRequirementIds: ["R1"] });
+  });
+
+  it("rejects duplicate paths within one requirement claim with a diagnostic", () => {
+    assertSourceWorkerResponseFailure(sourceWorkerReport("implement", [], {
+      files: [{ requirementId: "R1", paths: ["product.js", "product.js"] }],
+    }), "FLOW_SOURCE_HANDOFF_EFFECT_PATH_CLAIM_DUPLICATE", { duplicatePaths: ["product.js"] });
+  });
+
+  it("rejects duplicate requirement groups and mutation IDs in canonical source effects", () => {
+    const mutationA = "a".repeat(64);
+    const mutationB = "b".repeat(64);
+    const base = {
+      version: 1,
+      stepId: "implement",
+      completionStatus: "done",
+      issues: [],
+      overview: null,
+      triage: null,
+      repair: null,
+      noChangeReason: null,
+    };
+    assert.throws(
+      () => SourceWorkerEffect.fromDocument({
+        ...base,
+        files: [
+          { requirementId: "R1", mutationIds: [mutationA] },
+          { requirementId: "R1", mutationIds: [mutationB] },
+        ],
+      }, "implement"),
+      (error) => error instanceof WorkerArtifactHandoffError
+        && error.code === "FLOW_SOURCE_HANDOFF_EFFECT_REQUIREMENT_CLAIM_DUPLICATE"
+        && JSON.stringify(error.data.duplicateRequirementIds) === JSON.stringify(["R1"]),
+    );
+    assert.throws(
+      () => SourceWorkerEffect.fromDocument({
+        ...base,
+        files: [{ requirementId: "R1", mutationIds: [mutationA, mutationA] }],
+      }, "implement"),
+      (error) => error instanceof WorkerArtifactHandoffError
+        && error.code === "FLOW_SOURCE_HANDOFF_EFFECT_PATH_CLAIM_DUPLICATE"
+        && JSON.stringify(error.data.duplicateMutationIds) === JSON.stringify([mutationA]),
+    );
   });
 
   it("rejects a worker-written source effect before parent materialization", () => {

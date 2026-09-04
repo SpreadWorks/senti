@@ -183,7 +183,7 @@ function sourceWorkerAction() {
         "Then replace product.js with exactly `export const value = 2;` followed by a newline.",
         "Run `npm run lint` and require it to succeed.",
         "Do not modify any other source file.",
-        "Return the structured source effect with version 1, stepId implement, completionStatus done, and files containing requirementId R1 plus the normalized project-relative product.js path in paths. Set issues empty and overview, triage, repair, noChangeReason null.",
+        "The product.js change satisfies both R1 and R2. Return the structured source effect with version 1, stepId implement, completionStatus done, and exactly two file claim groups: requirementId R1 with normalized project-relative product.js in paths, and requirementId R2 with that same product.js path in paths. A shared path belongs to every relevant requirement group. Set issues empty and overview, triage, repair, noChangeReason null.",
       ].join(" "),
     },
     context: { workerArtifactHandoff: { required: true } },
@@ -305,7 +305,10 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         },
         specRecord: {
           goal: "Exercise source handoff observation advances",
-          requirements: [{ id: "R1", desc: "Update the exported value." }],
+          requirements: [
+            { id: "R1", desc: "Update the exported value." },
+            { id: "R2", desc: "Record the same source update for the related behavior." },
+          ],
         },
       }).create().registerActive().activate("implement");
       const dispatcher = new RunDispatchCommand({
@@ -340,6 +343,12 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       const completed = flowManager.load();
       assert.equal(findStepById(completed.steps, "implement").status, "done");
       assert.equal(fs.readFileSync(path.join(executionRoot, "product.js"), "utf8"), "export const value = 2;\n");
+      const fileMap = JSON.parse(flowManager.readArtifact({
+        specId,
+        logicalKey: "file.map",
+        consumerNodeId: "impl-review",
+      }).bytes.toString("utf8"));
+      assert.deepEqual(fileMap, { R1: ["product.js"], R2: ["product.js"] });
       const contextMetrics = completed.metrics.filter((entry) => entry.counter === "docsRead");
       assert.equal(contextMetrics.length, 1);
       assert.equal(contextMetrics[0].phase, "impl");

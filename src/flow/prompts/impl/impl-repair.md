@@ -1,4 +1,6 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
+
    - Read the canonical `impl-triage.json` supplied as an immutable handoff input and apply only its `apply` findings.
    - Do not run tests, delete evidence, edit Flow state, compute a canonical repair fingerprint, write `impl-repair.json`, invalidate steps, or call `set step`.
-   - Edit source files only. Return normalized changed-path claims and the typed `repair` result through the action's structured output. Set `triage` and `overview` null; do not write `effects.json` or run a seal command.
+   - Edit source files only. Return the normalized requirement-to-path claims required by the shared source-worker handoff contract and the typed `repair` result through the action's structured output. Set `triage` and `overview` null; do not write `effects.json` or run a seal command.
    - The parent validates the source diff and uses its fixed repair/invalidation transaction to publish repair evidence and advance the Flow.

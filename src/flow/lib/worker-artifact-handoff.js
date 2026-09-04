@@ -143,6 +143,28 @@ function exactObjectKeys(value, keys, field) {
   }
 }
 
+function duplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return [...duplicates];
+}
+
+function assertUniqueSourceRequirementClaims(files, label) {
+  const duplicateRequirementIds = duplicateValues(files.map((entry) => entry.requirementId));
+  if (duplicateRequirementIds.length > 0) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_SOURCE_HANDOFF_EFFECT_REQUIREMENT_CLAIM_DUPLICATE",
+      `${label} must contain at most one file claim for each requirement`,
+      { retryable: false, data: { duplicateRequirementIds: duplicateRequirementIds.slice(0, 20) } },
+    );
+  }
+}
+
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (value && typeof value === "object") {
@@ -626,7 +648,15 @@ export class SourceFileEffect {
       throw new Error("source worker file mutationIds must be a bounded non-empty array");
     }
     this.mutationIds = Object.freeze(mutationIds.map((candidate) => requiredDigest(candidate, "source worker file mutationId")));
-    if (new Set(this.mutationIds).size !== this.mutationIds.length) throw new Error("source worker file mutationIds must not duplicate");
+    const duplicateMutationIds = duplicateValues(this.mutationIds);
+    if (duplicateMutationIds.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_EFFECT_PATH_CLAIM_DUPLICATE",
+        "source worker file mutationIds must not duplicate within one requirement claim",
+        { retryable: false, data: { duplicateMutationIds: duplicateMutationIds.slice(0, 20) } },
+      );
+    }
     Object.freeze(this);
   }
   resolvePaths(manifest) {
@@ -644,18 +674,22 @@ export class SourceWorkerFileClaim {
       throw new Error("source worker file claim paths must be a bounded non-empty array");
     }
     this.paths = Object.freeze(paths.map((candidate) => normalizedRelativePath(candidate, "source worker file claim path")));
-    if (new Set(this.paths).size !== this.paths.length) throw new Error("source worker file claim paths must not duplicate");
+    const duplicatePaths = duplicateValues(this.paths);
+    if (duplicatePaths.length > 0) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_SOURCE_HANDOFF_EFFECT_PATH_CLAIM_DUPLICATE",
+        "source worker file claim paths must not duplicate within one requirement claim",
+        { retryable: false, data: { duplicatePaths: duplicatePaths.slice(0, 20) } },
+      );
+    }
     Object.freeze(this);
   }
   bind(manifest) {
     if (!(manifest instanceof SourceMutationManifest)) throw new Error("source worker file claim requires a SourceMutationManifest");
     return new SourceFileEffect({
       requirementId: this.requirementId,
-      mutationIds: this.paths.map((relativePath) => {
-        const mutation = manifest.mutations.find((entry) => entry.path === relativePath);
-        if (!mutation) throw new Error(`source worker file claim path is absent from the current Attempt manifest: ${relativePath}`);
-        return mutation.mutationId;
-      }),
+      mutationIds: this.paths.map((relativePath) => manifest.mutationIdForPath(relativePath)),
     });
   }
   toJSON() { return { requirementId: this.requirementId, paths: [...this.paths] }; }
@@ -762,6 +796,7 @@ export class SourceWorkerEffect {
       exactObjectKeys(entry, ["requirementId", "mutationIds"], "source worker file effect");
       return new SourceFileEffect(entry);
     }));
+    assertUniqueSourceRequirementClaims(this.files, "source worker file effects");
     this.issues = Object.freeze(issues.map((entry) => {
       exactObjectKeys(entry, ["classification", "reason", "remainingRisk"], "source worker issue effect");
       return new SourceIssueEffect(entry);
@@ -822,6 +857,7 @@ export class SourceWorkerEffectReport {
       exactObjectKeys(entry, ["requirementId", "paths"], "source worker file claim");
       return new SourceWorkerFileClaim(entry);
     }));
+    assertUniqueSourceRequirementClaims(this.files, "source worker file claims");
     this.issues = Object.freeze(issues.map((entry) => {
       exactObjectKeys(entry, ["classification", "reason", "remainingRisk"], "source worker issue claim");
       return new SourceIssueEffect(entry);
@@ -840,14 +876,15 @@ export class SourceWorkerEffectReport {
   }
   bind(manifest) {
     if (!(manifest instanceof SourceMutationManifest)) throw new Error("source worker effect report requires a SourceMutationManifest");
-    const claimed = this.files.flatMap((entry) => entry.paths);
+    const claimed = new Set(this.files.flatMap((entry) => entry.paths));
     const observed = manifest.paths();
-    const missing = observed.filter((relativePath) => !claimed.includes(relativePath));
-    const unknown = claimed.filter((relativePath) => !observed.includes(relativePath));
-    if (new Set(claimed).size !== claimed.length || missing.length > 0 || unknown.length > 0) {
+    const observedPaths = new Set(observed);
+    const missing = observed.filter((relativePath) => !claimed.has(relativePath));
+    const unknown = [...claimed].filter((relativePath) => !observedPaths.has(relativePath));
+    if (missing.length > 0 || unknown.length > 0) {
       throw new WorkerArtifactHandoffError(
         "invalid", "FLOW_SOURCE_HANDOFF_EFFECT_PATH_COVERAGE_INVALID",
-        "source worker file claims must exactly cover the parent-observed mutation paths",
+        "source worker file claim paths must exactly cover the parent-observed mutation paths as a set",
         { retryable: false, data: { missing: missing.slice(0, 20), unknown: unknown.slice(0, 20) } },
       );
     }
@@ -901,11 +938,14 @@ function sourceEffectDocumentFromResponse(responseText, request, manifest) {
   try {
     return SourceWorkerEffectReport.fromDocument(document, request.stepId).bind(manifest);
   } catch (cause) {
+    const diagnostic = cause instanceof WorkerArtifactHandoffError
+      ? { sourceEffectViolation: cause.code, ...cause.data }
+      : {};
     throw new WorkerArtifactHandoffError(
       "invalid",
       "FLOW_SOURCE_HANDOFF_RESPONSE_INVALID",
       `source worker response violates its canonical effect contract: ${cause.message}`,
-      { cause, retryable: false, data: { stepId: request.stepId } },
+      { cause, retryable: false, data: { stepId: request.stepId, ...diagnostic } },
     );
   }
 }
@@ -1665,6 +1705,9 @@ export class SourceMutationEntry {
 
 /** Canonical, Attempt-bound declaration of actual source mutations. */
 export class SourceMutationManifest {
+  #mutationIdByPath;
+  #pathByMutationId;
+
   constructor({ attempt, baselineDigest, mutations = [] } = {}) {
     this.attempt = CurrentAttemptIdentity.from(attempt);
     this.baselineDigest = requiredDigest(baselineDigest, "source mutation manifest baselineDigest");
@@ -1675,6 +1718,8 @@ export class SourceMutationManifest {
       || new Set(this.mutations.map((entry) => entry.path)).size !== this.mutations.length) {
       throw new Error("source mutation manifest mutations must be unique");
     }
+    this.#mutationIdByPath = new Map(this.mutations.map((entry) => [entry.path, entry.mutationId]));
+    this.#pathByMutationId = new Map(this.mutations.map((entry) => [entry.mutationId, entry.path]));
     this.digest = digest(stableStringify(this.unsignedJSON()));
     Object.freeze(this);
   }
@@ -1741,10 +1786,16 @@ export class SourceMutationManifest {
   unsignedJSON() { return { attempt: this.attempt.toJSON(), baselineDigest: this.baselineDigest, mutations: this.mutations.map((entry) => entry.toJSON()) }; }
   toJSON() { return { ...this.unsignedJSON(), digest: this.digest }; }
   paths() { return this.mutations.map((entry) => entry.path); }
+  mutationIdForPath(relativePath) {
+    const path = normalizedRelativePath(relativePath, "source mutation manifest path");
+    const mutationId = this.#mutationIdByPath.get(path);
+    if (!mutationId) throw new Error(`source worker file claim path is absent from the current Attempt manifest: ${path}`);
+    return mutationId;
+  }
   pathForMutationId(mutationId) {
-    const entry = this.mutations.find((candidate) => candidate.mutationId === mutationId);
-    if (!entry) throw new Error(`source mutation id is absent from the current Attempt manifest: ${mutationId}`);
-    return entry.path;
+    const path = this.#pathByMutationId.get(mutationId);
+    if (!path) throw new Error(`source mutation id is absent from the current Attempt manifest: ${mutationId}`);
+    return path;
   }
   assertBinding(baseline) {
     if (!(baseline instanceof SourceMutationBaseline)) {

@@ -1,3 +1,5 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
+
    - Read the spec to understand requirements.
    - Keep implementation aligned with the impl review blocking policy. The only blocking impl review failure modes are:
      - `missing_acceptance_requirement`
@@ -18,7 +20,7 @@
    - Before writing code, form a concise implementation approach for each requirement and verify the existing modules and patterns it will reuse. This worker invocation cannot obtain a user reply.
    - If a genuine user decision is required, do not edit source or Flow state; report the blocker. Otherwise proceed directly once the approved Spec and planned tests are present.
    - Aim to make tests pass.
-   - Do not call `sennel flow set files`, `set issue-log`, or `set step`. After edits, return only normalized project-relative changed-path claims grouped by requirement ids in the structured source-worker effect response. The parent captures the Attempt manifest after this worker exits, verifies every observed path, derives mutation IDs, materializes the sealed handoff, and commits the file-map with completion.
+   - Do not call `sennel flow set files`, `set issue-log`, or `set step`. After edits, return the normalized project-relative requirement-to-path claims required by the shared source-worker handoff contract in the structured source-worker effect response. The parent captures the Attempt manifest after this worker exits, verifies every observed path, derives mutation IDs, materializes the sealed handoff, and commits the file-map with completion.
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
    - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sennel/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
    - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.

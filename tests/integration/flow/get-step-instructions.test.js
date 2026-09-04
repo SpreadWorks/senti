@@ -68,6 +68,16 @@ describe("getStepInstructions (loader contract)", () => {
       }
     });
 
+    it("defines source worker file claims as a many-to-many requirement relation", () => {
+      for (const key of ["impl.implement", "impl.impl-repair", "task.task-impl"]) {
+        const content = getStepInstructions(key);
+        assert.match(content, /at most one claim group for each requirement/, key);
+        assert.match(content, /paths unique within that group/, key);
+        assert.match(content, /include it in every relevant requirement's group rather than choosing a single primary requirement/, key);
+        assert.match(content, /union of all claimed paths must exactly match the parent-observed mutation paths/, key);
+      }
+    });
+
     it("spec-triage emits a bounded V2 classification delta for canonical findings", () => {
       const content = getStepInstructions("plan.spec-triage");
 
